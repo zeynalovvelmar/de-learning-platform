@@ -1,0 +1,37 @@
+en:
+  app_title: "Data Engineering Revision"
+  sidebar_title: "Navigation"
+  toggle_lang: "Switch to Azerbaijani (AZ)"
+  modules_header: "Modules"
+  modules:
+    python_core: "Python Core"
+    sql: "SQL"
+    spark: "Apache Spark"
+    kafka: "Apache Kafka"
+    airflow: "Apache Airflow"
+    devops: "DevOps"
+  tabs:
+    theory: "Theory"
+    interview_cards: "Interview Cards"
+    sandbox: "Sandbox"
+    flashcards: "Flashcards"
+  coming_soon: "Coming soon"
+
+az:
+  app_title: "Data Mühəndisliyi Təkrarı"
+  sidebar_title: "Naviqasiya"
+  toggle_lang: "İngiliscəyə Dəyiş (EN)"
+  modules_header: "Modullar"
+  modules:
+    python_core: "Python Əsasları"
+    sql: "SQL"
+    spark: "Apache Spark"
+    kafka: "Apache Kafka"
+    airflow: "Apache Airflow"
+    devops: "DevOps"
+  tabs:
+    theory: "Nəzəriyyə"
+    interview_cards: "Müsahibə Kartları"
+    sandbox: "Test Mühiti"
+    flashcards: "Fleşkartlar"
+  coming_soon: "Tezliklə"
