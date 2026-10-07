@@ -1,0 +1,126 @@
+# YAML Schema for Lessons:
+# id: string
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise: {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+
+id: "01-select-where"
+title:
+  en: "SELECT and WHERE"
+  az: "SELECT və WHERE"
+quick_recap:
+  en: "SELECT determines which columns to return, while WHERE filters which rows to keep. Avoid SELECT * in production and always wrap text literals in quotes."
+  az: "SELECT hansı sütunların qaytarılacağını, WHERE isə hansı sətirlərin saxlanılacağını müəyyən edir. İstehsalatda SELECT * istifadəsindən çəkinin və mətn dəyərlərini həmişə dırnaq içinə alın."
+explanation:
+  en: |
+    Think of a database table like a spreadsheet:
+    - **Rows** represent individual entities (such as individual users or orders).
+    - **Columns** represent attributes of each entity (such as first name, email, or country).
+
+    When querying data, junior engineers follow 3-4 simple steps:
+    1. **SELECT (Columns)**: Decide which columns to retrieve. Use specific column names to pick only the data you need.
+    2. **FROM (Table)**: Specify the source table where the data is stored.
+    3. **WHERE (Rows)**: Filter rows using logical conditions (=, !=, <, >, IN, BETWEEN, LIKE). Only rows evaluating to TRUE are kept.
+    4. **Inspect Results**: The database engine processes the query and returns matching rows.
+
+    ### Real Dataset Examples:
+
+    1. **Retrieve all columns and rows from a table:**
+    ```sql
+    SELECT * FROM users;
+    ```
+    Retrieves all columns for all 100 users in the dataset.
+
+    2. **Select specific columns filtered by exact match:**
+    ```sql
+    SELECT first_name, email FROM users WHERE country = 'USA';
+    ```
+    Retrieves the first name and email of the 20 users located in the USA.
+
+    3. **Filter using a range condition:**
+    ```sql
+    SELECT product_name, price FROM products WHERE price BETWEEN 10 AND 30;
+    ```
+    Retrieves the product name and price for the 16 products priced between 10 and 30.
+  az: |
+    Verilənlər bazası cədvəlini elektron cədvəl (məsələn, Excel vərəqi) kimi təsəvvür edin:
+    - **Sətirlər** fərdi qeydləri təmsil edir (məsələn, hər bir istifadəçi və ya sifariş).
+    - **Sütunlar** həmin qeydlərin xüsusiyyətlərini təmsil edir (məsələn, ad, e-poçt və ya ölkə).
+
+    Verilənləri sorğulayan zaman 3-4 sadə addım izlənilir:
+    1. **SELECT (Sütunlar)**: Hansı sütunları oxumaq istədiyinizi seçin. Yalnız sizə lazım olan məlumatları çəkmək üçün xüsusi sütun adlarını göstərin.
+    2. **FROM (Cədvəl)**: Məlumatların saxlandığı mənbə cədvəli təyin edin.
+    3. **WHERE (Sətirlər)**: Məntiqi şərtlər (=, !=, <, >, IN, BETWEEN, LIKE) vasitəsilə sətirləri süzgəcdən keçirin. Yalnız şərti DOĞRU (TRUE) olan sətirlər saxlanılır.
+    4. **Nəticənin İncelənməsi**: Verilənlər bazası mühərriki sorğunu icra edir və uyğun gələn sətirləri qaytarır.
+
+    ### Real Verilənlər Üzərində Nümunələr:
+
+    1. **Cədvəldəki bütün sütun və sətirlərə baxış:**
+    ```sql
+    SELECT * FROM users;
+    ```
+    Verilənlər toplusundakı 100 istifadəçinin bütün sütunlarını qaytarır.
+
+    2. **Dəqiq şərtlə seçilmiş xüsusi sütunlar:**
+    ```sql
+    SELECT first_name, email FROM users WHERE country = 'USA';
+    ```
+    ABŞ-da yerləşən 20 istifadəçinin adını və e-poçtunu qaytarır.
+
+    3. **Aralıq şərtindən istifadə edərək süzgəcləmə:**
+    ```sql
+    SELECT product_name, price FROM products WHERE price BETWEEN 10 AND 30;
+    ```
+    Qiyməti 10 ilə 30 arasında olan 16 məhsulun adını və qiymətini qaytarır.
+code: |
+  SELECT first_name, email, country 
+  FROM users 
+  WHERE country = 'USA';
+what_it_does:
+  en: "This query retrieves the first name, email, and country of all users located in the USA."
+  az: "Bu sorğu ABŞ-da yerləşən bütün istifadəçilərin adını, e-poçt ünvanını və ölkəsini qaytarır."
+real_world_use:
+  en: "Used to extract targeted customer segments for region-specific marketing campaigns."
+  az: "Bölgəyə uyğun marketinq kampaniyaları üçün müəyyən müştəri seqmentlərini çıxarmaq məqsədilə istifadə olunur."
+common_mistakes:
+  en: "Forgetting quotes around text values in the WHERE clause, or using = instead of LIKE for partial matches."
+  az: "WHERE bəndində mətn dəyərlərini dırnaq içinə almağı unutmaq və ya qismən uyğunluqlar üçün LIKE əvəzinə = operatorundan istifadə etmək."
+interview_question:
+  question:
+    en: "Why is SELECT * discouraged in production?"
+    az: "İstehsalat (production) mühitində nə üçün SELECT * istifadəsi tövsiyə edilmir?"
+  answer:
+    en: |
+      Using `SELECT *` in production leads to severe technical drawbacks:
+      1. **Network & I/O Overhead**: Unnecessarily transfers unneeded columns (including large TEXT or BLOB payloads), consuming network bandwidth and database memory.
+      2. **Prevents Covering Index Scans**: The engine cannot satisfy queries using index-only scans and must read the base table heap/pages.
+      3. **Fragile Contracts**: Adding, removing, or reordering columns during schema migrations can break application serialization, ORM mappings, or positional unpacking.
+      4. **Inefficient Caching**: Pollutes the database buffer cache by storing columns that consumers never read.
+    az: |
+      İstehsalat (production) mühitində `SELECT *` istifadəsi ciddi texniki fəsadlara yol açır:
+      1. **Şəbəkə və Giriş-Çıxış (I/O) Yükü**: Lazımsız sütunları (böyük mətn və ya BLOB sahələri daxil olmaqla) çəkərək şəbəkə bant genişliyini və verilənlər bazasının yaddaşını yükləyir.
+      2. **Örtük İndekslə Oxunmanın Qarşısını Alır**: Sorğu planlayıcısı sorğunu yalnız indeks vasitəsilə (index-only scan) təmin edə bilmir və əsas cədvəl səhifələrinə müraciət etməli olur.
+      3. **Sxem Dəyişikliklərinə Həssaslıq**: Sxem miqrasiyası zamanı yeni sütunların əlavə olunması və ya ardıcıllığın dəyişməsi tətbiqin serializasiya və ya ORM modellərini sıradan çıxara bilər.
+      4. **Keşin Çirklənməsi**: İstifadə olunmayan sütunları bufer hovuzuna (buffer pool) yükləyərək keşin səmərəliliyini azaldır.
+exercise:
+  question:
+    en: "Write a query to find the product_name and price of all products that cost exactly 19.99."
+    az: "Qiyməti tam olaraq 19.99 olan bütün məhsulların adını (product_name) və qiymətini (price) qaytaran sorğu yazın."
+  starter_code: |
+    SELECT ___
+    FROM products
+    WHERE ___;
+  hint:
+    en: "Filter the price column where price equals 19.99."
+    az: "price sütununu 19.99 dəyərinə bərabər olan şərtlə süzgəcdən keçirin."
+  solution: |
+    SELECT product_name, price 
+    FROM products 
+    WHERE price = 19.99;
+  order_matters: false

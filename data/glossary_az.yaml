@@ -4,3 +4,6 @@ terms:
   dynamic_task_mapping: "Dinamik Tapşırıq Xəritələnməsi"
   event_streaming: "Hadisə Axını"
   containerization: "Konteynerləşdirmə"
+  database: "Verilənlər Bazası"
+  query: "Sorğu"
+  schema: "Sxem"
