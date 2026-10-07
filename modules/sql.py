@@ -2,11 +2,19 @@ import streamlit as st
 from modules.sql_engine import SQLEngine
 import yaml
 import os
+from pathlib import Path
 
-def load_lesson_data():
-    file_path = os.path.join("data", "content", "sql", "01-select-where.yaml")
-    with open(file_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+def load_all_lessons():
+    lessons_dir = Path("data") / "content" / "sql"
+    lessons = []
+    if lessons_dir.exists():
+        for file_path in lessons_dir.glob("*.yaml"):
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data:
+                    lessons.append(data)
+    lessons.sort(key=lambda x: x.get('order', 999))
+    return lessons
 
 def render_page(t):
     st.header(t['modules']['sql'])
@@ -16,8 +24,19 @@ def render_page(t):
         st.session_state.sql_engine = SQLEngine()
     engine = st.session_state.sql_engine
     
-    lesson = load_lesson_data()
+    lessons = load_all_lessons()
+    if not lessons:
+        st.info(t['coming_soon'])
+        return
+        
     sandbox_t = t['sql_sandbox']
+    
+    lesson = st.selectbox(
+        sandbox_t['select_lesson'],
+        options=lessons,
+        format_func=lambda l: f"{l.get('order', '')}. {l['title'][lang]} ({l.get('level', '').capitalize()})",
+        key="sql_lesson_selector"
+    )
     
     tab1, tab2, tab3, tab4 = st.tabs([
         t['tabs']['theory'], 
@@ -42,34 +61,42 @@ def render_page(t):
             
     with tab3:
         with st.expander(sandbox_t['schema_ref']):
-            st.code("""
-CREATE TABLE categories (category_id, category_name);
-CREATE TABLE products (product_id, category_id, product_name, price, stock_quantity);
-CREATE TABLE users (user_id, first_name, last_name, email, country, created_at);
-CREATE TABLE login_events (event_id, user_id, login_time, ip_address);
-CREATE TABLE orders (order_id, user_id, order_date, status, total_amount);
-CREATE TABLE order_items (item_id, order_id, product_id, quantity, unit_price);
-            """, language="sql")
+            st.code(engine.get_schema(), language="sql")
             
-        st.markdown(f"### {sandbox_t['exercise']}")
-        st.markdown(lesson['exercise']['question'][lang])
-        with st.expander(sandbox_t['hint']):
-            st.markdown(lesson['exercise']['hint'][lang])
-            
-        # Key is needed so that different renders do not clash, though not strictly required.
-        user_query = st.text_area(sandbox_t['placeholder'], value=lesson['exercise']['starter_code'], height=150)
-        
-        if st.button(sandbox_t['check_answer']):
-            is_correct, status, details = engine.check_answer(user_query, lesson['exercise']['solution'], lesson['exercise']['order_matters'])
-            status_msg = sandbox_t['status_codes'][status]
-            if details:
-                status_msg += str(details)
-            if is_correct:
-                st.success(status_msg)
-            else:
-                st.error(status_msg)
+        has_exercise = bool(lesson.get('exercise'))
+        if has_exercise:
+            st.markdown(f"### {sandbox_t['exercise']}")
+            st.markdown(lesson['exercise']['question'][lang])
+            with st.expander(sandbox_t['hint']):
+                st.markdown(lesson['exercise']['hint'][lang])
+            user_query = st.text_area(
+                sandbox_t['placeholder'],
+                value=lesson['exercise'].get('starter_code', ''),
+                height=150,
+                key=f"user_query_{lesson['id']}"
+            )
+            if st.button(sandbox_t['check_answer'], key=f"check_answer_{lesson['id']}"):
+                is_correct, status, details = engine.check_answer(
+                    user_query,
+                    lesson['exercise']['solution'],
+                    lesson['exercise'].get('order_matters', False)
+                )
+                status_msg = sandbox_t['status_codes'][status]
+                if details:
+                    status_msg += str(details)
+                if is_correct:
+                    st.success(status_msg)
+                else:
+                    st.error(status_msg)
+        else:
+            user_query = st.text_area(
+                sandbox_t['placeholder'],
+                value=lesson.get('code', ''),
+                height=150,
+                key=f"user_query_{lesson['id']}"
+            )
                 
-        if st.button(sandbox_t['run_query']):
+        if st.button(sandbox_t['run_query'], key=f"run_query_{lesson['id']}"):
             df, err = engine.execute_query(user_query, max_rows=500)
             if err:
                 st.error(f"{sandbox_t['query_error']}{err}")
@@ -81,7 +108,7 @@ CREATE TABLE order_items (item_id, order_id, product_id, quantity, unit_price);
                         st.warning(sandbox_t['truncated_warning'])
                     st.dataframe(df)
                 
-        if st.button(sandbox_t['reset_db']):
+        if st.button(sandbox_t['reset_db'], key=f"reset_db_{lesson['id']}"):
             engine.reset_database()
             st.success(sandbox_t['db_reset_success'])
 

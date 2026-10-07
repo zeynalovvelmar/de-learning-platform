@@ -1,0 +1,145 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+
+id: "02-order-by-limit"
+order: 2
+level: "junior"
+title:
+  en: "ORDER BY, LIMIT, and DISTINCT"
+  az: "ORDER BY, LIMIT və DISTINCT"
+quick_recap:
+  en: "ORDER BY sorts result rows, LIMIT restricts the row count, and DISTINCT eliminates duplicate rows. Always pair LIMIT with ORDER BY for deterministic pagination."
+  az: "ORDER BY sətirləri sıralayır, LIMIT sətir sayını məhdudlaşdırır, DISTINCT isə təkrarlanan sətirləri təmizləyir. Deterministik səhifələmə (pagination) üçün LIMIT-i həmişə ORDER BY ilə birgə istifadə edin."
+explanation:
+  en: |
+    When browsing large tables, you rarely want unsorted dumps of data. Instead, you need ranked leaderboards, paginated views, and unique value lists:
+    - **DISTINCT**: Collapses duplicate rows into single unique rows.
+    - **ORDER BY**: Sorts rows in ascending (`ASC`, default) or descending (`DESC`) order.
+    - **LIMIT**: Restricts the maximum number of rows returned by the query.
+
+    ### Execution Order with Sorting:
+    Adding sorting and pagination extends the logical execution flow:
+    1. **FROM**: Identify tables
+    2. **WHERE**: Filter rows
+    3. **SELECT**: Pick columns
+    4. **DISTINCT**: Remove duplicates
+    5. **ORDER BY**: Sort rows
+    6. **LIMIT**: Slice top N rows
+
+    ### Real Dataset Examples:
+
+    1. **Finding Unique Values with DISTINCT:**
+    ```sql
+    SELECT DISTINCT status FROM orders;
+    ```
+    Collapses all 500 orders into the 3 distinct status values present in the system ('completed', 'cancelled', 'refunded').
+
+    2. **Ranking with ORDER BY and LIMIT:**
+    ```sql
+    SELECT product_name, price FROM products ORDER BY price DESC LIMIT 5;
+    ```
+    Sorts all 50 products from most to least expensive and returns the top 5 highest-priced items.
+
+    3. **Filtered Search with Pattern and Limit:**
+    ```sql
+    SELECT product_name, price FROM products WHERE product_name LIKE 'Product 1%' ORDER BY price ASC LIMIT 5;
+    ```
+    Filters products whose name starts with 'Product 1', sorts them by price, and returns the first 5 rows.
+  az: |
+    Böyük həcmli cədvəllərlə işləyərkən sıralanmamış xam məlumatlar nadir hallarda tələb olunur. Əksər hallarda reytinq cədvəlləri, səhifələnmiş baxışlar və unikal dəyərlər lazımdır:
+    - **DISTINCT**: Təkrarlanan sətirləri birləşdirərək hər dəyərdən yalnız bir nüsxə saxlayır.
+    - **ORDER BY**: Sətirləri artan (`ASC`, standart) və ya azalan (`DESC`) ardıcıllıqla sıralayır.
+    - **LIMIT**: Sorğu tərəfindən qaytarılan maksimum sətir sayını məhdudlaşdırır.
+
+    ### Sıralama ilə İcra Ardıcıllığı:
+    Sıralama və məhdudlaşdırma məntiqi icra ardıcıllığını bu şəkildə tamamlayır:
+    1. **FROM**: Mənbə cədvəli təyin edir
+    2. **WHERE**: Sətirləri süzgəcdən keçirir
+    3. **SELECT**: Tələb olunan sütunları çıxarır
+    4. **DISTINCT**: Dublikatları təmizləyir
+    5. **ORDER BY**: Sətirləri sıralayır
+    6. **LIMIT**: İlk N sayda sətri kəsir
+
+    ### Real Verilənlər Üzərində Nümunələr:
+
+    1. **DISTINCT ilə Unikal Dəyərlərin Tapılması:**
+    ```sql
+    SELECT DISTINCT status FROM orders;
+    ```
+    Bütün 500 sifarişi sistemdə mövcud olan 3 unikal status dəyərinə ('completed', 'cancelled', 'refunded') qədər yığcamlaşdırır.
+
+    2. **ORDER BY və LIMIT ilə Reytinq:**
+    ```sql
+    SELECT product_name, price FROM products ORDER BY price DESC LIMIT 5;
+    ```
+    50 məhsulun hamısını ən bahadan ən ucuza doğru sıralayır və ən yüksək qiymətli ilk 5 məhsulu qaytarır.
+
+    3. **Şablon və Məhdudiyyət ilə Axtarış:**
+    ```sql
+    SELECT product_name, price FROM products WHERE product_name LIKE 'Product 1%' ORDER BY price ASC LIMIT 5;
+    ```
+    Adı 'Product 1' ilə başlayan məhsulları süzür, qiymətə görə artan sırada düzür və ilk 5 sətri qaytarır.
+code: |
+  SELECT product_name, price 
+  FROM products 
+  ORDER BY price DESC 
+  LIMIT 5;
+what_it_does:
+  en: "This query sorts all products by price from highest to lowest and returns the top 5 most expensive products."
+  az: "Bu sorğu bütün məhsulları ən yüksək qiymətdən ən aşağıya doğru sıralayır və ən bahalı ilk 5 məhsulu qaytarır."
+real_world_use:
+  en: "Used to populate e-commerce leaderboard rankings, top-selling product widgets, and paginated web tables."
+  az: "Elektron ticarətdə ən çox satılanlar vitrini, reytinq cədvəlləri və veb səhifələmə (pagination) mexanizmlərini təmin etmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using LIMIT without ORDER BY**: Without an explicit ORDER BY clause, relational databases return rows in arbitrary physical order. Repeated queries or pagination requests can return duplicate or missing rows.
+    - **Sorting on unindexed columns**: Running ORDER BY on millions of unindexed rows forces the database into an expensive filesort operation in temporary disk space.
+    - **Placing LIMIT before ORDER BY**: In SQL syntax, LIMIT must always be the final clause of the query statement.
+  az: |
+    - **ORDER BY olmadan LIMIT istifadə etmək**: Dəqiq ORDER BY bəndi göstərilmədikdə, relyasion verilənlər bazaları sətirləri fiziki disk yaddaşındakı təsadüfi ardıcıllıqla qaytarır. Eyni sorğunun təkrar icrası zamanı fərqli nəticələr və ya səhifələmədə itən/dublikat sətirlər yarana bilər.
+    - **İndekslənməmiş sütun üzrə sıralama**: İndeksi olmayan milyonlarla sətirlik sütunda ORDER BY icra edildikdə mühərrik müvəqqəti diskdə ağır sıralama (filesort) əməliyyatı aparmağa məcbur olur.
+    - **LIMIT bəndini ORDER BY-dan əvvəl yazmaq**: SQL sintaksisində LIMIT həmişə sorğunun ən sonunda yazılmalıdır.
+interview_question:
+  question:
+    en: "Why is using LIMIT without ORDER BY considered dangerous in production applications?"
+    az: "İstehsalat mühitində ORDER BY olmadan LIMIT istifadə etmək nə üçün təhlükəlidir?"
+  answer:
+    en: |
+      Using `LIMIT` without `ORDER BY` introduces non-deterministic behavior and subtle production bugs:
+      1. **Non-Deterministic Results**: Relational tables are unordered sets. The physical storage engine can return different rows across executions based on concurrent writes, table reorganization, or cache eviction.
+      2. **Pagination Anomalies**: In offset-based pagination (e.g. `LIMIT 20 OFFSET 20`), users may see the same row twice across pages or miss records completely as physical row order shifts between requests.
+      3. **Query Plan Instability**: The optimizer may switch between index scans and table scans dynamically, leading to radically different subsets of rows returned.
+    az: |
+      `ORDER BY` olmadan `LIMIT` istifadə etmək deterministik olmayan nəticələrə və gözlənilməz xətalara səbəb olur:
+      1. **Qeyri-Deterministik Nəticə**: Relyasion cədvəllər nizamsız riyazi çoxluqlardır. Disk mühərriki eyni sorğu üçün paralelləşmə, keş və ya sonrakı yeniləmələrdən asılı olaraq tamamilə fərqli sətirlər qaytara bilər.
+      2. **Səhifələmə Qüsurları**: Səhifələmədə (`LIMIT 20 OFFSET 20`) istifadəçi növbəti səhifəyə keçərkən bəzi qeydləri iki dəfə görə bilər və ya aralıq sətirlər ümumiyyətlə oxunmadan atlana bilər.
+      3. **Sorğu Planının Qeyri-Sabitliyi**: Optimallaşdırıcı indeks skanı ilə tam cədvəl skanı arasında keçid etdikdə qaytarılan sətirlərin tərkibi gözlənilmədən dəyişir.
+exercise:
+  question:
+    en: "Find the 3 cheapest products by sorting by price in ascending order. Return product_name and price."
+    az: "Məhsulları qiymətə görə artan ardıcıllıqla sıralayaraq ən ucuz 3 məhsulu tapın. product_name və price sütunlarını qaytarın."
+  starter_code: |
+    SELECT ___
+    FROM products
+    ORDER BY ___
+    LIMIT ___;
+  hint:
+    en: "Sort by price in ascending order (ASC) and restrict the result to 3 rows using LIMIT."
+    az: "Qiymətə görə artan sırada (price ASC) düzün və LIMIT vasitəsilə nəticəni 3 sətirlə məhdudlaşdırın."
+  solution: |
+    SELECT product_name, price 
+    FROM products 
+    ORDER BY price ASC 
+    LIMIT 3;
+  order_matters: true

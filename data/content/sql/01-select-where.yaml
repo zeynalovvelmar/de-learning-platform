@@ -1,5 +1,7 @@
 # YAML Schema for Lessons:
 # id: string
+# order: integer
+# level: junior | intermediate | advanced
 # title: {en: string, az: string}
 # quick_recap: {en: string, az: string}
 # explanation: {en: string, az: string}
@@ -8,106 +10,134 @@
 # real_world_use: {en: string, az: string}
 # common_mistakes: {en: string, az: string}
 # interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
-# exercise: {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
 
 id: "01-select-where"
+order: 1
+level: "junior"
 title:
   en: "SELECT and WHERE"
   az: "SELECT və WHERE"
 quick_recap:
-  en: "SELECT determines which columns to return, while WHERE filters which rows to keep. Avoid SELECT * in production and always wrap text literals in quotes."
-  az: "SELECT hansı sütunların qaytarılacağını, WHERE isə hansı sətirlərin saxlanılacağını müəyyən edir. İstehsalatda SELECT * istifadəsindən çəkinin və mətn dəyərlərini həmişə dırnaq içinə alın."
+  en: "SELECT specifies which columns to retrieve, while WHERE filters rows. In execution order, the database reads FROM the table, filters with WHERE, and finally projects SELECT columns."
+  az: "SELECT hansı sütunların qaytarılacağını, WHERE isə sətirləri süzgəcdən keçirməyi müəyyən edir. İcra ardıcıllığında verilənlər bazası əvvəlcə FROM cədvəlini oxuyur, WHERE ilə süzür və sonda SELECT sütunlarını qaytarır."
 explanation:
   en: |
     Think of a database table like a spreadsheet:
-    - **Rows** represent individual entities (such as individual users or orders).
-    - **Columns** represent attributes of each entity (such as first name, email, or country).
+    - **Rows** represent individual records (e.g., each user or order).
+    - **Columns** represent attributes of each record (e.g., first name, email, or country).
 
-    When querying data, junior engineers follow 3-4 simple steps:
-    1. **SELECT (Columns)**: Decide which columns to retrieve. Use specific column names to pick only the data you need.
-    2. **FROM (Table)**: Specify the source table where the data is stored.
-    3. **WHERE (Rows)**: Filter rows using logical conditions (=, !=, <, >, IN, BETWEEN, LIKE). Only rows evaluating to TRUE are kept.
-    4. **Inspect Results**: The database engine processes the query and returns matching rows.
+    ### Written vs. Execution Order:
+    In SQL, queries are written in this order:
+    `SELECT ... FROM ... WHERE ...`
+    
+    However, the database engine executes the query in logical steps:
+    1. **FROM (Source)**: Locates and identifies the source table.
+    2. **WHERE (Row Filter)**: Evaluates row conditions (=, !=, <, >, AND, OR, IN, LIKE, BETWEEN). Only rows evaluating to TRUE are kept.
+    3. **SELECT (Column Projection)**: Extracts and returns the chosen columns. Because SELECT runs last, column aliases defined in SELECT cannot be used inside the WHERE clause.
 
     ### Real Dataset Examples:
 
-    1. **Retrieve all columns and rows from a table:**
+    1. **Basic Column Projection and Filtering:**
     ```sql
-    SELECT * FROM users;
+    SELECT first_name, email, country FROM users WHERE country = 'USA';
     ```
-    Retrieves all columns for all 100 users in the dataset.
+    Retrieves the first name, email, and country for the 20 users located in the USA.
 
-    2. **Select specific columns filtered by exact match:**
+    2. **Logical Combinations with AND / OR:**
     ```sql
-    SELECT first_name, email FROM users WHERE country = 'USA';
+    SELECT first_name, country FROM users WHERE country = 'USA' OR country = 'UK';
     ```
-    Retrieves the first name and email of the 20 users located in the USA.
+    Retrieves the first name and country for the 37 users residing in either the USA or the UK.
 
-    3. **Filter using a range condition:**
+    3. **Set Membership with IN:**
     ```sql
-    SELECT product_name, price FROM products WHERE price BETWEEN 10 AND 30;
+    SELECT first_name, country FROM users WHERE country IN ('Canada', 'France');
     ```
-    Retrieves the product name and price for the 16 products priced between 10 and 30.
+    Retrieves users located in Canada or France, returning 29 rows.
+
+    4. **Pattern Matching with LIKE:**
+    ```sql
+    SELECT first_name, email FROM users WHERE first_name LIKE 'First1%';
+    ```
+    Uses the `%` wildcard to match any user whose first name starts with 'First1', returning 12 rows.
   az: |
     Verilənlər bazası cədvəlini elektron cədvəl (məsələn, Excel vərəqi) kimi təsəvvür edin:
     - **Sətirlər** fərdi qeydləri təmsil edir (məsələn, hər bir istifadəçi və ya sifariş).
     - **Sütunlar** həmin qeydlərin xüsusiyyətlərini təmsil edir (məsələn, ad, e-poçt və ya ölkə).
 
-    Verilənləri sorğulayan zaman 3-4 sadə addım izlənilir:
-    1. **SELECT (Sütunlar)**: Hansı sütunları oxumaq istədiyinizi seçin. Yalnız sizə lazım olan məlumatları çəkmək üçün xüsusi sütun adlarını göstərin.
-    2. **FROM (Cədvəl)**: Məlumatların saxlandığı mənbə cədvəli təyin edin.
-    3. **WHERE (Sətirlər)**: Məntiqi şərtlər (=, !=, <, >, IN, BETWEEN, LIKE) vasitəsilə sətirləri süzgəcdən keçirin. Yalnız şərti DOĞRU (TRUE) olan sətirlər saxlanılır.
-    4. **Nəticənin İncelənməsi**: Verilənlər bazası mühərriki sorğunu icra edir və uyğun gələn sətirləri qaytarır.
+    ### Yazılış və İcra Ardıcıllığı:
+    SQL sorğuları yazılışda bu ardıcıllıqla qurulur:
+    `SELECT ... FROM ... WHERE ...`
+
+    Lakin verilənlər bazası mühərriki sorğunu məntiqi olaraq 3 ardıcıl addımla icra edir:
+    1. **FROM (Mənbə Cədvəl)**: İlkin məlumatların saxlandığı mənbə cədvəli təyin edir.
+    2. **WHERE (Sətirlərin Süzgəclənməsi)**: Şərtləri (=, !=, <, >, AND, OR, IN, LIKE, BETWEEN) yoxlayır. Yalnız şərti DOĞRU (TRUE) olan sətirlər növbəti mərhələyə ötürülür.
+    3. **SELECT (Sütunların Seçilməsi)**: Yalnız tələb olunan sütunları çıxarır və qaytarır. SELECT mərhələsi sonda işlədiyi üçün SELECT-də təyin edilmiş sütun ləqəbləri (aliases) WHERE daxilində istifadə edilə bilməz.
 
     ### Real Verilənlər Üzərində Nümunələr:
 
-    1. **Cədvəldəki bütün sütun və sətirlərə baxış:**
+    1. **Əsas Sütun Seçimi və Süzgəcləmə:**
     ```sql
-    SELECT * FROM users;
+    SELECT first_name, email, country FROM users WHERE country = 'USA';
     ```
-    Verilənlər toplusundakı 100 istifadəçinin bütün sütunlarını qaytarır.
+    ABŞ-da yerləşən 20 istifadəçinin adını, e-poçtunu və ölkəsini qaytarır.
 
-    2. **Dəqiq şərtlə seçilmiş xüsusi sütunlar:**
+    2. **AND / OR ilə Məntiqi Birləşmə:**
     ```sql
-    SELECT first_name, email FROM users WHERE country = 'USA';
+    SELECT first_name, country FROM users WHERE country = 'USA' OR country = 'UK';
     ```
-    ABŞ-da yerləşən 20 istifadəçinin adını və e-poçtunu qaytarır.
+    ABŞ və ya Böyük Britaniyada yerləşən 37 istifadəçinin adını və ölkəsini qaytarır.
 
-    3. **Aralıq şərtindən istifadə edərək süzgəcləmə:**
+    3. **IN ilə Çoxluq Üzrə Yoxlama:**
     ```sql
-    SELECT product_name, price FROM products WHERE price BETWEEN 10 AND 30;
+    SELECT first_name, country FROM users WHERE country IN ('Canada', 'France');
     ```
-    Qiyməti 10 ilə 30 arasında olan 16 məhsulun adını və qiymətini qaytarır.
+    Ölkəsi Kanada və ya Fransa olan istifadəçiləri süzərək 29 sətir qaytarır.
+
+    4. **LIKE ilə Şablon Uyğunluğu:**
+    ```sql
+    SELECT first_name, email FROM users WHERE first_name LIKE 'First1%';
+    ```
+    `%` simvolundan istifadə edərək adı 'First1' ilə başlayan bütün istifadəçiləri tapır və 12 sətir qaytarır.
 code: |
   SELECT first_name, email, country 
   FROM users 
   WHERE country = 'USA';
 what_it_does:
-  en: "This query retrieves the first name, email, and country of all users located in the USA."
-  az: "Bu sorğu ABŞ-da yerləşən bütün istifadəçilərin adını, e-poçt ünvanını və ölkəsini qaytarır."
+  en: "This query retrieves the first name, email, and country of all 20 users located in the USA."
+  az: "Bu sorğu ABŞ-da yerləşən bütün 20 istifadəçinin adını, e-poçt ünvanını və ölkəsini qaytarır."
 real_world_use:
-  en: "Used to extract targeted customer segments for region-specific marketing campaigns."
-  az: "Bölgəyə uyğun marketinq kampaniyaları üçün müəyyən müştəri seqmentlərini çıxarmaq məqsədilə istifadə olunur."
+  en: "Used to extract targeted customer segments for regional campaigns or support routing."
+  az: "Bölgəyə uyğun kampaniyalar və ya müştəri xidməti marşrutlaşdırması üçün hədəf müştəri seqmentlərini çıxarmaq məqsədilə istifadə olunur."
 common_mistakes:
-  en: "Forgetting quotes around text values in the WHERE clause, or using = instead of LIKE for partial matches."
-  az: "WHERE bəndində mətn dəyərlərini dırnaq içinə almağı unutmaq və ya qismən uyğunluqlar üçün LIKE əvəzinə = operatorundan istifadə etmək."
+  en: |
+    - **Using = NULL instead of IS NULL**: In SQL, NULL represents missing or unknown data. The expression `WHERE country = NULL` evaluates to UNKNOWN, returning 0 rows. Always use `IS NULL` or `IS NOT NULL`.
+    - **Confusing 'NA' country code with NULL**: The string 'NA' is a valid 2-letter ISO country code for Namibia (15 users in this dataset), whereas NULL represents missing country data (9 users). Filtering `WHERE country = 'NA'` returns Namibian users, not missing values.
+    - **Missing quotes or wrong equality operator**: Forgetting quotes around text literals, or using `=` instead of `LIKE` when searching for pattern matches.
+  az: |
+    - **IS NULL əvəzinə = NULL istifadə etmək**: SQL-də NULL çatışmayan və ya məchul dəyəri bildirir. `WHERE country = NULL` müqayisəsi həmişə UNKNOWN (yalan) nəticə verir və heç bir sətir qaytarmır. Həmişə `IS NULL` və ya `IS NOT NULL` istifadə edin.
+    - **'NA' ölkə kodunu NULL ilə qarışdırmaq**: 'NA' mətni Namibiyanın rəsmi ISO ölkə kodudur (bu bazada 15 istifadəçi), NULL isə ölkəsi qeyd edilməmiş istifadəçilərdir (9 istifadəçi). `WHERE country = 'NA'` yazdıqda NULL dəyərlər deyil, Namibiya sakinləri tapılır.
+    - **Dırnaq işarələrini və ya operatoru səhv seçmək**: WHERE bəndində mətn dəyərlərini dırnaq içinə almağı unutmaq və ya qismən uyğunluqlar üçün LIKE əvəzinə = operatorundan istifadə etmək.
 interview_question:
   question:
     en: "Why is SELECT * discouraged in production?"
     az: "İstehsalat (production) mühitində nə üçün SELECT * istifadəsi tövsiyə edilmir?"
   answer:
     en: |
-      Using `SELECT *` in production leads to severe technical drawbacks:
-      1. **Network & I/O Overhead**: Unnecessarily transfers unneeded columns (including large TEXT or BLOB payloads), consuming network bandwidth and database memory.
-      2. **Prevents Covering Index Scans**: The engine cannot satisfy queries using index-only scans and must read the base table heap/pages.
-      3. **Fragile Contracts**: Adding, removing, or reordering columns during schema migrations can break application serialization, ORM mappings, or positional unpacking.
-      4. **Inefficient Caching**: Pollutes the database buffer cache by storing columns that consumers never read.
+      Using `SELECT *` in production causes critical performance and architecture risks:
+      1. **Network & I/O Overhead**: Unnecessarily pulls large payloads (e.g. TEXT, BLOB), consuming bandwidth and application memory.
+      2. **Prevents Covering Index Scans**: Queries cannot be fulfilled solely from an index and must read the base table heap/pages.
+      3. **Fragile Contracts**: Schema changes (adding or reordering columns) break downstream deserialization, ORM mappings, or positional unpacking.
+      4. **Cache Pollution**: Wastes buffer pool memory by caching columns that consumer services never touch.
+      5. **Data Privacy Leaks**: Automatically exposes newly added sensitive fields (PII, hashed passwords, internal credentials) to APIs and logs.
     az: |
-      İstehsalat (production) mühitində `SELECT *` istifadəsi ciddi texniki fəsadlara yol açır:
-      1. **Şəbəkə və Giriş-Çıxış (I/O) Yükü**: Lazımsız sütunları (böyük mətn və ya BLOB sahələri daxil olmaqla) çəkərək şəbəkə bant genişliyini və verilənlər bazasının yaddaşını yükləyir.
-      2. **Örtük İndekslə Oxunmanın Qarşısını Alır**: Sorğu planlayıcısı sorğunu yalnız indeks vasitəsilə (index-only scan) təmin edə bilmir və əsas cədvəl səhifələrinə müraciət etməli olur.
-      3. **Sxem Dəyişikliklərinə Həssaslıq**: Sxem miqrasiyası zamanı yeni sütunların əlavə olunması və ya ardıcıllığın dəyişməsi tətbiqin serializasiya və ya ORM modellərini sıradan çıxara bilər.
-      4. **Keşin Çirklənməsi**: İstifadə olunmayan sütunları bufer hovuzuna (buffer pool) yükləyərək keşin səmərəliliyini azaldır.
+      İstehsalat (production) mühitində `SELECT *` istifadəsi ciddi performans və təhlükəsizlik fəsadlarına yol açır:
+      1. **Şəbəkə və Giriş-Çıxış (I/O) Yükü**: Lazımsız sütunları (böyük mətn və ya BLOB sahələri daxil olmaqla) çəkərək şəbəkə bant genişliyini və tətbiqin yaddaşını yükləyir.
+      2. **İndeks Üzərindən Oxunmanın Qarşısını Alır**: Sorğu planlayıcısı əhatə edən indeks (covering index) vasitəsilə sorğunu tam təmin edə bilmir və əsas cədvəl səhifələrinə müraciət etməli olur.
+      3. **Sistem Əlaqələrinin Qırılma Riski**: Sxem dəyişikliyi (yeni sütunların əlavə olunması və ya ardıcıllığın dəyişməsi) tətbiqin serializasiya və ya ORM modellərini sıradan çıxara bilər.
+      4. **Keşin Çirklənməsi**: İstifadə olunmayan sütunları bufer hovuzuna yükləyərək keşin səmərəliliyini azaldır.
+      5. **Məxfilik və Məlumat Sızması Riski**: Cədvələ yeni əlavə olunan həssas məlumatları (fərdi məlumatlar, şifrələr, daxili parametrlər) istəmədən API cavablarına və qeydlərə (logs) sızdırır.
 exercise:
   question:
     en: "Write a query to find the product_name and price of all products that cost exactly 19.99."

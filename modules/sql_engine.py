@@ -20,17 +20,33 @@ class SQLEngine:
         conn = sqlite3.connect(':memory:', check_same_thread=False)
         self.harden_db(conn)
         self.populate_db(conn)
+        self.schema_text = self._build_schema(conn)
         self.setup_authorizer(conn)
         return conn
         
     def harden_db(self, conn):
         conn.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 1000000)
         conn.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, 1000000)
+        if hasattr(conn, 'setconfig') and hasattr(sqlite3, 'SQLITE_DBCONFIG_DEFENSIVE'):
+            conn.setconfig(sqlite3.SQLITE_DBCONFIG_DEFENSIVE, True)
         
     def reset_database(self):
         if hasattr(self, 'conn') and self.conn:
             self.conn.close()
         self.conn = self.get_db_connection()
+
+    def _build_schema(self, conn):
+        cursor = conn.cursor()
+        tables = ['categories', 'products', 'users', 'login_events', 'orders', 'order_items']
+        schema_statements = []
+        for table in tables:
+            cursor.execute(f"PRAGMA table_info({table})")
+            cols = [f"{row[1]} {row[2]}".strip() for row in cursor.fetchall()]
+            schema_statements.append(f"CREATE TABLE {table} (\n  " + ",\n  ".join(cols) + "\n);")
+        return "\n\n".join(schema_statements)
+
+    def get_schema(self):
+        return getattr(self, 'schema_text', '')
         
     def populate_db(self, conn):
         cursor = conn.cursor()
@@ -110,11 +126,10 @@ class SQLEngine:
                 return sqlite3.SQLITE_DENY
                 
             if action_code == sqlite3.SQLITE_REINDEX:
-                # SQLite internally invokes SQLITE_REINDEX on the new index during CREATE INDEX.
-                # Explicit REINDEX is blocked by query normalization, and also denied here.
-                if getattr(self, 'current_first_word', '') == 'REINDEX':
-                    return sqlite3.SQLITE_DENY
-                return sqlite3.SQLITE_OK
+                # Allowlist: SQLITE_REINDEX is only permitted during CREATE (e.g. CREATE INDEX)
+                if getattr(self, 'current_first_word', '') == 'CREATE':
+                    return sqlite3.SQLITE_OK
+                return sqlite3.SQLITE_DENY
 
             if action_code == sqlite3.SQLITE_ANALYZE:
                 return sqlite3.SQLITE_DENY
@@ -134,8 +149,8 @@ class SQLEngine:
 
     def execute_query(self, query, max_rows=500):
         clean_query = strip_sql_comments(query)
-        tokens = clean_query.split()
-        first_word = tokens[0].upper() if tokens else ''
+        match = re.match(r'^[A-Za-z]+', clean_query)
+        first_word = match.group(0).upper() if match else ''
         self.current_first_word = first_word
 
         if first_word in ('REINDEX', 'ANALYZE'):

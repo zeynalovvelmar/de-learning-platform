@@ -25,6 +25,16 @@ class TestSQLEngine(unittest.TestCase):
         self.assertEqual(limit1, 1000000)
         self.assertEqual(limit2, 1000000)
 
+    def test_00b_get_schema(self):
+        schema = self.engine.get_schema()
+        self.assertIsInstance(schema, str)
+        self.assertIn("CREATE TABLE categories", schema)
+        self.assertIn("CREATE TABLE products", schema)
+        self.assertIn("CREATE TABLE users", schema)
+        self.assertIn("CREATE TABLE login_events", schema)
+        self.assertIn("CREATE TABLE orders", schema)
+        self.assertIn("CREATE TABLE order_items", schema)
+
     def test_01_csvs_exist(self):
         base_dir = Path(__file__).parent.parent / 'data' / 'datasets'
         for table in ['categories', 'products', 'users', 'login_events', 'orders', 'order_items']:
@@ -67,14 +77,14 @@ class TestSQLEngine(unittest.TestCase):
                 self.assertTrue("not authorized" in err.lower() or "table sqlite_master may not be modified" in err.lower())
 
     def test_04c_ANALYZE_and_REINDEX_denied(self):
-        for q in ["REINDEX", "ANALYZE"]:
+        for q in ["REINDEX", "ANALYZE", "REINDEX;", "reindex ;"]:
             with self.subTest(query=q):
                 df, err = self.engine.execute_query(q)
                 self.assertIsNotNone(err)
                 self.assertIn("not authorized", err.lower())
 
     def test_04d_comment_REINDEX_denied(self):
-        for q in ["/* x */ REINDEX", "-- c\nREINDEX", "reindex", "/**/REINDEX"]:
+        for q in ["/* x */ REINDEX", "-- c\nREINDEX", "reindex", "/**/REINDEX", "/* a */ REINDEX users;"]:
             with self.subTest(query=q):
                 df, err = self.engine.execute_query(q)
                 self.assertIsNotNone(err)
@@ -184,15 +194,14 @@ class TestSQLEngine(unittest.TestCase):
 
     def test_09_lessons(self):
         lessons_dir = Path(__file__).parent.parent / 'data' / 'content' / 'sql'
-        for f in lessons_dir.glob('*.yaml'):
+        version_tuple = tuple(map(int, self.engine.sqlite_version.split('.')[:2]))
+
+        for f in sorted(lessons_dir.glob('*.yaml')):
             with open(f, 'r', encoding='utf-8') as file:
                 lesson = yaml.safe_load(file)
             
             code_part = lesson['code'].strip()
-            exercise = lesson['exercise']
-            solution_part = exercise['solution'].strip()
-            starter_code = exercise['starter_code'].strip()
-            order_matters = exercise.get('order_matters', False)
+            exercise = lesson.get('exercise')
             
             # test code example returns >= 1 row
             df, err = self.engine.execute_query(code_part)
@@ -202,32 +211,42 @@ class TestSQLEngine(unittest.TestCase):
             # test explanation code snippets return >= 1 row if present
             sql_blocks = re.findall(r'```sql\s*(.*?)\s*```', lesson.get('explanation', {}).get('en', ''), re.DOTALL)
             for block in sql_blocks:
-                block = block.strip()
+                clean_lines = [re.sub(r'^\s*>\s*', '', line) for line in block.splitlines()]
+                block = '\n'.join(clean_lines).strip()
+                # Skip RIGHT/FULL JOIN if sqlite_version < 3.39
+                upper_b = block.upper()
+                if ("RIGHT JOIN" in upper_b or "FULL JOIN" in upper_b or "FULL OUTER JOIN" in upper_b) and version_tuple < (3, 39):
+                    continue
                 df_b, err_b = self.engine.execute_query(block)
-                self.assertIsNone(err_b, f"Explanation SQL snippet failed for {f.name}: {err_b}")
-                self.assertGreaterEqual(len(df_b), 1, f"Explanation snippet returned 0 rows in {f.name}")
+                self.assertIsNone(err_b, f"Explanation SQL snippet failed for {f.name}: {err_b} in query:\n{block}")
+                self.assertGreaterEqual(len(df_b), 1, f"Explanation snippet returned 0 rows in {f.name} for query:\n{block}")
 
-            # test solution returns >= 1 row
-            df_sol, err = self.engine.execute_query(solution_part)
-            self.assertIsNone(err, f"Lesson solution failed for {f.name}: {err}")
-            self.assertGreaterEqual(len(df_sol), 1, f"Solution returned 0 rows for {f.name}")
-            
-            # assert solution returns fewer rows than the target table has
-            table_match = re.search(r'FROM\s+([a-zA-Z0-9_]+)', solution_part, re.IGNORECASE)
-            self.assertIsNotNone(table_match, f"Could not determine table in solution for {f.name}")
-            table_name = table_match.group(1)
-            df_table, _ = self.engine.execute_query(f"SELECT COUNT(*) as c FROM {table_name}")
-            total_rows = df_table.iloc[0]['c']
-            self.assertLess(len(df_sol), total_rows, f"Solution rows ({len(df_sol)}) should be less than table rows ({total_rows}) in {f.name}")
+            if exercise:
+                solution_part = exercise['solution'].strip()
+                starter_code = exercise['starter_code'].strip()
+                order_matters = exercise.get('order_matters', False)
 
-            # starter_code does NOT pass check_answer
-            is_correct_st, status_st, _ = self.engine.check_answer(starter_code, solution_part, order_matters)
-            self.assertFalse(is_correct_st, f"Starter code should not pass check_answer in {f.name}")
+                # test solution returns >= 1 row
+                df_sol, err = self.engine.execute_query(solution_part)
+                self.assertIsNone(err, f"Lesson solution failed for {f.name}: {err}")
+                self.assertGreaterEqual(len(df_sol), 1, f"Solution returned 0 rows for {f.name}")
+                
+                # assert solution returns fewer rows than the target table has
+                table_match = re.search(r'FROM\s+([a-zA-Z0-9_]+)', solution_part, re.IGNORECASE)
+                self.assertIsNotNone(table_match, f"Could not determine table in solution for {f.name}")
+                table_name = table_match.group(1)
+                df_table, _ = self.engine.execute_query(f"SELECT COUNT(*) as c FROM {table_name}")
+                total_rows = df_table.iloc[0]['c']
+                self.assertLess(len(df_sol), total_rows, f"Solution rows ({len(df_sol)}) should be less than table rows ({total_rows}) in {f.name}")
 
-            # check_answer matches solution
-            is_correct, status_code, details = self.engine.check_answer(solution_part, solution_part, order_matters)
-            self.assertTrue(is_correct, f"Solution check failed for {f.name}: {status_code}")
-            self.assertEqual(status_code, "ok")
+                # starter_code does NOT pass check_answer
+                is_correct_st, status_st, _ = self.engine.check_answer(starter_code, solution_part, order_matters)
+                self.assertFalse(is_correct_st, f"Starter code should not pass check_answer in {f.name}")
+
+                # check_answer matches solution
+                is_correct, status_code, details = self.engine.check_answer(solution_part, solution_part, order_matters)
+                self.assertTrue(is_correct, f"Solution check failed for {f.name}: {status_code}")
+                self.assertEqual(status_code, "ok")
 
     def test_10_solution_failure_returns_internal_error(self):
         # row cap hit in check_answer (not 500, but 100000)
@@ -294,6 +313,49 @@ class TestSQLEngine(unittest.TestCase):
         ok, status, _ = self.engine.check_answer("INSERT INTO users (first_name) VALUES ('Hacked')", solution, order_matters=False)
         self.assertFalse(ok)
         self.assertEqual(status, "user_error")
+
+    def test_13_lesson_hardcoded_row_counts_verified(self):
+        # Lesson 01 verified counts
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users")
+        self.assertEqual(df.iloc[0]['c'], 100)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users WHERE country = 'USA'")
+        self.assertEqual(df.iloc[0]['c'], 20)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users WHERE country = 'USA' OR country = 'UK'")
+        self.assertEqual(df.iloc[0]['c'], 37)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users WHERE country IN ('Canada', 'France')")
+        self.assertEqual(df.iloc[0]['c'], 29)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users WHERE first_name LIKE 'First1%'")
+        self.assertEqual(df.iloc[0]['c'], 12)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users WHERE country = 'NA'")
+        self.assertEqual(df.iloc[0]['c'], 15)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users WHERE country IS NULL")
+        self.assertEqual(df.iloc[0]['c'], 9)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM products WHERE price = 19.99")
+        self.assertEqual(df.iloc[0]['c'], 6)
+
+        # Lesson 02 verified counts
+        df, _ = self.engine.execute_query("SELECT COUNT(DISTINCT status) as c FROM orders")
+        self.assertEqual(df.iloc[0]['c'], 3)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM products")
+        self.assertEqual(df.iloc[0]['c'], 50)
+
+        # Lesson 04 verified counts
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM users u LEFT JOIN orders o ON u.user_id = o.user_id WHERE o.order_id IS NULL")
+        self.assertEqual(df.iloc[0]['c'], 11)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM categories c LEFT JOIN products p ON c.category_id = p.category_id WHERE p.product_id IS NULL")
+        self.assertEqual(df.iloc[0]['c'], 2)
+
+        df, _ = self.engine.execute_query("SELECT COUNT(*) as c FROM products p LEFT JOIN order_items oi ON p.product_id = oi.product_id WHERE oi.item_id IS NULL")
+        self.assertEqual(df.iloc[0]['c'], 2)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

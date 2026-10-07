@@ -1,0 +1,165 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+
+id: "04-joins"
+order: 4
+level: "intermediate"
+title:
+  en: "SQL Joins: INNER, LEFT, RIGHT, and FULL"
+  az: "SQL Birləşmələri: INNER, LEFT, RIGHT və FULL"
+quick_recap:
+  en: "INNER JOIN keeps matching rows from both tables, LEFT JOIN preserves all left rows and fills unmatched right columns with NULL. SQLite >= 3.39 supports RIGHT and FULL JOIN; older versions simulate FULL JOIN with LEFT JOIN and UNION."
+  az: "INNER JOIN yalnız hər iki cədvəldə uyğun gələn sətirləri saxlayır, LEFT JOIN isə sol cədvəlin bütün sətirlərini saxlayıb sağdakı çatışmayan sütunlara NULL yazır. SQLite >= 3.39 versiyası RIGHT və FULL JOIN dəstəkləyir; köhnə versiyalarda FULL JOIN əvəzinə LEFT JOIN və UNION istifadə olunur."
+explanation:
+  en: |
+    Relational queries combine separate tables horizontally based on common keys:
+    - **INNER JOIN**: Returns records that have matching values in both tables.
+    - **LEFT JOIN (LEFT OUTER JOIN)**: Returns all records from the left table, plus matched records from the right table. Unmatched right columns contain NULL.
+    - **RIGHT JOIN**: Returns all records from the right table, plus matched records from the left table.
+    - **FULL OUTER JOIN**: Returns all records when there is a match in either left or right table.
+
+    > [!NOTE]
+    > **SQLite Compatibility Note**: Native support for `RIGHT JOIN` and `FULL OUTER JOIN` was added in SQLite version 3.39.0. On older versions (< 3.39), FULL JOIN is achieved by combining a LEFT JOIN with UNION:
+
+    ```sql
+    SELECT u.user_id, o.order_id FROM users u LEFT JOIN orders o ON u.user_id = o.user_id
+    UNION
+    SELECT u.user_id, o.order_id FROM orders o LEFT JOIN users u ON o.user_id = u.user_id;
+    ```
+
+    ### Real Dataset Architecture Examples:
+
+    1. **INNER JOIN: Matched Transactions:**
+    ```sql
+    SELECT o.order_id, u.first_name, o.total_amount
+    FROM orders o
+    INNER JOIN users u ON o.user_id = u.user_id
+    LIMIT 5;
+    ```
+    Combines each order with its corresponding customer, returning 5 matched rows.
+
+    2. **LEFT JOIN: Identifying Zero-Order Inactive Users:**
+    ```sql
+    SELECT u.user_id, u.first_name, u.email
+    FROM users u
+    LEFT JOIN orders o ON u.user_id = o.user_id
+    WHERE o.order_id IS NULL;
+    ```
+    Preserves all users and checks for NULL in orders, identifying the 11 inactive users who have placed zero orders.
+
+    3. **LEFT JOIN: Finding Empty Product Categories:**
+    ```sql
+    SELECT c.category_id, c.category_name
+    FROM categories c
+    LEFT JOIN products p ON c.category_id = p.category_id
+    WHERE p.product_id IS NULL;
+    ```
+    Finds the 2 empty categories that have zero associated products. Similarly, a LEFT JOIN between products and order_items reveals the 2 products that were never ordered.
+  az: |
+    Relyasion sorğular ümumi açarlara əsasən fərqli cədvəlləri üfüqi şəkildə birləşdirir:
+    - **INNER JOIN**: Yalnız hər iki cədvəldə ortaq uyğunluğu olan sətirləri qaytarır.
+    - **LEFT JOIN (LEFT OUTER JOIN)**: Sol cədvəlin bütün sətirlərini və sağ cədvəldən uyğun gələn sətirləri qaytarır. Sağ cədvəldə qarşılığı olmayan sahələr NULL alır.
+    - **RIGHT JOIN**: Sağ cədvəlin bütün sətirlərini və sol cədvəldən uyğun gələnləri qaytarır.
+    - **FULL OUTER JOIN**: Hər iki cədvəldəki bütün sətirləri qaytarır (uyğun gəlməyən tərəflər NULL alır).
+
+    > [!NOTE]
+    > **SQLite Uyğunluq Qeydi**: `RIGHT JOIN` və `FULL OUTER JOIN` rəsmi olaraq SQLite 3.39.0 versiyasında əlavə edilmişdir. Köhnə versiyalarda (< 3.39) FULL JOIN əməliyyatını əvəz etmək üçün LEFT JOIN və UNION birləşməsindən istifadə olunur:
+
+    ```sql
+    SELECT u.user_id, o.order_id FROM users u LEFT JOIN orders o ON u.user_id = o.user_id
+    UNION
+    SELECT u.user_id, o.order_id FROM orders o LEFT JOIN users u ON o.user_id = u.user_id;
+    ```
+
+    ### Real Verilənlər Üzərində Nümunələr:
+
+    1. **INNER JOIN: Uyğunlaşan Sifarişlər:**
+    ```sql
+    SELECT o.order_id, u.first_name, o.total_amount
+    FROM orders o
+    INNER JOIN users u ON o.user_id = u.user_id
+    LIMIT 5;
+    ```
+    Hər bir sifarişi onu icra edən istifadəçi ilə birləşdirərək ilk 5 sətri qaytarır.
+
+    2. **LEFT JOIN: Heç Sifarişi Olmayan İstifadəçilər:**
+    ```sql
+    SELECT u.user_id, u.first_name, u.email
+    FROM users u
+    LEFT JOIN orders o ON u.user_id = o.user_id
+    WHERE o.order_id IS NULL;
+    ```
+    Bütün istifadəçiləri saxlayır və sifariş cədvəlində NULL olanları taparaq heç bir sifarişi olmayan 11 istifadəçini müəyyən edir.
+
+    3. **LEFT JOIN: Boş Məhsul Kateqoriyaları:**
+    ```sql
+    SELECT c.category_id, c.category_name
+    FROM categories c
+    LEFT JOIN products p ON c.category_id = p.category_id
+    WHERE p.product_id IS NULL;
+    ```
+    Tərkibində heç bir məhsul olmayan 2 boş kateqoriyanı tapır. Eynilə, products ilə order_items arasında LEFT JOIN heç vaxt sifariş edilməmiş 2 məhsulu aşkar edir.
+code: |
+  SELECT u.user_id, u.first_name, u.email
+  FROM users u
+  LEFT JOIN orders o ON u.user_id = o.user_id
+  WHERE o.order_id IS NULL;
+what_it_does:
+  en: "This query performs a LEFT JOIN from users to orders to identify the 11 registered users who have placed zero orders."
+  az: "Bu sorğu istifadəçilərdən sifarişlərə LEFT JOIN edərək heç vaxt sifariş verməmiş 11 qeydiyyatdan keçmiş istifadəçini tapır."
+real_world_use:
+  en: "Used in retention and lifecycle analysis to identify inactive customer cohorts for re-engagement email campaigns."
+  az: "İstifadəçi saxlanması (retention) analizində qeyri-aktiv istifadəçiləri aşkar edib yenidən cəlbetmə kampaniyaları göndərmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Accidentally converting LEFT JOIN into INNER JOIN**: Placing a filter condition on the right table inside the WHERE clause (e.g. `WHERE o.status = 'completed'`) filters out NULL rows, silently turning the join into an INNER JOIN. Put the condition in the `ON` clause instead.
+    - **Missing or incorrect JOIN keys**: Joining tables on mismatched columns causes unintended Cartesian products (CROSS JOIN), multiplying row counts exponentially.
+    - **Assuming FULL OUTER JOIN works in legacy SQLite**: Older SQLite runtimes (< 3.39) throw syntax errors on RIGHT or FULL JOIN.
+  az: |
+    - **LEFT JOIN-i təsadüfən INNER JOIN-ə çevirmək**: Sağ cədvələ aid şərti WHERE daxilində yazmaq (məsələn, `WHERE o.status = 'completed'`) NULL sətirləri süzüb atır və sorğunu xəbərdarlıq olmadan INNER JOIN-ə çevirir. Şərti ON bəndinə əlavə edin.
+    - **Səhv və ya çatışmayan birləşmə açarları**: Cədvəlləri uyğun olmayan sütunlarla birləşdirmək gözlənilməz Dekart hasili (Cartesian product / CROSS JOIN) yaradaraq sətirləri eksponensial artırır.
+    - **Köhnə SQLite mühitlərində FULL OUTER JOIN gözləmək**: 3.39 versiyasından köhnə SQLite mühərrikləri RIGHT və ya FULL JOIN yazıldıqda sintaksis xətası verir.
+interview_question:
+  question:
+    en: "How does a database engine physically execute joins, and what affects their performance?"
+    az: "Verilənlər bazası mühərriki birləşmələri (joins) fiziki olaraq necə icra edir və onların performansına nə təsir edir?"
+  answer:
+    en: |
+      Relational database query optimizers choose between three primary physical join algorithms based on data size, available memory, and indexes:
+      1. **Nested Loop Join**: For each row in the outer table, scans the inner table. Highly efficient (O(N * log M)) when the inner table join column is indexed, but disastrously slow (O(N * M)) without indexes.
+      2. **Hash Join**: Builds an in-memory hash table on the smaller relation, then streams the larger relation probing the hash table. Best for large, unsorted, unindexed equi-joins.
+      3. **Sort-Merge Join**: Sorts both inputs by join key, then merges them in a single linear pass (O(N log N + M log M)). Optimal when inputs are already sorted (e.g. via clustered index or B-Tree).
+    az: |
+      Verilənlər bazasının sorğu optimallaşdırıcısı məlumatın həcminə, yaddaş limitinə və indekslərə əsasən 3 əsas fiziki birləşmə alqoritmindən birini seçir:
+      1. **İç-içə Dövr Birləşməsi (Nested Loop Join)**: Xarici cədvəlin hər sətri üçün daxili cədvəli yoxlayır. Daxili cədvəldə indeks varsa çox sürətlidir (O(N * log M)), indeks olmadıqda isə ən yavaş üsuldur (O(N * M)).
+      2. **Heş Birləşmə (Hash Join)**: Kiçik cədvəlin açarları üzərində operativ yaddaşda heş-cədvəl qurur, böyük cədvəli oxuduqca heş cədvəllə müqayisə edir. İndekslənməmiş böyük bərabərlik birləşmələri üçün idealdır.
+      3. **Çeşidləmə və Birləşdirmə (Sort-Merge Join)**: Hər iki cədvəli açara görə sıralayır və xətti bir keçidlə birləşdirir (O(N log N + M log M)). Məlumatlar artıq indeks üzrə sıralanmış olduqda ən səmərəli seçimdir.
+exercise:
+  question:
+    en: "Write a query using LEFT JOIN to find all categories that have zero products. Return category_id and category_name."
+    az: "LEFT JOIN istifadə edərək heç bir məhsulu olmayan bütün kateqoriyaları tapan sorğu yazın. category_id və category_name sütunlarını qaytarın."
+  starter_code: |
+    SELECT c.category_id, c.category_name
+    FROM categories c
+    LEFT JOIN products p ON c.category_id = p.category_id
+    WHERE ___;
+  hint:
+    en: "Check for unmatched records where the right table's primary key (p.product_id) IS NULL."
+    az: "Sağ cədvəlin əsas açarının (p.product_id) IS NULL olduğu uyğunsuzluq şərtini yoxlayın."
+  solution: |
+    SELECT c.category_id, c.category_name
+    FROM categories c
+    LEFT JOIN products p ON c.category_id = p.category_id
+    WHERE p.product_id IS NULL;
+  order_matters: false

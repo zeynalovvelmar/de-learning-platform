@@ -1,0 +1,121 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+
+id: "03-keys-normalization"
+order: 3
+level: "intermediate"
+title:
+  en: "Primary Keys, Foreign Keys, and Normalization"
+  az: "Əsas Açarlar, Xarici Açarlar və Normallaşdırma"
+quick_recap:
+  en: "Primary Keys guarantee entity uniqueness, Foreign Keys enforce referential relationships, and Normalization prevents data duplication, write anomalies, and schema inconsistencies."
+  az: "Əsas Açarlar (Primary Keys) qeydin unikallığını təmin edir, Xarici Açarlar (Foreign Keys) əlaqələri qoruyur, Normallaşdırma isə məlumat təkrarlanmasının, yazma qüsurlarının və uyğunsuzluqların qarşısını alır."
+explanation:
+  en: |
+    Relational database design relies on mathematical relations and integrity constraints to ensure data is accurate, consistent, and free of unnecessary redundancy:
+    - **Primary Key (PK)**: A column (or set of columns) that uniquely identifies every row in a table. It cannot be NULL and must be strictly unique.
+    - **Foreign Key (FK)**: A column that references a Primary Key in another table, guaranteeing referential integrity between parent and child records.
+    - **Normalization**: The formal process of organizing table schemas (typically up to 3rd Normal Form / 3NF) to minimize data duplication and prevent insertion, update, and deletion anomalies.
+
+    ### Real Dataset Architecture Examples:
+
+    1. **Primary Key Direct Point Lookup:**
+    ```sql
+    SELECT user_id, first_name, email FROM users WHERE user_id = 1;
+    ```
+    Retrieves the unique record for user_id = 1 with O(1) B-Tree efficiency, returning 1 row.
+
+    2. **Foreign Key Relationship (Orders referencing Users):**
+    ```sql
+    SELECT o.order_id, o.user_id, u.email, o.total_amount
+    FROM orders o
+    JOIN users u ON o.user_id = u.user_id
+    WHERE o.order_id = 1;
+    ```
+    Demonstrates how `orders.user_id` acts as a Foreign Key pointing to the parent `users.user_id`, returning 1 joined row without storing user emails repeatedly inside the orders table.
+
+    3. **Eliminating Redundancy with Normalization (Order Items):**
+    ```sql
+    SELECT order_id, COUNT(*) as item_count, SUM(quantity * unit_price) as computed_total
+    FROM order_items
+    GROUP BY order_id
+    LIMIT 5;
+    ```
+    Instead of embedding repeating product columns into the orders table (which would violate 1NF), line items live in their own normalized `order_items` table linked by `order_id`.
+  az: |
+    Relyasion verilənlər bazası dizaynı məlumatların dəqiq, ardıcıl və artıq təkrarlanmalardan uzaq olmasını təmin etmək üçün riyazi münasibətlərə və bütövlük məhdudiyyətlərinə əsaslanır:
+    - **Əsas Açar (Primary Key - PK)**: Cədvəldəki hər bir sətri birmənalı olaraq unikal müəyyən edən sütundur. Heç vaxt NULL ola bilməz və təkrar dəyər ala bilməz.
+    - **Xarici Açar (Foreign Key - FK)**: Başqa bir cədvəldəki Əsas Açara istinad edən sütundur və ana cədvəl ilə bala cədvəl arasında əlaqə bütövlüyünü (referential integrity) qoruyur.
+    - **Normallaşdırma (Normalization)**: Məlumat təkrarını minimuma endirmək və əlavə etmə, yeniləmə və ya silmə qüsurlarının (anomalies) qarşısını almaq üçün sxemin qaydalara (adətən 3-cü Normal Forma / 3NF qədər) uyğun bölünməsi prosesidir.
+
+    ### Real Sxem Üzərində Nümunələr:
+
+    1. **Əsas Açar Üzrə Dəqiq Axtarış:**
+    ```sql
+    SELECT user_id, first_name, email FROM users WHERE user_id = 1;
+    ```
+    user_id = 1 olan unikal istifadəçini indeks vasitəsilə dərhal tapır və 1 sətir qaytarır.
+
+    2. **Xarici Açar Əlaqəsi (Sifarişlərin İstifadəçilərə İstinadı):**
+    ```sql
+    SELECT o.order_id, o.user_id, u.email, o.total_amount
+    FROM orders o
+    JOIN users u ON o.user_id = u.user_id
+    WHERE o.order_id = 1;
+    ```
+    `orders.user_id` xarici açarının ana cədvəldəki `users.user_id` əsas açarına necə bağlandığını nümayiş etdirir və 1 sətir qaytarır. İstifadəçi e-poçtunu hər sifarişdə təkrar saxlamağa ehtiyac qalmır.
+
+    3. **Normallaşdırma ilə Təkrarın Qarşısının Alınması (Sifariş Elementləri):**
+    ```sql
+    SELECT order_id, COUNT(*) as item_count, SUM(quantity * unit_price) as computed_total
+    FROM order_items
+    GROUP BY order_id
+    LIMIT 5;
+    ```
+    Sifariş cədvəlinə məhsulları birbaşa təkrarlanan sütunlar kimi yığmaq əvəzinə (bu 1NF qaydasını pozardı), hər bir məhsul ayrıca normallaşdırılmış `order_items` cədvəlində saxlanılır.
+code: |
+  SELECT o.order_id, o.user_id, u.email, o.total_amount
+  FROM orders o
+  JOIN users u ON o.user_id = u.user_id
+  WHERE o.order_id = 1;
+what_it_does:
+  en: "This query joins the child orders table with the parent users table using the foreign key relationship to retrieve the order details and the customer's email address."
+  az: "Bu sorğu xarici açar əlaqəsindən istifadə edərək sifarişlər cədvəlini istifadəçilər cədvəli ilə birləşdirir və sifariş məlumatları ilə birlikdə müştərinin e-poçtunu qaytarır."
+real_world_use:
+  en: "Fundamental pattern in transactional OLTP systems (banking, e-commerce checkouts) ensuring ACID consistency and preventing data anomalies."
+  az: "Tranzaksiya yönümlü OLTP sistemlərində (bankçılıq, elektron ticarət ödənişləri) ACID bütövlüyünü qorumaq və yeniləmə qüsurlarını önləmək üçün ən əsas modeldir."
+common_mistakes:
+  en: |
+    - **Omitting indexes on Foreign Key columns**: Foreign keys do not automatically create indexes in many engines (including SQLite). Failing to index foreign keys can turn JOINs and cascading deletes into full table scans.
+    - **Over-normalizing analytical databases (OLAP)**: While 3NF is standard for operational OLTP databases, analytical data warehouses benefit from dimensional denormalization (Star Schema, Snowflake Schema) to eliminate complex join overheads.
+    - **Using natural keys that can change**: Relying on mutable business identifiers (like email addresses or phone numbers) as primary keys instead of stable surrogate keys (integers, UUIDs).
+  az: |
+    - **Xarici Açar sütunlarında indeks yaratmağı unutmaq**: Çox sayda verilənlər bazası mühərriki (o cümlədən SQLite) xarici açarlarda avtomatik indeks yaratmır. Bu sütunları indeksləməmək JOIN əməliyyatlarında və kaskad silinmələrdə cədvəlin tam skan edilməsinə səbəb olur.
+    - **Analitik bazaları (OLAP) həddindən artıq normallaşdırmaq**: 3NF əməliyyat yönümlü OLTP üçün vacib olsa da, analitik anbarlarda (DWH) sürətli sorğular üçün denormallaşdırma (Ulduz Sxemi / Star Schema) daha məqsədəuyğundur.
+    - **Dəyişə bilən təbii açarlardan istifadə etmək**: Zamanla dəyişə bilən sahələri (e-poçt və ya telefon) əsas açar kimi istifadə etmək; stabil surroqat açarlar (integer, UUID) əvəzinə təbii açarlara güvənmək.
+interview_question:
+  question:
+    en: "When would you deliberately denormalize a database schema in data engineering?"
+    az: "Data mühəndisliyində hansı hallarda verilənlər bazası sxemini qəsdən denormallaşdırırsınız?"
+  answer:
+    en: |
+      In data engineering, denormalization is a deliberate trade-off between write overhead/storage and analytical read performance:
+      1. **OLAP Read Acceleration**: Data warehouses (ClickHouse, BigQuery, Snowflake) analyze billions of rows. Denormalized schemas (Star Schema, One Big Table / OBT) eliminate expensive multi-table distributed shuffle joins.
+      2. **Pre-aggregations and Materialized Views**: Denormalizing dimensions with precomputed metrics eliminates repeated runtime aggregations for BI dashboards.
+      3. **Write/Read Workload Trade-off**: Operational OLTP prioritizes low write amplification and integrity (3NF). Analytical OLAP prioritizes fast column-scan throughput, accepting duplicate storage and pipeline-managed eventual consistency.
+    az: |
+      Data mühəndisliyində denormallaşdırma yazma və saxlama xərcləri ilə analitik oxuma sürəti arasında şüurlu bir kompromisdir:
+      1. **OLAP Sorğularının Sürətləndirilməsi**: Analitik anbarlar (ClickHouse, BigQuery, Snowflake) milyardlarla sətir emal edir. Denormallaşdırılmış sxemlər (Ulduz Sxemi, Vahid Böyük Cədvəl - OBT) paylanmış ağır JOIN və şəbəkə qarışdırma (shuffle) əməliyyatlarını aradan qaldırır.
+      2. **Əvvəlcədən Hesablanmış Göstəricilər (Materialized Views)**: Ölçüləri əvvəlcədən hesablanmış aqreqasiyalarla birləşdirmək BI panellərinin (dashboards) sorğuları dərhal cavablandırmasını təmin edir.
+      3. **Oxuma/Yazma Yükünün Balanslaşdırılması**: Əməliyyat yönümlü OLTP aşağı yazma yükünə və bütövlüyə (3NF) üstünlük verir. Analitik OLAP isə sütunlu oxuma sürətini artırmaq üçün saxlama təkrarlanmasını qəbul edir.
