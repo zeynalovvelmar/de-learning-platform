@@ -1,0 +1,220 @@
+id: "05-producer-keys-partitioner"
+order: 5
+level: "intermediate"
+title:
+  en: "Producer Mechanics: Message Anatomy, Keys & Partitioners"
+  az: "Producer Mexanizmi: Mesaj Strukturu, Açar (Key) və Partitioner"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KAFKA PRODUCER PARTITION ROUTING LOGIC                                │
+    │                                                                        │
+    │  CASE 1: Key is NULL (No business key provided)                        │
+    │  [Message (Key=None)] ──► Sticky Partitioner ──► Fill Batch in Part 0  │
+    │                           (Once batch is full ──► Switches to Part 1)  │
+    │  Goal: Minimize network overhead & maximize batching throughput.       │
+    │                                                                        │
+    │  CASE 2: Key is PRESENT (e.g. Key = "cust_8821")                       │
+    │  [Message ("cust_8821")] ──► Murmur2 Hash ──► modulo (num_partitions)   │
+    │  Formula: `abs(murmur2("cust_8821")) % 3` = Partition 1                │
+    │  Guarantee: EVERY record with "cust_8821" goes to Partition 1 FOREVER! │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE DANGEROUS PARTITION EXPANSION TRAP!                               │
+    │  With 3 Partitions: `hash("cust_8821") % 3` = Partition 1             │
+    │                                                                        │
+    │  If Engineer increases topic partitions from 3 to 6:                   │
+    │  With 6 Partitions: `hash("cust_8821") % 6` = Partition 4! (Changed!)  │
+    │  Result: New events go to Part 4 while old events remain in Part 1!   │
+    │  CRITICAL: Strict ordering for "cust_8821" is PERMANENTLY BROKEN!      │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KAFKA PRODUCER BÖLÜŞDÜRMƏ (PARTITIONER) MƏNTİQİ                       │
+    │                                                                        │
+    │  1-Cİ HAL: Açar YOXDUR (Key = None)                                    │
+    │  [Mesaj (Key=None)] ──► Sticky Partitioner ──► Partisiya 0 buferini    │
+    │                         doldurur (dolanda ──► Partisiya 1-ə keçir)     │
+    │  Məqsəd: Şəbəkə paketlərini maksimum dolduraraq sürəti artırmaq.       │
+    │                                                                        │
+    │  2-Cİ HAL: Açar MÖVCUDDUR (məs. Key = "cust_8821")                     │
+    │  [Mesaj ("cust_8821")] ──► Murmur2 Heş Alqoritmi ──► % (partisiya sayı)│
+    │  Düstur: `abs(murmur2("cust_8821")) % 3` = Partisiya 1                │
+    │  Zəmanət: "cust_8821" açarlı BÜTÜN mesajlar HƏMİŞƏ Partisiya 1-ə gedir!│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TƏHLÜKƏLİ PARTİSİYA ARTIRMA TƏLƏSİ!                                  │
+    │  3 Partisiya varkən: `hash("cust_8821") % 3` = Partisiya 1            │
+    │                                                                        │
+    │  Mühəndis partisiya sayını 3-dən 6-ya artırdıqda:                      │
+    │  6 Partisiya ilə:    `hash("cust_8821") % 6` = Partisiya 4! (DƏYİŞDİ!) │
+    │  Nəticə: Yeni hadisələr Part 4-ə, köhnələr isə Part 1-də qalır!        │
+    │  TƏHLÜKƏ: "cust_8821" müştərisi üçün ardıcıllıq BİRDƏFƏLİK POZULUR!    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of sorting packages in an automated mail sorting hub:
+    - **Message Anatomy**: Every Kafka record consists of:
+      1. **Key** (Optional): Used for partition routing and log compaction.
+      2. **Value**: The raw payload (JSON, Avro, Protobuf, or raw bytes).
+      3. **Timestamp**: Creation time or LogAppendTime.
+      4. **Headers** (Optional): Metadata key-value pairs (e.g. tracing IDs, auth tokens).
+    - **How the Default Partitioner Works**:
+      - **When Key is Null**: Modern Kafka uses the **Sticky Partitioner**. It picks a partition and sticks to it, batching dozens of messages into a single network packet until full, before switching to the next partition. This drastically reduces CPU and network socket latency.
+      - **When Key is Present**: Kafka calculates `murmur2_hash(key) % num_partitions`. The same key will mathematically always compute to the identical partition number.
+    - **The #1 Production Pitfall (Adding Partitions to Keyed Topics)**:
+      - The hashing formula depends directly on `num_partitions`.
+      - If you have 3 partitions, key `"user_42"` hashes to Partition 1.
+      - If you increase the topic to 6 partitions, `hash % 6` might now hash `"user_42"` to Partition 4!
+      - Downstream consumers reading Partition 4 will have no idea that previous historical events for `"user_42"` are sitting back in Partition 1, completely breaking stateful ordering!
+  az: |
+    Poçt anbarında bağlamaların avtomatlaşdırılmış paylanmasını təsəvvür edin:
+    - **Mesajın Anatomiyası**: Hər bir Kafka hadisəsi 4 hissədən ibarətdir:
+      1. **Açar (Key)** (İxtiyari): Partisiyanın seçilməsi və Log Compaction üçün istifadə olunur.
+      2. **Dəyər (Value)**: Əsas məlumat gövdəsi (JSON, Avro, Protobuf və ya baytlar).
+      3. **Zaman Damğası (Timestamp)**: Hadisənin yaranma və ya qeydə alınma vaxtı.
+      4. **Başlıqlar (Headers)** (İxtiyari): Metadata məlumatları (məs. audit ID, təhlükəsizlik tokeni).
+    - **Partitioner Necə Seçim Edir?**:
+      - **Açar Göndərilmədikdə (`Key = None`)**: Müasir Kafka **Sticky Partitioner** alqoritmindən istifadə edir. O, təsadüfi bir partisiya seçir və şəbəkə paketi dolana qədər bütün ardıcıl mesajları həmin partisiyaya doldurur, sonra digərinə keçir. Bu, şəbəkə gecikmələrini minimuma endirir.
+      - **Açar Mövcud Olduqda (`Key != None`)**: Kafka `murmur2_hash(key) % num_partitions` riyazi düsturundan istifadə edir. Eyni açar həmişə riyazi olaraq eyni partisiya rəqəminə çevrilir.
+    - **İstehsalatın #1 Təhlükəli Tələsi (Partisiya Sayını Artırmaq)**:
+      - Heş düyünü birbaşa `num_partitions` sayından asılıdır.
+      - 3 partisiya olanda `"user_42"` açarı 1-ci partisiyaya gedirdi.
+      - Əgər mühəndis partisiya sayını 6-ya qaldırarsa, düstur `"user_42"`-ni artıq 4-cü partisiyaya göndərəcək!
+      - İstehlakçı 4-cü partisiyanı oxuyarkən həmin müştərinin köhnə əməliyyatlarının 1-ci partisiyada qaldığından xəbərsiz olacaq və ardıcıllıq birdəfəlik alt-üst olacaq!
+quick_recap:
+  en: "The Partitioner determines which partition receives a message. Null-key messages use Sticky Partitioning for batching efficiency; keyed messages use deterministic hashing (`hash(key) % partitions`). Never expand partition counts on topics requiring strict per-key ordering!"
+  az: "Partitioner mesajın hansı partisiyaya yazılacağını təyin edir. Açarsız mesajlar 'Sticky Partitioning' ilə qruplaşdırılır; açarlı mesajlar isə riyazi heşləmə ilə həmişə eyni partisiyaya göndərilir. Per-key ardıcıllığı vacib olan topic-lərdə partisiya sayını sonradan artırmaq olmaz!"
+code: |
+  # Demonstrating Keyed Hashing vs Sticky Partitioning in Confluent Kafka
+  import json
+  from confluent_kafka import Producer
+
+  producer = Producer({'bootstrap.servers': 'localhost:9092'})
+
+  def callback(err, msg):
+      if err:
+          print(f"Error: {err}")
+      else:
+          key_str = msg.key().decode('utf-8') if msg.key() else 'NULL'
+          print(f"  • Key: {key_str:<12} ──► Routed to Partition: {msg.partition()} [Offset: {msg.offset()}]")
+
+  print("=== 1. Producing Keyed Messages (Deterministic Routing) ===")
+  # Customer A events: ALWAYS map to the same partition
+  for i in range(3):
+      payload = {"tx_id": f"tx_{i}", "customer": "cust_A", "amt": 50 * (i + 1)}
+      producer.produce("orders-stream", key="cust_A", value=json.dumps(payload), callback=callback)
+
+  # Customer B events: ALWAYS map to another deterministic partition
+  for i in range(2):
+      payload = {"tx_id": f"tx_{i}", "customer": "cust_B", "amt": 99.0}
+      producer.produce("orders-stream", key="cust_B", value=json.dumps(payload), callback=callback)
+
+  print("\n=== 2. Producing Null-Key Messages (Sticky Batching) ===")
+  for i in range(3):
+      payload = {"log_event": f"heartbeat_{i}"}
+      producer.produce("orders-stream", key=None, value=json.dumps(payload), callback=callback)
+
+  producer.flush()
+code_explanation:
+  en: |
+    - `key="cust_A"`: The byte-string hashed by Murmur2. Every record with this key lands strictly on the identical partition.
+    - Notice that all 3 events for `cust_A` land on Partition 2, while `cust_B` lands on Partition 0.
+    - `key=None`: Triggers the Sticky Partitioner, sticking to an active partition to optimize buffer batching.
+  az: |
+    - `key="cust_A"`: Murmur2 alqoritmi ilə heşlənən bayt açarı. Bu açara sahib bütün sətirlər istisnasız eyni partisiyaya yönləndirilir.
+    - Çıxışa baxın: `cust_A`-nın 3 hadisəsinin hamısı Partisiya 2-yə, `cust_B` isə Partisiya 0-a düşür.
+    - `key=None`: Sticky Partitioner mexanizmini işə salır və buferdəki paketi tam doldurmaq üçün eyni partisiyaya yapışır.
+visual_output: |
+  === 1. Producing Keyed Messages (Deterministic Routing) ===
+    • Key: cust_A       ──► Routed to Partition: 2 [Offset: 120]
+    • Key: cust_A       ──► Routed to Partition: 2 [Offset: 121]
+    • Key: cust_A       ──► Routed to Partition: 2 [Offset: 122]
+    • Key: cust_B       ──► Routed to Partition: 0 [Offset: 45]
+    • Key: cust_B       ──► Routed to Partition: 0 [Offset: 46]
+
+  === 2. Producing Null-Key Messages (Sticky Batching) ===
+    • Key: NULL         ──► Routed to Partition: 1 [Offset: 89]
+    • Key: NULL         ──► Routed to Partition: 1 [Offset: 90]
+    • Key: NULL         ──► Routed to Partition: 1 [Offset: 91]
+output_description:
+  en: "Terminal execution proving deterministic partition stickiness for keys: all cust_A events land on partition 2, cust_B on partition 0, and null-key batching on partition 1."
+  az: "Açarların riyazi qanunauyğunluğunu sübut edən terminal çıxışı: cust_A üçün bütün hadisələr 2-ci partisiyaya, cust_B üçün 0-cıya, açarsız mesajlar isə 1-ci partisiyaya qruplaşdırılır."
+what_it_does:
+  en: "Shows the mechanics of partition assignment, comparing deterministic key hashing against null-key sticky micro-batching."
+  az: "Partisiya təyinatının iş prinsiplərini, açarlı deterministik heşləmə ilə açarsız Sticky Partitioner fərqini nümayiş etdirir."
+real_world_use:
+  en: "Indispensable in financial CDC (Debezium) pipelines. Setting the Primary Key (e.g. `order_id`) as the Kafka message key guarantees that INSERT, UPDATE, and DELETE events are consumed in the exact sequence they happened."
+  az: "CDC (Change Data Capture) kəmərlərində əsas açarı (Primary Key) Kafka mesaj açarı etməklə bazadakı INSERT, UPDATE və DELETE əmrlərinin ardıcıllıqla emal olunmasını təmin etmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Increasing partition counts on keyed topics without a migration strategy**: Breaks key-to-partition mapping immediately.
+    - **Creating severe Data Skewness**: Using low-cardinality keys like `country` where 95% of events have `key="US"`. All 95% overwhelm a single partition while other partitions sit idle!
+    - **Passing complex non-deterministic objects as keys**: Random dictionaries or floats whose byte serialization varies will scatter the same entity across multiple partitions.
+  az: |
+    - **Açarlı topic-lərdə düşünmədən partisiya sayını artırmaq**: Bütün keçmiş açar-partisiya xəritəsini dərhal pozur.
+    - **Məlumat əyriliyi (Data Skewness) yaratmaq**: Cəmi bir neçə fərqli dəyəri olan açarlardan istifadə etmək (məs. ölkə üzrə, bütün hadisələrin 95%-i "AZ" açarı ilə). Nəticədə tək bir partisiya şişir, digərləri boş qalır.
+    - **Açar kimi hər dəfə fərqli serializasiya olunan dəyişkən obyektlər ötürmək**: Eyni obyektin fərqli partisiyalara səpələnməsinə səbəb olur.
+interview_question:
+  question:
+    en: "How does the Kafka Producer partitioner assign records to partitions, and what catastrophic issue occurs if you increase partitions on an existing keyed topic?"
+    az: "Kafka Producer partitioner mesajları partisiyalara necə bölüşdürür və mövcud açarlı topic-də partisiya sayını artırdıqda hansı fəlakətli problem yaranır?"
+  answer:
+    en: |
+      1. **Partition Assignment Rules**:
+         - **Key is Present**: The producer executes a deterministic 32-bit Murmur2 hash on the serialized key bytes: `abs(murmur2(key)) % num_partitions`. As long as `num_partitions` remains constant, records with the identical key will **always** map to the same partition.
+         - **Key is Null**: The producer invokes the **Sticky Partitioner** (introduced in Kafka 2.4). It pins records to a single partition until the batch buffer (`batch.size` or `linger.ms`) fills and dispatches, maximizing network throughput and reducing socket calls.
+      2. **The Catastrophic Partition Expansion Issue**:
+         - The mathematical mapping of keys depends directly on the modulo operator `% num_partitions`.
+         - Suppose a topic has 3 partitions and `hash("order_12") = 10`. The modulo calculation is `10 % 3 = 1` (Partition 1).
+         - If an engineer expands the topic to 4 partitions, `10 % 4 = 2` (Partition 2!).
+         - **Consequence**: All subsequent events for `"order_12"` are now written to Partition 2, while the initial creation event sits in Partition 1. Because Kafka has **no cross-partition ordering guarantees**, a downstream consumer can process an `UPDATE` event from Partition 2 **before** the `INSERT` event from Partition 1!
+    az: |
+      1. **Bölüşdürmə Qaydaları**:
+         - **Açar Varsa**: Producer açarın baytları üzərində deterministik 32-bit Murmur2 heş funksiyasını hesablayır: `abs(murmur2(key)) % num_partitions`. Partisiya sayı sabit qaldığı müddətcə eyni açar **istisnasız həmişə** eyni partisiyaya düşür.
+         - **Açar Yoxdursa (Null)**: Producer **Sticky Partitioner** alqoritmini işə salır. O, şəbəkə paketi (`batch.size` və ya `linger.ms`) dolana qədər mesajları tək bir partisiyaya doldurur və sonra digərinə keçir.
+      2. **Partisiya Sayı Artırıldıqda Baş Verən Fəlakət**:
+         - Açarların təyinatı birbaşa `% num_partitions` qalığından asılıdır.
+         - Fərz edək ki, topic 3 partisiyadan ibarətdir və `hash("order_12") = 10`-dur. Düstur: `10 % 3 = 1` (Partisiya 1).
+         - Əgər mühəndis partisiya sayını 4-ə qaldırarsa, düstur: `10 % 4 = 2` (Partisiya 2!).
+         - **Nəticə**: `"order_12"` üçün bundan sonra gələn bütün hadisələr 2-ci partisiyaya yazılacaq, amma onun ilkin yaradılma hadisəsi 1-ci partisiyada qalıb. Partisiyalararası qlobal ardıcıllıq olmadığı üçün istehlakçı 2-ci partisiyadakı `UPDATE` əmrini 1-ci partisiyadakı `INSERT`-dən **əvvəl** oxuyacaq və sistem çökəcək!
+  interviewer_tips:
+    en: "Mention the 'Murmur2 hash modulo formula', explain the 'Sticky Partitioner' for null keys, and give the concrete mathematical example showing how changing the modulo divisor breaks per-key sequentiality."
+    az: "Müsahibədə 'Murmur2 heş alqoritmi', açarsız mesajlar üçün 'Sticky Partitioner' və partisiya sayı artdıqda riyazi qalığın dəyişməsi nəticəsində eyni obyektin ardıcıllığının necə pozulduğunu rəqəmlərlə nümunə göstərin."
+flashcards:
+  - front:
+      en: "How does Kafka route a message to a partition when the Key is NULL?"
+      az: "Mesajın Açarı (Key) NULL olduqda Kafka onu partisiyaya necə yönləndirir?"
+    back:
+      en: "Via the Sticky Partitioner, which batches records to a single partition until full before rotating."
+      az: "Sticky Partitioner vasitəsilə; paket dolana qədər bütün ardıcıl mesajları tək bir partisiyaya doldurur, sonra növbətiyə keçir."
+  - front:
+      en: "What algorithm does Kafka use to assign keyed messages to partitions?"
+      az: "Kafka açarlı mesajları partisiyalara bölmək üçün hansı alqoritmdən istifadə edir?"
+    back:
+      en: "`abs(murmur2(key)) % num_partitions` (deterministic 32-bit Murmur2 hashing)."
+      az: "`abs(murmur2(key)) % num_partitions` (deterministik 32-bit Murmur2 heşləməsi)."
+  - front:
+      en: "What happens to key-to-partition mapping if you increase the number of partitions on a topic?"
+      az: "Topic-in partisiya sayını artırdıqda açar-partisiya xəritəsinə nə olur?"
+    back:
+      en: "The modulo divisor changes, causing future messages for the same key to hash to different partitions, breaking ordering."
+      az: "Riyazi qalıq böləni dəyişir və eyni açara aid yeni mesajlar başqa partisiyalara düşərək ardıcıllığı pozur."
+  - front:
+      en: "What is Data Skewness in Apache Kafka?"
+      az: "Apache Kafka-da Məlumat Əyriliyi (Data Skewness) nədir?"
+    back:
+      en: "When an overwhelmingly large volume of messages share the same key, flooding one partition while others sit underutilized."
+      az: "Həddindən artıq çox mesajın eyni açara sahib olması nəticəsində tək bir partisiyanın şişməsi, digərlərinin isə boş qalmasıdır."
+  - front:
+      en: "What are Kafka Message Headers used for?"
+      az: "Kafka Mesaj Başlıqları (Headers) nə üçün istifadə olunur?"
+    back:
+      en: "Carrying optional routing or metadata key-value pairs (e.g. tracing IDs, schemas) without modifying the payload."
+      az: "Əsas məlumat gövdəsini (payload) dəyişmədən audit, izləmə (tracing) və ya sxem metadatasını daşımaq üçün."

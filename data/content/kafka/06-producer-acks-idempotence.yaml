@@ -1,0 +1,242 @@
+id: "06-producer-acks-idempotence"
+order: 6
+level: "intermediate"
+title:
+  en: "Producer Reliability: ACKs, Retries & Idempotence"
+  az: "Producer Etibarlılığı: ACKs, Retries və İdempotentlik"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PRODUCER ACKS LEVELS COMPARISON (Durability vs Speed)                │
+    │                                                                        │
+    │  1. `acks=0` (Fire and Forget - Metrics / Sensor Logs):                │
+    │  [Producer] ──► (Network Pipe) ──► (Never waits for Broker ACK!)       │
+    │  Speed: Maximum. Durability: ZERO (Message lost if broker crashes).    │
+    │                                                                        │
+    │  2. `acks=1` (Default in older Kafka - Balanced):                      │
+    │  [Producer] ──► [Leader Broker] (Writes local log) ──► Sends ACK       │
+    │  Durability: Medium. Risk: If Leader dies before followers replicate, │
+    │              unreplicated messages are permanently lost!               │
+    │                                                                        │
+    │  3. `acks=all` (Financial & Enterprise Standard):                      │
+    │  [Producer] ──► [Leader Broker] ──► [Follower 1] & [Follower 2] (ISR)  │
+    │  Producer waits until Leader AND all In-Sync Replicas commit to disk!  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  IDEMPOTENT PRODUCER: Eliminating Duplicates during Network Retries    │
+    │  Without Idempotence (`enable.idempotence=false`):                     │
+    │  1. Producer sends Message (Tx 101) ──► Broker writes to log.          │
+    │  2. Broker sends ACK ──► (Network Drops ACK Packet!)                   │
+    │  3. Producer thinks message failed ──► Retries and resends (Tx 101).   │
+    │  4. Result: DUPLICATE RECORD IN LOG! (User charged twice!).            │
+    │                                                                        │
+    │  With Idempotence (`enable.idempotence=true`):                         │
+    │  • Producer stamps record with Producer ID (PID: 9) + SeqNum (0).      │
+    │  • On retry, Broker sees SeqNum 0 is already committed!                │
+    │  • Discards duplicate write and safely re-acks the Producer. SIFIR DUBL!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PRODUCER ACKS DƏRƏCƏLƏRİNİN MÜQAYİSƏSİ (Sürət vs Etibarlılıq)         │
+    │                                                                        │
+    │  1. `acks=0` (Göndər və Unut - Qeyri-kritik Loqlar üçün):              │
+    │  [Producer] ──► (Şəbəkəyə atır) ──► (Brokerdən heç bir təsdiq GÖZLƏMİR)│
+    │  Sürət: Maksimum. Etibarlılıq: SIFIR (Broker sönsə, mesaj itir).       │
+    │                                                                        │
+    │  2. `acks=1` (Lider Təsdiqi):                                          │
+    │  [Producer] ──► [Lider Broker] (Öz diskinə yazır) ──► Təsdiq (ACK) verir│
+    │  Təhlükə: Follower-lər kopyalamamış Lider ölsə, mesajlar itir!         │
+    │                                                                        │
+    │  3. `acks=all` (Maliyyə və Bank Standartı):                            │
+    │  [Producer] ──► [Lider Broker] ──► [Follower 1] və [Follower 2] (ISR)  │
+    │  Lider və BÜTÜN aktiv nüsxələr diskə yazdıqdan sonra təsdiq göndərilir!│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  İDEMPOTENT PRODUCER: Şəbəkə Təkrarında Dublikatların Qarşısının Alınması│
+    │  İdempotentlik Sönülü Olduqda (`enable.idempotence=false`):            │
+    │  1. Producer mesajı atır (Ödəniş 100 AZN) ──► Broker diskə yazır.      │
+    │  2. Broker ACK göndərir ──► (Lakin Şəbəkə kəsilir, ACK itir!)          │
+    │  3. Producer elə bilir mesaj çatmadı ──► Təzədən atır (Ödəniş 100 AZN) │
+    │  4. Nəticə: DUBLİKAT SƏTİR! (Müştəridən iki dəfə pul çıxıldı!).        │
+    │                                                                        │
+    │  İdempotentlik Aktiv Olduqda (`enable.idempotence=true`):              │
+    │  • Producer mesaja unikal Producer ID (PID: 9) + Sıra Nömrəsi (Seq: 0) │
+    │    möhürü vurur.                                                       │
+    │  • Şəbəkə xətası olub təkrar gəlsə, Broker 0 nömrəsini dərhal tanıyır! │
+    │  • İkinci yazılmanı rədd edir və təhlükəsiz ACK qaytarır. SIFIR DUBL!  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of certified mail delivery at the post office:
+    - **`acks=0` (Postcard into ordinary mailbox)**: You drop a postcard in the slot and walk away immediately. Did it arrive? Did the mailbox burn down? You have no idea. Ideal only for disposable telemetry or metric counters where losing 0.1% of records is acceptable.
+    - **`acks=1` (Front-desk clerk signature)**: The clerk at the counter signs your receipt, but hasn't put it in the fireproof safe yet. If the building loses power 2 seconds later before duplicating to the vault, your letter is gone.
+    - **`acks=all` (Multi-vault signed replication)**: The clerk signs ONLY after the document has been photocopied and locked into 3 independent bank vaults. If one vault floods, the other two guarantee survival!
+    - **The `min.insync.replicas` Trap**:
+      - If you set `acks=all`, but your cluster setting `min.insync.replicas` is left at `1`, Kafka will accept writes even if all followers are dead and only 1 broker is alive!
+      - **Production Golden Standard**: Always pair `replication.factor=3`, `acks=all`, and `min.insync.replicas=2`.
+    - **Idempotent Delivery (`enable.idempotence=true`)**:
+      - Solves the classic distributed systems challenge: "Did my message fail to arrive, or did only the acknowledgment packet drop on the return trip?"
+      - When idempotence is enabled, the broker tracks `(ProducerID, SequenceNumber)`. If a retry sends duplicate sequence numbers, the broker silently drops the duplicate write and returns success.
+  az: |
+    Poçt vasitəsilə mühüm sənəd göndərilməsini təsəvvür edin:
+    - **`acks=0` (Adi poçt qutusuna atılan açıqca)**: Məktubu qutuya atıb dərhal uzaqlaşırsınız. Məktub çatdı? Qutu yandı? Xəbəriniz yoxdur. Yalnız qeyri-kritik telemetriya və ya klik izləmə üçün yararlıdır.
+    - **`acks=1` (Qəbul şöbəsindəki işçinin imzası)**: Sənədi təhvil alan işçi qəbzə imza atır, amma sənədi hələ seyfə qoymayıb. Əgər 2 saniyə sonra ofisdə yanğın baş versə, sənəd itir.
+    - **`acks=all` (3 ayrı seyfdə təsdiqlənmiş qeydiyyat)**: İşçi sənədi qəbul edir, dərhal 2 digər filialın seyfinə nüsxələyir və yalnız hər 3 seyf bağlandıqdan sonra sizə təsdiq verir.
+    - **`min.insync.replicas` Tələsi**:
+      - Əgər siz `acks=all` qoysanız, lakin klasterdə `min.insync.replicas=1` qalsa və 2 nüsxə serveri sönsə, Kafka təsdiqi tək bir brokerlə verəcək və data itkisi riski yaranacaq!
+      - **İstehsalatın Qızıl Qaydası**: Həmişə `replication.factor=3`, `acks=all` və `min.insync.replicas=2` konfiqurasiyası birlikdə istifadə olunmalıdır.
+    - **İdempotent Producer (`enable.idempotence=true`)**:
+      - Paylanmış sistemlərin ən məşhur dilemmasını həll edir: "Mənim göndərdiyim mesaj çatmadı, yoxsa sadəcə brokerin təsdiq (ACK) cavabı yolda şəbəkə qopması səbəbindən mənə çatmadı?"
+      - İdempotentlik aktiv olduqda, hər mesaja Producer ID və artan ardıcıllıq nömrəsi vurulur. Şəbəkə xətası olub eyni mesaj təkrar göndərildikdə, broker dublikatı dərhal tanıyır, ikinci dəfə yazmır və uğurlu təsdiq qaytarır.
+quick_recap:
+  en: "`acks=all` guarantees all in-sync replicas write the record before returning success. Pairing `acks=all` with `min.insync.replicas=2` and `enable.idempotence=true` guarantees zero data loss and zero duplicate records during network retries."
+  az: "`acks=all` mesajın bütün aktiv replikalara yazılmasını tələb edir. `acks=all`, `min.insync.replicas=2` və `enable.idempotence=true` üçlüyü istehsalatda sıfır data itkisi və şəbəkə xətaları zamanı sıfır dublikat zəmanəti verir."
+code: |
+  # Production-Grade Resilient & Idempotent Kafka Producer
+  import json
+  from confluent_kafka import Producer
+
+  # Zero Data Loss & Exactly-Once Production Configuration
+  resilient_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'client.id': 'payment-gateway-engine',
+      
+      # 1. Full Durability Across Cluster
+      'acks': 'all',                          # Wait for full ISR quorum
+      
+      # 2. Idempotence & Safe Retries
+      'enable.idempotence': True,             # Prevents duplicates on retry
+      'retries': 5,                           # Retry on transient network blips
+      'retry.backoff.ms': 200,                # Backoff between attempts
+      'max.in.flight.requests.per.connection': 5, # Preserves ordering during retries
+      
+      # 3. High-Throughput Batching
+      'compression.type': 'snappy',           # Low CPU, great compression
+      'linger.ms': 20,                        # Wait up to 20ms to batch records
+      'batch.size': 32768                     # 32 KB batch buffer
+  }
+
+  producer = Producer(resilient_conf)
+
+  def acked(err, msg):
+      if err is not None:
+          print(f"❌ Permanent Failure: {err}")
+      else:
+          print(f"✅ Committed [Topic: {msg.topic()} | Part: {msg.partition()} | Offset: {msg.offset()}]")
+
+  print("=== Publishing Financial Ledger Events with Zero-Loss Guarantees ===")
+  ledger_entries = [
+      {"entry_id": 1001, "account": "AZ_BANK_01", "debit": 500.00},
+      {"entry_id": 1002, "account": "AZ_BANK_02", "credit": 500.00}
+  ]
+
+  for entry in ledger_entries:
+      producer.produce(
+          topic="core-ledger",
+          key=entry["account"],
+          value=json.dumps(entry),
+          callback=acked
+      )
+
+  producer.flush()
+  print("\nAll in-flight batches safely acknowledged by ISR quorum.")
+code_explanation:
+  en: |
+    - `'acks': 'all'`: Ensures message durability across leader and all synchronized followers.
+    - `'enable.idempotence': True`: Automatically enables retries, assigns Producer IDs, and guarantees that network re-transmissions never cause duplicate entries.
+    - `'max.in.flight.requests.per.connection': 5`: When idempotence is true, Kafka safely allows up to 5 concurrent in-flight batches without risking out-of-order writes.
+    - `'linger.ms': 20`: Tells producer to wait up to 20ms to pack more records into each network frame.
+  az: |
+    - `'acks': 'all'`: Mesajın həm lider, həm də bütün sinxron follower serverlər tərəfindən qəbul edildiyinə zəmanət verir.
+    - `'enable.idempotence': True`: Avtomatik olaraq təkrar cəhdləri açır, Producer ID təyin edir və şəbəkə xətası zamanı mesajın bazaya iki dəfə düşməsinin qarşısını alır.
+    - `'max.in.flight.requests.per.connection': 5`: İdempotentlik aktiv olduqda, ardıcıllığı pozmadan eyni anda 5 paketin paralel ötürülməsinə imkan yaradır.
+    - `'linger.ms': 20`: Şəbəkəyə çıxmazdan əvvəl buferdə daha çox mesaj qruplaşdırmaq üçün 20 ms gözləyir.
+visual_output: |
+  === Publishing Financial Ledger Events with Zero-Loss Guarantees ===
+  ✅ Committed [Topic: core-ledger | Part: 1 | Offset: 504]
+  ✅ Committed [Topic: core-ledger | Part: 0 | Offset: 812]
+
+  All in-flight batches safely acknowledged by ISR quorum.
+output_description:
+  en: "Terminal execution demonstrating successful multi-broker ISR quorum commit with full idempotent producer safety."
+  az: "İdempotent producer vasitəsilə hadisələrin bütün ISR kvorumu tərəfindən uğurla təsdiq olunduğunu göstərən terminal loqu."
+what_it_does:
+  en: "Configures enterprise-grade producer reliability, showing how to eliminate data loss and prevent duplicate records caused by transient network timeouts."
+  az: "İstehsalat səviyyəsində etibarlı producer qurur, data itkisinin qarşısını almaq və şəbəkə fasilələrində dublikatların yaranmasını önləmək yollarını göstərir."
+real_world_use:
+  en: "Standard configuration in banking, stock trading, and transactional billing where a single lost or duplicated event represents catastrophic financial discrepancies."
+  az: "Bank, ödəniş sistemləri və birja platformalarında hər bir hadisənin dəqiq bir dəfə çatdırılması və heç vaxt itməməsi üçün tətbiq olunur."
+common_mistakes:
+  en: |
+    - **Using `acks=all` with `min.insync.replicas=1`**: Defeats the purpose of `acks=all`. If 2 replicas crash, Kafka still acknowledges writes with only 1 surviving broker!
+    - **Setting `min.insync.replicas` equal to `replication.factor` (e.g. 3 out of 3)**: If a single broker reboots for maintenance, the entire topic stops accepting ANY new writes, causing a total outage! Keep it at `RF - 1` (e.g. RF=3, min.isr=2).
+    - **Disabling idempotence to save trivial CPU cycles**: Risks severe data duplication during normal network jitter.
+  az: |
+    - **`acks=all` ilə yanaşı `min.insync.replicas=1` saxlamaq**: `acks=all`-ın mənasını itirir. İki replika sönsə belə, Kafka təkcə 1 brokerlə təsdiq verəcək və data itə bilər!
+    - **`min.insync.replicas`-ı `replication.factor`-a bərabər etmək (məs. 3-dən 3)**: Tək bir broker profilaktikaya getsə, bütün topic yeni mesaj qəbulunu dərhal dayandıracaq və sistem iflic olacaq! Həmişə `RF - 1` (RF=3 olduqda min.isr=2) qoyulmalıdır.
+    - **Cüzi CPU qənaəti üçün idempotentliyi söndürmək**: Şəbəkənin adi titrəməsində məlumatların təkrarlanmasına və dublikatlara yol açır.
+interview_question:
+  question:
+    en: "Does setting `acks=all` alone guarantee zero data loss in Kafka? How do `min.insync.replicas` and `enable.idempotence` interact to provide enterprise-grade durability?"
+    az: "Yalnız `acks=all` təyin etmək Kafkada sıfır data itkisinə təkbaşına zəmanət verirmi? `min.insync.replicas` və `enable.idempotence` parametrləri bu zəmanəti necə tamamlayır?"
+  answer:
+    en: |
+      1. **The `acks=all` Limitation**:
+         - **No**, `acks=all` alone does **NOT** guarantee zero data loss!
+         - `acks=all` only instructs the leader to wait for all currently alive **In-Sync Replicas (ISR)**. If two brokers in a 3-broker cluster crash, the ISR shrinks to just 1 broker (the leader). `acks=all` will successfully acknowledge writes with only that single leader! If that last leader's drive fails, data is lost permanently.
+      2. **The Enforcement of `min.insync.replicas`**:
+         - To guarantee true cluster durability, the topic/broker must be configured with `min.insync.replicas = 2` (with `replication.factor = 3`).
+         - If the ISR drops below 2, the leader will **reject** new produce requests with a `NotEnoughReplicasException`, guaranteeing that data is never accepted without multi-node redundancy.
+      3. **The Role of `enable.idempotence=true`**:
+         - Retrying failed writes when network packets drop can introduce duplicated records.
+         - Idempotence assigns an internal 64-bit Producer ID (PID) and sequence numbers to every batch. If the broker already committed sequence number $N$, it rejects duplicate sequence numbers while acknowledging success to the producer, achieving true **At-Least-Once Delivery without Duplication**.
+    az: |
+      1. **Yalnız `acks=all` Niyə Kifayət Etmir?**:
+         - **Xeyr**, təkcə `acks=all` yazmaq sıfır data itkisinə **zəmanət vermir**!
+         - `acks=all` sadəcə Liderə deyir ki: "Hazırda salamat qalan bütün **In-Sync Replicas (ISR)** üzvləri yazana qədər gözlə". Əgər 3 brokerdən 2-si yanıb kül olubsa, ISR siyahısında cəmi 1 broker (Liderin özü) qalır. `acks=all` tək bircə maşınla uğurlu cavab qaytaracaq! Əgər həmin sonuncu maşın da çöksə, bütün məlumat birdəfəlik itir.
+      2. **`min.insync.replicas`-ın Həlledici Rolu**:
+         - Həqiqi təhlükəsizlik üçün mütləq `min.insync.replicas = 2` (Replication Factor = 3 olduqda) təyin edilməlidir.
+         - Əgər salamat qalan nüsxələrin sayı 2-dən az olarsa, Lider yeni mesajları qəbul etməyəcək və `NotEnoughReplicasException` xətası atacaq. Beləliklə, məlumatın ən azı 2 fərqli fiziki serverə yazılacağına 100% zəmanət verilir.
+      3. **`enable.idempotence=true` Rolu**:
+         - Şəbəkə kəsildikdə producer mesajı təkrar göndərdikdə dublikatların yaranmasının qarşısını alır.
+         - Hər mesaja Producer ID və artan ardıcıllıq nömrəsi vurulur; broker eyni nömrəli hadisəni ikinci dəfə qəbul etmir və dublikatsız etibarlı çatdırılma təmin edilir.
+  interviewer_tips:
+    en: "Explain the exact catastrophic scenario where acks=all fails if min.insync.replicas is left at 1. Recite the industry triad: 'RF=3, acks=all, min.insync.replicas=2, enable.idempotence=true'."
+    az: "Müsahibədə `min.insync.replicas=1` olduqda və brokerlər çökdükdə `acks=all`-ın necə tək maşınla data itkisinə səbəb olduğunu izah edin və sənaye qızıl standartını sadalayın: 'RF=3, acks=all, min.insync.replicas=2, enable.idempotence=true'."
+flashcards:
+  - front:
+      en: "What does `acks=all` (or `acks=-1`) mean in Apache Kafka?"
+      az: "Apache Kafka-da `acks=all` (və ya `acks=-1`) nə deməkdir?"
+    back:
+      en: "The producer waits until both the leader and all current in-sync replicas (ISR) commit the message to disk."
+      az: "Producer mesajın həm lider, həm də bütün aktiv sinxron nüsxələr (ISR) tərəfindən diskə yazılmasını gözləyir."
+  - front:
+      en: "Why is setting `min.insync.replicas=1` alongside `acks=all` dangerous?"
+      az: "`acks=all` ilə yanaşı `min.insync.replicas=1` qoymaq nə üçün təhlükəlidir?"
+    back:
+      en: "Because if all follower replicas die, the leader still acknowledges writes with only 1 copy, risking data loss."
+      az: "Çünki bütün follower serverlər ölsə belə, lider cəmi 1 nüsxə ilə təsdiq verəcək və həmin lider də çöksə data itəcək."
+  - front:
+      en: "What is the recommended production setting for `min.insync.replicas` when `replication.factor=3`?"
+      az: "`replication.factor=3` olduqda `min.insync.replicas` üçün tövsiyə olunan ən ideal dəyər neçədir?"
+    back:
+      en: "2 (guarantees at least 2 physical copies while allowing 1 broker to be down for maintenance)."
+      az: "2 (ən azı 2 fiziki nüsxəyə zəmanət verir və 1 brokerin təmir üçün söndürülməsinə icazə verir)."
+  - front:
+      en: "What problem does an Idempotent Producer (`enable.idempotence=true`) solve?"
+      az: "İdempotent Producer (`enable.idempotence=true`) hansı problemi həll edir?"
+    back:
+      en: "Prevents duplicate records in the log caused by network retries when acknowledgment packets drop."
+      az: "Brokerin təsdiq (ACK) cavabı şəbəkədə itdiyi zaman təkrar göndərmə nəticəsində logda dublikatların yaranmasını önləyir."
+  - front:
+      en: "How does the Kafka broker identify a duplicate message from an idempotent producer?"
+      az: "Kafka brokeri idempotent producer-dən gələn mesajın dublikat olduğunu necə tanıyır?"
+    back:
+      en: "By tracking the unique Producer ID (PID) and monotonically increasing Sequence Number stamped on each batch."
+      az: "Hər paketə vurulan unikal Producer ID (PID) və artan Sıra Nömrəsini (Sequence Number) yoxlamaqla."

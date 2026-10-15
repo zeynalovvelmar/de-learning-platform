@@ -1,0 +1,234 @@
+id: "10-delivery-semantics-eos"
+order: 10
+level: "advanced"
+title:
+  en: "Delivery Semantics: At-Most-Once, At-Least-Once & Exactly-Once (EOS)"
+  az: "Çatdırılma Semantikası: At-Most-Once, At-Least-Once və Exactly-Once"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE THREE MESSAGE DELIVERY GUARANTEES                                 │
+    │                                                                        │
+    │  1. AT-MOST-ONCE (Commit FIRST, Process LATER):                        │
+    │  [Poll msg] ──► [Commit Offset to Kafka] ──► [Crash while saving to DB]│
+    │  Result: ZERO duplicate writes, but MESSAGE PERMANENTLY LOST!          │
+    │                                                                        │
+    │  2. AT-LEAST-ONCE (Process FIRST, Commit LATER - Industry Standard):   │
+    │  [Poll msg] ──► [Write to DB Successfully] ──► [Crash before Commit]   │
+    │  On restart: Re-reads same msg ──► Re-writes to DB. ZERO LOSS, DUPL!   │
+    │                                                                        │
+    │  3. EXACTLY-ONCE SEMANTICS (EOS - Kafka Transactions):                 │
+    │  [Topic In] ──► [Stream Transform] ──► [Topic Out + Commit Offset]     │
+    │  Unified 2-Phase Commit Transaction. ZERO data loss, ZERO duplicates! │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE REAL-WORLD ARCHITECTURAL PATTERN:                                 │
+    │  "At-Least-Once Delivery + Idempotent Consumer (Deduplication)"        │
+    │                                                                        │
+    │  [Kafka Event (Tx_101)] ──► [Consumer Worker]                          │
+    │                                    │                                   │
+    │                                    ▼                                   │
+    │  [PostgreSQL / Lakehouse Target: `INSERT INTO ledger VALUES ('tx_101') │
+    │                                  ON CONFLICT (entry_id) DO NOTHING;`]  │
+    │  Result: Even if Kafka sends duplicate retries, DB drops duplicate!    │
+    │  Achieves Exactly-Once business effect without heavy transaction locks!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  ÜÇ ƏSAS MESAJ ÇATDIRILMA ZƏMANƏTİ                                     │
+    │                                                                        │
+    │  1. AT-MOST-ONCE (Əvvəlcə Commit Et, Sonra Emal Et):                   │
+    │  [Mesajı çək] ──► [Kafkada Offset-i təsdiqlə] ──► [Bazada Çöküş!]      │
+    │  Nəticə: Dublikat olmur, amma MESAJ BİRDƏFƏLİK İTİR!                   │
+    │                                                                        │
+    │  2. AT-LEAST-ONCE (Əvvəlcə Bazaya Yaz, Sonra Commit Et - Standart):    │
+    │  [Mesajı çək] ──► [Bazaya Uğurla Yaz] ──► [Commit-dən qabaq Çöküş!]    │
+    │  Bərpadan sonra: Həmin mesajı təkrar oxuyur. İTKİ SIFIRDIR, DUBLİKAT!  │
+    │                                                                        │
+    │  3. EXACTLY-ONCE SEMANTICS (EOS - Kafka Tranzaksiyaları):              │
+    │  [Giriş Topiki] ──► [Axın Emalı] ──► [Çıxış Topiki + Offset Commit]    │
+    │  İki Fazalı Atomar Tranzaksiya. SIFIR data itkisi, SIFIR dublikat!     │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  REAL HƏYATDA ƏN POPULYAR DATA MÜHƏNDİSLİYİ MODELİ:                    │
+    │  "At-Least-Once Çatdırılma + İdempotent İstehlakçı (Deduplikasiya)"    │
+    │                                                                        │
+    │  [Kafka Hadisəsi (Tx_101)] ──► [Consumer İşçisi]                       │
+    │                                        │                               │
+    │                                        ▼                               │
+    │  [PostgreSQL / DWH Anbarı: `INSERT INTO ledger VALUES ('tx_101')       │
+    │                            ON CONFLICT (entry_id) DO NOTHING;`]        │
+    │  Nəticə: Şəbəkə təkrarı olub dublikat gəlsə belə, baza onu qəbul etmir!│
+    │  Ağır tranzaksiya kilitləri olmadan 100% təmiz Exactly-Once nəticəsi!  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of paying for a cup of coffee at a payment terminal:
+    - **At-Most-Once (Tap card, walk away before receipt)**: The card reader beeps, but paper jams. You walk away anyway. You might never get the coffee, but you are 100% sure you won't be charged twice. Used only in non-critical metrics or click telemetry.
+    - **At-Least-Once (Tap card, wait until you hold the coffee, then sign)**: If the payment network blips, the cashier swipes the card again. You will definitely get your coffee, but there is a small chance you might be charged twice on your bank statement. **This is the default and most widely used pattern in Data Engineering.**
+    - **Exactly-Once Semantics (EOS)**: The magic grail. Every event is processed exactly once, with zero loss and zero duplicates.
+    - **How Kafka EOS Works Internally**:
+      - For end-to-end Kafka streaming (`Topic In ──► Process ──► Topic Out`), Kafka uses **Transactional Producers** (`transactional.id`).
+      - Writing the output record to Topic B and committing the input offset to `__consumer_offsets` happens inside an atomic Two-Phase Commit transaction. Either both succeed, or both roll back together!
+    - **The External Sink Dilemma**:
+      - Kafka's internal transactions cannot control external databases like PostgreSQL, Snowflake, or Amazon S3!
+      - If your consumer writes to PostgreSQL and crashes before committing to Kafka, Kafka will replay that record.
+      - **The Solution**: Build an **Idempotent Consumer**. Use SQL upserts (`INSERT ... ON CONFLICT (id) DO UPDATE`), deduplicate by unique IDs in a fast cache (Redis), or write to partitioned Lakehouse tables using Delta Lake merge keys.
+  az: |
+    Kofeyə görə ödəniş terminalı ilə kartdan pul çıxılmasını təsəvvür edin:
+    - **At-Most-Once (Ən çoxu bir dəfə - Qəbzi götürmədən uzaqlaşmaq)**: Kartı toxunduran kimi dönüb gedirsiniz. Kofe hazır oldu, olmadı baxmırsınız. Qətiyyən iki dəfə pul çıxılmayacaq, amma kofeniz itə bilər. Yalnız xəta loqları və klik sayğacları üçün yararlıdır.
+    - **At-Least-Once (Ən azı bir dəfə - Kofeni əlinizə alandan sonra imzalamaq)**: Kofeni götürürsünüz, amma terminal kəsildiyi üçün kassir kartı təkrar toxundurmağı xahiş edir. Kofeni 100% içəcəksiniz (itki sıfırdır), amma nadir hallarda kartdan iki dəfə pul çıxıla bilər (dublikat riski). **Data mühəndisliyində ən çox tətbiq olunan standartdır.**
+    - **Exactly-Once Semantics (EOS - Dəqiq bir dəfə)**: İdeal zirvə. Mesaj heç vaxt itmir və heç vaxt dublikat olmur.
+    - **Kafkada EOS Necə İşləyir?**:
+      - Kafka daxilində axın emalı üçün (`Topic A ──► Hesabla ──► Topic B`) **Tranzaksiyalı Producer** (`transactional.id`) istifadə olunur.
+      - Topic B-yə çıxış yazmaq və Topic A-nın offset-ini təsdiqləmək vahid İki-Fazalı Atomar Tranzaksiya daxilində bağlanır: ya hər ikisi yazılır, ya da hər ikisi ləğv edilir!
+    - **Xarici Verilənlər Bazası Tələsi**:
+      - Kafkanın tranzaksiyası xarici PostgreSQL, Snowflake və ya S3 anbarına çatmır!
+      - Əgər istehlakçı PostgreSQL-ə yazıb, amma Kafkaya commit etməmiş çöksə, Kafka həmin mesajı təkrar göndərəcək.
+      - **Həll Yolu**: **İdempotent İstehlakçı (Idempotent Consumer)** qurmaq. Bazada `ON CONFLICT DO NOTHING` yazmaq və ya unikal ID ilə deduplikasiya aparmaqla dublikatların bazaya düşməsi sıfırlanır.
+quick_recap:
+  en: "At-Most-Once risks loss; At-Least-Once risks duplicates; Exactly-Once (EOS) eliminates both via Kafka Transactions. In real-world data pipelines, combining At-Least-Once with an Idempotent Consumer (deduplication) achieves bulletproof Exactly-Once business outcomes."
+  az: "At-Most-Once itki riski daşıyır; At-Least-Once dublikat riski daşıyır; Exactly-Once (EOS) isə Tranzaksiyalarla hər ikisini aradan qaldırır. Real data kəmərlərində At-Least-Once çatdırılmanı bazada İdempotent İstehlakçı (deduplikasiya) ilə birləşdirmək ən ideal yoldur."
+code: |
+  # Transactional Producer Blueprint for Exactly-Once Stream Processing (EOS)
+  import json
+  from confluent_kafka import Producer, KafkaException
+
+  # Configuration for Transactional Producer
+  tx_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'transactional.id': 'payment-clearinghouse-tx-1', # Unique persistent transaction ID
+      'enable.idempotence': True,                       # Mandatory for transactional producers
+      'acks': 'all'
+  }
+
+  producer = Producer(tx_conf)
+
+  # 1. Initialize Transactions with Coordinator Broker (One-time setup)
+  print("=== Initializing Kafka Transaction Coordinator ===")
+  producer.init_transactions()
+
+  try:
+      # 2. Begin Atomic Transaction
+      producer.begin_transaction()
+      print("⚡ Transaction Started. Preparing multi-topic atomic writes...")
+
+      # Produce Output Record 1 to Audited Stream
+      event_1 = {"tx_id": "tx_880", "account": "AZN_MAIN", "status": "APPROVED"}
+      producer.produce("transactions-audited", key="tx_880", value=json.dumps(event_1))
+
+      # Produce Output Record 2 to Notifications Stream
+      event_2 = {"tx_id": "tx_880", "msg": "SMS Notification: 50 AZN paid"}
+      producer.produce("notifications-stream", key="tx_880", value=json.dumps(event_2))
+
+      # 3. Commit Transaction atomically across all topics
+      producer.commit_transaction()
+      print("✅ TRANSACTION COMMITTED: Both events published atomically (Zero Loss, Zero Duplicates)!")
+
+  except KafkaException as e:
+      print(f"❌ Transaction Failed! Aborting atomically: {e}")
+      producer.abort_transaction()
+code_explanation:
+  en: |
+    - `'transactional.id'`: Registers this producer with the Transaction Coordinator broker. Survives producer crashes.
+    - `producer.init_transactions()`: Acquires a producer epoch to fence off zombie producer instances.
+    - `producer.begin_transaction()`: Opens an atomic transaction block.
+    - `producer.commit_transaction()`: Two-phase commit protocol guaranteeing that downstream read-committed consumers see all events or none.
+    - `producer.abort_transaction()`: Cleanly rolls back all uncommitted writes in case of an error.
+  az: |
+    - `'transactional.id'`: Bu producer-i Transaction Coordinator brokeri ilə qeydiyyatdan keçirir və server çökmələrindən qoruyur.
+    - `init_transactions()`: Zombi (köhnə) producer nüsxələrinin şəbəkəyə müdaxilə etməməsi üçün unikal epoxa alır.
+    - `begin_transaction()`: Atomar tranzaksiya blokunu başladır.
+    - `commit_transaction()`: Bütün çıxış topic-lərini vahid iki-fazalı təsdiqlə bağlayır (`read_committed` istehlakçıları üçün).
+    - `abort_transaction()`: Xəta baş verdikdə yazılmış bütün aralıq mesajları atomar ləğv edir.
+visual_output: |
+  === Initializing Kafka Transaction Coordinator ===
+  ⚡ Transaction Started. Preparing multi-topic atomic writes...
+  ✅ TRANSACTION COMMITTED: Both events published atomically (Zero Loss, Zero Duplicates)!
+
+  (Downstream consumers configured with `isolation.level=read_committed` now safely receive both events simultaneously!)
+output_description:
+  en: "Terminal execution proving transactional atomicity: two distinct events across different topics were committed simultaneously without partial failures."
+  az: "Tranzaksiya atomarlığını sübut edən terminal loqu: iki fərqli topic-ə aid hadisə eyni anda vahid tranzaksiya ilə təsdiqləndi."
+what_it_does:
+  en: "Demonstrates Exactly-Once Semantics (EOS) using Kafka Transactional Producers, explaining two-phase commit and transactional abort handling."
+  az: "Kafka Transactional Producer vasitəsilə Exactly-Once (EOS) modelini, iki-fazalı tranzaksiyanı və xəta zamanı abort mexanizmini nümayiş etdirir."
+real_world_use:
+  en: "Kafka Streams, Flink, and Spark Structured Streaming engines use transactional producers under the hood to achieve end-to-end exactly-once stream transformations."
+  az: "Kafka Streams, Apache Flink və Spark Structured Streaming mühərrikləri axın emalında dəqiq bir dəfə (EOS) nəticə almaq üçün bu mexanizmdən istifadə edirlər."
+common_mistakes:
+  en: |
+    - **Consuming without `isolation.level = 'read_committed'`**: Transactional consumers default to `read_uncommitted`, meaning they will read aborted/rolled-back transactions! Always set `isolation.level = 'read_committed'`.
+    - **Assuming Kafka transactions extend to external relational databases**: Kafka transactions cannot commit PostgreSQL rows. Use idempotent DB upserts instead.
+    - **Setting static `transactional.id` across multiple concurrent worker instances**: Each concurrent producer must have a unique `transactional.id` (e.g. `tx-worker-1`, `tx-worker-2`).
+  az: |
+    - **İstehlakçıda `isolation.level = 'read_committed'` təyin etməyi unutmaq**: Susmaya görə consumer-lər hələ ləğv edilmiş (abort olmuş) tranzaksiyaları da oxuyur! Tranzaksiyalı sistemlərdə mütləq `read_committed` qoyulmalıdır.
+    - **Kafkanın tranzaksiyasının xarici bazaları da əhatə etdiyini zənn etmək**: Kafkanın commit-i PostgreSQL sətirlərini idarə edə bilməz. Bunun üçün idempotent açarlar tətbiq edilməlidir.
+    - **Eyni anda işləyən bir neçə producer-ə eyni `transactional.id` vermək**: Bir-birini qovacaqlar (fencing); hər bir işçinin unikal id-si olmalıdır (`worker-1-tx`, `worker-2-tx`).
+interview_question:
+  question:
+    en: "What are the three message delivery semantics in Apache Kafka, how is Exactly-Once Semantics (EOS) achieved, and why is 'At-Least-Once + Idempotent Consumer' widely preferred in enterprise data engineering?"
+    az: "Apache Kafka-da üç əsas çatdırılma semantikası hansılardır, Exactly-Once (EOS) necə əldə edilir və nə üçün real data mühəndisliyində 'At-Least-Once + İdempotent İstehlakçı' modeli üstün tutulur?"
+  answer:
+    en: |
+      1. **The Three Semantics**:
+         - **At-Most-Once**: The consumer commits the offset *before* persisting data to the sink. If processing crashes, the offset is already advanced; the message is **lost forever**, but **never duplicated**.
+         - **At-Least-Once**: The consumer commits the offset *after* persisting data to the sink. If the consumer crashes after writing to the DB but before committing to Kafka, the message is re-read on restart. **Zero data loss**, but risks **duplicated writes**.
+         - **Exactly-Once (EOS)**: Guarantees every record impacts the destination state exactly once with **zero loss and zero duplicates**.
+      2. **How Kafka Achieves EOS**:
+         - Within Kafka-to-Kafka pipelines (`consume-transform-produce`), EOS is achieved using **Transactional Producers** (`transactional.id`, `init_transactions`, `begin_transaction`, `commit_transaction`).
+         - Offsets committed to `__consumer_offsets` and output records are committed inside a unified atomic Two-Phase Commit transaction. Downstream consumers configure `isolation.level = 'read_committed'`.
+      3. **Why 'At-Least-Once + Idempotent Consumer' Dominates Real Architectures**:
+         - In 90% of Data Engineering, the target sink is **external** (PostgreSQL, Snowflake, Delta Lake, S3). Kafka's two-phase commit cannot span external databases without heavy distributed XA transaction locks.
+         - By configuring **At-Least-Once** in Kafka and implementing **Idempotent Upserts** (`INSERT ... ON CONFLICT DO UPDATE`, or deduplicating by Primary Key in Spark/Delta Lake), the pipeline guarantees zero loss, while the database naturally discards duplicate replays. This achieves the business effect of Exactly-Once with maximum throughput and zero distributed locking overhead.
+    az: |
+      1. **Üç Çatdırılma Semantikası**:
+         - **At-Most-Once (Ən çoxu bir dəfə)**: İstehlakçı offset-i məlumatı bazaya yazmazdan *əvvəl* commit edir. Proqram çöksə, offset irəli getdiyi üçün mesaj **birdəfəlik itir**, amma **heç vaxt dublikat olmur**.
+         - **At-Least-Once (Ən azı bir dəfə)**: İstehlakçı offset-i məlumatı bazaya uğurla yazdıqdan *sonra* commit edir. Əgər bazaya yazandan sonra, amma Kafkaya commit etməmiş çöküş baş versə, mesaj təkrar oxunur. **Data itkisi sıfırdır**, amma **dublikat riski yaranır**.
+         - **Exactly-Once (Dəqiq bir dəfə)**: Mesajın həm itməməsinə, həm də heç vaxt dublikat olmamasına zəmanət verir.
+      2. **Kafkada EOS Necə Əldə Edilir?**:
+         - Kafka daxilində axın emalında (`consume-transform-produce`) EOS **Transactional Producer** (`transactional.id`) vasitəsilə əldə edilir.
+         - Çıxış mesajları və `__consumer_offsets`-ə yazılan əlfəcin İki-Fazalı Atomar Tranzaksiya ilə təsdiqlənir. İstehlakçılar isə `isolation.level = 'read_committed'` ilə yalnız təsdiqlənmişləri oxuyurlar.
+      3. **Niyə 'At-Least-Once + İdempotent İstehlakçı' Ən Populyardır?**:
+         - Data mühəndisliyində məlumatlar ən çox **kənar bazalara** (PostgreSQL, Snowflake, Delta Lake) yazılır. Kafkanın daxili tranzaksiyası kənar bazaları əhatə edə bilməz.
+         - Buna görə də kəmərdə **At-Least-Once** təmin edilir (itki olmasın deyə), bazada isə **İdempotent Yazılma** (məs. `ON CONFLICT DO UPDATE` və ya Spark-da `MERGE INTO`) tətbiq olunur. Nəticədə şəbəkə xətasında təkrar gələn mesaj baza tərəfindən rədd edilir və heç bir ağır tranzaksiya kilitləri olmadan təbii yolla Exactly-Once nəticəsi alınır.
+  interviewer_tips:
+    en: "Senior candidates separate Kafka-to-Kafka EOS (transactional coordinator) from Kafka-to-External-Sink EOS. Clearly explain how 'At-Least-Once + Idempotent Upserts' achieves effective exactly-once processing in DWH/Lakehouse pipelines."
+    az: "Müsahibədə senior səviyyə göstərmək üçün Kafka daxili EOS (Tranzaksiyalar) ilə Kənar Baza EOS fərqini ayırın və 'At-Least-Once + Idempotent Upsert' kombinasiyasının DWH və Lakehouse layihələrində niyə ən optimal seçim olduğunu əsaslandırın."
+flashcards:
+  - front:
+      en: "What is At-Most-Once delivery and when does data loss occur?"
+      az: "At-Most-Once çatdırılma nədir və data itkisi nə vaxt baş verir?"
+    back:
+      en: "Offsets are committed before processing; if the consumer crashes mid-process, the unhandled record is lost forever."
+      az: "Offset məlumat emal edilməzdən əvvəl commit olunur; əgər emal zamanı çöküş olsa, həmin mesaj birdəfəlik itir."
+  - front:
+      en: "Why is At-Least-Once delivery the industry default in Data Engineering?"
+      az: "Data Mühəndisliyində nə üçün At-Least-Once çatdırılma sənaye standartı hesab edilir?"
+    back:
+      en: "It guarantees zero data loss by committing offsets only after successful downstream persistence."
+      az: "Offset-i yalnız məlumat hədəf anbara uğurla yazıldıqdan sonra commit edərək sıfır data itkisinə zəmanət verdiyi üçün."
+  - front:
+      en: "What configuration enables Transactional Exactly-Once publishing on a producer?"
+      az: "Producer-də Tranzaksiyalı Exactly-Once nəşrini hansı parametr aktivləşdirir?"
+    back:
+      en: "Configuring a unique `transactional.id` alongside `enable.idempotence=true`."
+      az: "Unikal `transactional.id` parametrini `enable.idempotence=true` ilə birlikdə təyin etmək."
+  - front:
+      en: "What isolation level must consumers configure to ignore aborted/rolled-back transactions?"
+      az: "Ləğv edilmiş (abort olmuş) tranzaksiyaları oxumamaq üçün istehlakçı hansı izolyasiya səviyyəsini seçməlidir?"
+    back:
+      en: "`isolation.level = 'read_committed'` (the default is `read_uncommitted`)."
+      az: "`isolation.level = 'read_committed'` (susmaya görə `read_uncommitted` olur)."
+  - front:
+      en: "How do you achieve Exactly-Once semantics when writing to external databases (e.g. Postgres, Snowflake)?"
+      az: "Kənar bazalara (Postgres, Snowflake) yazarkən Exactly-Once semantikasını necə əldə edirsiniz?"
+    back:
+      en: "Combine At-Least-Once consumption with an Idempotent Consumer (e.g. SQL UPSERT or deduplication by Primary Key)."
+      az: "At-Least-Once oxumanı İdempotent İstehlakçı (məsələn SQL UPSERT və ya Əsas Açar üzrə deduplikasiya) ilə birləşdirməklə."

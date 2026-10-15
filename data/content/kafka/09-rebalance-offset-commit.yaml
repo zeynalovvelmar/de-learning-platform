@@ -1,0 +1,244 @@
+id: "09-rebalance-offset-commit"
+order: 9
+level: "intermediate"
+title:
+  en: "Consumer Rebalancing & Offset Commit Strategies"
+  az: "Consumer Rebalancing və Offset Commit Strategiyaları"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CONSUMER REBALANCE PROTOCOLS (Eager vs Cooperative)                   │
+    │                                                                        │
+    │  Eager Rebalance (Legacy - 'Stop-the-World'):                          │
+    │  Consumer 1 ──► [Revokes All Partitions] ──┐ All Consumers Freeze!     │
+    │  Consumer 2 ──► [Revokes All Partitions] ──┼──► Global Stop-the-world  │
+    │  New Node 3 ──► [Joins Group]            ──┘ Entire Pipeline Halted!   │
+    │                                                                        │
+    │  Cooperative Sticky Rebalance (Modern Kafka Standard):                 │
+    │  Consumer 1 ──► Retains Partitions 0 and 1! (Zero interruption!)       │
+    │  Consumer 2 ──► Only revokes Partition 2 ──► Transferred to Node 3.    │
+    │  Result: 90% of processing continues without stopping!                 │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  OFFSET COMMIT STRATEGIES: Auto-Commit vs Manual Commit                │
+    │                                                                        │
+    │  `enable.auto.commit=true` (THE SILENT DATA LOSS / DUPLICATION BUG):   │
+    │  [Poll 100 msgs] ──► Auto-commit runs at 5000ms ──► Crash on msg 10!   │
+    │  Crash happens before DB insert! Messages 11-100 PERMANENTLY LOST!     │
+    │                                                                        │
+    │  Manual Commit Pattern (`enable.auto.commit=false`):                   │
+    │  1. `msg = consumer.poll()`                                            │
+    │  2. `write_to_database(msg)` ──► [Success confirmed in PostgreSQL]    │
+    │  3. `consumer.commit(asynchronous=False)` ──► [Safe commit to Kafka]   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CONSUMER REBALANCE PROTOKOLLARI (Eager vs Cooperative)                │
+    │                                                                        │
+    │  Köhnə Eager Modeli (Bütün Sistemin Dondurulması - 'Stop-the-World'):   │
+    │  Consumer 1 ──► [Bütün Partisiyaları Atır] ──┐ Bütün Oxucular Donur!   │
+    │  Consumer 2 ──► [Bütün Partisiyaları Atır] ──┼──► Sistem Tam Dayanır!  │
+    │  Yeni Node 3──► [Qrupa Qoşulur]            ──┘ Hər Şey Sıfırdan Bölünür│
+    │                                                                        │
+    │  Müasir Cooperative Sticky Modeli (Sənaye Standartı):                  │
+    │  Consumer 1 ──► 0 və 1-ci partisiyaları SAXLAYIR! (Fasiləsiz oxuyur!)  │
+    │  Consumer 2 ──► Yalnız 2-ci partisiyanı buraxır ──► Node 3-ə ötürür.   │
+    │  Nəticə: Kəmərin 90%-i heç dayanmadan işləməyə davam edir!             │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  OFFSET COMMİT STRATEGİYALARI: Auto-Commit vs Əl ilə Commit            │
+    │                                                                        │
+    │  `enable.auto.commit=true` (GİZLİ DATA İTKİSİ VƏ YA DUBLİKAT TƏLƏSİ):  │
+    │  [100 mesaj oxundu] ──► 5-ci saniyədə auto-commit oldu ──► 10-cu sönüş!│
+    │  Baza yazılmadan əvvəl çöküş baş verdi! 11-100 MESAJ BİRDƏFƏLİK İTDİ!  │
+    │                                                                        │
+    │  Manual (Əl ilə) Commit Modeli (`enable.auto.commit=false`):           │
+    │  1. `msg = consumer.poll()` (Mesajı götür)                            │
+    │  2. `write_to_database(msg)` ──► [Bazada təsdiq alındı]                │
+    │  3. `consumer.commit(asynchronous=False)` ──► [Kafkada qeyd edildi]    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a busy kitchen where waiters divide tables:
+    - **What is a Rebalance?**: The dynamic reassignment of partition ownership across consumers in a group. It triggers when:
+      1. A new consumer joins the group (e.g. auto-scaled pod).
+      2. A consumer crashes or fails its heartbeat (`max.poll.interval.ms` exceeded).
+      3. New partitions are added to the topic.
+    - **The Legacy Eager Rebalance Problem**:
+      - Under the old eager protocol, whenever anyone joined or left, ALL waiters dropped ALL their trays, halted service entirely, waited for the head coordinator, and renegotiated from scratch. This caused massive latency spikes ("Stop-the-World").
+    - **Cooperative Sticky Rebalance**:
+      - Modern Kafka uses cooperative rebalancing. Consumers keep processing unaffected partitions, and only the specific partition being moved is paused and handed off.
+    - **The Danger of Auto-Commit (`enable.auto.commit=true`)**:
+      - By default, Kafka commits offsets every 5 seconds in the background.
+      - If your code fetches 500 records, commits offset 500 at second 5, but crashes while writing record 50 to your PostgreSQL warehouse, records 51 to 500 are **permanently skipped and lost**!
+      - In production Data Engineering, **always disable auto-commit** and commit manually only AFTER data is safely written to storage.
+  az: |
+    Restoranda ofisiantlar arasında masaların bölüşdürülməsini təsəvvür edin:
+    - **Rebalance Nədir?**: Partisiyaların consumer qrupundakı üzvlər arasında yenidən paylanması prosesidir. Aşağıdakı hallarda baş verir:
+      1. Qrupa yeni bir consumer qoşulduqda (məs. Kubernetes yeni pod qaldırdıqda).
+      2. Mövcud consumer öldükdə və ya donub cavab vermədikdə (`max.poll.interval.ms` vaxtı aşdıqda).
+      3. Topic-ə yeni partisiya əlavə edildikdə.
+    - **Köhnə Eager Rebalance Fəlakəti**:
+      - Köhnə modeldə qrupa bircə nəfər yeni işçi gələn kimi bütün ofisiantlar əllərindəki yeməkləri masaya qoyur, bütün restoranın işi donur ("Stop-the-World") və masalar ən başdan təkrar bölünürdü.
+    - **Müasir Cooperative Sticky Rebalance**:
+      - İndi yalnız yeri dəyişməli olan tək bir masa müvəqqəti təhvil verilir; digər bütün ofisiantlar bir millisaniyə belə dayanmadan işlərinə davam edirlər.
+    - **Avtomatik Commit (`enable.auto.commit=true`) Tələsi**:
+      - Susmaya görə Kafka hər 5 saniyədən bir arxa planda oxunmuş offset-ləri təsdiqləyir.
+      - Əgər proqram 500 mesaj çəkibsə, 5-ci saniyədə Kafka-ya 500 yazılıbsa, amma 50-ci sətirdə bazada xəta baş verib kompüter sönsə: 51-dən 500-ə qədər olan 450 mesaj **birdəfəlik itir və bazaya çatmır**!
+      - İstehsalat data kəmərlərində **həmişə auto-commit söndürülür** (`enable.auto.commit=false`) və offset yalnız verilənlər bazasına yazıldıqdan sonra əl ilə təsdiq olunur.
+quick_recap:
+  en: "Rebalancing redistributes partitions when group membership changes. Cooperative Sticky rebalancing avoids global stop-the-world freezes. In production, always set `enable.auto.commit=false` and commit manually after storage persistence to prevent data loss."
+  az: "Rebalance qrup üzvləri dəyişdikdə partisiyaları yenidən bölüşdürür. Müasir Cooperative Sticky bütün sistemin donmasının qarşısını alır. İstehsalatda data itkisini önləmək üçün həmişə `enable.auto.commit=false` qoyulmalı və offset bazaya yazıldıqdan sonra əl ilə commit edilməlidir."
+code: |
+  # Production Consumer: Cooperative Sticky Rebalance & Manual Offset Commits
+  from confluent_kafka import Consumer, KafkaError
+
+  consumer_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'group.id': 'warehouse-loader-group',
+      'auto.offset.reset': 'earliest',
+      
+      # 1. Zero Stop-the-world Rebalance Protocol
+      'partition.assignment.strategy': 'cooperative-sticky',
+      
+      # 2. Strict Manual Commit Control (Never Auto-Commit!)
+      'enable.auto.commit': False,
+      'max.poll.interval.ms': 300000          # 5 minutes max batch processing
+  }
+
+  consumer = Consumer(consumer_conf)
+  consumer.subscribe(['financial-transactions'])
+
+  def write_to_warehouse(batch):
+      """Simulate idempotent database batch insertion."""
+      print(f"  💾 Database: Successfully persisted {len(batch)} events to PostgreSQL.")
+      return True
+
+  print("=== Starting Consumer Loop with Manual Synchronous Commits ===")
+  try:
+      buffer = []
+      for _ in range(5):
+          msg = consumer.poll(timeout=1.0)
+          if msg is None:
+              continue
+          if msg.error():
+              print(f"Error: {msg.error()}")
+              continue
+
+          buffer.append(msg)
+          
+          # Batch process every 2 records
+          if len(buffer) >= 2:
+              # Step 1: Write to external store FIRST
+              write_to_warehouse(buffer)
+              
+              # Step 2: Commit offset ONLY AFTER successful persistence!
+              consumer.commit(asynchronous=False)
+              print(f"  ✅ Offset safely committed to Kafka for offset: {msg.offset()}")
+              buffer.clear()
+  finally:
+      consumer.close()
+code_explanation:
+  en: |
+    - `'partition.assignment.strategy': 'cooperative-sticky'`: Migrates consumer from disruptive eager stop-the-world rebalance to incremental reassignment.
+    - `'enable.auto.commit': False`: Disables blind timer-based commits.
+    - Notice the strict two-phase ordering: We execute `write_to_warehouse(buffer)` FIRST. Only if the DB write succeeds do we call `consumer.commit(asynchronous=False)`.
+  az: |
+    - `'partition.assignment.strategy': 'cooperative-sticky'`: Bütün sistemi donduran köhnə protokol yerinə fasiləsiz artımlı rebalance strategiyasını aktiv edir.
+    - `'enable.auto.commit': False`: Kor-koranə vaxta bağlı avtomatik commit-i söndürür.
+    - Dəqiq iki-mərhələli sıraya diqqət yetirin: Əvvəlcə `write_to_warehouse()` ilə məlumat bazaya yazılır; yalnız baza uğurla qəbul etdikdən sonra `consumer.commit()` çağırılır.
+visual_output: |
+  === Starting Consumer Loop with Manual Synchronous Commits ===
+    💾 Database: Successfully persisted 2 events to PostgreSQL.
+    ✅ Offset safely committed to Kafka for offset: 1043
+    💾 Database: Successfully persisted 2 events to PostgreSQL.
+    ✅ Offset safely committed to Kafka for offset: 1045
+output_description:
+  en: "Terminal execution proving transactional integrity: records are committed to the external database first, followed by atomic offset commits back to Kafka."
+  az: "Əməliyyat bütövlüyünü sübut edən terminal loqu: məlumatlar əvvəlcə xarici bazaya yazılır, yalnız bundan sonra Kafkada offset qeyd edilir."
+what_it_does:
+  en: "Demonstrates production consumer stability using cooperative sticky assignment and explains manual synchronous commit patterns to eliminate data loss."
+  az: "Cooperative sticky protokolu ilə stabil oxuma rejimini və data itkisini sıfırlayan manual commit mexanizmini nümayiş etdirir."
+real_world_use:
+  en: "Standard ETL pattern in data lakehouse ingestion engines (e.g. loading Kafka events directly into Delta Lake or Snowflake tables without skipping rows)."
+  az: "Data Lakehouse sistemlərində hadisələrin heç bir sətir itkisi olmadan birbaşa analitik cədvəllərə yüklənməsi üçün sənaye standartıdır."
+common_mistakes:
+  en: |
+    - **Heavy processing inside the poll loop exceeding `max.poll.interval.ms`**: If your database insert takes 6 minutes and `max.poll.interval.ms` is 5 minutes, Kafka assumes the consumer died and triggers a rebalance!
+    - **Using `commitAsync()` inside graceful shutdown**: Async commits do not retry; always issue a final `commitSync()` inside the `finally` block before closing.
+    - **Leaving default eager rebalance in large clusters**: A single pod restart freezes all 50 consumers for 20 seconds.
+  az: |
+    - **Dövr daxilində `max.poll.interval.ms` vaxtından uzun sürən ağır əməliyyat aparmaq**: Əgər bazaya yazma 6 dəqiqə çəkirsə və limit 5 dəqiqədirsə, Kafka consumer-in öldüyünü zənn edib rebalance başladacaq!
+    - **Proqram bağlanarkən `commitAsync()` çağırmaq**: Asinxron commit xətada təkrar etmir; bağlanış zamanı (`finally` blokunda) mütləq `commitSync()` çağırılmalıdır.
+    - **Böyük klasterlərdə köhnə Eager rebalance protokolunu saxlamaq**: Tək bir serverin sönməsi 50 consumer-in hamısını 20 saniyəlik tam iflic edir.
+interview_question:
+  question:
+    en: "What triggers a Consumer Rebalance, what is the difference between Eager and Cooperative Sticky Rebalancing, and why is `enable.auto.commit = true` dangerous in data pipelines?"
+    az: "Consumer Rebalance nə zaman baş verir, Eager ilə Cooperative Sticky Rebalance arasındakı fərq nədir və nə üçün `enable.auto.commit = true` data kəmərlərində təhlükəlidir?"
+  answer:
+    en: |
+      1. **What Triggers a Rebalance**:
+         - A consumer leaves the group (clean shutdown or heartbeat failure).
+         - A new consumer joins the group.
+         - The consumer takes longer than `max.poll.interval.ms` to process a batch, causing the coordinator to declare it dead.
+         - New partitions are added to an existing subscribed topic.
+      2. **Eager vs Cooperative Sticky Rebalancing**:
+         - **Eager (Legacy)**: All consumers revoke all assigned partitions. During the rebalance, consumption across the entire group halts completely (Stop-the-World). Partitions are then re-assigned from scratch.
+         - **Cooperative Sticky (Modern)**: Reassignments are incremental. Consumers continue processing healthy partitions without stopping. Only the specific partition being moved to another consumer is revoked and migrated.
+      3. **The Danger of Auto-Commit (`enable.auto.commit = true`)**:
+         - Auto-commit operates on a blind wall-clock timer (default every 5,000ms), decoupled from actual data processing logic.
+         - If a consumer fetches 100 messages, the timer fires at second 5 committing offset 100, but the consumer crashes while writing record 20 to the destination database, **records 21 through 100 are permanently lost** because Kafka believes they were successfully processed!
+         - For zero-data-loss guarantees, data engineers must disable auto-commit and commit offsets **manually only AFTER** records are written to persistent storage.
+    az: |
+      1. **Rebalance Nə Zaman Baş Verir?**:
+         - Mövcud consumer qrupdan çıxdıqda və ya öldükdə (heartbeat kəsildikdə).
+         - Qrupa yeni bir consumer qoşulduqda.
+         - Consumer bir partiyanı emal edərkən `max.poll.interval.ms` limitini aşdıqda (broker onu ölmüş hesab edir).
+         - Topic-ə yeni partisiya əlavə edildikdə.
+      2. **Eager vs Cooperative Sticky Fərqi**:
+         - **Eager (Köhnə)**: Bütün istehlakçılar əllərindəki bütün partisiyaları təhvil verir. Rebalance müddətində bütün sistemin işi tamamilə dayanır (Stop-the-World).
+         - **Cooperative Sticky (Müasir)**: Bölgü artımlı şəkildə həyata keçirilir. Yalnız və yalnız yeri dəyişməli olan xüsusi partisiya dayandırılır və köçürülür; digər bütün üzvlər fasiləsiz oxumağa davam edir.
+      3. **Auto-Commit Niyə Təhlükəlidir?**:
+         - Auto-commit məntiqdən xəbərsiz olaraq sadəcə hər 5 saniyədən bir kor-koranə saatla işləyir.
+         - Əgər 100 mesaj çəkilibsə, 5-ci saniyədə Kafka-da 100 qeyd olunur, amma proqram 20-ci mesajda çökərsə, 21-dən 100-ə qədər olan 80 hadisə **birdəfəlik itir**, çünki Kafka onların artıq uğurla oxunduğunu zənn edir!
+         - Sıfır data itkisi üçün data mühəndisləri auto-commit-i söndürməli və offset-i **yalnız bazaya yazdıqdan SONRA əl ilə** təsdiq etməlidirlər.
+  interviewer_tips:
+    en: "Explain the 'Stop-the-World' penalty of Eager rebalancing vs the seamless incremental handoff of Cooperative Sticky. Contrast the timing of auto-commit against downstream database transactions to clearly illustrate data loss."
+    az: "Müsahibədə Eager rebalance-ın yaratdığı 'Stop-the-World' fasiləsi ilə Cooperative Sticky-nin 'artımlı köçürmə' üstünlüyünü müqayisə edin və auto-commit zamanı bazaya yazılmadan öncə çöküşün necə data itkisi yaratdığını addım-addım izah edin."
+flashcards:
+  - front:
+      en: "What is a Consumer Group Rebalance in Apache Kafka?"
+      az: "Apache Kafka-da Consumer Group Rebalance nədir?"
+    back:
+      en: "The dynamic redistribution of topic partitions among consumers when members join, leave, or crash."
+      az: "Qrupa yeni üzv gəldikdə, çıxdıqda və ya öldükdə partisiyaların aktiv üzvlər arasında yenidən paylanmasıdır."
+  - front:
+      en: "What is the primary benefit of the Cooperative Sticky assignor over Eager rebalancing?"
+      az: "Cooperative Sticky protokolunun köhnə Eager rebalance-a nisbətən ən əsas üstünlüyü nədir?"
+    back:
+      en: "It avoids global 'Stop-the-World' pauses; only partitions being transferred are briefly revoked."
+      az: "Bütün sistemin donmasının qarşısını alır; yalnız yeri dəyişən xüsusi partisiya qısa müddətə dondurulur."
+  - front:
+      en: "Why is `enable.auto.commit = true` dangerous for mission-critical ETL pipelines?"
+      az: "`enable.auto.commit = true` parametri kritik ETL kəmərləri üçün nə üçün təhlükəlidir?"
+    back:
+      en: "Offsets can be committed before data is safely written to the database, causing permanent data loss on crash."
+      az: "Məlumat bazaya yazılmamışdan qabaq vaxta görə offset təsdiq oluna bilər və çöküş zamanı data birdəfəlik itər."
+  - front:
+      en: "What happens if message processing takes longer than `max.poll.interval.ms`?"
+      az: "Mesajın emalı `max.poll.interval.ms` müddətindən uzun çəkərsə nə baş verir?"
+    back:
+      en: "The coordinator considers the consumer dead, kicks it out of the group, and triggers a rebalance."
+      az: "Broker həmin consumer-in öldüyünü zənn edir, onu qrupdan qovur və rebalance başladır."
+  - front:
+      en: "What is the difference between `commitSync()` and `commitAsync()`?"
+      az: "`commitSync()` ilə `commitAsync()` arasındakı fərq nədir?"
+    back:
+      en: "`commitSync` blocks until the broker acknowledges the commit (safe but slower); `commitAsync` fires without blocking."
+      az: "`commitSync` broker təsdiq verənə qədər gözləyir (təhlükəsiz, amma yavaş); `commitAsync` isə gözləmədən dərhal davam edir."

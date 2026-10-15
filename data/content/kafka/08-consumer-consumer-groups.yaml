@@ -1,0 +1,214 @@
+id: "08-consumer-consumer-groups"
+order: 8
+level: "intermediate"
+title:
+  en: "Consumers & Consumer Groups: Parallel Scaling & The Golden Rule"
+  az: "Consumer və Consumer Groups: Paralel Oxuma və Qızıl Qayda"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KAFKA CONSUMER GROUP GOLDEN RULE: 1 Partition = 1 Consumer Max!       │
+    │                                                                        │
+    │  SCENARIO 1: 4 Partitions, 2 Consumers in Group (Balanced Load)        │
+    │  [Part 0] ──┐                                                          │
+    │  [Part 1] ──┴──► Consumer A (Processes Partitions 0 and 1)             │
+    │  [Part 2] ──┐                                                          │
+    │  [Part 3] ──┴──► Consumer B (Processes Partitions 2 and 3)             │
+    │                                                                        │
+    │  SCENARIO 2: 4 Partitions, 4 Consumers (Ideal 1-to-1 Parallelism)      │
+    │  [Part 0] ──► Consumer A  |  [Part 1] ──► Consumer B                   │
+    │  [Part 2] ──► Consumer C  |  [Part 3] ──► Consumer D                   │
+    │                                                                        │
+    │  SCENARIO 3: 4 Partitions, 6 Consumers (THE IDLE CONSUMER TRAP!)       │
+    │  [Part 0] ──► Consumer A  |  [Part 1] ──► Consumer B                   │
+    │  [Part 2] ──► Consumer C  |  [Part 3] ──► Consumer D                   │
+    │  Consumer E: IDLE! (Zero partitions assigned! Sitting completely dead) │
+    │  Consumer F: IDLE! (Zero partitions assigned! Sitting completely dead) │
+    │  Rule: You CANNOT scale consumers past the number of partitions!       │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CONSUMER GROUP QIZIL QAYDASI: 1 Partisiya = Qrupda Cəmi 1 Consumer!   │
+    │                                                                        │
+    │  1-Cİ SSENARİ: 4 Partisiya, 2 Consumer (Bərabər Yük Bölgüsü)           │
+    │  [Part 0] ──┐                                                          │
+    │  [Part 1] ──┴──► Consumer A (0 və 1-ci partisiyaları oxuyur)           │
+    │  [Part 2] ──┐                                                          │
+    │  [Part 3] ──┴──► Consumer B (2 və 3-cü partisiyaları oxuyur)           │
+    │                                                                        │
+    │  2-Cİ SSENARİ: 4 Partisiya, 4 Consumer (İdeal 1-ə 1 Maksimum Sürət)    │
+    │  [Part 0] ──► Consumer A  |  [Part 1] ──► Consumer B                   │
+    │  [Part 2] ──► Consumer C  |  [Part 3] ──► Consumer D                   │
+    │                                                                        │
+    │  3-Cİ SSENARİ: 4 Partisiya, 6 Consumer (BOŞ OTURAN İSTEHLAKÇI TƏLƏSİ!) │
+    │  [Part 0] ──► Consumer A  |  [Part 1] ──► Consumer B                   │
+    │  [Part 2] ──► Consumer C  |  [Part 3] ──► Consumer D                   │
+    │  Consumer E: BOŞ OTURUR! (Cəmi 0 partisiya ayrılıb, resurs israfıdır!) │
+    │  Consumer F: BOŞ OTURUR! (Cəmi 0 partisiya ayrılıb, resurs israfıdır!) │
+    │  Qanun: İstehlakçı sayını PARTİSİYA SAYINDAN ÇOX artıra BİLMƏZSİNİZ!   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a team of typists reading chapters of a massive encyclopedia:
+    - **Single Consumer**: One typist sitting alone trying to read 50 volumes of books. If 1,000 new pages arrive every second, that single typist will inevitably drown in backlog (**Consumer Lag**).
+    - **Consumer Group (`group.id`)**: A cooperative squad of typists working together to divide the reading workload.
+    - **The Golden Rule of Consumer Groups**:
+      - Within the **same** consumer group, each partition is assigned to **at most one** consumer instance.
+      - Why? Because if two consumers in the same group read Partition 0 simultaneously, they would step on each other's toes and process duplicate events!
+      - If you have 4 partitions, the maximum active parallelism for that consumer group is **4**. Adding a 5th or 6th consumer machine means those extra machines sit completely idle, doing zero work.
+    - **The Fan-Out Architecture (Publish-Subscribe)**:
+      - Different consumer groups can read the **exact same topic** independently without affecting each other.
+      - Group A (`"realtime-analytics"`) can read Partition 0 at offset 900.
+      - Group B (`"data-lake-ingestion"`) can read Partition 0 at offset 200.
+      - They maintain their own independent bookmarks in `__consumer_offsets`.
+  az: |
+    Qalın ensiklopediyanı oxuyub kompüterə köçürən yazıçı komandasını təsəvvür edin:
+    - **Tək Consumer**: 50 cildlik ensiklopediyanı təkbaşına oxumağa çalışan bircə nəfər işçi. Hər saniyə 1,000 yeni səhifə daxil olarsa, tək işçi gec-tez yükün altında boğulacaq (**Consumer Lag** yaranacaq).
+    - **Consumer Group (`group.id`)**: Ensiklopediyanın cildlərini öz aralarında bölüşdürüb eyni anda oxuyan komandadır.
+    - **Consumer Group-un Qızıl Qaydası**:
+      - Eyni qrup daxilində hər partisiya **ən çoxu 1 consumer-ə** təhvil verilə bilər.
+      - Niyə? Çünki eyni qrupdakı 2 nəfər eyni kitabı (partisiyanı) oxusa, eyni sətirləri iki dəfə köçürəcək və dublikat yaranacaq!
+      - Əgər topic-də 4 partisiya varsa, həmin qrup daxilində maksimum **4 consumer** aktiv işləyə bilər. Qrupa 5-ci və ya 6-cı kompüteri qoşsanız, həmin maşınlar boş-boşuna oturub gözləyəcək.
+    - **Fan-Out (Publish-Subscribe) Modeli**:
+      - Fərqli qruplar (`group.id`) eyni topic-i bir-birindən tam müstəqil oxuya bilər.
+      - Qrup A (`"realtime-analytics"`) 0-cı partisiyanın 900-cü offset-ini oxuyur.
+      - Qrup B (`"data-lake-ingestion"`) isə həmin 0-cı partisiyanın 200-cü offset-indədir.
+      - Hər iki qrupun özünün müstəqil əlfəcini var və bir-birinin sürətinə mane olmurlar.
+quick_recap:
+  en: "A Consumer Group enables horizontal read scaling. Within a single group, each partition is consumed by only one consumer. Scaling consumers beyond the partition count results in idle consumers. To scale read throughput, you must increase topic partitions."
+  az: "Consumer Group oxuma sürətini horizontal artırır. Eyni qrup daxilində 1 partisiya cəmi 1 consumer tərəfindən oxunur. İstehlakçı sayı partisiya sayından çox olduqda artıq qalanlar boş oturur. Oxuma sürətini artırmağın yeganə yolu partisiya sayını artırmaqdır."
+code: |
+  # Production Consumer Subscription with Partition Assignment Callback
+  from confluent_kafka import Consumer
+
+  def print_assignment(consumer, partitions):
+      print("\n⚡ [REBALANCE COMPLETE] Partitions Assigned to this Consumer:")
+      for p in partitions:
+          print(f"  • Topic: {p.topic} | Partition: {p.partition}")
+
+  consumer_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'group.id': 'telemetry-processing-group', # Shared group ID
+      'auto.offset.reset': 'earliest',
+      'enable.auto.commit': False
+  }
+
+  consumer = Consumer(consumer_conf)
+
+  # Subscribe to topic with assignment listener
+  consumer.subscribe(['telemetry-iot-events'], on_assign=print_assignment)
+
+  print("=== Consumer Node 1 Started (Waiting for Partition Assignment) ===")
+  # Polling triggers cluster group coordination
+  try:
+      for _ in range(2):
+          msg = consumer.poll(timeout=3.0)
+          if msg is None:
+              continue
+          if msg.error():
+              print(f"Error: {msg.error()}")
+              continue
+          print(f"  [Read] Key: {msg.key()} from Part {msg.partition()} at Offset {msg.offset()}")
+  finally:
+      consumer.close()
+code_explanation:
+  en: |
+    - `'group.id'`: The shared identity binding multiple consumer processes into a unified load-balanced squad.
+    - `consumer.subscribe(['topic'])`: Dynamic subscription. The Group Coordinator broker dynamically splits available topic partitions across all live members.
+    - `on_assign=print_assignment`: Callback invoked whenever partitions are allocated to this consumer instance.
+    - `consumer.close()`: Gracefully leaves the group, immediately notifying the coordinator so other consumers take over its partitions.
+  az: |
+    - `'group.id'`: Çoxsaylı consumer proseslərini vahid bir komandada birləşdirən qrup identifikatoru.
+    - `consumer.subscribe(['topic'])`: Dinamik abunəlik. Brokerin Group Coordinator modulu topic-in partisiyalarını aktiv üzvlər arasında avtomatik bölür.
+    - `on_assign`: Bu xüsusi istehlakçıya hansı partisiyaların həvalə olunduğunu bildirən hadisə dinləyicisidir.
+    - `consumer.close()`: Qrupdan mədəni şəkildə ayrılır və brokerə xəbər verir ki, onun partisiyaları dərhal digər üzvlərə verilsin.
+visual_output: |
+  === Consumer Node 1 Started (Waiting for Partition Assignment) ===
+
+  ⚡ [REBALANCE COMPLETE] Partitions Assigned to this Consumer:
+    • Topic: telemetry-iot-events | Partition: 0
+    • Topic: telemetry-iot-events | Partition: 1
+    • Topic: telemetry-iot-events | Partition: 2
+
+  (Note: When Consumer Node 2 joins the group, Partitions 2 will be dynamically revoked and reassigned to Node 2!)
+output_description:
+  en: "Terminal output showing a consumer joining a group and receiving dynamic ownership of Partitions 0, 1, and 2 out of a 6-partition topic."
+  az: "İstehlakçının qrupa qoşulduğunu və 6 partisiyalı topic-in ilk 3 partisiyasının (0, 1 və 2) ona təyin edildiyini göstərən terminal loqu."
+what_it_does:
+  en: "Demonstrates how Kafka dynamically balances partitions across consumer instances sharing a group.id and exposes partition assignment events."
+  az: "Kafka-nın partisiyaları eyni group.id-yə sahib üzvlər arasında necə dinamik böldüyünü və təyinat mexanizmini nümayiş etdirir."
+real_world_use:
+  en: "Used in microservices and Kubernetes pods (Deployments). If data volume surges, DevOps scales pod replicas from 2 to 4 to distribute processing."
+  az: "Kubernetes mühitində məlumat axını gücləndikdə pod sayını 2-dən 4-ə qaldıraraq emal gücünü ikiqat artırmaq üçün istifadə edilir."
+common_mistakes:
+  en: |
+    - **Adding more consumers than partitions**: Running 10 Kubernetes pods for a topic with only 3 partitions wastes money; 7 pods sit 100% idle!
+    - **Using the same `group.id` across unrelated microservices**: The two services will split the partitions instead of both receiving all records, causing catastrophic data omission in both services!
+    - **Forgetting `consumer.close()` on shutdown**: Forces the cluster to wait for the heartbeat timeout (up to 45 seconds) before reassigning partitions to surviving members.
+  az: |
+    - **Partisiya sayından çox consumer işə salmaq**: 3 partisiya olan topic üçün 10 pod qaldırmaq resurs israfıdır; 7 pod heç bir iş görmədən boş oturacaq!
+    - **Bir-biri ilə əlaqəsiz fərqli xidmətlərə eyni `group.id` vermək**: Hər iki xidmət məlumatı bütöv oxumaq əvəzinə partisiyaları aralarında yarı-yarıya böləcək və hər iki sistem yarımçıq qalacaq!
+    - **Proqramı bağlayarkən `consumer.close()` çağırmamaq**: Broker həmin consumer-in öldüyünü yalnız 45 saniyəlik timeout-dan sonra anlayacaq və bu müddətdə həmin partisiyanın oxunması dayanacaq.
+interview_question:
+  question:
+    en: "If a topic has 4 partitions and you launch 6 consumer instances within the same consumer group, how are the partitions assigned, and how can you increase consumer throughput?"
+    az: "Əgər bir topic-də 4 partisiya varsa və eyni consumer qrupu daxilində 6 consumer işə salsanız, partisiyalar necə paylanacaq və oxuma sürətini necə artıra bilərsiniz?"
+  answer:
+    en: |
+      1. **Partition Assignment Rules**:
+         - In Kafka, **a single partition can be consumed by at most ONE consumer instance within the same consumer group**.
+         - With 4 partitions and 6 consumers in Group A:
+           - 4 consumers will each be assigned exactly **1 partition**.
+           - The remaining **2 consumers will sit completely IDLE** (assigned 0 partitions). They will do zero work and consume zero data.
+         - The only benefit of those 2 idle consumers is hot standby failover: if one active consumer crashes, an idle consumer takes over immediately without provisioning a new server.
+      2. **How to Increase Consumer Read Throughput**:
+         - Simply adding more consumer machines **will NOT increase throughput** because the partition limit has been hit.
+         - The **ONLY** architectural way to scale throughput is to **increase the number of partitions** on the topic (e.g. from 4 to 12). Once expanded, the idle consumers (plus new ones) will be assigned partitions, multiplying throughput.
+    az: |
+      1. **Partisiyaların Paylanması**:
+         - Kafka-da **eyni consumer qrupu daxilində tək bir partisiya yalnız BİR consumer tərəfindən oxuna bilər**.
+         - 4 partisiya və 6 consumer olduqda:
+           - 4 consumer-in hərəsinə **1 partisiya** veriləcək.
+           - Qalan **2 consumer TAMAMİLƏ BOŞ OTURACAQ** (onlara 0 partisiya ayrılacaq) və heç bir məlumat oxumayacaq.
+           - Bu 2 boş consumer-in yeganə faydası "isti ehtiyat" (hot standby) olmasıdır: əgər aktivlərdən biri ölsə, boş olan dərhal onun yerini alacaq.
+      2. **Oxuma Sürətini Artırmağın Yeganə Yolu**:
+         - Qrupa yeni consumer əlavə etmək **sürəti əsla artırmayacaq**, çünki partisiya limiti dolub.
+         - Sürəti artırmağın **YEGANƏ** memarlıq yolu Topic-in **partisiya sayını artırmaqdır** (məs. 4-dən 12-yə qaldırmaq). Partisiya sayı artan kimi boş oturan consumer-lər dərhal işə qoşulacaq və paralel oxuma sürəti 3 dəfə artacaq.
+  interviewer_tips:
+    en: "Directly declare: '4 consumers get 1 partition each; 2 consumers remain completely idle'. Emphasize that the partition count is the hard upper ceiling of consumer group parallelism."
+    az: "Müsahibədə heç düşünmədən cavab verin: '4 consumer 1 partisiya götürəcək, 2-si isə tam boş oturacaq'. Partisiya sayının qrup paralelliyinin ən son sərhədi olduğunu qeyd edin."
+flashcards:
+  - front:
+      en: "What is the Golden Rule of Kafka Consumer Groups?"
+      az: "Kafka Consumer Qruplarının Qızıl Qaydası nədir?"
+    back:
+      en: "Within a single consumer group, each partition is consumed by at most one consumer instance."
+      az: "Eyni consumer qrupu daxilində hər partisiya ən çoxu bir consumer tərəfindən oxuna bilər."
+  - front:
+      en: "What happens if a consumer group has more consumer instances than the topic has partitions?"
+      az: "Consumer qrupundakı istehlakçıların sayı topic-in partisiya sayından çox olduqda nə baş verir?"
+    back:
+      en: "The surplus consumers remain completely IDLE with zero assigned partitions."
+      az: "Artıq qalan consumer-lər heç bir partisiya almayaraq tam boş otururlar (idle qalırlar)."
+  - front:
+      en: "Can two different consumer groups read from the exact same partition at the same time?"
+      az: "İki fərqli consumer qrupu eyni vaxtda eyni partisiyanı oxuya bilərmi?"
+    back:
+      en: "Yes! Different consumer groups have completely independent offset pointers and do not interfere."
+      az: "Bəli! Fərqli qrupların müstəqil offset nöqtələri var və bir-birinə heç bir maneə yaratmırlar."
+  - front:
+      en: "How do you increase read throughput when all partitions are already assigned to consumers?"
+      az: "Bütün partisiyalar artıq consumer-lərə təyin olunduqda oxuma sürətini necə artıra bilərsiniz?"
+    back:
+      en: "You must increase the number of partitions on the topic, then add matching consumers."
+      az: "Topic-in partisiya sayını artırmalı, sonra qrupa yeni consumer-lər əlavə etməlisiniz."
+  - front:
+      en: "Why is gracefully calling `consumer.close()` important when stopping a service?"
+      az: "Xidməti dayandırarkən `consumer.close()` çağırmaq nə üçün vacibdir?"
+    back:
+      en: "It immediately notifies the coordinator broker to rebalance, preventing a 30-45s timeout delay."
+      az: "Brokerə qrupdan çıxdığını dərhal xəbər verir və 30-45 saniyəlik timeout fasiləsinin qarşısını alaraq rebalance-ı başladır."

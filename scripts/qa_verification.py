@@ -278,8 +278,62 @@ WHERE p.product_id IS NULL;
     assert not at_spark.exception
     print(" [PASS] Spark Master Deck flashcard navigation cycled successfully.")
 
+    # 20. Switch to Apache Kafka Module
+    print("\n--- TEST CASE 20: Switch to Apache Kafka Module ---")
+    at_kafka = AppTest.from_file("app.py", default_timeout=30)
+    at_kafka.run()
+    # Switch to AZ
+    at_kafka.sidebar.button[0].click().run()
+    assert at_kafka.session_state['lang'] == 'az'
+    # Select Kafka
+    at_kafka.sidebar.radio[0].set_value("kafka").run()
+    assert not at_kafka.exception
+    print(" [PASS] Switched sidebar module to 'Apache Kafka'.")
+
+    # 21. Verify Kafka Lesson Selector (12 Lessons)
+    print("\n--- TEST CASE 21: Kafka Lesson Selector & 12 Lessons Discovery ---")
+    kafka_selector = at_kafka.selectbox[0]
+    print(f" [PASS] Kafka Lesson options count: {len(kafka_selector.options)}")
+    for i, opt in enumerate(kafka_selector.options, 1):
+        print(f"   Kafka Lesson {i}: {opt}")
+    assert len(kafka_selector.options) == 12, f"Expected 12 Kafka lessons, got {len(kafka_selector.options)}"
+
+    # 22. Verify Kafka Lesson 01 Content, Infographic & Visual Output
+    print("\n--- TEST CASE 22: Kafka Lesson 01 Theory, Infographic & Visual Output QA ---")
+    at_kafka.selectbox[0].select("01-what-is-kafka").run()
+    assert not at_kafka.exception
+    # Check tabs
+    kafka_tabs = [t.label for t in at_kafka.tabs]
+    print(f" [PASS] Kafka Tabs: {kafka_tabs}")
+    assert "Nəzəriyyə" in kafka_tabs
+    assert "Kafka Kodu və Nəticəsi" in kafka_tabs
+    assert "Müsahibə Kartları" in kafka_tabs
+    assert "Fleşkartlar" in kafka_tabs
+    print(" [PASS] Verified Lesson 01 loaded cleanly with Infographic, Code, and Visual Output.")
+
+    # 23. Verify Kafka Flashcards & 60-Card Master Deck
+    print("\n--- TEST CASE 23: Kafka Flashcards & 60-Card Master Deck QA ---")
+    at_kafka.selectbox[0].select("12-consumer-lag-ecosystem").run()
+    assert not at_kafka.exception
+    deck_radio = at_kafka.radio(key="kafka_deck_mode_12-consumer-lag-ecosystem")
+    assert deck_radio is not None
+    deck_radio.set_value("master").run()
+    assert not at_kafka.exception
+
+    # Verify 60 flashcards in caption
+    captions = [c.value for c in at_kafka.caption]
+    assert any("60" in c for c in captions), f"Master deck should show 60 cards, got captions: {captions}"
+    print(" [PASS] Kafka Master Deck loaded all 60 flashcards across 12 lessons.")
+
+    # Cycle flashcard with next button
+    kf_next_btn = at_kafka.button(key="kafka_btn_next_12-consumer-lag-ecosystem_master")
+    assert kf_next_btn is not None
+    kf_next_btn.click().run()
+    assert not at_kafka.exception
+    print(" [PASS] Kafka Master Deck flashcard navigation cycled successfully.")
+
     print("\n=====================================================================")
-    print("🎉 ALL 19 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
+    print("🎉 ALL 23 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
     print("=====================================================================")
 
 if __name__ == "__main__":

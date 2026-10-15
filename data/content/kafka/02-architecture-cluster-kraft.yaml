@@ -1,0 +1,201 @@
+id: "02-architecture-cluster-kraft"
+order: 2
+level: "junior"
+title:
+  en: "Kafka Cluster Architecture: Brokers, KRaft & ZooKeeper"
+  az: "Kafka Klaster Arxitekturası: Brokerlər, ZooKeeper və KRaft"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LEGACY KAFKA ARCHITECTURE: Dependent on Apache ZooKeeper             │
+    │  [ZooKeeper Ensemble (Quorum: 3 or 5 Nodes)]                           │
+    │     ▲                    ▲                    ▲                        │
+    │     │ Metadata & Sync    │ Heartbeats         │ Leader Election        │
+    │  [Broker 1] ────────► [Broker 2 (Controller)] ────────► [Broker 3]     │
+    │  Drawback: Split-brain risks, slow restarts, limited to ~200k parts.  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MODERN KAFKA (KRaft Mode - Kafka Raft Metadata): Self-Managed (3.0+)  │
+    │  [Broker 1 (Broker Role)]    [Broker 2 (Broker Role)]                  │
+    │               ▲                                 ▲                      │
+    │               │ Internal @metadata topic sync   │ (Raft Consensus)     │
+    │               ▼                                 ▼                      │
+    │  [Broker 3 (Combined: Broker + KRaft Active Controller Leader)]        │
+    │  [Broker 4 (KRaft Follower)]           [Broker 5 (KRaft Follower)]     │
+    │  Superpower: Millions of partitions, instant recovery, 1 engine to run!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KÖHNƏ KAFKA MODELİ: Xarici Apache ZooKeeper-dən Asılılıq              │
+    │  [ZooKeeper Klasteri (Kvorum: 3 və ya 5 Server)]                       │
+    │     ▲                    ▲                    ▲                        │
+    │     │ Metadata Sinxronu  │ Ürək döyüntüləri   │ Lider Seçimləri        │
+    │  [Broker 1] ────────► [Broker 2 (Controller)] ────────► [Broker 3]     │
+    │  Çatışmazlıq: 2 ayrı sistemi saxlamaq əzabı, yavaş bərpa, partisiya   │
+    │               məhdudiyyəti (~200 min partisiya).                       │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MÜASİR KAFKA (KRaft Rejimi - ZooKeeper-siz Kafka 3.0+): Daxili Konsensus│
+    │  [Broker 1 (İşçi Broker)]    [Broker 2 (İşçi Broker)]                  │
+    │               ▲                                 ▲                      │
+    │               │ Daxili @metadata topiki         │ (Raft Protokolu)     │
+    │               ▼                                 ▼                      │
+    │  [Broker 3 (Həm İşçi, Həm də KRaft Aktiv Controller Lideri)]           │
+    │  [Broker 4 (KRaft İzləyicisi)]         [Broker 5 (KRaft İzləyicisi)]   │
+    │  Üstünlük: Milyonlarla partisiya, anında bərpa, vahid sadə arxitektura!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of managing a massive international cargo shipping port:
+    - **A Broker**: An individual warehouse building. Each broker is an independent server running the Kafka software, storing message logs on its physical hard drives, and serving client requests.
+    - **The Cluster**: A group of brokers working together under a unified cluster ID. Even if Warehouse #2 catches fire, Warehouses #1 and #3 keep shipping containers without interruption (**High Availability**).
+    - **The Old ZooKeeper Model**: An external, foreign government agency with their own private office building down the street (ZooKeeper). Every time a warehouse added a new shelf or changed a manager, they had to telephone ZooKeeper and wait for approval. It was clumsy, duplicated state, and struggled when the port grew to millions of containers.
+    - **The Modern KRaft Model (Kafka Raft)**: The port managers elect their own internal Chief Harbor Master (**KRaft Controller Leader**) directly from among the warehouse captains. Cluster metadata is stored directly inside an ultra-fast internal Kafka topic (`@metadata`). Startup is instantaneous and can scale to millions of partitions!
+
+    ### Key Responsibilities of the Controller Broker:
+    1. Monitors broker health via heartbeats.
+    2. Elects new partition leaders when an active broker crashes.
+    3. Manages topic creation, deletion, and partition reassignment.
+  az: |
+    Böyük bir beynəlxalq dəniz limanının idarə olunmasını təsəvvür edin:
+    - **Broker**: Limandakı fərdi bir anbar binasıdır. Hər bir broker Kafka proqramını işlədən, mesajları öz fiziki disklərində saxlayan və müştərilərə xidmət edən müstəqil serverdir.
+    - **Klaster**: Vahid identifikator altında birləşmiş brokerlər şəbəkəsidir. 2 nömrəli anbarda nasazlıq yaransa belə, 1 və 3 nömrəli anbarlar işi dərhal öz üzərinə götürür və kəmər dayanmır (**Yüksək Əlçatanlıq - High Availability**).
+    - **Köhnə ZooKeeper Modeli**: Küçənin o biri başında yerləşən tamamilə kənar bir dövlət agentliyi kimidir. Limanda hər dəfə yeni rəf tikildikdə və ya menecer dəyişdikdə ZooKeeper agentliyinə zəng edib təsdiq gözləməli olurdular. İki fərqli sistemi idarə etmək çətin idi və klaster böyüdükcə ZooKeeper darboğaza çevrilirdi.
+    - **Müasir KRaft Modeli (Kafka Raft)**: Liman kapitanları öz aralarından bir Baş Dispetçer (**KRaft Controller Leader**) seçirlər. Klasterin bütün metadatasını (kim haradadır, hansı partisiya kimdədir) birbaşa daxili `@metadata` adlı super-sürətli Kafka topiki idarə edir. ZooKeeper-ə ehtiyac qalmır, klaster saniyələr içində açılır və milyonlarla partisiyanı idarə edə bilir!
+
+    ### Controller Broker-in Əsas Vəzifələri:
+    1. Bütün brokerlərin nəbzini (heartbeat) yoxlayaraq sağlamlığını izləyir.
+    2. Bir broker öldükdə həmin serverdəki partisiyalar üçün dərhal yeni Lider seçir.
+    3. Yeni Topic-lərin yaradılması və ləğv edilməsini klaster boyu koordinasiya edir.
+quick_recap:
+  en: "A Kafka cluster is composed of multiple Broker nodes. The Controller broker coordinates cluster state. Modern Kafka uses KRaft (Kafka Raft) to manage consensus and metadata natively inside Kafka, fully eliminating external ZooKeeper dependency."
+  az: "Kafka klasteri çoxsaylı Broker serverlərindən ibarətdir. Controller broker bütün klasterin vəziyyətini idarə edir. Müasir Kafka (3.0+) ZooKeeper asılılığını tam aradan qaldıraraq öz daxili KRaft (Raft konsensus) arxitekturasından istifadə edir."
+code: |
+  # Inspecting Kafka Cluster Topology & Broker Metadata via AdminClient
+  from confluent_kafka.admin import AdminClient
+
+  admin_conf = {'bootstrap.servers': 'localhost:9092'}
+  admin = AdminClient(admin_conf)
+
+  print("=== Querying Kafka Cluster Topology ===")
+  # Fetch cluster metadata (timeout: 10s)
+  cluster_metadata = admin.list_topics(timeout=10)
+
+  print(f"Originating Broker ID : {cluster_metadata.orig_broker_id}")
+  print(f"Originating Broker Name: {cluster_metadata.orig_broker_name}")
+  print(f"Cluster Active Brokers Count: {len(cluster_metadata.brokers)}")
+
+  print("\n--- Active Brokers in Cluster ---")
+  for broker_id, broker in cluster_metadata.brokers.items():
+      print(f"  • Broker ID: {broker_id} ──► Host: {broker.host}:{broker.port}")
+
+  print("\n--- Existing Cluster Topics Sample ---")
+  for topic_name, topic_meta in list(cluster_metadata.topics.items())[:3]:
+      print(f"  • Topic: '{topic_name}' | Partitions: {len(topic_meta.partitions)}")
+code_explanation:
+  en: |
+    - `AdminClient`: Administrative interface for cluster inspection, dynamic configuration, and topic lifecycle management.
+    - `list_topics()`: Contacts the bootstrap broker to retrieve full cluster topology (broker list, rack awareness, topic partition counts, and leader brokers).
+    - `cluster_metadata.brokers`: Dictionary mapping broker IDs to host socket addresses.
+  az: |
+    - `AdminClient`: Klasterin idarə edilməsi, topologiyanın öyrənilməsi və topic parametrlərinin dinamik tənzimlənməsi üçün inzibati interfeysdir.
+    - `list_topics()`: Klasterə sorğu göndərərək bütün aktiv brokerlərin ünvanlarını, mövcud topic-ləri və onların partisiya liderlərini gətirir.
+    - `cluster_metadata.brokers`: Broker ID-lərini onların IP/port ünvanları ilə əlaqələndirən xəritədir.
+visual_output: |
+  === Querying Kafka Cluster Topology ===
+  Originating Broker ID : 1
+  Originating Broker Name: broker-1.internal-cloud.net:9092/1
+  Cluster Active Brokers Count: 3
+
+  --- Active Brokers in Cluster ---
+    • Broker ID: 1 ──► Host: broker-1.internal-cloud.net:9092
+    • Broker ID: 2 ──► Host: broker-2.internal-cloud.net:9092
+    • Broker ID: 3 ──► Host: broker-3.internal-cloud.net:9092 (KRaft Active Controller)
+
+  --- Existing Cluster Topics Sample ---
+    • Topic: 'financial-transactions' | Partitions: 6
+    • Topic: 'user-login-events'       | Partitions: 3
+    • Topic: '__consumer_offsets'      | Partitions: 50
+output_description:
+  en: "Terminal diagnosis displaying a healthy 3-broker production cluster with KRaft active controller coordination and partition counts."
+  az: "KRaft aktiv controller nəzarəti altında 3 aktiv brokerdən ibarət istehsalat klasterinin və daxili topic-lərinin sağlam vəziyyətini göstərən diaqnostika çıxışı."
+what_it_does:
+  en: "Interrogates cluster metadata dynamically, identifying alive broker nodes, controller presence, and topic distribution across nodes."
+  az: "Klasterin vəziyyətini dinamik sorğulayaraq aktiv brokerləri, controller varlığını və topic-lərin serverlər üzrə paylanmasını nümayiş etdirir."
+real_world_use:
+  en: "Used in Kubernetes (Strimzi Operator) and cloud infrastructure health-checks to ensure high-availability quorum is maintained before triggering deployment rollouts."
+  az: "Kubernetes mühitində (Strimzi) və bulud klasterlərində tətbiqin işə düşməsindən əvvəl bütün brokerlərin və kvorumun sağlam olduğunu yoxlamaq üçün tətbiq edilir."
+common_mistakes:
+  en: |
+    - **Listing only 1 broker in `bootstrap.servers`**: If that single broker is rebooting, your client fails to connect even if the other 10 brokers are completely healthy! Always provide at least 2 or 3 broker addresses (e.g. `'host1:9092,host2:9092,host3:9092'`).
+    - **Running an even number of KRaft controllers**: Quorum consensus algorithms (Raft) require an odd number (3 or 5) to prevent split-brain ties.
+    - **Treating `__consumer_offsets` as a regular topic**: Attempting to manually delete or write to this internal topic will break cluster consumer group tracking.
+  az: |
+    - **`bootstrap.servers` parametrinə cəmi 1 broker yazmaq**: Əgər həmin tək server profilaktikaya gedibsə, digər 10 broker işləsə belə tətbiqiniz klasterə qoşula bilməyəcək! Həmişə vergüllə ən az 2-3 broker ünvanı yazılmalıdır (`'broker1:9092,broker2:9092'`).
+    - **Cüt sayda Controller server saxlamaq**: Raft konsensus mexanizmi səsvermə zamanı heç-heçə (split-brain) olmaması üçün həmişə tək sayda (3 və ya 5) nəzarətçi tələb edir.
+    - **`__consumer_offsets` topikinə adi topic kimi yanaşmaq**: Bu daxili sistem topikinə əl ilə nəsə yazmaq və ya onu silməyə cəhd etmək bütün istehlakçıların işini iflic edər.
+interview_question:
+  question:
+    en: "What is the role of the Kafka Controller broker, and why did Apache Kafka migrate from Apache ZooKeeper to KRaft (Kafka Raft Metadata mode)?"
+    az: "Kafka Controller broker-in rolu nədir və nə üçün Apache Kafka ZooKeeper-dən imtina edərək KRaft (Kafka Raft Metadata) rejiminə keçdi?"
+  answer:
+    en: |
+      1. **Role of the Controller Broker**:
+         - One broker in the cluster is elected as the **Controller**. It is the cluster's brain: it tracks broker heartbeats, manages partition leader elections during broker failures, and propagates metadata updates to all follower brokers.
+      2. **Why ZooKeeper Was Eliminated (The 3 Bottlenecks)**:
+         - **Metadata Desynchronization**: In ZooKeeper mode, metadata lived externally in ZK nodes and had to be continually synced into the Controller's RAM. If the Controller crashed, a new Controller had to read millions of ZK z-nodes, taking minutes to recover.
+         - **Partition Scalability Limits**: ZooKeeper could practically manage up to ~200,000 partitions per cluster before watch storm latency degraded the cluster.
+         - **Operational Complexity**: DevOps teams had to configure, monitor, patch, and secure two completely different distributed distributed JVM systems (ZooKeeper + Kafka).
+      3. **The KRaft Revolution (Kafka Raft)**:
+         - Metadata is now stored natively inside an internal, immutable, replicated event log (`@metadata`).
+         - Uses the Raft consensus algorithm. Controller failover takes **milliseconds** instead of minutes, and a single cluster can effortlessly support tens of millions of partitions.
+    az: |
+      1. **Controller Broker-in Rolu**:
+         - Klasterdəki brokerlərdən biri **Controller** seçilir. O, klasterin beynidir: digər brokerlərin sağlamlığını izləyir, hansısa broker sıradan çıxdıqda dərhal yeni partisiya Liderlərini seçir və yenilikləri bütün digər brokerlərə çatdırır.
+      2. **ZooKeeper Niyə Ləğv Edildi? (3 Əsas Darboğaz)**:
+         - **Metadata Sinxronizasiya Gecikməsi**: ZooKeeper-də məlumatlar xaricdə saxlanılırdı və Controller-in yaddaşına daşınmalı idi. Controller öldükdə yeni Controller-in bütün ZooKeeper qovluqlarını oxuması dəqiqələrlə vaxt aparırdı.
+         - **Partisiya Sayı Məhdudiyyəti**: ZooKeeper bir klasterdə maksimum ~200,000 partisiya saxlaya bilirdi; daha çox partisiya olduqda şəbəkə kilitlənirdi.
+         - **İdarəetmənin Mürəkkəbliyi**: Mühəndislər iki tamamilə fərqli paylanmış sistemi (ZooKeeper və Kafka) ayrı-ayrılıqda quraşdırmalı, sazlamalı və qorumalı idilər.
+      3. **KRaft Üstünlüyü**:
+         - Artıq bütün klaster metadatası Kafka-nın öz daxili `@metadata` adlı replikasiyalı jurnalında saxlanılır.
+         - Raft konsensus protokolundan istifadə edilir. Controller dəyişməsi dəqiqələr deyil, **milli-saniyələr** çəkir və klaster milyonlarla partisiyanı asanlıqla idarə edir.
+  interviewer_tips:
+    en: "Focus on 'instant controller failover', 'elimination of metadata dual-state desynchronization', and 'scaling from 200k to millions of partitions'. Stating that modern Kafka 3.0+ runs KRaft in production is a strong senior signal."
+    az: "Müsahibədə 'Controller bərpasının millisaniyələrə enməsi', 'iki ayrı sistemdə metadata uyğunsuzluğunun yox olması' və 'partisiya limitinin milyonlara qalxması' arqumentlərini vurğulayın."
+flashcards:
+  - front:
+      en: "What is a Kafka Broker?"
+      az: "Kafka Broker nədir?"
+    back:
+      en: "An individual server node in a Kafka cluster responsible for receiving, appending, storing, and serving partition log segments."
+      az: "Kafka klasterində mesajları qəbul edən, diskdəki log fayllarına yazan, saxlayan və oxuculara ötürən fərdi server qovşağıdır."
+  - front:
+      en: "What is the primary responsibility of the Kafka Controller Broker?"
+      az: "Kafka Controller Broker-in ən əsas vəzifəsi nədir?"
+    back:
+      en: "Managing cluster metadata, monitoring broker heartbeats, and electing new partition leaders when brokers fail."
+      az: "Klasterin metadatasını idarə etmək, brokerlərin sağlamlığını izləmək və broker çökdükdə dərhal yeni partisiya Liderlərini seçməkdir."
+  - front:
+      en: "What does KRaft stand for in Apache Kafka?"
+      az: "Apache Kafka-da KRaft nə deməkdir?"
+    back:
+      en: "Kafka Raft Metadata mode — the built-in consensus mechanism that replaces ZooKeeper."
+      az: "Kafka Raft Metadata rejimi — ZooKeeper-i əvəz edən və Kafka-nın daxili konsensus təmin edən arxitekturasıdır."
+  - front:
+      en: "Why is an odd number of KRaft controllers (e.g. 3 or 5) strictly required?"
+      az: "KRaft nəzarətçilərinin sayının mütləq tək ədəd (3 və ya 5) olması nə üçün vacibdir?"
+    back:
+      en: "To guarantee a strict majority quorum (`(N/2) + 1`) during leader elections, preventing split-brain ties."
+      az: "Lider seçimi zamanı səsvermədə dəqiq səs çoxluğunu (`(N/2) + 1`) təmin etmək və heç-heçə (split-brain) vəziyyətinin qarşısını almaq üçün."
+  - front:
+      en: "Why should you always supply multiple broker hostnames in `bootstrap.servers`?"
+      az: "`bootstrap.servers` konfiqurasiyasına nə üçün həmişə bir neçə broker ünvanı yazılmalıdır?"
+    back:
+      en: "To ensure the client can connect even if the first broker in the list is temporarily down or rebooting."
+      az: "Siyahıdakı ilk broker müvəqqəti sönülü və ya təmirdə olduqda belə müştərinin digər sağlam broker vasitəsilə klasterə qoşula bilməsi üçün."

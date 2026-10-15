@@ -1,0 +1,231 @@
+id: "11-retention-log-compaction"
+order: 11
+level: "advanced"
+title:
+  en: "Data Retention & Log Compaction: State Storage & Tombstones"
+  az: "Məlumatın Saxlanması və Log Compaction: Vəziyyət Saxlanc və Tombstone"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  STANDARD LOG RETENTION (`cleanup.policy = delete`)                    │
+    │  [Segment 1: Day 1] ──► [Segment 2: Day 2] ──► [Segment 3: Day 3 (Head)│
+    │  • Retention configured to 2 days (`log.retention.hours = 48`).        │
+    │  • Once Day 3 arrives, the entire Segment 1 is DELETED FROM DISK!      │
+    │  • All records inside Segment 1 are purged, regardless of their keys.  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LOG COMPACTION (`cleanup.policy = compact` - Retains Latest State!)   │
+    │  Before Compaction (Raw Segment):                                      │
+    │  Offset 0: Key: 'user_A', Val: 'Baku'                                  │
+    │  Offset 1: Key: 'user_B', Val: 'London'                                │
+    │  Offset 2: Key: 'user_A', Val: 'Ganja'  (Updated address!)             │
+    │  Offset 3: Key: 'user_A', Val: 'Sumgait'(Latest address!)              │
+    │                                                                        │
+    │  After Background Log Cleaner Runs:                                    │
+    │  [Offset 1: Key: 'user_B', Val: 'London' ] (Preserved)                 │
+    │  [Offset 3: Key: 'user_A', Val: 'Sumgait'] (Only latest state kept!)   │
+    │  (Offsets 0 & 2 purged! Disk space reclaimed while retaining state!)   │
+    │                                                                        │
+    │  TOMBSTONE: Produce Key: 'user_B', Val: NULL ──► DELETES 'user_B' log! │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  STANDART LOG SAXLANMA SİYASƏTİ (`cleanup.policy = delete`)            │
+    │  [Seqment 1: 1-ci Gün] ──► [Seqment 2: 2-ci Gün] ──► [Seqment 3: İndi] │
+    │  • Saxlama müddəti 2 gün təyin edilib (`log.retention.hours = 48`).    │
+    │  • 3-cü gün tamam olan kimi, bütöv Seqment 1 faylı DİSKDƏN SİLİNİR!    │
+    │  • Açarlarından asılı olmayaraq həmin fayldakı bütün məlumat təmizlənir│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LOG COMPACTION (`cleanup.policy = compact` - Ən Son Vəziyyəti Saxlayır)│
+    │  Təmizlənmədən Əvvəl (İlkin Seqment):                                  │
+    │  Offset 0: Açar: 'user_A', Dəyər: 'Bakı'                               │
+    │  Offset 1: Açar: 'user_B', Dəyər: 'London'                             │
+    │  Offset 2: Açar: 'user_A', Dəyər: 'Gəncə'  (Ünvan yeniləndi!)          │
+    │  Offset 3: Açar: 'user_A', Dəyər: 'Sumqayıt'(Ən son cari ünvan!)       │
+    │                                                                        │
+    │  Arxa Planda Log Cleaner İşi İşlədikdən Sonra:                         │
+    │  [Offset 1: Açar: 'user_B', Dəyər: 'London'  ] (Qorunur)               │
+    │  [Offset 3: Açar: 'user_A', Dəyər: 'Sumqayıt'] (Yalnız son hal qalır!) │
+    │  (0 və 2-ci offsetlər silindi! Diskdə yer boşaldı, cari vəziyyət qaldı)│
+    │                                                                        │
+    │  TOMBSTONE: Açar: 'user_B', Dəyər: NULL ──► 'user_B'-ni kökündən silir!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a company employee directory phonebook:
+    - **Standard Deletion (`cleanup.policy = delete`)**: Every Friday afternoon, the janitor throws away the entire phonebook from two weeks ago into the shredder. If Alice hasn't changed her phone number in 3 weeks, Alice's record is completely erased from the building.
+    - **Log Compaction (`cleanup.policy = compact`)**:
+      - Instead of throwing away old books based on elapsed time, the receptionist reviews the directory.
+      - If Alice changed her address 5 times, the receptionist scratches out the 4 outdated addresses and preserves ONLY her 5th, newest address.
+      - **The Golden Rule of Log Compaction**: For every primary key, Kafka guarantees that **at least the latest value is preserved indefinitely**. Old historical updates for that key are garbage-collected to reclaim disk space.
+    - **When is Log Compaction Used in Data Engineering?**:
+      - **Change Data Capture (CDC)**: Mirroring database tables (PostgreSQL, MySQL) into Kafka. We only need the current row state.
+      - **State Restoration (KTable)**: When a streaming application restarts, it reads the compacted topic from offset 0 to instantly rebuild its in-memory key-value cache.
+    - **The Tombstone Record**:
+      - If an address is updated, you publish a new value. But how do you tell Kafka to **DELETE** a key permanently from a compacted topic?
+      - You produce a **Tombstone**: a message with the target `key`, but with `value = None` (`null`).
+      - When the log cleaner encounters this null payload, it retains the tombstone for a configurable grace period (`delete.retention.ms`), and then permanently wipes that key from disk!
+  az: |
+    Şirkətin işçilərinin ünvan və telefon kitabçasını təsəvvür edin:
+    - **Standart Silinmə (`cleanup.policy = delete`)**: Hər həftənin cümə günü xadimə 2 həftə əvvəlki bütün köhnə dəftərləri zibilə atır. Əgər Əli son 3 həftədə nömrəsini dəyişməyibsə, onun qeydi də köhnə dəftərlə birlikdə birdəfəlik silinir.
+    - **Log Compaction (`cleanup.policy = compact`)**:
+      - Vaxta görə köhnə dəftərləri zibilə atmaq əvəzinə, katibə kitabçanı vərəqləyir.
+      - Əgər Əli ünvanını 5 dəfə dəyişibsə, onun 4 köhnə ünvanının üstündən xətt çəkilir və YALNIZ 5-ci, ən sonuncu cari ünvanı saxlanılır.
+      - **Log Compaction-un Qızıl Qaydası**: Hər bir unikal açar üçün Kafka **ən azı ən son dəyərin daimi qalacağına** zəmanət verir. Köhnə aralıq dəyərlər isə diskdə yer boşaltmaq üçün təmizlənir.
+    - **Data Mühəndisliyində Harada İstifadə Olunur?**:
+      - **CDC (Change Data Capture)**: PostgreSQL bazasındakı cədvəlin canlı nüsxəsini Kafkada saxlamaq üçün. Bizə sətirlərin 3 il əvvəlki dəyişiklikləri deyil, cari ən son vəziyyəti lazımdır.
+      - **Vəziyyətin Bərpası (KTable)**: Axın tətbiqi söndükdə, yaddaşındakı lüğəti dərhal bərpa etmək üçün compacted topic-i 0-cı offsetdən oxuyur və anında ən son bazanı qurur.
+    - **Tombstone (Qəbir Daşı) Mesajı Nədir?**:
+      - Dəyər dəyişəndə yeni mesaj göndəririk. Bəs bir açarı compacted topic-dən birdəfəlik **SİLMƏK** üçün nə etməliyik?
+      - **Tombstone** göndərilir: mesaja hədəf `key` verilir, lakin dəyəri `value = None` (null) edilir!
+      - Log cleaner bu boş mesajı görəndə, müəyyən edilmiş gözləmə müddətindən (`delete.retention.ms`) sonra həmin açarı və onun bütün keçmişini diskdən birdəfəlik silir.
+quick_recap:
+  en: "Standard retention deletes old log segments based on time or size. Log Compaction retains at least the latest value for every message key indefinitely. A Tombstone (null value) marks a key for permanent deletion in compacted topics."
+  az: "Standart saxlama köhnə seqmentləri vaxta və ya ölçüyə görə silir. Log Compaction isə hər açar üçün ən son dəyəri daimi saxlayır. Dəyəri null olan Tombstone mesajı isə açarın compacted topic-dən birdəfəlik silinməsini təmin edir."
+code: |
+  # Creating a Compacted Topic & Publishing Tombstone Deletion Events
+  import json
+  from confluent_kafka.admin import AdminClient, NewTopic
+  from confluent_kafka import Producer
+
+  admin = AdminClient({'bootstrap.servers': 'localhost:9092'})
+
+  # 1. Create a Compacted Topic for Customer Profile State
+  compacted_topic = "customer-profiles-cdc"
+  topic_cfg = {
+      'cleanup.policy': 'compact',           # Enable log compaction
+      'min.cleanable.dirty.ratio': '0.5',    # Trigger compaction when 50% of log is stale
+      'delete.retention.ms': '86400000'      # 24 hours retention for Tombstones
+  }
+
+  new_topic = NewTopic(topic=compacted_topic, num_partitions=3, replication_factor=1, config=topic_cfg)
+  try:
+      admin.create_topics([new_topic])[compacted_topic].result()
+      print(f"✅ Created Compacted Topic: '{compacted_topic}'")
+  except Exception as e:
+      print(f"Topic already exists or status: {e}")
+
+  # 2. Produce Updates and a Tombstone Deletion
+  producer = Producer({'bootstrap.servers': 'localhost:9092'})
+
+  print("\n=== 1. Producing State Updates for 'user_402' ===")
+  # State Update 1
+  producer.produce(compacted_topic, key="user_402", value=json.dumps({"city": "Baku", "status": "ACTIVE"}))
+  # State Update 2 (Overwrites State 1 in compaction)
+  producer.produce(compacted_topic, key="user_402", value=json.dumps({"city": "Sumgait", "status": "ACTIVE"}))
+
+  print("=== 2. Producing Tombstone (Deleting 'user_402') ===")
+  # Tombstone: value=None instructs log cleaner to purge this key permanently
+  producer.produce(compacted_topic, key="user_402", value=None)
+  producer.flush()
+
+  print("✅ Tombstone record published successfully. 'user_402' queued for permanent log cleanup.")
+code_explanation:
+  en: |
+    - `'cleanup.policy': 'compact'`: Configures topic to retain the latest value per key rather than deleting based on time.
+    - `'min.cleanable.dirty.ratio': '0.5'`: Triggers background log cleaner threads once 50% of segment data contains superseded duplicate keys.
+    - `producer.produce(..., key="user_402", value=None)`: The Tombstone record. A non-null key paired with a null payload signals the cleaner thread to purge the key.
+  az: |
+    - `'cleanup.policy': 'compact'`: Topic-in vaxta görə deyil, hər açar üzrə ən son dəyəri saxlamasını təmin edir.
+    - `'min.cleanable.dirty.ratio': '0.5'`: Logdakı köhnəlmiş təkrar açarların həcmi 50%-ə çatdıqda təmizləyici prosesi işə salır.
+    - `value=None`: Məşhur Tombstone mesajıdır. Açarı olan, lakin gövdəsi boş (null) olan bu hadisə həmin açarın bazadan silinməsi əmrini verir.
+visual_output: |
+  ✅ Created Compacted Topic: 'customer-profiles-cdc'
+
+  === 1. Producing State Updates for 'user_402' ===
+  === 2. Producing Tombstone (Deleting 'user_402') ===
+  ✅ Tombstone record published successfully. 'user_402' queued for permanent log cleanup.
+
+  [Log Cleaner Inspection]
+  Before Compaction:
+    Offset 100: user_402 -> {"city": "Baku"}
+    Offset 101: user_402 -> {"city": "Sumgait"}
+    Offset 102: user_402 -> NULL (Tombstone)
+  After Compaction & Tombstone Grace Period:
+    user_402 entries completely purged from disk!
+output_description:
+  en: "Terminal output demonstrating the creation of a compacted topic and publishing of a tombstone record resulting in key purging."
+  az: "Compacted topic-in yaradılmasını və tombstone mesajı ilə açarın diskdən tamamilə təmizlənməsini göstərən terminal loqu."
+what_it_does:
+  en: "Demonstrates Log Compaction configuration, illustrates key state updates, and shows how to permanently delete records using Tombstones."
+  az: "Log Compaction sazlamasını, açarların son vəziyyətinin yenilənməsini və Tombstone vasitəsilə daimi silinməni nümayiş etdirir."
+real_world_use:
+  en: "Underpins Change Data Capture (CDC) architectures with Debezium. When a row is deleted in PostgreSQL (`DELETE FROM users WHERE id=402`), Debezium emits a Tombstone to Kafka to delete it from downstream caches."
+  az: "Debezium CDC arxitekturasının təməlidir. PostgreSQL-də sətir silindikdə (`DELETE`), Debezium Kafkaya Tombstone atır və analitik anbarlarda həmin sətir avtomatik təmizlənir."
+common_mistakes:
+  en: |
+    - **Publishing null-key messages to compacted topics**: Log compaction REQUIRES a non-null key to identify records. Null keys cannot be compacted!
+    - **Setting `delete.retention.ms` too short**: If consumers are offline when a tombstone is written and the grace period expires before they catch up, they will miss the delete notification entirely!
+    - **Confusing `cleanup.policy=compact` with zero-storage growth**: New writes still append to the active log segment; compaction only runs on closed segments.
+  az: |
+    - **Compacted topic-ə açarsız (`key=None`) mesaj atmaq**: Log Compaction mütləq Açar tələb edir; açarsız mesajları heç vaxt compact etmək olmur!
+    - **`delete.retention.ms` müddətini həddən artıq qısa qoymaq**: Əgər istehlakçı bir neçə saatlıq sönülü olarsa və Tombstone tez silinərsə, istehlakçı həmin sətrin silindiyindən xəbərsiz qalacaq!
+    - **Compacted topic-in heç vaxt diskdə böyüməyəcəyini zənn etmək**: Təmizləmə yalnız bağlanmış köhnə seqmentlərdə gedir; aktiv seqment həmişə böyüyür.
+interview_question:
+  question:
+    en: "What is Log Compaction in Apache Kafka, how does it differ from standard Log Deletion, and what is a Tombstone record?"
+    az: "Apache Kafka-da Log Compaction nədir, standart Log Deletion-dan nə ilə fərqlənir və Tombstone (Qəbir Daşı) qeydi nədir?"
+  answer:
+    en: |
+      1. **Log Deletion vs Log Compaction**:
+         - **Log Deletion (`cleanup.policy = delete`)**: The default policy. Log segments older than `log.retention.hours` (e.g. 7 days) or exceeding `log.retention.bytes` are completely discarded from disk. Entire chunks of time are wiped out.
+         - **Log Compaction (`cleanup.policy = compact`)**: Retains the **latest known value for every single message key indefinitely**. As long as a key is not deleted, its most recent state will survive forever. The background Log Cleaner thread scans closed segments and removes older obsolete records sharing the same key.
+      2. **Primary Use Cases**:
+         - Change Data Capture (CDC) streams representing database tables.
+         - Restoring in-memory state stores for Kafka Streams / Flink KTables after a crash.
+      3. **What is a Tombstone Record?**:
+         - In a compacted topic, publishing a message with `key = K` and `value = null` is called a **Tombstone**.
+         - It serves as a deletion marker. Downstream consumers see the `null` value and know to delete key $K$ from their local databases.
+         - The Kafka log cleaner preserves the tombstone for `delete.retention.ms` (giving consumers time to observe the deletion), and then permanently purges both the tombstone and all historical occurrences of key $K$ from disk.
+    az: |
+      1. **Log Deletion vs Log Compaction**:
+         - **Log Deletion (`cleanup.policy = delete`)**: Standart siyasətdir. Müəyyən edilmiş vaxtdan (`log.retention.hours`, məs. 7 gün) və ya həcmdən böyük olan köhnə seqment faylları bütövlükdə diskdən silinir.
+         - **Log Compaction (`cleanup.policy = compact`)**: Hər bir unikal mesaj açarı üçün **ən son məlum olan dəyəri daimi saxlayır**. Açar silinmədiyi müddətcə onun cari vəziyyəti heç vaxt itmir. Arxa plandakı Log Cleaner prosesi köhnəlmiş aralıq nüsxələri təmizləyərək diskdə yer boşaldır.
+      2. **Əsas İstifadə Sahələri**:
+         - Verilənlər bazasının sətirlərini əks etdirən CDC (Change Data Capture) axınları.
+         - Çöküşdən sonra axın mühərriklərinin (Kafka Streams / Flink KTable) yaddaş bazasını sıfırdan bərpa etmək.
+      3. **Tombstone (Qəbir Daşı) Qeydi Nədir?**:
+         - Compacted topic-də açarı olan, lakin dəyəri `null` olan (`key = K`, `value = null`) mesaj **Tombstone** adlanır.
+         - Bu, silinmə xəbərdarlığıdır. İstehlakçılar `null` dəyəri görəndə həmin açarı öz daxili bazalarından silirlər.
+         - Kafka brokeri bu qəbir daşını `delete.retention.ms` müddətində saxlayır (bütün istehlakçılar silinməni görsün deyə), sonra isə $K$ açarını bütün keçmişi ilə birlikdə diskdən birdəfəlik məhv edir.
+  interviewer_tips:
+    en: "Explain that log compaction transforms Kafka from a transient queue into an immutable changelog for state stores. Define Tombstones as 'a key with a null value used as a deletion marker'."
+    az: "Müsahibədə izah edin ki, Log Compaction Kafkanı sadə növbədən çıxarıb vəziyyət saxlayan canlı bazaya (KTable changelog) çevirir və Tombstone-un 'dəyəri null olan silinmə bayrağı' olduğunu vurğulayın."
+flashcards:
+  - front:
+      en: "What is Log Compaction in Apache Kafka?"
+      az: "Apache Kafka-da Log Compaction nədir?"
+    back:
+      en: "A retention policy that guarantees Kafka retains at least the last known value for each message key."
+      az: "Hər bir mesaj açarı üçün ən azı ən sonuncu cari dəyərin daimi saxlanmasına zəmanət verən siyasətdir."
+  - front:
+      en: "What is a Tombstone record in Apache Kafka?"
+      az: "Apache Kafka-da Tombstone qeydi nədir?"
+    back:
+      en: "A record with a valid key and a NULL payload, used to trigger the permanent deletion of that key in compacted topics."
+      az: "Compacted topic-lərdə açarın birdəfəlik silinməsini başlatmaq üçün göndərilən və dəyəri NULL olan mesajdır."
+  - front:
+      en: "What happens if you publish a message with a NULL key to a compacted topic?"
+      az: "Compacted topic-ə Açarı NULL olan mesaj göndərdikdə nə baş verir?"
+    back:
+      en: "Compaction fails for that record because compaction strictly requires a key to identify unique state."
+      az: "Həmin mesaj üçün compaction işləmir, çünki compaction vəziyyəti izləmək üçün mütləq açar tələb edir."
+  - front:
+      en: "What configuration defines how long a Tombstone is preserved before being purged?"
+      az: "Tombstone-un diskdən silinməzdən əvvəl nə qədər saxlanacağını hansı parametr təyin edir?"
+    back:
+      en: "`delete.retention.ms` (gives offline consumers time to observe the deletion event)."
+      az: "`delete.retention.ms` (sönülü olan consumer-lərin silinmə hadisəsini görməsinə vaxt tanıyır)."
+  - front:
+      en: "Does Log Compaction run immediately on the active log segment currently being written to?"
+      az: "Log Compaction hazırda yeni mesajların yazıldığı aktiv seqmentdə dərhal işləyirmi?"
+    back:
+      en: "No. Compaction only cleans closed (non-active) historical log segments."
+      az: "Xeyr. Compaction yalnız bağlanmış (aktiv olmayan) köhnə seqment fayllarında təmizləmə aparır."

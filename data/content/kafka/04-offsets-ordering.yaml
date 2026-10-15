@@ -1,0 +1,223 @@
+id: "04-offsets-ordering"
+order: 4
+level: "junior"
+title:
+  en: "Offsets & Ordering Guarantees: Partition-Level Sequentiality"
+  az: "Offsetlər və Mesaj Sıralaması: Partisiya Səviyyəsində Ardıcıllıq"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KAFKA ORDERING LAW: Strict Ordering ONLY Within A Single Partition!   │
+    │                                                                        │
+    │  Partition 0: [Offset 0] ──► [Offset 1] ──► [Offset 2] ──► (Ordered!)  │
+    │  Partition 1: [Offset 0] ──► [Offset 1] ──► [Offset 2] ──► (Ordered!)  │
+    │                                                                        │
+    │  WARNING: NO GLOBAL ORDER BETWEEN PARTITION 0 AND PARTITION 1!         │
+    │  • Event at Part 0 (Offset 1) might be read BEFORE or AFTER             │
+    │    Event at Part 1 (Offset 0).                                         │
+    │  • If business logic requires ordering (e.g. Account Balance), all     │
+    │    events for that account MUST route to the SAME PARTITION via Key!   │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  OFFSET LIFECYCLE & THE INTERNAL '__consumer_offsets' TOPIC            │
+    │  [Partition Log]:  [0][1][2][3][4][5][6][7][8][9]                      │
+    │                                       ▲                                │
+    │  Current Read Position:               │ (Offset: 6)                    │
+    │  Committed to `__consumer_offsets`:  ──┘ (Safe recovery bookmark!)     │
+    │                                                                        │
+    │  `auto.offset.reset`:                                                  │
+    │  • 'earliest': Rewinds bookmark to Offset 0 (Re-process all history).  │
+    │  • 'latest'  : Jumps bookmark to Offset 10 (Only listen to new events).│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KAFKA SIRALAMA QANUNU: Qəti Ardıcıllıq YALNIZ Eyni Partisiya Daxilində!│
+    │                                                                        │
+    │  Partisiya 0: [Offset 0] ──► [Offset 1] ──► [Offset 2] ──► (Sıralı!)  │
+    │  Partisiya 1: [Offset 0] ──► [Offset 1] ──► [Offset 2] ──► (Sıralı!)  │
+    │                                                                        │
+    │  XƏBƏRDARLIQ: PARTİSİYA 0 VƏ 1 ARASINDA QLOBAL ARDICILLIQ YOXDUR!      │
+    │  • Partisiya 0-dakı (Offset 1) hadisəsi, Partisiya 1-dəki (Offset 0)-dan│
+    │    əvvəl və ya sonra oxuna bilər.                                      │
+    │  • Əgər ardıcıllıq mütləqdirsə (məs. Balans artımı ──► Xərcləmə), həmin│
+    │    müştərinin BÜTÜN hadisələri eyni AÇARLA eyni partisiyaya getməlidir!│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  OFFSET VƏ DAXİLİ '__consumer_offsets' JURNALI                         │
+    │  [Partisiya Faylı]: [0][1][2][3][4][5][6][7][8][9]                     │
+    │                                        ▲                               │
+    │  İstehlakçının cari oxuduğu yer:       │ (Offset: 6)                   │
+    │  `__consumer_offsets`-ə yazılan əlfəcin:─┘ (Qəzadan sonrakı bərpa yeri)│
+    │                                                                        │
+    │  `auto.offset.reset`:                                                  │
+    │  • 'earliest': Əlfəcini 0-cı offset-ə çəkir (Bütün tarixi təkrar oxu). │
+    │  • 'latest'  : Əlfəcini 10-cu offset-ə atır (Yalnız yeni gələnləri oxu)│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of an unchangeable legal book and personal bookmarks:
+    - **Offset**: An immutable, monotonically increasing 64-bit integer assigned to every message entering a partition. If a partition has messages 0, 1, 2, the next message is guaranteed to receive offset 3.
+    - **The Golden Law of Kafka Ordering**: Kafka guarantees strict chronological message order **ONLY within a single partition**. There is NO global ordering across an entire topic!
+      - If Customer 101 deposits \$100 (Message A) and immediately withdraws \$40 (Message B), those two messages MUST land in the same partition.
+      - If they landed in different partitions, Consumer 2 might process the withdrawal before Consumer 1 processes the deposit, falsely triggering an insufficient funds exception!
+    - **Tracking Position (`__consumer_offsets`)**:
+      - How does a consumer remember where it stopped reading when it restarts?
+      - Kafka stores consumer positions inside a special high-performance internal topic named `__consumer_offsets`.
+      - When a consumer finishes processing message #50, it commits offset 51 to Kafka.
+    - **`auto.offset.reset` Modes**:
+      - `earliest`: If no previous offset exists for this consumer group, start from the oldest message retained on disk.
+      - `latest`: If no previous offset exists, ignore all historical messages and wait only for brand-new events arriving after startup.
+  az: |
+    Qalın bir hüquq kitabı və içindəki oxu əlfəcinlərini təsəvvür edin:
+    - **Offset**: Partisiyaya daxil olan hər bir mesaja verilən, dəyişdirilə bilməyən və 0-dan başlayaraq ardıcıl artan unikal nömrədir (məs. 0, 1, 2, 3...).
+    - **Kafkanın Qızıl Sıralama Qanunu**: Kafka mesajların dəqiq xronoloji ardıcıllığına **YALNIZ VƏ YALNIZ EYNİ BİR PARTİSİYA DAXİLİNDƏ** zəmanət verir. Bütün Topic üzrə ümumi qlobal ardıcıllıq YOXDUR!
+      - Əgər 101 nömrəli müştəri əvvəlcə kartına 100 AZN mədaxil edir (Hadisə A), 2 saniyə sonra isə 40 AZN xərcləyirsə (Hadisə B), bu iki hadisə MÜTLƏQ EYNİ PARTİSİYAYA düşməlidir.
+      - Əgər fərqli partisiyalara düşsələr, 2-ci partisiya daha tez oxunub xərcləməni qeydə ala bilər və balansda hələ pul olmadığı üçün sistem əsassız imtina verər!
+    - **İstehlakçının Qaldığı Yerin Saxlanması (`__consumer_offsets`)**:
+      - İstehlakçı kompüter sönüb yandıqda harada qaldığını haradan bilir?
+      - Kafka hər bir qrupun oxuduğu ən son offset nömrəsini `__consumer_offsets` adlı daxili və super-sürətli sistem topikində qeyd edir.
+    - **`auto.offset.reset` Parametri**:
+      - `earliest`: Əgər bu istehlakçı qrupu üçün əvvəlcədən yadda saxlanmış offset yoxdursa, diskdəki ən qədim (0-cı) mesajdan başla.
+      - `latest`: Keçmiş mesajları burax, yalnız proqram işə düşdükdən sonra gələcək yeni hadisələri dinlə.
+quick_recap:
+  en: "Offsets uniquely identify messages within a partition. Kafka guarantees strict ordering ONLY within individual partitions, not across the whole topic. Consumer reading checkpoints are durably stored in the `__consumer_offsets` system topic."
+  az: "Offset partisiya daxilində mesajın unikal nömrəsidir. Kafka qlobal deyil, YALNIZ eyni partisiya daxilində ciddi ardıcıllığa zəmanət verir. İstehlakçıların qaldığı nöqtələr daxili `__consumer_offsets` topikində etibarlı saxlanılır."
+code: |
+  # Production Consumer Offset Inspection & Manual Seek (Rewinding History)
+  from confluent_kafka import Consumer, TopicPartition
+
+  consumer_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'group.id': 'order-audit-service',
+      'auto.offset.reset': 'earliest',
+      'enable.auto.commit': False  # Explicit manual offset control
+  }
+
+  consumer = Consumer(consumer_conf)
+  target_topic = "ecommerce-orders"
+  target_partition = 0
+
+  # 1. Manually assign specific partition to demonstrate Offset Seek
+  tp = TopicPartition(target_topic, target_partition)
+  consumer.assign([tp])
+
+  # 2. Rewind consumer bookmark to historical Offset 0 (Time Travel / Replay)
+  print(f"=== Seeking Partition {target_partition} to Offset 0 ===")
+  consumer.seek(TopicPartition(target_topic, target_partition, 0))
+
+  # 3. Read 3 historical events sequentially
+  for i in range(3):
+      msg = consumer.poll(timeout=5.0)
+      if msg is None:
+          break
+      if msg.error():
+          print(f"Consumer Error: {msg.error()}")
+          continue
+
+      print(f"  • Read Event [Partition: {msg.partition()} | Offset: {msg.offset()}] -> Key: {msg.key().decode('utf-8')} | Val: {msg.value().decode('utf-8')}")
+
+  # 4. Commit current safe position to __consumer_offsets
+  consumer.commit(asynchronous=False)
+  print("\n✅ Successfully committed latest read offset to '__consumer_offsets'")
+  consumer.close()
+code_explanation:
+  en: |
+    - `consumer.assign([TopicPartition(...)])`: Explicitly binds consumer to a designated partition without triggering group rebalances.
+    - `consumer.seek(TopicPartition(..., offset=0))`: Demonstrates offset rewinding (event replay), repositioning the partition read pointer directly to offset 0.
+    - `consumer.commit(asynchronous=False)`: Synchronously commits the processed offset into Kafka's internal `__consumer_offsets` topic.
+  az: |
+    - `consumer.assign([TopicPartition(...)])`: İstehlakçını qrup rebalance-ı başlatmadan birbaşa müəyyən edilmiş partisiya ilə əlaqələndirir.
+    - `consumer.seek(..., offset=0)`: Keçmişə qayıtmağı (replay) nümayiş etdirir; oxuma nöqtəsini birbaşa 0-cı offset-ə çəkir.
+    - `consumer.commit(asynchronous=False)`: İşlənmiş ən son offset nömrəsini daxili `__consumer_offsets` topikinə sinxron və təhlükəsiz qeyd edir.
+visual_output: |
+  === Seeking Partition 0 to Offset 0 ===
+    • Read Event [Partition: 0 | Offset: 0] -> Key: user_101 | Val: {"action": "deposit", "amount": 100.0}
+    • Read Event [Partition: 0 | Offset: 1] -> Key: user_101 | Val: {"action": "withdraw", "amount": 40.0}
+    • Read Event [Partition: 0 | Offset: 2] -> Key: user_101 | Val: {"action": "transfer", "amount": 15.0}
+
+  ✅ Successfully committed latest read offset to '__consumer_offsets'
+output_description:
+  en: "Terminal execution proving sequential in-order delivery of user_101's operations within Partition 0 from offset 0 to 2."
+  az: "Partition 0 daxilində user_101-ə aid əməliyyatların 0-dan 2-yə qədər dəqiq ardıcıllıqla necə oxunduğunu göstərən terminal loqu."
+what_it_does:
+  en: "Demonstrates how Kafka assigns monotonic offsets, illustrates offset seeking (event replay), and shows synchronous position commits."
+  az: "Kafka-nın artan offset təyin etməsini, keçmişə qayıtmağı (seek) və mövqenin yadda saxlanmasını (commit) nümayiş etdirir."
+real_world_use:
+  en: "Critical for audit logging and bug mitigation. If a data pipeline calculates faulty currency conversions on Tuesday, engineers fix the bug and seek the consumer back to Tuesday's offsets to recalculate."
+  az: "Audit və xətaların bərpası üçün həyatidir. Əgər data kəmərində məzənnə səhv hesablanıbsa, baq düzəldilir və consumer-in offset-i həmin günə geri çəkilərək məlumatlar yenidən səhvsiz hesablanır."
+common_mistakes:
+  en: |
+    - **Assuming global ordering across all partitions**: Expecting events across Partition 0 and Partition 1 to be read in absolute timestamp order without custom sorting.
+    - **Using `auto.offset.reset = 'latest'` when full data recovery is required**: Skips all unread historical data if a brand-new consumer group ID is deployed.
+    - **Committing offsets before processing data**: If the consumer crashes during processing, the unhandled message is permanently skipped on restart (At-Most-Once bug!).
+  az: |
+    - **Bütün topic boyu qlobal ardıcıllıq gözləmək**: Fərqli partisiya mesajlarının heç bir xüsusi açar olmadan xronoloji oxunacağını düşünmək.
+    - **Tarixi məlumat lazım olduğu halda `auto.offset.reset = 'latest'` seçmək**: Yeni bir consumer qrupu yaradıldıqda bütün keçmiş məlumatları oxumadan atlayır.
+    - **Məlumatı bazaya yazmamışdan əvvəl offset-i commit etmək**: Əgər proqram məlumatı emal edərkən çöksə, təzədən işə düşəndə həmin mesaj bir daha oxunmur və itir (At-Most-Once xətası!).
+interview_question:
+  question:
+    en: "Does Apache Kafka guarantee total message ordering across an entire topic? If not, how do Data Engineers guarantee strict chronological ordering for business entities?"
+    az: "Apache Kafka bütün topic üzrə ümumi (qlobal) ardıcıllığa zəmanət verirmi? Əgər vermirsə, Data Mühəndisləri biznes obyektləri üçün dəqiq ardıcıllığı necə təmin edirlər?"
+  answer:
+    en: |
+      1. **The Partition-Level Ordering Boundary**:
+         - **No**, Kafka does **NOT** guarantee global ordering across a topic with multiple partitions.
+         - Each partition is an independent, append-only commit log with its own independent sequence of offsets. Different consumer threads process different partitions in parallel, meaning Partition 1 may be read faster than Partition 0.
+      2. **How to Guarantee Strict Chronological Order**:
+         - To enforce strict ordering for a specific business entity (e.g. all transactions for `user_id = 402` or IoT sensor readings for `sensor_id = 99`), producers must supply that entity ID as the **Message Key**.
+         - Kafka's default partitioner hashes the key (`murmur2_hash(key) % num_partitions`), guaranteeing that all messages with the identical key are **always routed to the exact same partition**.
+         - Inside that partition, messages are strictly serialized and consumed in the exact order they were produced.
+      3. **What if Global Ordering Across Everything is Mandatory?**:
+         - The only way to achieve 100% global topic-wide ordering is to configure the topic with **exactly 1 partition**.
+         - However, this completely eliminates consumer horizontal parallelism and bottlenecks total pipeline throughput to a single consumer instance.
+    az: |
+      1. **Sıralamanın Partisiya Sərhədi**:
+         - **Xeyr**, Kafka çoxpartisiyalı bir topic daxilində qlobal ümumi ardıcıllığa **zəmanət vermir**.
+         - Hər bir partisiya öz müstəqil offset sayğacına malik ayrıca bir jurnal faylıdır. Fərqli istehlakçılar fərqli partisiyaları paralel oxuduğu üçün 1-ci partisiya 0-cı partisiyadan daha tez oxuna bilər.
+      2. **Biznes Obyektləri Üçün Ardıcıllıq Necə Təmin Edilir?**:
+         - Müəyyən bir biznes obyekti (məsələn, eyni `user_id`-nin bank əməliyyatları və ya eyni `sensor_id`-nin ölçmələri) üçün ciddi ardıcıllıq tələb olunursa, Producer mesajı göndərərkən həmin ID-ni **Mesaj Açarı (Message Key)** kimi təyin etməlidir.
+         - Kafka-nın standart heşləmə alqoritmi (`hash(key) % num_partitions`) eyni açara sahib bütün hadisələri **həmişə eyni partisiyaya** yönləndirir.
+         - Partisiya daxilində isə ardıcıllıq 100% zəmanətlidir və istehlakçı hadisələri daxilolma sırası ilə emal edir.
+      3. **Əgər Bütün Topic Üzrə 100% Qlobal Ardıcıllıq Vacibdirsə?**:
+         - Bunun yeganə yolu Topic-i cəmi **1 partisiya** ilə yaratmaqdır.
+         - Lakin bu, sistemin bütün paralelliyini və miqyaslanma gücünü öldürür; bütün sistem tək bir consumer-in sürətinə möhtac qalır.
+  interviewer_tips:
+    en: "Never hesitate: say immediately 'Ordering is only guaranteed within a partition, NOT across the topic'. Explain how hashing the Message Key ensures per-entity ordering, and note that a 1-partition topic gives global ordering at the cost of zero parallelism."
+    az: "Müsahibədə dərhal 'Xeyr, Kafka yalnız partisiya daxilində ardıcıllığa zəmanət verir' deyin. Sonra 'Message Key' vasitəsilə eyni obyektin eyni partisiyaya necə düşdüyünü və 1 partisiyanın qlobal ardıcıllıq versə də paralelliyi öldürdüyünü izah edin."
+flashcards:
+  - front:
+      en: "What is an Offset in Apache Kafka?"
+      az: "Apache Kafka-da Offset nədir?"
+    back:
+      en: "A unique, sequential integer assigned to each record within a partition, representing its exact commit position."
+      az: "Partisiya daxilində hər bir mesaja verilən və onun dəqiq ardıcıl yerini bildirən unikal tam ədəddir."
+  - front:
+      en: "Across which boundary does Kafka guarantee strict message ordering?"
+      az: "Kafka ciddi mesaj ardıcıllığına hansı sərhəd daxilində zəmanət verir?"
+    back:
+      en: "Strictly within a single partition. There is no global ordering across multiple partitions."
+      az: "Yalnız və yalnız tək bir partisiya daxilində. Çoxlu partisiyalar arasında ümumi qlobal ardıcıllıq yoxdur."
+  - front:
+      en: "Where does Kafka store the committed offsets of consumer groups?"
+      az: "Kafka istehlakçı qruplarının təsdiq olunmuş (commit) offset-lərini harada saxlayır?"
+    back:
+      en: "In the internal, replicated system topic named `__consumer_offsets`."
+      az: "`__consumer_offsets` adlı daxili və etibarlı sistem topikində saxlayır."
+  - front:
+      en: "How can a Data Engineer guarantee that all events for a specific user arrive in order?"
+      az: "Data Mühəndisi müəyyən bir istifadəçiyə aid hadisələrin ardıcıl çatmasına necə zəmanət verə bilər?"
+    back:
+      en: "By setting the user ID as the Message Key so the partitioner routes all their records to the same partition."
+      az: "İstifadəçi ID-sini Mesaj Açarı (Key) kimi təyin etməklə; bu halda heş alqoritmi bütün qeydləri eyni partisiyaya yönləndirir."
+  - front:
+      en: "What is the difference between `auto.offset.reset = 'earliest'` and `'latest'`?"
+      az: "`auto.offset.reset = 'earliest'` ilə `'latest'` arasındakı fərq nədir?"
+    back:
+      en: "'earliest' starts reading from the oldest available message; 'latest' skips history and listens only for newly produced events."
+      az: "'earliest' diskdəki ən qədim mesajdan oxumağa başlayır; 'latest' isə keçmişi buraxaraq yalnız yeni gələcək hadisələri dinləyir."

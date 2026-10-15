@@ -1,0 +1,204 @@
+id: "07-replication-isr-leader"
+order: 7
+level: "intermediate"
+title:
+  en: "Replication, Leader Election & ISR (In-Sync Replicas)"
+  az: "Replikasiya, Lider Seçimi və ISR (In-Sync Replicas)"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PARTITION REPLICATION TOPOLOGY (Replication Factor = 3)               │
+    │                                                                        │
+    │  [Broker 1] ──► Partition 0 LEADER (Handles ALL client reads & writes!)│
+    │        │                                                               │
+    │        ├──► Fetch Replicate ──► [Broker 2] Partition 0 (Follower / ISR)│
+    │        └──► Fetch Replicate ──► [Broker 3] Partition 0 (Follower / ISR)│
+    │                                                                        │
+    │  Active ISR List = [1, 2, 3] (All nodes fully up-to-date with Leader)  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LEADER FAILURE & AUTOMATIC ISR FAILOVER                               │
+    │  1. [Broker 1 (Leader)] CATASTROPHICALLY CRASHES! 💥                   │
+    │  2. Controller Broker detects heartbeat timeout (~30s).                │
+    │  3. Controller inspects ISR list: Broker 2 is healthy and up-to-date!  │
+    │  4. Broker 2 PROMOTED TO NEW LEADER! 👑                                │
+    │  5. Client traffic automatically redirects to Broker 2. Zero Downtime! │
+    │  New ISR List = [2, 3]                                                 │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PARTİSİYA REPLİKASİYA TOPOLOGİYASI (Replication Factor = 3)           │
+    │                                                                        │
+    │  [Broker 1] ──► Partisiya 0 LİDER (BÜTÜN oxuma/yazmaları idarə edir!)  │
+    │        │                                                               │
+    │        ├──► Məlumatı kopyalayır ──► [Broker 2] Part 0 (Follower / ISR) │
+    │        └──► Məlumatı kopyalayır ──► [Broker 3] Part 0 (Follower / ISR) │
+    │                                                                        │
+    │  Aktiv ISR Siyahısı = [1, 2, 3] (Bütün nüsxələr Liderlə tam sinxrondur)│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LİDERİN ÇÖKMƏSİ VƏ AVTOMATİK LİDER SEÇİMİ                             │
+    │  1. [Broker 1 (Lider)] QƏFİL SÖNÜR VƏ YA YANIR! 💥                     │
+    │  2. Controller Broker nəbzin itdiyini aşkar edir.                      │
+    │  3. Controller ISR siyahısına baxır: Broker 2 tam sağlam və güncəldir! │
+    │  4. Broker 2 YENİ LİDER TƏYİN EDİLİR! 👑                               │
+    │  5. Müştəri axını dərhal Broker 2-yə yönlənir. Xidmət dayanmır!        │
+    │  Yeni ISR Siyahısı = [2, 3]                                            │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a company bank account with 3 authorized board directors:
+    - **Replication Factor (RF)**: The total number of identical physical copies of a partition stored across the cluster. If $RF=3$, the partition resides on 3 separate physical servers. Even if 2 servers burn down, your data survives.
+    - **Leader Partition**: The designated active copy. By default, **all** producer writes and consumer reads go directly to the Leader. Followers never accept writes from external clients; their only job is to continuously pull new log bytes from the Leader.
+    - **In-Sync Replicas (ISR)**:
+      - A follower replica that is actively keeping up with the Leader's log end offset within the configured threshold (`replica.lag.time.max.ms`, default 30 seconds).
+      - If Broker 3 gets stuck due to a network outage or hardware freeze, the Leader ejects Broker 3 from the ISR list.
+    - **The High-Stakes Dilemma: `unclean.leader.election.enable`**:
+      - What happens if the Leader crashes, and ALL remaining followers in the ISR list also crash, leaving only Broker 3 alive (who was out-of-sync and missing the last 1,000 transactions)?
+      - **Option A (`unclean.leader.election.enable = false` - Enterprise Standard)**: Kafka refuses to elect Broker 3. The partition goes offline and stops accepting traffic until the true leader comes back. **Guarantees zero data loss (Consistency over Availability)**.
+      - **Option B (`unclean.leader.election.enable = true`)**: Broker 3 is elected leader anyway. The missing 1,000 transactions are permanently lost forever, but the cluster stays online.
+  az: |
+    Şirkətin bank hesabını idarə edən 3 səlahiyyətli direktoru təsəvvür edin:
+    - **Replication Factor (RF)**: Bir partisiyanın klasterdə saxlanılan fiziki nüsxələrinin ümumi sayıdır. Əgər $RF=3$-dürsə, həmin partisiya 3 müstəqil serverdə mövcuddur. Hətta 2 server eyni anda yansa belə, məlumatlar 100% salamat qalır.
+    - **Lider Partisiya**: Cavabdeh əsas nüsxədir. Bütün müştəri oxumaları (consume) və yazmaları (produce) birbaşa Liderə gedir. Follower (izləyici) serverlər müştərilərlə danışmır; onların yeganə vəzifəsi Liderdən yeni baytları öz disklərinə köçürməkdir.
+    - **ISR (In-Sync Replicas)**:
+      - Liderlə ayaqlaşan və ondan geri qalmayan sağlam nüsxələr siyahısıdır (`replica.lag.time.max.ms`, susmaya görə 30 saniyə).
+      - Əgər 3 nömrəli broker şəbəkə gecikməsi səbəbindən geridə qalmağa başlasa, Lider onu dərhal ISR siyahısından xaric edir.
+    - **Böyük Müsahibə Dilemması: `unclean.leader.election.enable`**:
+      - Əgər Lider ölərsə və ISR-də olan digər sağlam server də ölərsə, ortalıqda yalnız 1,000 tranzaksiya geridə qalmış köhnə nüsxə (Broker 3) qalarsa nə baş verər?
+      - **Seçim A (`unclean.leader.election.enable = false` - Sənaye Standartı)**: Kafka köhnə nüsxəni lider seçməkdən İMTİNA edir. Həqiqi lider bərpa olunana qədər həmin partisiya dondurulur. **Data itkisi sıfırdır (Ardıcıllıq > Əlçatanlıq)**.
+      - **Seçim B (`unclean.leader.election.enable = true`)**: Geridə qalmış köhnə nüsxə Lider təyin edilir. Çatışmayan 1,000 tranzaksiya birdəfəlik itir, amma sistem işləməkdə davam edir.
+quick_recap:
+  en: "Replication Factor guarantees fault tolerance. The Leader handles client traffic while Followers replicate passively. Only In-Sync Replicas (ISR) are eligible to become leaders during failover unless `unclean.leader.election.enable` is explicitly permitted."
+  az: "Replikasiya klasterin qəzalara dözümlülüyünü təmin edir. Lider bütün əməliyyatları icra edir, Follower-lər isə nüsxələyir. Lider öldükdə yalnız ISR siyahısındakı güncəl nüsxələr yeni Lider seçilə bilər."
+code: |
+  # Inspecting Partition Leadership, Replica Placement & ISR Quorum via AdminClient
+  from confluent_kafka.admin import AdminClient
+
+  admin = AdminClient({'bootstrap.servers': 'localhost:9092'})
+
+  topic_name = "payment-transactions"
+  print(f"=== Inspecting Topic Topology & ISR State: '{topic_name}' ===")
+
+  meta = admin.list_topics(topic=topic_name, timeout=10)
+  topic_meta = meta.topics.get(topic_name)
+
+  if topic_meta is None or topic_meta.error is not None:
+      print(f"Topic not found or error: {topic_meta.error if topic_meta else 'Unknown'}")
+  else:
+      print(f"Topic Name: {topic_name} | Total Partitions: {len(topic_meta.partitions)}\n")
+      print(f"{'Partition':<10} | {'Leader':<8} | {'All Replicas':<15} | {'In-Sync (ISR)':<15} | {'Health Status'}")
+      print("-" * 68)
+
+      for p_id, p_meta in topic_meta.partitions.items():
+          replicas_str = str(p_meta.replicas)
+          isrs_str = str(p_meta.isrs)
+          
+          # Health check: Is ISR equal to Replicas?
+          is_fully_synced = len(p_meta.isrs) == len(p_meta.replicas)
+          status = "🟢 HEALTHY" if is_fully_synced else "🔴 DEGRADED (Under-replicated!)"
+          
+          print(f"Part {p_id:<5} | Broker {p_meta.leader:<3} | {replicas_str:<15} | {isrs_str:<15} | {status}")
+code_explanation:
+  en: |
+    - `p_meta.leader`: The broker currently acting as the active read/write coordinator for this partition.
+    - `p_meta.replicas`: All physical brokers assigned to store copies of this partition (e.g. `[1, 2, 3]`).
+    - `p_meta.isrs`: The subset of replicas that are currently synchronized and eligible for immediate failover.
+    - An "Under-replicated Partition" occurs whenever `len(isrs) < len(replicas)`, representing an immediate operational warning.
+  az: |
+    - `p_meta.leader`: Hazırda bu partisiya üçün bütün oxuma və yazmaları idarə edən aktiv Lider broker.
+    - `p_meta.replicas`: Bu partisiyanın nüsxələrini saxlamalı olan bütün brokerlərin siyahısı (məs. `[1, 2, 3]`).
+    - `p_meta.isrs`: Liderlə tam ayaqlaşan və hər an yeni Lider seçilməyə hazır olan sağlam brokerlər siyahısı.
+    - Əgər `len(isrs) < len(replicas)` olarsa, bu "Under-replicated Partition" adlanır və mühəndis üçün həyəcan siqnalıdır.
+visual_output: |
+  === Inspecting Topic Topology & ISR State: 'payment-transactions' ===
+  Topic Name: payment-transactions | Total Partitions: 3
+
+  Partition  | Leader   | All Replicas    | In-Sync (ISR)   | Health Status
+  --------------------------------------------------------------------
+  Part 0     | Broker 1 | [1, 2, 3]       | [1, 2, 3]       | 🟢 HEALTHY
+  Part 1     | Broker 2 | [2, 3, 1]       | [2, 3, 1]       | 🟢 HEALTHY
+  Part 2     | Broker 3 | [3, 1, 2]       | [3, 1]          | 🔴 DEGRADED (Under-replicated!)
+output_description:
+  en: "Terminal diagnosis showing partitions 0 and 1 fully healthy with ISR=[1,2,3], while Partition 2 is degraded because Broker 2 fell out of sync (ISR=[3,1])."
+  az: "0 və 1-ci partisiyaların tam sağlam olduğunu (ISR=[1,2,3]), 2-ci partisiyanın isə Broker 2 gecikdiyi üçün deqradasiyaya uğradığını (ISR=[3,1]) göstərən terminal diaqnostikası."
+what_it_does:
+  en: "Diagnoses distributed partition health, identifying leader assignments and detecting under-replicated partition anomalies."
+  az: "Paylanmış partisiya sağlamlığını yoxlayır, Lider təyinatlarını aşkar edir və sinxronizasiyası pozulmuş nüsxələri göstərir."
+real_world_use:
+  en: "Primary metric tracked in Prometheus/Datadog alerting. 'UnderReplicatedPartitions > 0' triggers automated incident paging for SRE and Data Platform teams."
+  az: "İstehsalat monitorinq sistemlərində (Prometheus, Datadog) #1 kritik göstəricidir. 'UnderReplicatedPartitions > 0' olduqda avtomatik həyəcan bildirişi göndərilir."
+common_mistakes:
+  en: |
+    - **Enabling `unclean.leader.election.enable = true` in financial topics**: Results in silent data loss and impossible-to-reconcile account balance discrepancies.
+    - **Ignoring Under-Replicated Partitions**: Operating with degraded ISR for days means a single subsequent broker reboot can take the entire partition offline.
+    - **Placing all replicas on brokers within the same cloud Availability Zone (AZ)**: If that physical data center experiences a power cut, the entire cluster disappears. Always configure Rack Awareness (`broker.rack`).
+  az: |
+    - **Maliyyə sistemlərində `unclean.leader.election.enable = true` qoymaq**: Xəbərsiz data itkisinə və bərpası mümkün olmayan balans uyğunsuzluqlarına yol açır.
+    - **Under-Replicated Partisiyalara məhəl qoymamaq**: Replikasiyası pozulmuş sistemdə digər brokerin də sönməsi topic-in tam dayanması ilə nəticələnir.
+    - **Bütün nüsxələri eyni fiziki otaqda/data-mərkəzdə saxlamaq**: Həmin zonanın işığı sönsə, bütün klaster məhv olur. Həmişə Rack Awareness (`broker.rack`) tənzimlənməlidir.
+interview_question:
+  question:
+    en: "What is an In-Sync Replica (ISR) in Apache Kafka, how does a replica lose ISR membership, and what are the trade-offs of enabling `unclean.leader.election.enable`?"
+    az: "Apache Kafka-da In-Sync Replica (ISR) nədir, bir nüsxə ISR üzvlüyünü necə itirir və `unclean.leader.election.enable` parametrini açmağın mənfi və müsbət tərəfləri nədir?"
+  answer:
+    en: |
+      1. **Definition of In-Sync Replica (ISR)**:
+         - An ISR is the subset of all assigned partition replicas that are actively alive, connected, and fully caught up with the Leader's log.
+         - By default, Kafka measures this with `replica.lag.time.max.ms` (default: 30,000ms). If a follower fails to send a fetch request or fails to catch up to the leader's latest offset within 30 seconds, the Leader forcibly ejects it from the ISR list.
+      2. **Leader Failover Mechanics**:
+         - When the Leader crashes, the Controller selects a replacement Leader **strictly from the existing ISR list**, ensuring that the new leader has 100% of all previously committed data.
+      3. **The `unclean.leader.election.enable` Trade-off (CAP Theorem)**:
+         - Suppose all ISR nodes crash, leaving only a stale out-of-sync follower alive.
+         - **If Disabled (`false` - Default)**: Kafka prioritizes **Consistency (CP)**. The partition remains offline and will not accept writes or reads until an ISR broker boots back up. **Zero data loss**.
+         - **If Enabled (`true`)**: Kafka prioritizes **Availability (AP)**. The stale replica becomes Leader. Any writes that occurred on the old leader but were never fetched by this follower are permanently wiped out!
+    az: |
+      1. **ISR-in Tərifi**:
+         - ISR — bir partisiyanın bütün nüsxələri içərisindən hazırda aktiv, şəbəkədə olan və Liderin logu ilə tam ayaqlaşan sağlam nüsxələr siyahısıdır.
+         - Kafka bunu `replica.lag.time.max.ms` (susmaya görə 30 saniyə) parametri ilə ölçür. Əgər izləyici (follower) 30 saniyə ərzində Liderdən ən son mesajları çəkib bitirə bilmirsə, Lider onu dərhal ISR siyahısından çıxarır.
+      2. **Yeni Liderin Seçilməsi**:
+         - Lider çökdükdə, Controller yeni Lideri **yalnız və yalnız mövcud ISR siyahısından** seçir. Bu, yeni liderin keçmiş bütün təsdiqlənmiş mesajlara 100% sahib olmasına zəmanət verir.
+      3. **`unclean.leader.election.enable` Seçimi (CAP Teoremi)**:
+         - Bütün ISR üzvləri sıradan çıxdıqda və yalnız geridə qalmış köhnə nüsxə salamat qaldıqda:
+         - **Sönülü Olduqda (`false` - Standart)**: Kafka **Məlumat Düzgünlüyünü (Consistency)** seçir. Partisiya müvəqqəti dondurulur və sağlam ISR üzvü bərpa olunana qədər heç bir oxuma/yazma qəbul edilmir. **Sıfır data itkisi**.
+         - **Aktiv Olduqda (`true`)**: Kafka **Sistemin İşləməsini (Availability)** seçir. Geridə qalmış nüsxə Lider təyin edilir. Əvvəlki liderdə olub bu nüsxəyə çatmayan bütün mesajlar **birdəfəlik itir**, amma sistem dayanmır.
+  interviewer_tips:
+    en: "Frame this answer around the CAP theorem (Consistency vs Availability). Highlight that enterprise financial pipelines strictly mandate `unclean.leader.election.enable = false`."
+    az: "Müsahibədə bu seçimi birbaşa CAP Teoremi (Məlumat Düzgünlüyü və ya Sistemin Əlçatanlığı) ilə əlaqələndirin və maliyyə/bank layihələrində bu parametrin həmişə `false` saxlanıldığını vurğulayın."
+flashcards:
+  - front:
+      en: "What is an In-Sync Replica (ISR) in Apache Kafka?"
+      az: "Apache Kafka-da In-Sync Replica (ISR) nədir?"
+    back:
+      en: "A partition replica that is currently connected, alive, and fully caught up with the Leader's log."
+      az: "Hazırda aktiv, şəbəkəyə qoşulmuş və Liderin logu ilə tam sinxron vəziyyətdə olan sağlam partisiya nüsxəsidir."
+  - front:
+      en: "What configuration determines when a slow follower is ejected from the ISR list?"
+      az: "Yavaş follower-in ISR siyahısından nə vaxt xaric ediləcəyini hansı parametr təyin edir?"
+    back:
+      en: "`replica.lag.time.max.ms` (defaults to 30,000 ms / 30 seconds)."
+      az: "`replica.lag.time.max.ms` (susmaya görə 30,000 ms / 30 saniyə)."
+  - front:
+      en: "Can a Kafka consumer read directly from a Follower replica by default?"
+      az: "Kafka istehlakçısı (consumer) susmaya görə birbaşa Follower nüsxəsindən oxuya bilərmi?"
+    back:
+      en: "No. By default, consumers read strictly from the partition Leader (unless rack-aware reading is configured)."
+      az: "Xeyr. Susmaya görə istehlakçılar yalnız Lider partisiyadan oxuyurlar (xüsusi rack-aware oxuma aktiv edilməyibsə)."
+  - front:
+      en: "What happens if `unclean.leader.election.enable` is set to `false` and all ISR members die?"
+      az: "`unclean.leader.election.enable = false` olduqda və bütün ISR üzvləri öldükdə nə baş verir?"
+    back:
+      en: "The partition remains offline until an in-sync replica recovers, preventing data loss at the expense of availability."
+      az: "Partisiya dondurulur və salamat bir ISR nüsxəsi bərpa olunana qədər oxuma/yazma dayandırılır (data itkisi olmur)."
+  - front:
+      en: "What does the 'Under-Replicated Partitions' metric indicate?"
+      az: "'Under-Replicated Partitions' metriki nəyi bildirir?"
+    back:
+      en: "The number of partitions where the count of in-sync replicas (ISR) is less than the configured replication factor."
+      az: "Aktiv sinxron nüsxələrinin (ISR) sayı təyin olunmuş replikasiya sayından (RF) az olan xəstə partisiyaların sayını."

@@ -1,0 +1,220 @@
+id: "01-what-is-kafka"
+order: 1
+level: "junior"
+title:
+  en: "What is Apache Kafka & Why Not Traditional Message Queues?"
+  az: "Apache Kafka Nədir və Niyə Ənənəvi Mesaj Növbələri (RabbitMQ) Deyil?"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TRADITIONAL MESSAGE QUEUE (RabbitMQ / ActiveMQ): Destructive Read     │
+    │  [Producer] ──► [Queue / Broker] ──► [Consumer A] (Message POPPED/GONE)│
+    │  • Smart Broker, Dumb Consumer (Broker tracks delivery & ACKs).        │
+    │  • Ephemeral: Messages disappear once consumed. No replay capability!  │
+    │  • Throughput: Thousands of messages/sec (Bottleneck: state tracking). │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE KAFKA: Distributed Commit Log (Non-Destructive Streaming)      │
+    │  [Producer] ──► [Topic Partition Log: [0][1][2][3][4][5]... (Disk)]    │
+    │                          ▲                     ▲                       │
+    │                          │                     │                       │
+    │                  [Analytics Consumer]   [ML Engine Consumer]           │
+    │                  (Reads Offset 2)       (Reads Offset 5)               │
+    │  • Dumb Broker, Smart Consumer (Broker just appends; Consumer offsets) │
+    │  • Persistent: Messages retained for days/months. Multiple readers!    │
+    │  • Replayable: Rewind offsets anytime to re-process historical stream. │
+    │  • Throughput: Millions of messages/sec (Sequential disk I/O & RAM).  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  ƏNƏNVİ MESAJ NÖVBƏSİ (RabbitMQ): Mesaj Oxunan Kimi Silinir (Destructive) │
+    │  [Producer] ──► [Queue / Broker] ──► [Consumer A] (Mesaj DƏRHAL SİLİNDİ)│
+    │  • Ağıllı Broker, Sadə İstehlakçı: Broker kimin nəyi oxuduğunu izləyir. │
+    │  • Keçici: Mesaj qəbul edilən kimi növbədən yox olur. Təkrar oxuma YOX! │
+    │  • Ötürücülük: Saniyədə minlərlə mesaj (Darboğaz: vəziyyət izlənməsi).  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE KAFKA: Paylanmış Hadisə Jurnalı (Distributed Commit Log)       │
+    │  [Producer] ──► [Topic Partition Log: [0][1][2][3][4][5]... (Daimi)]   │
+    │                          ▲                     ▲                       │
+    │                          │                     │                       │
+    │                  [Analitika Kəməri]     [Maşın Öyrənməsi Modeli]       │
+    │                  (Offset 2-ni oxuyur)   (Offset 5-i oxuyur)            │
+    │  • Sadə Broker, Ağıllı İstehlakçı: Broker yalnız sona yazır, Consumer  │
+    │    öz offset-ini (əlfəcinini) özü saxlayır.                             │
+    │  • Silinmir: Mesajlar günlərlə/aylarla saxlanılır. Çoxlu oxucu dəstəyi!│
+    │  • Geri Sarma (Replay): İstənilən vaxt keçmişə qayıdıb təkrar oxumaq.   │
+    │  • Ötürücülük: Saniyədə milyonlarla hadisə (Ardıcıl Disk I/O və RAM).  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of the fundamental difference between a **Fast-Food Drive-Through** and an **Audio Streaming Platform (Spotify)**:
+    - **Traditional Queue (Drive-Through)**: The cook prepares a burger and hands it through the window to a customer. Once the customer drives away with the burger, that burger is permanently gone from the restaurant. If a second customer arrives 5 minutes later, they cannot eat that same burger. This is RabbitMQ: messages are deleted immediately upon consumption.
+    - **Apache Kafka (Audio Cassette / Spotify Playlist)**: An artist records a song and writes it to an endless, append-only cassette tape. Listener A can listen to Song #1 at 9:00 AM. Listener B can listen to Song #1 at 2:00 PM. Listener A can even rewind the tape back to Song #1 tomorrow and replay it from the beginning! The song is never destroyed by someone listening to it.
+
+    ### Why Data Engineers Rely on Kafka:
+    1. **Decoupled Architecture**: Upstream transactional databases (PostgreSQL, MySQL) do not need to know about downstream analytical warehouses (Snowflake, BigQuery, ClickHouse). Producers just push events to Kafka; consumers pull when ready.
+    2. **High Throughput (Millions of events/sec)**: By treating topics as partitioned sequential logs on disk, Kafka bypasses random disk access penalties.
+    3. **Historical Event Replay**: When a data engineering team deploys a new Spark streaming pipeline with updated business logic, they can rewind Kafka offsets back 7 days and recalculate all metrics from the raw immutable source of truth.
+  az: |
+    Ənənəvi Mesaj Növbəsi ilə Kafka arasındakı fərqi **Fast-Food Restoranı** ilə **Audio Kasset (Spotify)** arasındakı fərq kimi təsəvvür edin:
+    - **Ənənəvi Növbə (Fast-Food Pəncərəsi - RabbitMQ)**: Aşpaz bir burger hazırlayır və müştəriyə təqdim edir. Müştəri burgeri götürüb gedən kimi, həmin burger restorandan birdəfəlik yox olur. 5 dəqiqə sonra gələn ikinci müştəri həmin burgeri yeyə bilməz. Bu RabbitMQ-dur: mesaj istehlakçı tərəfindən oxunan kimi silinir.
+    - **Apache Kafka (Audio Kasset / Qrammofon Valı)**: Musiqiçi bir mahnı bəstələyir və daimi lentə yazır. 1-ci dinləyici səhər saat 9-da 1-ci mahnını dinləyir. 2-ci dinləyici günorta saat 2-də həmin 1-ci mahnını dinləyir. Hətta 1-ci dinləyici sabah lenti geri sarıb mahnıya ən başdan təkrar qulaq asa bilər! Mahnıya qulaq asılması onu lentdən silmir.
+
+    ### Data Mühəndisləri Niyə Kafkanı Seçir?
+    1. **Sistemlərin Tam Müstəqilliyi (Decoupling)**: Əsas əməliyyat bazaları (PostgreSQL, microservice-lər) analitik anbarların (Snowflake, BigQuery, ClickHouse) mövcudluğundan belə xəbərdar olmur. İstehsalçı hadisəni Kafkaya atır; istehlakçılar isə öz sürətləri ilə oxuyur.
+    2. **Nəhəng Ötürücülük (Saniyədə milyonlarla hadisə)**: Kafka disklərə təsadüfi (random) deyil, yalnız ardıcıl (sequential) yazdığı üçün adi sərt disklərdə belə ağlasığmaz sürət nümayiş etdirir.
+    3. **Hadisələrin Keçmişə Qayıdaraq Təkrar Emalı (Event Replay)**: Data mühəndisi Spark-da yeni bir analitik model qurduqda, Kafkadakı oxuma nöqtəsini (offset) 7 gün geriyə çəkərək bütün keçmiş hadisələri yeni məntiqlə sıfırdan hesablaya bilər.
+quick_recap:
+  en: "Kafka is not a destructive message queue; it is a distributed, append-only commit log. Messages are persisted to disk and can be consumed independently by multiple consumers at their own pace, or rewound and replayed historically."
+  az: "Kafka oxunan kimi silinən mesaj növbəsi deyil; o, paylanmış və yalnız sona əlavə edilən (append-only) daimi hadisə jurnalıdır. Mesajlar diskdə saxlanılır, çoxlu sayda fərqli istehlakçı tərəfindən sərbəst oxunur və istənilən vaxt keçmişə qayıdaraq təkrar emal edilə bilər."
+code: |
+  # Production Kafka Ingestion Blueprint using confluent-kafka
+  import json
+  from confluent_kafka import Producer, Consumer, KafkaError
+
+  # 1. High-throughput Producer Configuration
+  producer_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'client.id': 'payment-service-producer',
+      'acks': 'all',  # Guarantee full cluster durability
+      'retries': 3
+  }
+  producer = Producer(producer_conf)
+
+  def delivery_report(err, msg):
+      """Callback executed once message is delivered or permanently failed."""
+      if err is not None:
+          print(f"❌ Message delivery failed: {err}")
+      else:
+          print(f"✅ Event committed to topic: {msg.topic()} [Partition: {msg.partition()}] at Offset: {msg.offset()}")
+
+  # 2. Produce raw JSON event to distributed log
+  event_payload = {
+      "transaction_id": "tx_99812",
+      "user_id": 402,
+      "amount": 149.99,
+      "currency": "AZN",
+      "timestamp": "2026-10-15T15:30:00Z"
+  }
+
+  print("=== 1. Producing Payment Event to Kafka ===")
+  producer.produce(
+      topic="financial-transactions",
+      key=str(event_payload["user_id"]),
+      value=json.dumps(event_payload),
+      callback=delivery_report
+  )
+  producer.flush()  # Ensure all buffered messages are transmitted
+
+  # 3. Independent Consumer reading from the log without deleting
+  consumer_conf = {
+      'bootstrap.servers': 'localhost:9092',
+      'group.id': 'fraud-detection-engine',
+      'auto.offset.reset': 'earliest'
+  }
+  print("\n=== 2. Real-time Consumer Ready (Non-destructive Read) ===")
+  print(f"Subscribed to topic 'financial-transactions' as consumer group '{consumer_conf['group.id']}'")
+code_explanation:
+  en: |
+    - `bootstrap.servers`: Initial list of host/port broker addresses to establish cluster membership.
+    - `delivery_report`: Asynchronous delivery callback confirming the exact partition and monotonically increasing offset assigned by the broker.
+    - `producer.flush()`: Forces memory buffers to transmit all queued records over the socket connection.
+    - Notice that producing and consuming are completely decoupled; the message remains on disk even after consumers process it.
+  az: |
+    - `bootstrap.servers`: Klasterə qoşulmaq üçün ilkin broker ünvanları siyahısı.
+    - `delivery_report`: Mesaj brokerə uğurla çatdıqda təyin olunan partisiya və unikal offset nömrəsini qaytaran asinxron geriçağırış (callback) funksiyası.
+    - `producer.flush()`: Yaddaş buferindəki bütün hadisələrin dərhal şəbəkə vasitəsilə brokerə göndərilməsini təmin edir.
+    - Diqqət yetirin: İstehsalçı ilə istehlakçı bir-birindən tam müstəqildir; mesaj istehlakçı tərəfindən oxunsa belə diskdən silinmir.
+visual_output: |
+  === 1. Producing Payment Event to Kafka ===
+  ✅ Event committed to topic: financial-transactions [Partition: 1] at Offset: 1042
+
+  === 2. Real-time Consumer Ready (Non-destructive Read) ===
+  Subscribed to topic 'financial-transactions' as consumer group 'fraud-detection-engine'
+  [Poll Event] Received message from Partition 1 at Offset 1042:
+  Key: '402' | Value: {"transaction_id": "tx_99812", "user_id": 402, "amount": 149.99, "currency": "AZN"}
+  (Note: The event STILL remains on disk and can be read by other downstream consumers!)
+output_description:
+  en: "Terminal execution demonstrating the producer writing to partition 1 at offset 1042, followed by a consumer reading the event while leaving it persisted in the commit log."
+  az: "Producer-in hadisəni 1-ci partisiyaya 1042 nömrəli offset olaraq yazmasını və Consumer-in mesajı silmədən oxuduğunu göstərən terminal loqu."
+what_it_does:
+  en: "Establishes a foundational end-to-end event production flow, demonstrating asynchronous callbacks, partition delivery, and non-destructive log reading."
+  az: "Kafka-nın təməl hadisə istehsalı axınını qurur, asinxron təsdiqi, partisiya təyinatını və mesajın silinmədən oxunmasını nümayiş etdirir."
+real_world_use:
+  en: "Used in real-time fintech architectures where every payment swipe must be simultaneously read by Fraud Detection, Notification Service, and the Data Warehouse Lakehouse without contention."
+  az: "Bank və maliyyə sistemlərində hər bir kart ödənişinin eyni anda həm Fırıldaqçılıq Aşkarlama (Fraud), həm SMS Bildiriş, həm də Data Lake anbarı tərəfindən bir-birinə mane olmadan oxunmasında istifadə olunur."
+common_mistakes:
+  en: |
+    - **Treating Kafka like a database**: Kafka is an event log, not a query engine. You cannot run random `SELECT * WHERE user_id = 402` queries across historical logs without reading the stream.
+    - **Forgetting `producer.flush()`**: confluent-kafka buffers messages in RAM for micro-batching. If your script exits without `.flush()`, buffered events are lost in memory before transmission!
+    - **Assuming messages disappear after being read**: Beginners familiar with RabbitMQ often mistakenly assume consumers delete messages.
+  az: |
+    - **Kafkaya relyasion baza kimi yanaşmaq**: Kafka axtarış bazası deyil, hadisə jurnalıdır. Bütün axını oxumadan təsadüfi `SELECT * WHERE user_id = 402` sorğusu icra etmək olmaz.
+    - **`producer.flush()` çağırmağı unutmaq**: `confluent-kafka` şəbəkə yükünü azaltmaq üçün mesajları RAM-da qruplaşdırır (batching). `.flush()` çağırılmasa, proqram bağlandıqda yaddaşdakı mesajlar göndərilmədən itir!
+    - **Mesajın oxunduqdan sonra silindiyini zənn etmək**: RabbitMQ təcrübəsi olanlar tez-tez mesajın oxunan kimi bazadan silindiyini düşünürlər.
+interview_question:
+  question:
+    en: "What are the core architectural differences between Apache Kafka and traditional message brokers like RabbitMQ, and why is Kafka preferred for Big Data pipelines?"
+    az: "Apache Kafka ilə ənənəvi mesaj növbələri (məsələn RabbitMQ) arasındakı əsas memarlıq fərqləri nədir və nə üçün Böyük Məlumat kəmərlərində Kafka seçilir?"
+  answer:
+    en: |
+      1. **Log Architecture vs Message Queue**:
+         - **RabbitMQ**: Employs a destructive message queue model. Once a consumer acknowledges a message, the broker actively deletes it from the queue. State management (who received what) is handled by the **broker**.
+         - **Kafka**: Employs an immutable, distributed **Append-Only Commit Log**. Messages are written sequentially to disk and retained regardless of consumption. State management is handled by the **consumer** tracking its own `offset`.
+      2. **Multiple Independent Consumers & Replayability**:
+         - In RabbitMQ, fan-out requires routing messages into separate physical queues, duplicating storage.
+         - In Kafka, 10 different consumer applications (e.g. Real-time Flink, Spark Streaming, Elasticsearch Ingestion) read the exact same physical partition at different offsets without interference or data duplication. Consumers can rewind offsets to re-process historical data.
+      3. **Throughput & Storage**:
+         - RabbitMQ stores messages in RAM and degrades as queues grow large.
+         - Kafka is built around sequential disk I/O and the OS Page Cache, easily achieving millions of messages per second with multi-terabyte retention.
+    az: |
+      1. **Hadisə Jurnalı vs Mesaj Növbəsi**:
+         - **RabbitMQ**: Dağıdıcı (destructive) növbə modelindən istifadə edir. İstehlakçı mesajı oxuyub təsdiqləyən (ACK) kimi broker onu dərhal silir. "Kimin nəyi oxuduğu" vəziyyətini **broker** öz yaddaşında saxlayır (Ağıllı Broker).
+         - **Kafka**: Dəyişməz və yalnız sona yazılan (Append-Only) **Commit Log** modelindən istifadə edir. Mesajlar diskdə saxlanılır və oxunduqda silinmir. Hansı mesajda olduğunu hər bir **istehlakçı (consumer)** öz `offset` göstəricisi ilə özü izləyir (Sadə Broker, Ağıllı İstehlakçı).
+      2. **Çoxlu İstehlakçı və Keçmişə Qayıtmaq (Replayability)**:
+         - RabbitMQ-da eyni mesajı 5 fərqli xidmətə göndərmək üçün 5 ayrı fiziki növbə yaradılmalı və məlumat 5 dəfə dublikasiya olunmalıdır.
+         - Kafkada isə 10 fərqli sistem (məs. Spark Streaming, Flink, DWH anbarı) eyni fiziki partisiya faylını heç bir nüsxələmə olmadan öz sürəti ilə oxuyur və istənilən vaxt offset-i geriyə çəkib keçmiş hadisələri təkrar hesablaya bilir.
+      3. **Ötürücülük və Saxlanma Həcmi**:
+         - RabbitMQ mesajları RAM-da saxlayır və növbə böyüdükcə sürəti kəskin düşür.
+         - Kafka ardıcıl disk I/O və Əməliyyat Sisteminin Page Cache mexanizminə söykəndiyi üçün çoxterabaytlıq məlumatlarda belə saniyədə milyonlarla hadisə sürətini qoruyub saxlayır.
+  interviewer_tips:
+    en: "Mention these three decisive keywords: 'Append-Only Commit Log', 'Smart Consumer vs Dumb Broker', and 'Offset Replayability'. This instantly demonstrates senior architectural understanding."
+    az: "Müsahibəçiyə bu üç qızıl ifadəni mütləq deyin: 'Append-Only Commit Log', 'Smart Consumer vs Dumb Broker (Sadə Broker, Ağıllı İstehlakçı)' və 'Offset Replayability (Hadisələrin keçmişə qayıdaraq təkrar emalı)'."
+flashcards:
+  - front:
+      en: "What is the primary architectural model of Apache Kafka?"
+      az: "Apache Kafka-nın əsas memarlıq modeli nədir?"
+    back:
+      en: "A distributed, horizontally scalable, append-only commit log."
+      az: "Paylanmış, horizontal miqyaslana bilən və yalnız sona əlavə edilən (append-only) hadisə jurnalı (commit log)."
+  - front:
+      en: "What happens to a message in Kafka after a consumer successfully reads it?"
+      az: "Kafkada bir istehlakçı mesajı uğurla oxuduqdan sonra həmin mesaja nə olur?"
+    back:
+      en: "Nothing! The message remains on disk until its retention period expires. It is NOT deleted."
+      az: "Heç nə olmur! Mesaj diskdə qalır və silinmir; təyin olunmuş saxlama müddəti (retention) bitənə qədər digər oxucular üçün əlçatan qalır."
+  - front:
+      en: "What does the concept of 'Smart Consumer, Dumb Broker' mean in Kafka?"
+      az: "Kafka-da 'Ağıllı İstehlakçı, Sadə Broker' (Smart Consumer, Dumb Broker) nə deməkdir?"
+    back:
+      en: "The broker only appends and serves raw logs; each consumer tracks its own reading position (offset)."
+      az: "Broker sadəcə məlumatı diskə yazır və təqdim edir; kimin hansı mesajı oxuduğunu isə hər bir istehlakçı öz offset göstəricisi ilə özü idarə edir."
+  - front:
+      en: "Why is Kafka capable of processing millions of messages per second on standard hard drives?"
+      az: "Kafka standart sərt disklərdə belə necə saniyədə milyonlarla mesaj emal edə bilir?"
+    back:
+      en: "It leverages Sequential Disk Writes (O(1)), OS Page Cache, and Zero-Copy network transfer."
+      az: "Ardıcıl disk yazılmasından (Sequential I/O - O(1)), Əməliyyat Sisteminin Page Cache yaddaşından və Zero-Copy şəbəkə ötürülməsindən istifadə edir."
+  - front:
+      en: "What is 'Event Replay' and why is it critical for Data Engineering?"
+      az: "'Event Replay' nədir və Data Mühəndisliyi üçün nə üçün həyati əhəmiyyət daşıyır?"
+    back:
+      en: "The ability to reset consumer offsets backwards to re-process historical raw data with new logic or fix pipeline bugs."
+      az: "Data kəmərində xəta olduqda və ya yeni məntiq tətbiq edildikdə, offset-i geriyə çəkərək xammal məlumatları keçmişdən bəri sıfırdan təkrar hesablamaq imkanıdır."
