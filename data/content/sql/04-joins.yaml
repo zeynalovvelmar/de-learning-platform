@@ -163,3 +163,35 @@ exercise:
     LEFT JOIN products p ON c.category_id = p.category_id
     WHERE p.product_id IS NULL;
   order_matters: false
+
+flashcards:
+  - front:
+      en: "What is the key difference between INNER JOIN and LEFT JOIN?"
+      az: "INNER JOIN və LEFT JOIN arasındakı əsas fərq nədir?"
+    back:
+      en: "INNER JOIN returns only rows that have matching keys in BOTH tables. LEFT JOIN keeps ALL rows from the left table, filling missing right table attributes with NULL."
+      az: "INNER JOIN yalnız HƏR İKİ cədvəldə ortaq açarı olan sətirləri saxlayır. LEFT JOIN isə SOL cədvəlin bütün sətirlərini saxlayır, sağ cədvəldəki çatışmayan sütunlara NULL yazır."
+  - front:
+      en: "How do you detect non-matching / orphaned records using a LEFT JOIN?"
+      az: "LEFT JOIN vasitəsilə qarşılığı olmayan / tənha qalmış qeydləri necə aşkar edirsiniz?"
+    back:
+      en: "By filtering `WHERE right_table.primary_key IS NULL`. This isolates left rows that failed to find any matching record in the right table."
+      az: "`WHERE sag_cedvel.primary_key IS NULL` şərtini tətbiq etməklə. Bu, sağ cədvəldə heç bir uyğunluğu tapılmayan sol sətirləri süzüb çıxarır."
+  - front:
+      en: "What is a Cartesian Product and what causes it?"
+      az: "Dekart hasili (Cartesian Product) nədir və nə səbəbdən yaranır?"
+    back:
+      en: "A Cartesian Product happens when tables are joined without an ON condition (CROSS JOIN). Every row of table A pairs with every row of table B (A x B rows), potentially crashing database memory."
+      az: "Cədvəllər ON şərti olmadan birləşdirildikdə (CROSS JOIN) Dekart hasili yaranır. Cədvəl A-nın hər bir sətri Cədvəl B-nin hər bir sətri ilə vurulur (A x B sətir) və yaddaş tükənməsinə səbəb olur."
+  - front:
+      en: "How does filtering in the ON clause differ from filtering in the WHERE clause during a LEFT JOIN?"
+      az: "LEFT JOIN zamanı filtri ON bəndinə yazmaqla WHERE bəndinə yazmağın fərqi nədir?"
+    back:
+      en: "Filtering in ON restricts which right rows match while still keeping all left rows. Filtering in WHERE runs after the join, dropping unmatched left rows and effectively turning it into an INNER JOIN."
+      az: "ON bəndindəki filtr bütün sol sətirləri saxlayaraq yalnız sağ tərəfin uyğunluğunu məhdudlaşdırır. WHERE bəndindəki filtr isə birləşmədən sonra işləyərək uyğunlaşmayan sol sətirləri də silir və faktiki INNER JOIN-ə çevirir."
+  - front:
+      en: "How can you simulate a FULL OUTER JOIN in SQLite versions older than 3.39?"
+      az: "SQLite 3.39-dan köhnə versiyalarda FULL OUTER JOIN necə simulyasiya edilir?"
+    back:
+      en: "Combine a LEFT JOIN with a UNION of the inverted LEFT JOIN (or UNION of LEFT JOIN and RIGHT JOIN)."
+      az: "Birinci LEFT JOIN nəticəsini ikinci tərs LEFT JOIN nəticəsi ilə UNION vasitəsilə birləşdirməklə."

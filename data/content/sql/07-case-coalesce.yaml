@@ -1,0 +1,168 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "07-case-coalesce"
+order: 7
+level: "intermediate"
+title:
+  en: "Conditionals and Data Quality: CASE WHEN, COALESCE, NULLIF"
+  az: "Şərti İfadələr və Məlumat Keyfiyyəti: CASE WHEN, COALESCE, NULLIF"
+quick_recap:
+  en: "CASE WHEN provides IF-THEN conditional branching for categorizing values. COALESCE returns the first non-NULL value to prevent null propagation. NULLIF returns NULL if two values are equal, safeguarding against fatal division-by-zero crashes."
+  az: "CASE WHEN dəyərləri kateqoriyalara ayırmaq üçün IF-THEN budaqlanmasını təmin edir. COALESCE ilk qeyri-NULL dəyəri qaytararaq NULL yayılmasının qarşısını alır. NULLIF iki dəyər bərabər olduqda NULL qaytararaq sıfıra bölünmə qəzalarının qarşısını alır."
+explanation:
+  en: |
+    Think of an automated toll inspection booth:
+    - **CASE WHEN**: An automated scanner checks vehicle license plates: If a bus, direct to Lane 1; if a truck, direct to Lane 2; otherwise direct to Lane 3. That is conditional branching based on business logic.
+    - **COALESCE**: When looking up driver identification, the system checks national ID. If that is missing (NULL), it looks for passport; if that is missing, it falls back to 'Unverified'. COALESCE scans left to right and picks the first valid, non-null value.
+    - **NULLIF**: When computing average speed = `distance / duration`, if duration is 0, standard division crashes the entire computer program. Wrapping the duration with `NULLIF(duration, 0)` turns the zero into a NULL, resulting in a safe NULL output rather than an unhandled application exception.
+
+    ### Real Dataset Examples:
+
+    1. **Handling Missing Values with COALESCE and CASE:**
+    ```sql
+    SELECT user_id, first_name, COALESCE(country, 'Global') as display_country, CASE WHEN country = 'USA' THEN 'Domestic' WHEN country IS NULL THEN 'Unknown' ELSE 'International' END as region_type FROM users LIMIT 10;
+    ```
+    Standardizes missing countries to 'Global' and buckets users into regional categories.
+
+    2. **Guarding Division with NULLIF:**
+    ```sql
+    SELECT item_id, quantity, unit_price, ROUND((quantity * unit_price) / NULLIF(quantity, 0), 2) as effective_unit_price FROM order_items LIMIT 5;
+    ```
+    Uses `NULLIF(quantity, 0)` to guarantee calculations never fail with division by zero.
+
+    3. **Simple CASE Mapping:**
+    ```sql
+    SELECT status, CASE status WHEN 'completed' THEN 'Success' WHEN 'refunded' THEN 'Reversal' ELSE 'Failure' END as business_outcome FROM orders LIMIT 5;
+    ```
+    Maps internal database enum status codes to clean reporting labels.
+  az: |
+    Avtomatlaşdırılmış yol nəzarət məntəqəsini təsəvvür edin:
+    - **CASE WHEN**: Skaner avtomobilin nömrəsini yoxlayır: Əgər avtobusdursa, 1-ci zolağa; yük maşınıdırsa, 2-ci zolağa; digər hallarda 3-cü zolağa yönləndirir. Bu, biznes məntiqinə əsaslanan şərtdir.
+    - **COALESCE**: Sürücünün şəxsiyyətini yoxlayarkən sistem əvvəlcə şəxsiyyət vəsiqəsinə baxır. Əgər yoxdursa (NULL), xarici pasportu yoxlayır; o da yoxdursa, 'Təsdiqlənməyib' yazır. COALESCE soldan sağa baxaraq ilk rast gəlinən qeyri-NULL dəyəri götürür.
+    - **NULLIF**: Orta sürəti hesablayarkən (`məsafə / vaxt`), əgər vaxt 0 olarsa, adi bölmə əməliyyatı proqramı dərhal çökdürür. Vaxtı `NULLIF(vaxt, 0)` ilə yazdıqda isə 0 əvəzinə təhlükəsiz şəkildə NULL yaranır və sistem qəzadan qorunur.
+
+    ### Real Sxem Üzərində Nümunələr:
+
+    1. **COALESCE və CASE ilə Çatışmayan Dəyərlərin İdarəsi:**
+    ```sql
+    SELECT user_id, first_name, COALESCE(country, 'Global') as display_country, CASE WHEN country = 'USA' THEN 'Domestic' WHEN country IS NULL THEN 'Unknown' ELSE 'International' END as region_type FROM users LIMIT 10;
+    ```
+    Boş qalmış ölkələri 'Global' ilə əvəzləyir və istifadəçiləri region kateqoriyalarına ayırır.
+
+    2. **NULLIF ilə Sıfıra Bölünmədən Qorunma:**
+    ```sql
+    SELECT item_id, quantity, unit_price, ROUND((quantity * unit_price) / NULLIF(quantity, 0), 2) as effective_unit_price FROM order_items LIMIT 5;
+    ```
+    `NULLIF(quantity, 0)` istifadə edərək bölmənin heç vaxt qəza verməməsini təmin edir.
+
+    3. **Sadə CASE Uyğunlaşdırması:**
+    ```sql
+    SELECT status, CASE status WHEN 'completed' THEN 'Success' WHEN 'refunded' THEN 'Reversal' ELSE 'Failure' END as business_outcome FROM orders LIMIT 5;
+    ```
+    Daxili status kodlarını hesabat üçün təmiz biznes adlarına çevirir.
+code: |
+  SELECT user_id, 
+         first_name, 
+         COALESCE(country, 'Global') as display_country, 
+         CASE 
+           WHEN country = 'USA' THEN 'Domestic' 
+           WHEN country IS NULL THEN 'Unknown' 
+           ELSE 'International' 
+         END as region_type 
+  FROM users 
+  LIMIT 10;
+what_it_does:
+  en: "Replaces missing user countries with 'Global' and groups users into regional segments ('Domestic', 'Unknown', 'International') using conditional CASE logic."
+  az: "Çatışmayan ölkə dəyərlərini 'Global' ilə əvəz edir və CASE məntiqi ilə istifadəçiləri yerli, naməlum və beynəlxalq seqmentlərə ayırır."
+real_world_use:
+  en: "Core pattern in data cleansing and enrichment layers (Silver layer in Medallion architecture) for building dimensional categorization and robust metrics."
+  az: "Ölçü kateqoriyalaşdırması və etibarlı göstəricilər yaratmaq üçün məlumat təmizləmə və zənginləşdirmə qatlarında (Medallion arxitekturasının Gümüş qatı) ən çox istifadə edilən modeldir."
+common_mistakes:
+  en: |
+    - **Omitting the ELSE clause in CASE**: If none of the WHEN conditions evaluate to TRUE and ELSE is missing, SQL returns NULL by default, which may silently corrupt analytics.
+    - **Failing to guard divisions with NULLIF**: A single row with a zero divisor crashes an entire multi-hour ETL pipeline batch. Always wrap divisors: `metric / NULLIF(divisor, 0)`.
+    - **Confusing COALESCE and NULLIF**: `COALESCE(col, 'Default')` replaces NULL with a value; `NULLIF(col, 0)` replaces a specific value with NULL.
+  az: |
+    - **CASE daxilində ELSE bəndini yazmamaq**: Şərtlərin heç biri ödənmədikdə və ELSE olmadıqda SQL susmaya görə NULL qaytarır və bu, analitik göstəriciləri xəbərsiz şəkildə korlaya bilər.
+    - **Bölmə əməliyyatını NULLIF ilə qorumamaq**: Sıfır olan tək bir sətir saatlarla davam edən böyük bir ETL boru kəmərini çökdürə bilər. Böləni həmişə `NULLIF(bolen, 0)` ilə qoruyun.
+    - **COALESCE ilə NULLIF-i qarışdırmaq**: `COALESCE(col, 'Default')` NULL-u konkret dəyərlə əvəz edir; `NULLIF(col, 0)` isə göstərilən dəyəri NULL-a çevirir.
+interview_question:
+  question:
+    en: "How do you handle division-by-zero errors in SQL data pipelines, and why is NULL preferred over 0 in analytical ratios?"
+    az: "SQL data boru kəmərlərində sıfıra bölünmə xətalarını necə idarə edirsiniz və analitik nisbətlərdə nə üçün 0 əvəzinə NULL üstün tutulur?"
+  answer:
+    en: |
+      1. **Defensive Guarding**: By wrapping the divisor in `NULLIF(divisor, 0)`. When the divisor is 0, NULLIF turns it into NULL. In SQL three-valued logic, any number divided by NULL safely evaluates to NULL without raising an error.
+      2. **Business Accuracy**: In financial and operational metrics (e.g. click-through rate, profit margin), a value of 0 indicates a calculated zero percent result (meaning there was exposure, but no outcome). If the denominator is 0 (zero impressions), the metric is mathematically undefined. Returning NULL accurately conveys 'Not Applicable' or 'No Data' to downstream BI dashboards and prevents skewed averages.
+    az: |
+      1. **Müdafiə Mexanizmi**: Böləni `NULLIF(bolen, 0)` daxilinə almaqla. Bölən 0 olduqda NULLIF onu NULL-a çevirir. SQL-in üçdəyərli məntiqində istənilən ədədin NULL-a bölünməsi qəza törətmədən təhlükəsiz şəkildə NULL qaytarır.
+      2. **Biznes Dəqiqliyi**: Maliyyə və əməliyyat göstəricilərində 0 rəqəmi hesablanmış 0% nəticəni bildirir (yəni baxış olub, amma klik olmayıb). Əgər məxrəc 0-dırsa (heç baxış olmayıb), göstərici riyazi olaraq təyin olunmayıb. NULL qaytarmaq hesabat panellərinə məlumatın mövcud olmadığını dəqiq çatdırır və orta qiymətlərin korlanmasının qarşısını alır.
+exercise:
+  question:
+    en: "Write a query on products returning product_id, product_name, price, and an inventory_status column based on stock_quantity: 'Out of Stock' when stock_quantity IS NULL, 'Low Stock' when stock_quantity < 20, and 'Sufficient' otherwise. Filter for products where price >= 50.0."
+    az: "products cədvəlindən product_id, product_name, price və stock_quantity sütununa əsaslanan inventory_status sütununu qaytaran sorğu yazın: stock_quantity IS NULL olduqda 'Out of Stock', stock_quantity < 20 olduqda 'Low Stock', digər hallarda 'Sufficient'. Yalnız price >= 50.0 olan məhsulları seçin."
+  starter_code: |
+    SELECT product_id, product_name, price,
+           CASE 
+             ___
+           END as inventory_status
+    FROM products
+    WHERE price >= 50.0;
+  hint:
+    en: "Use WHEN stock_quantity IS NULL THEN 'Out of Stock' WHEN stock_quantity < 20 THEN 'Low Stock' ELSE 'Sufficient'."
+    az: "WHEN stock_quantity IS NULL THEN 'Out of Stock' WHEN stock_quantity < 20 THEN 'Low Stock' ELSE 'Sufficient' şərtlərindən istifadə edin."
+  solution: |
+    SELECT product_id, product_name, price,
+           CASE 
+             WHEN stock_quantity IS NULL THEN 'Out of Stock' 
+             WHEN stock_quantity < 20 THEN 'Low Stock' 
+             ELSE 'Sufficient' 
+           END as inventory_status
+    FROM products
+    WHERE price >= 50.0;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What does COALESCE(val1, val2, val3) return?"
+      az: "COALESCE(val1, val2, val3) nə qaytarır?"
+    back:
+      en: "It evaluates arguments from left to right and returns the first non-NULL value found. If all arguments are NULL, it returns NULL."
+      az: "Arqumentləri soldan sağa yoxlayır və rast gəlinən ilk qeyri-NULL dəyəri qaytarır. Əgər hamısı NULL-dursa, NULL qaytarır."
+  - front:
+      en: "What is the purpose of NULLIF(a, b)?"
+      az: "NULLIF(a, b) funksiyasının məqsədi nədir?"
+    back:
+      en: "It returns NULL if a and b are equal; otherwise, it returns a. It is most commonly used to prevent division-by-zero crashes: `x / NULLIF(y, 0)`."
+      az: "a və b bərabər olduqda NULL, bərabər olmadıqda isə a-nı qaytarır. Ən çox sıfıra bölünmə qəzalarının qarşısını almaq üçün istifadə olunur: `x / NULLIF(y, 0)`."
+  - front:
+      en: "What happens if a CASE statement has no matching WHEN clause and no ELSE clause?"
+      az: "CASE ifadəsində heç bir WHEN şərti ödənmədikdə və ELSE bəndi olmadıqda nə baş verir?"
+    back:
+      en: "SQL returns NULL by default. To prevent unintended NULL values, always provide an explicit ELSE fallback."
+      az: "SQL susmaya görə NULL qaytarır. Gözlənilməz NULL dəyərlərinin yaranmaması üçün həmişə açıq şəkildə ELSE ehtiyat variantı yazılmalıdır."
+  - front:
+      en: "What is the difference between simple CASE and searched CASE syntax?"
+      az: "Sadə CASE ilə axtarışlı (searched) CASE sintaksisi arasındakı fərq nədir?"
+    back:
+      en: "Simple CASE (`CASE col WHEN val THEN ...`) checks for strict equality against a single expression. Searched CASE (`CASE WHEN cond1 THEN ...`) evaluates arbitrary boolean expressions (<, >, AND, OR, IS NULL)."
+      az: "Sadə CASE (`CASE sütun WHEN dəyər THEN ...`) yalnız tək bir ifadə ilə bərabərliyi yoxlayır. Axtarışlı CASE (`CASE WHEN şərt THEN ...`) isə istənilən mürəkkəb məntiqi şərtləri (<, >, AND, OR, IS NULL) yoxlayır."
+  - front:
+      en: "Why is NULLIF preferred over returning 0 when calculating rates and percentages?"
+      az: "Faiz və nisbətləri hesablayarkən nə üçün 0 əvəzinə NULLIF istifadə edərək NULL almağa üstünlük verilir?"
+    back:
+      en: "0 implies a measurable zero-rate result, whereas a 0 denominator means the rate is mathematically undefined. NULL correctly reflects missing data and does not distort downstream averages."
+      az: "0 ölçülə bilən sıfır nəticəni bildirir, lakin məxrəc 0 olduqda göstərici riyazi olaraq mövcud deyil. NULL məlumatın olmadığını dəqiq bildirir və orta qiymətləri təhrif etmir."

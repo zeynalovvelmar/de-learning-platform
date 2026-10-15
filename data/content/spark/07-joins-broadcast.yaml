@@ -1,0 +1,208 @@
+id: "07-joins-broadcast"
+order: 7
+level: "intermediate"
+title:
+  en: "Distributed Joins & Broadcast Hash Join (BHJ)"
+  az: "Paylanmış Birləşmələr (Joins) və Broadcast Hash Join"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SORT-MERGE JOIN (Both Tables Large: Heavy Shuffling & Sorting)        │
+    │  [Big Table A (100 GB)] ──► SHUFFLE by Key ──► Sort ──┐                 │
+    │                                                       ├──► Merged Join │
+    │  [Big Table B (80 GB)]  ──► SHUFFLE by Key ──► Sort ──┘                 │
+    │  Cost: Gigabytes of cross-node network traffic + disk spill risk.      │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BROADCAST HASH JOIN (One Table Small <10MB: ZERO SHUFFLE on Large!)   │
+    │  [Small Table (<10MB)] ──► Driver collects & BROADCASTS to all nodes   │
+    │                                                                        │
+    │  Worker 1: [Local Part A1] ──JOIN against local Hash Table──► Output 1 │
+    │  Worker 2: [Local Part A2] ──JOIN against local Hash Table──► Output 2 │
+    │  Speed: 10x to 100x faster! Large table stays completely stationary!   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SORT-MERGE JOIN (Hər İki Cədvəl Böyükdür: Ağır Şaffl və Sıralama)     │
+    │  [Böyük Cədvəl A (100 GB)] ──► Açar üzrə ŞAFFL ──► Sırala ──┐          │
+    │                                                             ├──Birləşdir│
+    │  [Böyük Cədvəl B (80 GB)]  ──► Açar üzrə ŞAFFL ──► Sırala ──┘          │
+    │  Xərc: Nəhəng şəbəkə trafiki + diskə boşalma (spill) riski.            │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BROADCAST HASH JOIN (Biri Kiçik Cədvəldir <10MB: SIFIR ŞAFFL!)        │
+    │  [Kiçik Cədvəl (<10MB)] ──► Driver hamıya nüsxəsini PAYLAYIR (Broadcast)│
+    │                                                                        │
+    │  Server 1: [Lokal Partisiya A1] ──Lokal Hash Cədvəllə Birləşir──► Nəticə│
+    │  Server 2: [Lokal Partisiya A2] ──Lokal Hash Cədvəllə Birləşir──► Nəticə│
+    │  Sürət: 10x-100x daha sürətli! Böyük cədvəl şəbəkədə hərəkət ETMİR!    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a distributed join like a library translation task:
+    - You have 500,000 foreign books spread across 10 huge library floors (the large Fact table).
+    - You have a small 5-page glossary translating 20 country codes into full names (the small Dimension table).
+    - **Sort-Merge Join Method (Terrible)**: You force all 500,000 books to be moved to a central stadium in the city, sorted alphabetically by country code alongside the glossary, and matched together. Transporting the books shuts down the entire city's traffic network (massive shuffle).
+    - **Broadcast Hash Join Method (Genius)**: You photocopy the 5-page glossary 10 times and hand one copy to each librarian on each floor. The librarians translate their own shelf right where they stand. **Zero books leave their shelves!**
+
+    ### The Two Major Join Strategies in Spark:
+    1. **Broadcast Hash Join (BHJ)**: Used when one side of the join is smaller than `spark.sql.autoBroadcastJoinThreshold` (default **10 MB**). The driver downloads the small table, serializes it into a broadcast variable, and pushes it to all executors.
+    2. **Sort-Merge Join (SMJ)**: Used when both tables are large. Both tables are hashed and shuffled across the network, then sorted by key on each executor before merging.
+  az: |
+    Paylanmış cədvəl birləşməsini kitabxana tərcüməsi kimi təsəvvür edin:
+    - 10 mərtəbəli kitabxanada 500,000 xarici dildə kitab var (bu, böyük Fakt cədvəlidir).
+    - Əlinizdə cəmi 5 vərəqlik kiçik lüğət var: ölkə kodlarını tam ada çevirir (kiçik Dimensiya cədvəli).
+    - **Sort-Merge Join Yolu (Dəhşətli dərəcədə yavaş)**: 500,000 kitabı mərtəbələrdən yığıb şəhərin mərkəzindəki stadiona daşıyırsınız, əlifba sırası ilə düzürsünüz və lüğətlə tutuşdurursunuz. Şəhərin bütün yolları iflic olur (nəhəng şəbəkə şafflı).
+    - **Broadcast Hash Join Yolu (Ağıllı və sürətli)**: Həmin 5 vərəqlik lüğətin 10 nüsxəsini çıxarıb hər mərtəbədəki kitabxanaçının cibinə qoyursunuz. Hər kəs öz rəfindəki kitabları yerindən tərpətmədən tərcümə edir. **Tək bir kitab belə yerindən oynamır!**
+
+    ### Spark-ın İki Əsas Birləşmə Strategiyası:
+    1. **Broadcast Hash Join (BHJ)**: Cədvəllərdən biri `spark.sql.autoBroadcastJoinThreshold` həddindən (susmaya görə **10 MB**) kiçik olduqda avtomatik seçilir. Driver kiçik cədvəli yaddaşına çəkir və bütün executor-lara nüsxəsini paylayır.
+    2. **Sort-Merge Join (SMJ)**: Hər iki cədvəl böyük olduqda istifadə olunur. Hər iki tərəf şəbəkədən şaffl olunur və hər qovşaqda açara görə sıralanaraq birləşdirilir.
+quick_recap:
+  en: "Broadcast Hash Join eliminates shuffles on the large table by replicating the small table (<10MB) to all executor nodes. For two large tables, Spark falls back to Sort-Merge Join, requiring both tables to be shuffled and sorted by key."
+  az: "Broadcast Hash Join kiçik cədvəlin (<10MB) nüsxəsini bütün executor-lara paylayaraq böyük cədvəlin şəbəkədə şaffl olunmasının qarşısını alır. Hər iki cədvəl böyük olduqda isə Spark Sort-Merge Join strategiyasına keçir və hər iki tərəfi şəbəkədə şaffl edib sıralayır."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.functions import col, broadcast
+
+  spark = SparkSession.builder.appName("07_Broadcast_Join").master("local[*]").getOrCreate()
+
+  # 1. Large Fact Table: Millions of transactions (simulated)
+  fact_sales = spark.createDataFrame([
+      (101, 1, 450.00),
+      (102, 2, 120.00),
+      (103, 1, 89.50),
+      (104, 3, 310.00),
+      (105, 2, 75.00)
+  ], ["tx_id", "country_id", "amount"])
+
+  # 2. Small Dimension Table: Lookup codes (Tiny, only 3 rows)
+  dim_countries = spark.createDataFrame([
+      (1, "Azerbaijan", "AZN"),
+      (2, "United States", "USD"),
+      (3, "United Kingdom", "GBP")
+  ], ["country_id", "country_name", "currency"])
+
+  # 3. EXPLICIT BROADCAST JOIN: broadcast(dim_countries)
+  joined_df = fact_sales.join(
+      broadcast(dim_countries),
+      on="country_id",
+      how="inner"
+  ).select("tx_id", "country_name", "amount", "currency")
+
+  print("=== Broadcast Joined Result ===")
+  joined_df.show()
+
+  print("=== Physical Execution Plan (Note BroadcastHashJoin & BroadcastExchange) ===")
+  joined_df.explain(mode="simple")
+code_explanation:
+  en: |
+    - `broadcast(dim_countries)`: Explicitly hints to the Catalyst optimizer that `dim_countries` should be broadcast to all executors regardless of threshold.
+    - Inspect the Physical Plan: Look for `BroadcastHashJoin [country_id#1L]`.
+    - Notice that `fact_sales` is scanned locally without an `Exchange` node. Only the tiny `dim_countries` undergoes a `BroadcastExchange`.
+  az: |
+    - `broadcast(dim_countries)`: Catalyst optimallaşdırıcısına `dim_countries` cədvəlini həddindən asılı olmayaraq bütün executor-lara paylamağı (broadcast etməyi) açıq şəkildə əmr edir.
+    - Fiziki plana baxın: `BroadcastHashJoin [country_id]` və `BroadcastExchange` düyünlərini görəcəksiniz.
+    - Ən mühüm detal: Böyük `fact_sales` cədvəlində heç bir `Exchange` (şaffl) yoxdur! Yalnız kiçik cədvəl şəbəkədən paylanıb.
+visual_output: |
+  === Broadcast Joined Result ===
+  +-----+--------------+------+--------+
+  |tx_id|country_name  |amount|currency|
+  +-----+--------------+------+--------+
+  |101  |Azerbaijan    |450.0 |AZN     |
+  |103  |Azerbaijan    |89.5  |AZN     |
+  |102  |United States |120.0 |USD     |
+  |105  |United States |75.0  |USD     |
+  |104  |United Kingdom|310.0 |GBP     |
+  +-----+--------------+------+--------+
+
+  === Physical Execution Plan (Note BroadcastHashJoin & BroadcastExchange) ===
+  == Physical Plan ==
+  *(1) Project [tx_id#0L, country_name#6, amount#2, currency#7]
+  +- *(1) BroadcastHashJoin [country_id#1L], [country_id#5L], Inner, BuildRight
+     :- *(1) Filter isnotnull(country_id#1L)
+     :  +- *(1) Scan ExistingRDD[tx_id#0L,country_id#1L,amount#2]
+     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false])), [plan_id=56]
+        +- *(2) Filter isnotnull(country_id#5L)
+           +- *(2) Scan ExistingRDD[country_id#5L,country_id#5L,currency#7]
+output_description:
+  en: "Execution plan demonstrating the high-speed BroadcastHashJoin operator where the build-side table is distributed via BroadcastExchange."
+  az: "Kiçik cədvəlin BroadcastExchange ilə paylandığını və birləşmənin BroadcastHashJoin ilə şafflsız baş verdiyini sübut edən icra planı."
+what_it_does:
+  en: "Demonstrates how to optimize distributed table joins using broadcast hints to prevent large table shuffles."
+  az: "Böyük cədvəlin şaffl olunmasının qarşısını almaq üçün broadcast ipucundan istifadə edərək paylanmış birləşməni optimallaşdırmağı nümayiş etdirir."
+real_world_use:
+  en: "Star schema data warehouses: Fact tables (Billions of rows) joined with Dimension tables (Customers, Dates, Stores). Broadcasting dimension tables speeds up daily ETL jobs by hours."
+  az: "Ulduz sxemli (Star Schema) data anbarlarında: Milyardlarla sətirli Fakt cədvəlini kiçik Dimensiya cədvəlləri (Tarix, Mağaza, Kateqoriya) ilə birləşdirəndə istifadə olunur və işi saatlarla sürətləndirir."
+common_mistakes:
+  en: |
+    - **Forcing broadcast on a 50 GB table**: The Driver node MUST collect the entire broadcast table into its own RAM first. Broadcasting a 50GB table instantly crashes the Driver with an OutOfMemoryError.
+    - **Not setting broadcast threshold appropriately**: If your dimension table is 25 MB, Spark's default 10 MB limit will trigger a slow Sort-Merge Join. You should either set `spark.sql.autoBroadcastJoinThreshold = 50 * 1024 * 1024` or use the `broadcast()` hint.
+    - **Using broadcast join on Full Outer Joins**: Spark does not support Broadcast Hash Join for Full Outer Joins (both sides can have unmatched keys, requiring both sides to be shuffled).
+  az: |
+    - **50 GB-lıq cədvələ zorla broadcast tətbiq etmək**: Driver həmin cədvəli əvvəlcə öz RAM-ına çəkməlidir. 50 GB-lıq cədvəli broadcast etsəniz, Driver dərhal OOM ilə partlayacaq.
+    - **Broadcast həddini artırmağı unutmaq**: Dimensiya cədvəliniz 25 MB-dırsa, Spark-ın susmaya görə 10 MB həddi onu yavaş Sort-Merge Join-ə salacaq. Həddi artırmaq və ya `broadcast()` yazmaq lazımdır.
+    - **Full Outer Join-də broadcast gözləmək**: Spark Full Outer Join üçün Broadcast Hash Join dəstəkləmir, çünki hər iki tərəfdə uyğunlaşmayan açarlar qala bilər.
+interview_question:
+  question:
+    en: "How does Broadcast Hash Join work under the hood, what is the default threshold, and what catastrophe occurs if you broadcast an oversized table?"
+    az: "Broadcast Hash Join daxildə necə işləyir, susmaya görə hədd nə qədərdir və həddən artıq böyük cədvəli broadcast etdikdə hansı fəlakət baş verir?"
+  answer:
+    en: |
+      1. **Internal Mechanics**:
+         - **Step 1 (Driver Collect)**: The Driver node contacts executors to download the small table partitions, combines them into a single in-memory array on the Driver JVM, and constructs a serialized Hash Table.
+         - **Step 2 (Peer-to-Peer Broadcast)**: The Driver uses BitTorrent-like peer-to-peer protocol to replicate this hash table into the memory of every single Executor in the cluster.
+         - **Step 3 (Local Hash Lookup)**: Each executor streams its local partitions of the large table and performs instant $O(1)$ memory lookups against the local hash table. **Zero network shuffle on the large table!**
+      2. **The Threshold**:
+         - Governed by `spark.sql.autoBroadcastJoinThreshold`. The default is **10 MB** (`10485760` bytes). Set to `-1` to disable broadcast joins entirely.
+      3. **The Catastrophe (Driver OOM)**:
+         - Because Step 1 forces the Driver to collect the ENTIRE broadcast table into its own local heap, broadcasting a 20 GB table on a Driver with an 8 GB heap triggers an immediate, unrecoverable `java.lang.OutOfMemoryError: Java heap space` crash.
+    az: |
+      1. **Daxili Mexanizm**:
+         - **1-ci Addım (Driver-ə Yığılma)**: Driver kiçik cədvəlin bütün hissələrini öz JVM yaddaşına çəkir və orada tək bir Hash Cədvəli qurur.
+         - **2-ci Addım (Bütün Klasterə Yayılma)**: Driver BitTorrent bənzəri P2P protokolu ilə bu lüğəti klasterdəki hər bir Executor-un RAM yaddaşına kopyalayır.
+         - **3-cü Addım (Lokal Axtarış)**: Hər bir executor özündə olan böyük cədvəl sətirlərini lokal lüğətlə $O(1)$ sürətində yoxlayır. **Böyük cədvəl üçün şəbəkə şafflı SIFIRDIR!**
+      2. **Hədd (Threshold)**:
+         - `spark.sql.autoBroadcastJoinThreshold` parametri ilə idarə olunur. Susmaya görə **10 MB**-dır. `-1` təyin etsəniz, broadcast tamamilə söndürülür.
+      3. **Baş Verən Fəlakət (Driver OOM)**:
+         - Çünki 1-ci addımda Driver bütün həmin cədvəli təkbaşına öz yaddaşına yükləməyə məcburdur. 8 GB yaddaşı olan Driver-ə 20 GB-lıq cədvəli broadcast etsəniz, dərhal `java.lang.OutOfMemoryError: Java heap space` xətası ilə bütün kəmər çökəcək.
+  interviewer_tips:
+    en: "Emphasize that the broadcast table is serialized on the DRIVER first. Mentioning 'Driver OOM risk during collect' is the hallmark of an engineer who has real production battle scars."
+    az: "Müsahibədə vurğulayın ki, cədvəl əvvəlcə DRIVER-ə çəkilir. 'Böyük cədvəli broadcast etdikdə Driver OOM olar' demək real istehsalat təcrübəsinə malik olduğunuzu göstərən ən vacib siqnaldır."
+flashcards:
+  - front:
+      en: "What is the primary performance benefit of a Broadcast Hash Join (BHJ)?"
+      az: "Broadcast Hash Join (BHJ) strategiyasının ən böyük performans üstünlüyü nədir?"
+    back:
+      en: "It completely eliminates the expensive network shuffle on the large table."
+      az: "Böyük cədvəl üzərindəki baha başa gələn şəbəkə şafflını (shuffle) tamamilə aradan qaldırır."
+  - front:
+      en: "What is the default table size threshold for automatic broadcast joins in Spark?"
+      az: "Spark-da cədvəllərin avtomatik broadcast edilməsi üçün susmaya görə ölçü həddi neçədir?"
+    back:
+      en: "10 MB (configured via `spark.sql.autoBroadcastJoinThreshold`)."
+      az: "10 MB (`spark.sql.autoBroadcastJoinThreshold` konfiqurasiyası ilə təyin olunur)."
+  - front:
+      en: "Why does broadcasting an excessively large table crash the Spark Driver?"
+      az: "Həddən artıq böyük cədvəli broadcast etmək nə üçün Spark Driver-i çökdürür?"
+    back:
+      en: "Because the Driver must collect the entire table into its local JVM memory before broadcasting to executors."
+      az: "Çünki Driver executor-lara paylamazdan əvvəl bütün cədvəli təkbaşına öz yerli JVM yaddaşına yükləməlidir."
+  - front:
+      en: "When does Spark use Sort-Merge Join (SMJ)?"
+      az: "Spark nə vaxt Sort-Merge Join (SMJ) strategiyasından istifadə edir?"
+    back:
+      en: "When both joining tables are too large to fit into broadcast memory, requiring both to be shuffled and sorted by key."
+      az: "Hər iki cədvəl broadcast üçün çox böyük olduqda; hər iki tərəf şəbəkədən şaffl olunur və açara görə sıralanır."
+  - front:
+      en: "How do you explicitly force a Broadcast Join in PySpark code?"
+      az: "PySpark kodunda açıq şəkildə Broadcast Join-i necə məcbur edirsiniz?"
+    back:
+      en: "Using the `broadcast()` function: `df_large.join(broadcast(df_small), on='key')`."
+      az: "`broadcast()` funksiyasını tətbiq edərək: `df_large.join(broadcast(df_small), on='key')`."

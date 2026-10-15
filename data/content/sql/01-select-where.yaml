@@ -154,3 +154,35 @@ exercise:
     FROM products 
     WHERE price = 19.99;
   order_matters: false
+
+flashcards:
+  - front:
+      en: "What is the primary difference in purpose between SELECT and WHERE?"
+      az: "SELECT və WHERE arasındakı əsas məqsəd fərqi nədir?"
+    back:
+      en: "SELECT specifies which columns (attributes) to retrieve. WHERE filters which rows (records) to include based on conditions."
+      az: "SELECT hansı sütunların (atributların) seçiləcəyini təyin edir. WHERE isə şərtlərə əsasən hansı sətirlərin (qeydlərin) saxlanılacağını süzür."
+  - front:
+      en: "Why can't you use a column alias defined in SELECT inside the WHERE clause?"
+      az: "SELECT-də təyin edilmiş sütun ləqəbini (alias) nə üçün WHERE daxilində istifadə etmək olmaz?"
+    back:
+      en: "Because WHERE executes before SELECT. The database engine filters rows (FROM -> WHERE) before it projects columns and assigns aliases (SELECT)."
+      az: "Çünki WHERE mərhələsi SELECT-dən əvvəl icra olunur. Mühərrik sütunları seçib ləqəb verməzdən (SELECT) əvvəl sətirləri süzür (WHERE)."
+  - front:
+      en: "Why does WHERE column = NULL return zero rows in SQL?"
+      az: "SQL-də WHERE sütun = NULL yazdıqda nə üçün sıfır sətir qayıdır?"
+    back:
+      en: "NULL represents missing or unknown data. In three-valued logic, comparing anything with = NULL yields UNKNOWN (falsy). Always use `IS NULL` or `IS NOT NULL`."
+      az: "NULL çatışmayan və ya məchul dəyəri bildirir. Üçdəyərli məntiqdə = NULL müqayisəsi UNKNOWN (yalan) nəticə verir. Həmişə `IS NULL` və ya `IS NOT NULL` istifadə edin."
+  - front:
+      en: "What is the difference between 'NA' text and NULL in data pipelines?"
+      az: "Data boru kəmərlərində (pipelines) 'NA' mətni ilə NULL arasındakı fərq nədir?"
+    back:
+      en: "'NA' is a non-empty 2-character string (e.g., ISO country code for Namibia), consuming storage and evaluated as text. NULL is a marker indicating the absence of any value."
+      az: "'NA' 2 simvollu faktiki mətndir (məs. Namibiyanın ISO ölkə kodu), yaddaş tutur və mətn kimi yoxlanılır. NULL isə heç bir dəyərin olmadığını bildirən xüsusi işarədir."
+  - front:
+      en: "Why is SELECT * discouraged in production data pipelines?"
+      az: "İstehsalat data boru kəmərlərində nə üçün SELECT * tövsiyə edilmir?"
+    back:
+      en: "It causes excessive I/O and network overhead, prevents covering index scans, pollutes memory caches, breaks downstream consumers when schemas change, and leaks sensitive fields."
+      az: "Həddindən artıq I/O və şəbəkə yükü yaradır, əhatə edən indekslərdən istifadəni əngəlləyir, keşi çirkləndirir, sxem dəyişəndə tətbiqi sıradan çıxarır və məxfi sahələri sızdırır."

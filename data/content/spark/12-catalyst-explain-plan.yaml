@@ -1,0 +1,252 @@
+id: "12-catalyst-explain-plan"
+order: 12
+level: "advanced"
+title:
+  en: "Spark SQL, Catalyst Optimizer & Reading Execution Plans (.explain())"
+  az: "Spark SQL, Catalyst Optimizer və İcra Planlarını Oxumaq (.explain())"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          THE 4 STAGES OF THE SPARK CATALYST OPTIMIZER                  │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  INPUT: PySpark DataFrame API Code OR Raw Spark SQL Query               │
+    │                                                                        │
+    │  1. UNRESOLVED LOGICAL PLAN                                            │
+    │     Abstract Syntax Tree (AST). Names & types are unvalidated strings. │
+    │     ├── Verification against Catalog / Metastore (Do tables exist?)    │
+    │     ▼                                                                  │
+    │  2. ANALYZED LOGICAL PLAN                                              │
+    │     Columns and data types are resolved and mathematically validated.  │
+    │     ├── Rule-Based Optimization Rules (Predicate Pushdown, Pruning)    │
+    │     ▼                                                                  │
+    │  3. OPTIMIZED LOGICAL PLAN                                             │
+    │     Filters pushed down, unused columns removed, subqueries folded.    │
+    │     ├── Cost-Based Model (Cost Evaluation: BHJ vs SMJ)                 │
+    │     ▼                                                                  │
+    │  4. PHYSICAL PLAN(S) ──► Selected Physical Plan                        │
+    │     Concrete RDD operations chosen (HashAggregate, Exchange, Join).    │
+    │     ▼                                                                  │
+    │  WHOLE-STAGE CODE GENERATION (Project Tungsten)                        │
+    │  Compiles plan into raw C++-speed Java Bytecode, stripping JVM calls!  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          SPARK CATALYST OPTİMALLAŞDIRICISININ 4 MƏRHƏLƏSİ              │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  GİRİŞ: PySpark DataFrame Kodu VƏ YA Təmiz Spark SQL Sorğusu           │
+    │                                                                        │
+    │  1. HƏLL EDİLMƏMİŞ MƏNTİQİ PLAN (Unresolved Logical Plan)              │
+    │     Sintaksis ağacı (AST). Cədvəl və sütun adları hələ yoxlanmayıb.    │
+    │     ├── Kataloq / Metastore ilə tutuşdurma (Belə cədvəl varmı?)        │
+    │     ▼                                                                  │
+    │  2. ANALİZ EDİLMİŞ MƏNTİQİ PLAN (Analyzed Logical Plan)                │
+    │     Sütunlar və tiplər təsdiqlənir və riyazi olaraq bağlanır.          │
+    │     ├── Qayda Əsaslı Optimallaşdırma (Qatlama, Budama, İrəli Süzmə)    │
+    │     ▼                                                                  │
+    │  3. OPTİMALLAŞDIRILMIŞ MƏNTİQİ PLAN (Optimized Logical Plan)           │
+    │     Süzgəclər qabağa çəkilib, lazımsız sütunlar atılıb.                │
+    │     ├── Xərc Əsaslı Model (CBM: BHJ vs SMJ hansı ucuzdur?)             │
+    │     ▼                                                                  │
+    │  4. FİZİKİ PLAN (Physical Plan)                                        │
+    │     Real icra əmrləri təyin olunur (HashAggregate, Exchange, Join).    │
+    │     ▼                                                                  │
+    │  BÜTÖV MƏRHƏLƏLİ KOD GENERASİYASI (Project Tungsten)                   │
+    │  Planı C++ sürətində xam Java Baytkoduna çevirir (İterator yükü 0)!    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of the Catalyst Optimizer like submitting architectural blueprints to the city building authority:
+    - **Unresolved Plan**: You sketch a building on a napkin with room labels.
+    - **Analyzed Plan**: The city engineers check the land deed and zoning records (**Catalog**) to verify you actually own the plot and that your room labels match registered street addresses.
+    - **Optimized Plan**: Structural engineers inspect your design. They notice you planned 3 separate water pipes to the same bathroom; they merge them into a single efficient pipeline (**Rule-Based Optimization**).
+    - **Physical Plan**: The builder decides whether to use a small crane or a heavy crane depending on the cost and material availability (**Cost-Based Optimization**).
+    - **Tungsten Whole-Stage CodeGen**: Instead of handing workers 10 separate manuals, an automated robotic printer synthesizes the entire construction sequence into a single ultra-fast machine routine.
+
+    ### Reading `.explain(mode="formatted")` Operator Anatomy:
+    When you inspect a physical execution plan, read from **BOTTOM to TOP**:
+    - `FileScan parquet`: Reading data from storage (look for `PartitionFilters` and `PushedFilters`).
+    - `Filter`: In-memory row filtering.
+    - `Project`: Column selection and mathematical expressions.
+    - `Exchange`: Network Shuffle boundary!
+    - `HashAggregate`: Grouping / aggregation calculation.
+    - `*(1) or *(2)` (Asterisk with stage number): Signifies that **Whole-Stage Code Generation (Tungsten)** is active, running compiled bytecode in CPU registers!
+  az: |
+    Catalyst Optimizer-i şəhərsalma komitəsinə təqdim edilən inşaat layihəsi kimi təsəvvür edin:
+    - **Həll Edilməmiş Plan**: Layihəni salfetkanın üzərinə qaralamısınız.
+    - **Analiz Edilmiş Plan**: Mühəndislər torpaq reyestri və arxivlə (**Kataloq / Metastore**) yoxlayırlar ki, həqiqətən belə bir cədvəl və sütunlar bazada mövcuddurmu.
+    - **Optimallaşdırılmış Plan**: Mühəndislər görürlər ki, siz eyni otağa 3 ayrı su borusu çəkmisiniz; onlar boruları birləşdirib xərci azaldırlar (**Qayda Əsaslı Optimallaşdırma**).
+    - **Fiziki Plan**: Tikinti briqadası materialın həcminə baxıb kiçik kran (Broadcast Join) yoxsa ağır sənaye kranı (Sort-Merge Join) işlətməyə qərar verir (**Xərc Əsaslı Model**).
+    - **Tungsten Whole-Stage CodeGen**: Bütün addımları fəhlələrə tək-tək başa salmaq əvəzinə, robot birbaşa C++ sürətində xam maşın kodu yazır və saniyələr içində bitirir.
+
+    ### İcra Planını (`.explain()`) Aşağıdan Yuxarıya Oxuma Qaydası:
+    - `FileScan parquet`: Məlumatın diskdən oxunması (`PartitionFilters` və `PushedFilters`-ə baxın).
+    - `Filter`: Yaddaşda sətirlərin süzülməsi.
+    - `Project`: Sütunların seçilməsi və riyazi hesablamalar.
+    - `Exchange`: Şəbəkə Şafflı (Shuffle) sərhədidir!
+    - `HashAggregate`: Qruplaşdırma və cəmləmə əməliyyatıdır.
+    - `*(1)` və ya `*(2)` (Ulduz işarəsi): **Whole-Stage Code Generation (Tungsten)** aktivdir, kod birbaşa prosessor registrlərində maşın sürəti ilə işləyir!
+quick_recap:
+  en: "The Catalyst Optimizer translates high-level SQL and PySpark into optimized physical RDD bytecode through 4 phases: Analysis, Logical Optimization, Physical Planning, and Tungsten Whole-Stage Code Generation. Reading `.explain()` plans allows engineers to verify Predicate Pushdown and identify bottleneck Shuffles."
+  az: "Catalyst Optimizer yüksək səviyyəli SQL və PySpark kodunu 4 mərhələdən (Analiz, Məntiqi Plan, Fiziki Plan və Tungsten Kod Yaradılması) keçirərək optimal maşın baytkoduna çevirir. `.explain()` planını oxumaq mühəndisə süzgəclərin diskə enməsini (Predicate Pushdown) və şaffl darboğazlarını görməyə imkan verir."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.functions import col, sum as _sum
+
+  spark = SparkSession.builder.appName("12_Catalyst_Explain_Mastery").master("local[*]").getOrCreate()
+
+  # Create customer purchases dataset
+  purchases = [
+      (1, "Alice", "Electronics", 1200.0, 2024),
+      (2, "Bob",   "Groceries",   80.0,   2024),
+      (3, "Alice", "Electronics", 300.0,  2024),
+      (4, "Carol", "Furniture",   450.0,  2023),
+      (5, "Bob",   "Groceries",   40.0,   2024)
+  ]
+  df = spark.createDataFrame(purchases, ["tx_id", "customer", "category", "amount", "year"])
+  df.createOrReplaceTempView("purchases_view")
+
+  # 1. WRITE QUERY IN SPARK SQL (Identical execution to PySpark DataFrame API!)
+  sql_query = """
+      SELECT customer, SUM(amount) AS total_electronics
+      FROM purchases_view
+      WHERE year = 2024 AND category = 'Electronics'
+      GROUP BY customer
+  """
+  result_df = spark.sql(sql_query)
+
+  print("=== Spark SQL Query Results ===")
+  result_df.show()
+
+  # 2. INSPECT FULL EXTENDED CATALYST EVOLUTION
+  print("=== Extended Catalyst Evolution (Parsed -> Analyzed -> Optimized -> Physical) ===")
+  result_df.explain(mode="extended")
+code_explanation:
+  en: |
+    - Look at the `== Parsed Logical Plan ==`: Raw syntax tree where column types are unresolved.
+    - Look at `== Analyzed Logical Plan ==`: Data types resolved (`amount: double`, `year: bigint`).
+    - Look at `== Optimized Logical Plan ==`: The where clause was simplified, and unused columns (`tx_id`) were completely pruned from the plan.
+    - Look at `== Physical Plan ==`: Notice `*(2) HashAggregate` on top of `Exchange hashpartitioning` on top of `*(1) HashAggregate`. The asterisks indicate Tungsten whole-stage codegen is active!
+  az: |
+    - `Parsed Logical Plan`-a baxın: Tipləri hələ yoxlanmamış xam sintaksis ağacıdır.
+    - `Analyzed Logical Plan`-a baxın: Tiplər kataloqla tutuşdurularaq təsdiqlənib (`amount: double`).
+    - `Optimized Logical Plan`-a baxın: Şərtlər sadələşdirilib və istifadə olunmayan sütunlar (`tx_id`) plandan tamamilə silinib (Column Pruning).
+    - `Physical Plan`-a baxın: `Exchange hashpartitioning` şafflı və onun ətrafında `*(1)` və `*(2)` ulduzlu Whole-Stage Codegen blokları var!
+visual_output: |
+  === Spark SQL Query Results ===
+  +--------+-----------------+
+  |customer|total_electronics|
+  +--------+-----------------+
+  |   Alice|           1500.0|
+  +--------+-----------------+
+
+  === Extended Catalyst Evolution (Parsed -> Analyzed -> Optimized -> Physical) ===
+  == Parsed Logical Plan ==
+  'Aggregate ['customer], ['customer, 'SUM('amount) AS total_electronics#26]
+  +- 'Filter (('year = 2024) AND ('category = Electronics))
+     +- 'UnresolvedRelation [purchases_view], [], false
+
+  == Analyzed Logical Plan ==
+  customer: string, total_electronics: double
+  Aggregate [customer#1], [customer#1, sum(amount#3) AS total_electronics#26]
+  +- Filter ((year#4L = cast(2024 as bigint)) AND (category#2 = Electronics))
+     +- SubqueryAlias purchases_view
+        +- LogicalRDD [tx_id#0L, customer#1, category#2, amount#3, year#4L]
+
+  == Optimized Logical Plan ==
+  Aggregate [customer#1], [customer#1, sum(amount#3) AS total_electronics#26]
+  +- Filter (((year#4L = 2024) AND (category#2 = Electronics)) AND isnotnull(customer#1))
+     +- Project [customer#1, category#2, amount#3, year#4L]
+        +- LogicalRDD [tx_id#0L, customer#1, category#2, amount#3, year#4L]
+
+  == Physical Plan ==
+  *(2) HashAggregate(keys=[customer#1], functions=[sum(amount#3)], output=[customer#1, total_electronics#26])
+  +- Exchange hashpartitioning(customer#1, 200), ENSURE_REQUIREMENTS, [plan_id=78]
+     +- *(1) HashAggregate(keys=[customer#1], functions=[partial_sum(amount#3)], output=[customer#1, sum#31])
+        +- *(1) Project [customer#1, amount#3]
+           +- *(1) Filter (((year#4L = 2024) AND (category#2 = Electronics)) AND isnotnull(customer#1))
+              +- *(1) Scan ExistingRDD[tx_id#0L,customer#1,category#2,amount#3,year#4L]
+output_description:
+  en: "Full Catalyst Optimizer transition stages demonstrating parsed tree resolution, logical filter optimization, and the final physical plan with Tungsten Whole-Stage CodeGen markers."
+  az: "Catalyst optimallaşdırıcısının bütün keçid mərhələlərini, məntiqi süzgəc optimallaşdırmasını və fiziki plandakı Tungsten kod generatoru ulduzlarını göstərən terminal çıxışı."
+what_it_does:
+  en: "Walks through the entire 4-phase Catalyst engine lifecycle, proving how PySpark and Spark SQL queries compile down to identical, highly optimized physical machine bytecode."
+  az: "Catalyst mühərrikinin bütün 4 mərhələli həyat dövrünü nümayiş etdirir və PySpark ilə Spark SQL-in tam eyni fiziki maşın koduna çevrildiyini sübut edir."
+real_world_use:
+  en: "The primary tool used by senior data engineers during performance tuning. Inspecting `.explain()` reveals whether a join is using broadcast, whether filters are pushed to Parquet, and where expensive shuffles occur."
+  az: "Senior data mühəndislərinin performans sazlama zamanı istifadə etdiyi ən əsas silahdır. `.explain()` sorğunun broadcast istifadə etdiyini, süzgəclərin diskə endiyini və şafflın harada olduğunu anında göstərir."
+common_mistakes:
+  en: |
+    - **Assuming PySpark DataFrame API is faster than Spark SQL**: In Spark, both APIs compile down to the exact same Catalyst AST and generate identical physical bytecode. Write whichever is more readable!
+    - **Using Python User-Defined Functions (UDFs) without need**: Standard Python UDFs break Whole-Stage Code Generation (Tungsten) because data must be serialized out of the JVM into a Python subprocess worker. Always prefer built-in Spark SQL functions or Pandas Vectorized UDFs (Arrow).
+    - **Ignoring the asterisks in the physical plan**: The asterisk `*(1)` indicates Whole-Stage Codegen. If an operation lacks an asterisk, it is running in slow interpreted mode.
+  az: |
+    - **PySpark-ın Spark SQL-dən daha sürətli olduğunu zənn etmək**: Spark-da hər iki sintaksis Catalyst tərəfindən tam eyni daxili plana salınır və eyni sürətlə işləyir. Hansı daha oxunaqlıdırsa, onu yazın!
+    - **Zərurət olmadan adi Python UDF (User Defined Function) yazmaq**: Adi Python UDF-ləri Tungsten optimallaşdırmasını məhv edir, çünki məlumat JVM-dən çıxıb Python prosesinə getməyə məcbur olur. Həmişə daxili Spark funksiyalarını və ya Pandas UDF (Arrow) istifadə edin.
+    - **Plandakı ulduz işarələrinə fikir verməmək**: `*(1)` ulduz işarəsi Whole-Stage Codegen deməkdir. Ulduz olmayan addımlar yavaş interpretasiya rejimində işləyir.
+interview_question:
+  question:
+    en: "What are the core phases of the Spark Catalyst Optimizer, what is Whole-Stage Code Generation (Project Tungsten), and why do Python UDFs severely degrade performance?"
+    az: "Spark Catalyst Optimizer-in əsas mərhələləri hansılardır, Bütöv Mərhələli Kod Generasiyası (Project Tungsten) nədir və adi Python UDF-ləri nə üçün performansı kəskin şəkildə aşağı salır?"
+  answer:
+    en: |
+      1. **The 4 Catalyst Optimizer Phases**:
+         - **1. Analysis**: Resolves table and column identifiers against the Catalog/Metastore.
+         - **2. Logical Optimization**: Applies rule-based heuristics (Filter Pushdown, Column Pruning, Boolean Simplification, Subquery Flattening).
+         - **3. Physical Planning**: Generates candidate physical plans and selects the cheapest plan using cost estimates (e.g. Broadcast Hash Join vs Sort-Merge Join).
+         - **4. Code Generation**: Compiles the physical plan into Java bytecode.
+      2. **Whole-Stage Code Generation (Project Tungsten)**:
+         - Eliminates traditional Volcano iterator model overhead (calling `.next()` for every row through virtual function dispatches).
+         - Fuses entire transformation pipelines into a single tight loop that runs directly in CPU L1/L2 registers, operating at bare-metal C++ speed. Marked as `*(1)` in `.explain()`.
+      3. **Why Python UDFs Degrade Performance**:
+         - Standard `@udf` functions cannot be inspected or optimized by Catalyst.
+         - For every single record, Spark must serialize the JVM memory object into bytes, pass it across an IPC socket to a Python worker subprocess, run the Python function, serialize the result, and pass it back to the JVM. This causes a massive serialization bottleneck and completely disables Tungsten Whole-Stage CodeGen!
+    az: |
+      1. **Catalyst-in 4 Mərhələsi**:
+         - **1. Analiz**: Cədvəl və sütun adlarını Metastore kataloqu ilə tutuşdurub dəqiqləşdirir.
+         - **2. Məntiqi Optimallaşdırma**: Qayda əsaslı heuristikaları tətbiq edir (Filter Pushdown, Column Pruning, Məntiqi Sadələşdirmə).
+         - **3. Fiziki Planlama**: Xərc Əsaslı Model (CBM) ilə mümkün fiziki icra yollarını ölçür və ən ucuzunu seçir (məs. BHJ yoxsa SMJ).
+         - **4. Kod Generasiyası**: Fiziki planı icra üçün xam Java baytkoduna çevirir.
+      2. **Whole-Stage Code Generation (Project Tungsten)**:
+         - Ənənəvi Volcano iterator modelinin (hər sətir üçün tək-tək `.next()` çağırmaq) əlavə xərcini aradan qaldırır.
+         - Bütün mərhələni prosessorun (CPU) L1/L2 keş registrlərində işləyən tək bir sıx dövrə çevirir və C++ sürətində işləyir. Planda `*(1)` kimi işarələnir.
+      3. **Adi Python UDF-ləri Niyə Performansı Korlayır?**:
+         - Catalyst Python funksiyasının içinə baxa və optimallaşdıra bilmir.
+         - Hər bir sətir üçün Spark məlumatı JVM-dən baytlara çevirib (serializasiya), daxili şəbəkə ilə Python prosesinə ötürməli, orada hesablama aparıb təzədən JVM-ə qaytarmalıdır. Bu nəhəng gecikmə yaradır və Tungsten bütöv kod generasiyasını tamamilə sıradan çıxarır!
+  interviewer_tips:
+    en: "Explain that PySpark and Spark SQL have zero performance difference because both compile to the same Catalyst plan. Mention the IPC socket serialization cost of Python UDFs and recommend PySpark built-in functions or Pandas Vectorized UDFs (PyArrow) instead."
+    az: "Mütləq qeyd edin ki, PySpark ilə Spark SQL arasında performans fərqi SIFIRDIR, çünki ikisi də eyni Catalyst planına çevrilir. Python UDF-lərinin IPC serializasiya ziyanını və alternativ kimi PyArrow Pandas UDF-lərini tövsiyə edin."
+flashcards:
+  - front:
+      en: "Is there a performance difference between writing queries in PySpark DataFrame API versus Spark SQL?"
+      az: "Sorğunu PySpark DataFrame API ilə yazmaqla Spark SQL ilə yazmaq arasında performans fərqi varmı?"
+    back:
+      en: "No. Both APIs compile down into the exact same Catalyst Abstract Syntax Tree and generate identical physical bytecode."
+      az: "Xeyr. Hər iki sintaksis Catalyst tərəfindən tam eyni sintaksis ağacına salınır və eyni fiziki baytkoda çevrilir."
+  - front:
+      en: "What does an asterisk `*(1)` before an operator in a Spark `.explain()` plan signify?"
+      az: "Spark `.explain()` planında operatorun qarşısındakı ulduz `*(1)` işarəsi nəyi bildirir?"
+    back:
+      en: "It indicates that Whole-Stage Code Generation (Project Tungsten) is active, compiling operations into a tight CPU register loop."
+      az: "Whole-Stage Code Generation (Tungsten) mexanizminin aktiv olduğunu və kodun CPU registrlərində sürətlə işlədiyini bildirir."
+  - front:
+      en: "What are the 4 main stages of the Spark Catalyst Optimizer?"
+      az: "Spark Catalyst Optimizer-in 4 əsas mərhələsi hansılardır?"
+    back:
+      en: "1. Analysis, 2. Logical Optimization, 3. Physical Planning, 4. Code Generation."
+      az: "1. Analiz, 2. Məntiqi Optimallaşdırma, 3. Fiziki Planlama, 4. Kod Generasiyası."
+  - front:
+      en: "Why do standard Python UDFs (`@udf`) cause a performance bottleneck in PySpark?"
+      az: "Standart Python UDF-ləri (`@udf`) PySpark-da nə üçün ciddi performans darboğazı yaradır?"
+    back:
+      en: "They require expensive data serialization between the JVM and Python worker subprocesses and disable Whole-Stage CodeGen."
+      az: "JVM ilə Python prosesləri arasında ağır serializasiya tələb edir və Tungsten Whole-Stage CodeGen-i söndürür."
+  - front:
+      en: "What is the high-performance alternative to standard Python UDFs in PySpark?"
+      az: "PySpark-da standart Python UDF-lərinə yüksək performanslı alternativ nədir?"
+    back:
+      en: "Native PySpark SQL functions, or Vectorized Pandas UDFs powered by Apache Arrow."
+      az: "Daxili PySpark SQL funksiyaları və ya Apache Arrow ilə işləyən Vektorlaşdırılmış Pandas UDF-ləri."

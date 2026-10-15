@@ -1,0 +1,232 @@
+id: "10-data-skew-salting"
+order: 10
+level: "advanced"
+title:
+  en: "Data Skewness: Diagnosis & Remediation via Salting"
+  az: "Məlumat Əyriliyi (Data Skewness) və Salting Texnikası"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DATA SKEW PROBLEM (One Key Dominates: 99 Cores Idle, 1 Core Drowning) │
+    │  Key "Amazon": 10,000,000 rows │ Key "Startup_A": 50 rows              │
+    │                                                                        │
+    │  Executor 1: Key "Startup_A" ──► 50 rows    ──► Finishes in 0.05s      │
+    │  Executor 2: Key "Startup_B" ──► 100 rows   ──► Finishes in 0.05s      │
+    │  Executor 3: Key "Amazon"    ──► 10M rows   ──► Straggler! Runs 2 hrs, │
+    │                                                 Spills 15GB to disk!   │
+    └───────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼ APPLYING SALTING (Random Number 0..3)
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SALTED BALANCED EXECUTION (All Executors Work in Parallel Harmony!)   │
+    │  "Amazon_0" (2.5M rows) ──► Executor 1 (Done in 10s) ──┐               │
+    │  "Amazon_1" (2.5M rows) ──► Executor 2 (Done in 10s) ──┼──► Global Sum │
+    │  "Amazon_2" (2.5M rows) ──► Executor 3 (Done in 10s) ──┤    (Done 2s)  │
+    │  "Amazon_3" (2.5M rows) ──► Executor 4 (Done in 10s) ──┘               │
+    │  Speedup: 2 hours slashed down to 12 SECONDS!                          │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MƏLUMAT ƏYRİLİYİ PROBLEMİ (Bircə Açar Klasteri Boğur, 99 Nüvə Boşdur) │
+    │  "Amazon" açarı: 10,000,000 sətir │ "Startap_A" açarı: 50 sətir        │
+    │                                                                        │
+    │  Executor 1: "Startap_A" ──► 50 sətir   ──► 0.05 saniyəyə bitir        │
+    │  Executor 2: "Startap_B" ──► 100 sətir  ──► 0.05 saniyəyə bitir        │
+    │  Executor 3: "Amazon"    ──► 10M sətir  ──► 2 saat təkbətək döyüşür,   │
+    │                                             15GB diskə boşalır (Spill) │
+    └───────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼ DUZLAMA (SALTING) TEXNİKASI (0..3)
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DUZLANMIŞ BALANSLAŞDIRILMIŞ İCRA (Bütün Klaster Eyni Anda İşləyir!)   │
+    │  "Amazon_0" (2.5M) ──► Executor 1 (10 saniyəyə bitdi) ──┐              │
+    │  "Amazon_1" (2.5M) ──► Executor 2 (10 saniyəyə bitdi) ──┼──► Qlobal Cəm│
+    │  "Amazon_2" (2.5M) ──► Executor 3 (10 saniyəyə bitdi) ──┤    (2 saniyə)│
+    │  "Amazon_3" (2.5M) ──► Executor 4 (10 saniyəyə bitdi) ──┘              │
+    │  Nəticə: 2 saatlıq əziyyət cəmi 12 SANİYƏYƏ başa çatdı!                │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of Data Skew like a supermarket with 5 cashier lanes:
+    - 4 customers walk up with 2 chocolate bars each. Their cashiers finish scanning in 15 seconds and sit empty.
+    - Customer 5 walks up pushing a freight container containing 500,000 grocery items (e.g. `user_id = NULL` or a massive enterprise customer like 'Apple'). Cashier 5 stands there sweating for 6 hours scanning items one by one. The entire supermarket cannot close until that single cashier finishes!
+    - **In Spark, this is called a Straggler Task.** In Spark UI, you see 199 tasks finish in 2 seconds, but task 200 hangs at 99% for 45 minutes.
+
+    ### How the Salting Technique Works:
+    1. **Add Random Salt**: You append an artificial random number suffix (e.g. `_0`, `_1`, `_2`, `_3`) to the skewed key:
+       `concat(col("skewed_key"), lit("_"), (rand() * 4).cast("int"))`
+    2. **Stage 1 Partial Aggregate**: Spark shuffles the data across 4 different executors because the keys are now distinct (`Amazon_0`, `Amazon_1`, etc.). All 4 executors process their 25% share in parallel.
+    3. **Stage 2 Global Aggregate**: Strip off the salt suffix using `split()` and perform a final lightweight aggregation on the clean keys.
+  az: |
+    Məlumat Əyriliyini (Data Skew) 5 kassası olan böyük market kimi təsəvvür edin:
+    - 4 müştəri cəmi 2 dənə şokolad alır. Onların kassiri 15 saniyəyə işi bitirir və boş oturur.
+    - 5-ci kassaya isə 500,000 məhsulla dolu nəhəng yük maşını yanaşır (məsələn, `user_id = NULL` olan bütün sətirlər və ya 'Amazon' kimi nəhəng korporativ müştəri). Həmin kassir 6 saat dayanmadan məhsulları tək-tək skan edir. O tək kassir bitirməyincə market bağlana bilməz!
+    - **Spark-da buna Ləngiyən Tapşırıq (Straggler Task) deyilir.** Spark UI-a baxanda görürsünüz ki, 199 tapşırıq 2 saniyəyə bitdi, amma 200-cü tapşırıq 99%-də qalıb 45 dəqiqədir işləyir.
+
+    ### Duzlama (Salting) Texnikası Necə İşləyir?
+    1. **Təsadüfi Duz Əlavə Et**: Əyri açarın sonuna təsadüfi rəqəm şəkilçisi (məs. `_0`, `_1`, `_2`, `_3`) əlavə edirsiniz:
+       `concat(col("key"), lit("_"), (rand() * 4).cast("int"))`
+    2. **1-ci Mərhələ Lokal Aqreqasiya**: Açar artıq 4 fərqli ada bölündüyü üçün Spark yükü 4 fərqli executor-a bərabər paylayır. Hər biri öz 25%-lik payını paralel 10 saniyəyə hesablayır.
+    3. **2-ci Mərhələ Qlobal Aqreqasiya**: Rəqəm şəkilçisini kəsib atırsınız və artıq kiçilmiş 4 rəqəmi cəmləyirsiniz. 2 saatlıq iş 12 saniyəyə bitir!
+quick_recap:
+  en: "Data Skew occurs when uneven key distributions overload a single partition, creating straggler tasks and memory spills. Salting distributes skewed keys across multiple sub-partitions using randomized suffixes, allowing the entire cluster to process the load in parallel."
+  az: "Məlumat əyriliyi qeyri-bərabər açar paylanmasının tək bir partisiya və executor-u yükləməsi nəticəsində yaranır və ləngiyən tapşırıqlar (straggler) törədir. Duzlama (Salting) texnikası açarlara təsadüfi şəkilçilər əlavə edərək yükü bütün klasterə bərabər bölür."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.functions import col, lit, rand, concat, sum as _sum, split
+
+  spark = SparkSession.builder.appName("10_Salting_Remediation").master("local[*]").getOrCreate()
+
+  # Create an extremely skewed dataset: "AMAZON" has 90% of all rows!
+  skewed_data = [("AMAZON", 10.0)] * 9000 + [("STARTUP_A", 50.0)] * 500 + [("STARTUP_B", 30.0)] * 500
+  df = spark.createDataFrame(skewed_data, ["client_id", "revenue"])
+
+  print("=== Unbalanced Key Distribution (The Skew Problem) ===")
+  df.groupBy("client_id").count().show()
+
+  # STEP 1: APPLY SALTING (Append a random integer 0..3 to spread the key across 4 partitions)
+  SALT_BUCKETS = 4
+  salted_df = df.withColumn(
+      "salted_key",
+      concat(col("client_id"), lit("_"), (rand() * SALT_BUCKETS).cast("int"))
+  )
+
+  # STEP 2: STAGE 1 AGGREGATION (Balanced across cluster partitions!)
+  stage1_df = salted_df.groupBy("salted_key").agg(_sum("revenue").alias("subtotal_revenue"))
+  print("=== Stage 1: Balanced Distributed Sub-Buckets ===")
+  stage1_df.show(8)
+
+  # STEP 3: STAGE 2 GLOBAL AGGREGATION (Strip salt suffix and sum the sub-buckets)
+  final_balanced_df = stage1_df \
+      .withColumn("original_client_id", split(col("salted_key"), "_").getItem(0)) \
+      .groupBy("original_client_id") \
+      .agg(_sum("subtotal_revenue").alias("total_revenue"))
+
+  print("=== Final Correct Aggregated Revenues ===")
+  final_balanced_df.show()
+code_explanation:
+  en: |
+    - Look at the initial distribution: 'AMAZON' has 9,000 rows while others have 500. Without salting, all 9,000 rows land on one single executor core.
+    - In Stage 1: The 'AMAZON' key is shattered into `AMAZON_0`, `AMAZON_1`, `AMAZON_2`, and `AMAZON_3`. Each sub-key contains ~2,250 rows, perfectly balanced!
+    - In Stage 2: `split(..., "_").getItem(0)` recovers the clean business key and aggregates the 4 sub-totals with zero skew.
+  az: |
+    - İlkin paylanmaya baxın: 'AMAZON' 9,000 sətirdir, digərləri isə cəmi 500. Duzlama olmasa, bütün 9,000 sətir tək bir nüvəni boğacaq.
+    - 1-ci Mərhələdə: 'AMAZON' açarı `AMAZON_0`, `AMAZON_1`, `AMAZON_2` və `AMAZON_3` olaraq 4 yerə parçalandı. Hər birinə ~2,250 sətir düşdü və mükəmməl balans yarandı!
+    - 2-ci Mərhələdə: `split()` ilə alt xətdən əvvəlki əsl ad bərpa olundu və 4 aralıq cəm tək bir saniyədə birləşdirildi.
+visual_output: |
+  === Unbalanced Key Distribution (The Skew Problem) ===
+  +---------+-----+
+  |client_id|count|
+  +---------+-----+
+  |STARTUP_A|  500|
+  |STARTUP_B|  500|
+  |   AMAZON| 9000|
+  +---------+-----+
+
+  === Stage 1: Balanced Distributed Sub-Buckets ===
+  +----------+----------------+
+  |salted_key|subtotal_revenue|
+  +----------+----------------+
+  |  AMAZON_1|         22710.0|
+  |  AMAZON_3|         22320.0|
+  |  AMAZON_2|         22410.0|
+  |  AMAZON_0|         22560.0|
+  | STARTUP_A|         25000.0|
+  | STARTUP_B|         15000.0|
+  +----------+----------------+
+
+  === Final Correct Aggregated Revenues ===
+  +------------------+-------------+
+  |original_client_id|total_revenue|
+  +------------------+-------------+
+  |         STARTUP_A|      25000.0|
+  |         STARTUP_B|      15000.0|
+  |            AMAZON|      90000.0|
+  +------------------+-------------+
+output_description:
+  en: "Terminal output proving how an initial 9,000-row skewed key was distributed evenly into 4 ~2,250 sub-buckets before calculating final totals."
+  az: "9,000 sətirlik əyri açarın 4 ədəd ~2,250 sətirlik bərabər alt buferə bölündüyünü və yekun cəmin dəqiq hesablandığını göstərən terminal çıxışı."
+what_it_does:
+  en: "Demonstrates the two-stage Salting pattern to distribute high-cardinality or hot-key skewed workloads across all available cluster cores."
+  az: "Həddən artıq böyük olan tək açarları bütün klaster nüvələrinə bərabər bölmək üçün iki mərhələli Salting (Duzlama) naxışını nümayiş etdirir."
+real_world_use:
+  en: "Fixing production ETL pipelines where 70% of web analytics traffic is generated by search engine crawlers (Googlebot) or where e-commerce transaction tables are dominated by a handful of mega-sellers."
+  az: "Real data kəmərlərində veb loqların 70%-nin axtarış botlarına (Googlebot) aid olduğu və ya ödənişlərin böyük hissəsinin bir neçə nəhəng korporativ müştəriyə aid olduğu hallarda klasterin donmasının qarşısını almaq üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Salting all keys unnecessarily**: Adding salts to already uniform keys adds unnecessary shuffle and aggregation overhead. Apply salting only to the known skewed hot keys (or join conditions).
+    - **Choosing too small a salt bucket**: If a key has 100 million rows, salting with `0..1` (2 buckets) still leaves 50 million rows per partition. Match salt buckets to available cluster cores.
+    - **Ignoring Adaptive Query Execution (AQE)**: In Spark 3.0+, enabling `spark.sql.adaptive.skewJoin.enabled = true` allows Spark to automatically detect and split skewed join partitions at runtime!
+  az: |
+    - **Bütün açarları kor-koranə duzlamaq**: Onsuz da bərabər paylanmış kiçik açarları duzlamaq əlavə şaffl və vaxt itkisidir. Duzlama yalnız problemli nəhəng açarlara tətbiq edilməlidir.
+    - **Duz sayını çox kiçik seçmək**: 100 milyon sətirli açarı cəmi 2 yerə bölsəniz, yenə hərəyə 50 milyon düşəcək. Duz sayını klasterin nüvələrinə uyğun seçin (məs. 16, 32).
+    - **Spark 3.0+ AQE funksiyasını unutmaq**: Müasir Spark-da `spark.sql.adaptive.skewJoin.enabled = true` qoyduqda Spark birləşmələrdəki əyri açarları iş vaxtı avtomatik aşkar edib parçalaya bilir!
+interview_question:
+  question:
+    en: "What is Data Skew in Apache Spark, how do you diagnose it in the Spark UI, and how does the Salting technique resolve it?"
+    az: "Apache Spark-da Məlumat Əyriliyi (Data Skew) nədir, Spark UI-da bunu necə aşkar edirsiniz və Duzlama (Salting) texnikası bunu necə aradan qaldırır?"
+  answer:
+    en: |
+      1. **What is Data Skew?**:
+         - Data Skew occurs when data is partitioned unevenly across the cluster based on a key (e.g., `NULL` values, dominant categories, or power users).
+         - Because Spark partitions by `hash(key) % num_partitions`, all records with that dominant key land on a **single executor core**.
+      2. **Diagnosis in Spark UI**:
+         - In the **Stages Tab**, look at the **Task Metrics Distribution Table** (Min, 25th percentile, Median, 75th percentile, Max).
+         - If the Median task runtime is **2 seconds**, but the Max task runtime is **45 minutes**, and the Max task has processed **10 GB of Shuffle Read** while other tasks processed **5 MB**, you have severe Data Skew! That long-running task is a **Straggler**.
+      3. **The Salting Technique**:
+         - Add a randomized integer suffix (`0 to K`) to the skewed key before the shuffle.
+         - This splits the single monolithic hot-key into $K$ distinct sub-keys, distributing them across $K$ executors.
+         - Perform Stage 1 partial aggregation, then strip the salt and perform a rapid Stage 2 final aggregation.
+      4. **Modern Alternative (Spark 3.0+ AQE)**:
+         - Enable Adaptive Query Execution (`spark.sql.adaptive.enabled = true` and `spark.sql.adaptive.skewJoin.enabled = true`). Spark monitors runtime shuffle partition sizes and automatically splits skewed partitions into smaller sub-tasks on the fly.
+    az: |
+      1. **Data Skew Nədir?**:
+         - Məlumatların müəyyən bir açara görə (məsələn, `NULL` dəyərlər, 'Amazon' və ya aktiv istifadəçilər) klasterdə qeyri-bərabər paylanmasıdır.
+         - Spark `hash(açar) % partisiya_sayı` düsturu ilə böldüyü üçün həmin nəhəng açara aid bütün sətirlər **tək bir executor nüvəsinə** toplanır.
+      2. **Spark UI-da Diaqnostika**:
+         - **Stages Vərəqindəki** tapşırıq statistika cədvəlinə (Min, Median, Max) baxırsınız.
+         - Əgər Median (orta) tapşırıq müddəti **2 saniyə**, lakin Max (maksimum) tapşırıq müddəti **45 dəqiqədirsə**, və həmin tək tapşırıq digərləri 5 MB oxuduğu halda **10 GB Shuffle Read** edibsə, deməli sistemdə şiddətli Məlumat Əyriliyi var! Bu tapşırığa **Ləngiyən Tapşırıq (Straggler)** deyilir.
+      3. **Duzlama (Salting) Texnikası**:
+         - Əyri açarın sonuna təsadüfi rəqəm şəkilçisi (`0-dan K-ya qədər`) əlavə olunur.
+         - Bu, nəhəng tək açarı $K$ sayda fərqli alt açara bölərək $K$ sayda executor-a paylayır.
+         - 1-ci Mərhələdə lokal cəmlənir, sonra duz şəkilçisi silinərək 2-ci Mərhələdə sürətlə yekun cəm tapılır.
+      4. **Müasir Alternativ (Spark 3.0+ AQE)**:
+         - Adaptive Query Execution-u aktivləşdirmək (`spark.sql.adaptive.skewJoin.enabled = true`). Spark iş zamanı partisiya ölçülərini izləyir və əyri hissələri avtomatik xırda tapşırıqlara bölür.
+  interviewer_tips:
+    en: "Always mention how you spot skew in the Spark UI (Task Metrics Min vs Max duration disparity) and contrast manual Salting with Spark 3.0's automatic Adaptive Query Execution (AQE) skew join handling."
+    az: "Mütləq Spark UI-da bunu necə gördüyünüzü (Task Metrics cədvəlində Median ilə Max arasındakı böyük fərq) və əl ilə Salting etməklə Spark 3.0-ın avtomatik AQE funksiyası arasındakı əlaqəni qeyd edin."
+flashcards:
+  - front:
+      en: "What is a 'Straggler Task' in Apache Spark?"
+      az: "Apache Spark-da 'Ləngiyən Tapşırıq' (Straggler Task) nədir?"
+    back:
+      en: "A single task in a stage that takes exponentially longer to finish than all other tasks due to data skew."
+      az: "Məlumat əyriliyi səbəbindən bir mərhələdəki digər tapşırıqlardan qat-qat gec başa çatan tək bir tapşırıqdır."
+  - front:
+      en: "How do you spot data skew in the Spark UI?"
+      az: "Spark UI-da məlumat əyriliyini (Data Skew) hansı əlamətdən anlayırsınız?"
+    back:
+      en: "In the Stages task distribution summary, when Max duration and Max Shuffle Read are orders of magnitude higher than the Median."
+      az: "Stages vərəqində Maksimum icra vaxtı və Shuffle Read həcmi Median (orta) göstəricidən dəfələrlə böyük olduqda."
+  - front:
+      en: "How does the Salting technique fix data skew during aggregation?"
+      az: "Salting (Duzlama) texnikası aqreqasiya zamanı məlumat əyriliyini necə həll edir?"
+    back:
+      en: "Appends a random suffix (0..K) to skewed keys to distribute them across multiple executors for a 2-stage aggregation."
+      az: "Əyri açarlara təsadüfi şəkilçi (0..K) əlavə edərək onları 2 mərhələli aqreqasiya üçün bir neçə executor-a paylayır."
+  - front:
+      en: "What feature in Spark 3.0+ automatically mitigates skewed joins at runtime?"
+      az: "Spark 3.0+-da icra zamanı əyri birləşmələri avtomatik aradan qaldıran funksiya hansıdır?"
+    back:
+      en: "Adaptive Query Execution (AQE) with `spark.sql.adaptive.skewJoin.enabled = true`."
+      az: "Adaptive Query Execution (AQE) və `spark.sql.adaptive.skewJoin.enabled = true` parametri."
+  - front:
+      en: "Why is a `NULL` key often the primary culprit behind data skew in data lakes?"
+      az: "Data Lake-lərdə məlumat əyriliyinin ən böyük səbəbi niyə tez-tez `NULL` açarlar olur?"
+    back:
+      en: "Because all millions of rows with `NULL` join/grouping keys hash to the exact same partition and land on a single executor."
+      az: "Çünki açarı `NULL` olan milyonlarla sətir eyni heş dəyəri alır və hamısı tək bir executor-un boynuna düşür."

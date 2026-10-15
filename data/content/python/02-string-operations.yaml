@@ -1,0 +1,164 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "02-string-operations"
+order: 2
+level: "junior"
+title:
+  en: "String Cleaning, Operations, and F-Strings"
+  az: "Mətn Təmizlənməsi, Əməliyyatlar və F-Stringlər"
+quick_recap:
+  en: "Strings in Python are immutable sequences of characters. In data pipelines, cleaning raw text using .strip(), .lower(), .replace(), and .split() is a mandatory preprocessing step. Using ''.join() for combining text is O(N) linear time, whereas repeated '+' concatenation is O(N^2) quadratic time."
+  az: "Python-da mətnlər simvolların dəyişməz ardıcıllığıdır (immutable). Data kəmərlərində xam mətnləri .strip(), .lower(), .replace() və .split() ilə təmizləmək mütləq ilkin addımdır. Çoxsaylı mətni birləşdirmək üçün ''.join() O(N) xətti vaxt aparır, '+' ilə təkrar calamaq isə O(N^2) ləngimə yaradır."
+explanation:
+  en: |
+    Think of raw customer input forms entering a data warehouse:
+    People type with accidental leading spaces (`"  john  "`), inconsistent uppercase letters (`"JOHN@GMAIL.COM"`), and newlines. Before entering your pipeline, strings must be sanitized.
+
+    ### Essential Data Engineering String Methods:
+    - `.strip()`: Strips whitespace, tabs, and newlines from both edges.
+    - `.lower()` / `.upper()`: Normalizes letter casing for consistent joining and deduplication.
+    - `.replace(old, new)`: Swaps unwanted characters (e.g. converting commas to dots in prices).
+    - `.split(delimiter)`: Chops a delimited string (like a CSV row) into a list of column values.
+    - `delimiter.join(iterable)`: Fast, memory-efficient concatenation of multiple string parts.
+    - `f"..."`: Modern formatted string literals for dynamic log messages and SQL query templates.
+
+    ### Real Pipeline Example:
+
+    ```python
+    raw_row = "  101,John Doe,  45.00  \n"
+    clean_row = raw_row.strip()            # "101,John Doe,  45.00"
+    cols = clean_row.split(",")            # ["101", "John Doe", "  45.00"]
+    cols[2] = cols[2].strip()              # "45.00"
+    reconstructed = "|".join(cols)         # "101|John Doe|45.00"
+    ```
+  az: |
+    Veb-sayt formasından verilənlər bazasına daxil olan xam istifadəçi qeydlərini təsəvvür edin:
+    İnsanlar adlarını kənar boşluqlarla (`"  ali  "`), qarışıq böyük-kiçik hərflərlə (`"ALI@GMAIL.COM"`) və sətrin sonu simvolları ilə daxil edirlər. Analitik bazaya yazmazdan əvvəl bu mətnlər mütləq təmizlənməlidir.
+
+    ### Data Mühəndisi Üçün Ən Vacib Mətn Metodları:
+    - `.strip()`: Kənarlardakı lazımsız boşluqları və yeni sətir (`\n`) işarələrini kəsir.
+    - `.lower()` / `.upper()`: Eyniləşdirmək və etibarlı JOIN aparmaq üçün hərfləri standart formaya gətirir.
+    - `.replace(köhnə, yeni)`: Arzuolunmaz simvolları dəyişir (məs. qiymətlərdə vergülü nöqtə ilə əvəzləmək).
+    - `.split(ayırıcı)`: Vergüllə ayrılmış CSV sətrini sütunlar siyahısına parçalayır.
+    - `ayırıcı.join(siyahı)`: Çoxsaylı mətnləri yaddaşa qənaət edərək sürətlə birləşdirir.
+    - `f"..."`: Dinamik loq mesajları və fayl adları qurmaq üçün müasir f-string formatı.
+
+    ### Real Boru Kəməri Nümunəsi:
+
+    ```python
+    raw_row = "  101,Ali Mammadov,  45.00  \n"
+    clean_row = raw_row.strip()            # "101,Ali Mammadov,  45.00"
+    cols = clean_row.split(",")            # ["101", "Ali Mammadov", "  45.00"]
+    cols[2] = cols[2].strip()              # "45.00"
+    reconstructed = "|".join(cols)         # "101|Ali Mammadov|45.00"
+    ```
+code: |
+  raw_email = "   Ali.Mammadov@Company.COM \n"
+  raw_record = "ID101,Laptop,1200.00,Delivered"
+
+  # Cleaning operations
+  clean_email = raw_email.strip().lower()
+  fields = raw_record.split(",")
+  product_name = fields[1]
+  status = fields[3].upper()
+
+  print(f"Clean Email: '{clean_email}'")
+  print(f"Product: {product_name} | Status: {status}")
+  print(f"Formatted log: {' - '.join(fields)}")
+what_it_does:
+  en: "Trims whitespace from an email, converts it to lowercase, splits a comma-delimited record string into components, and re-joins them with custom delimiters."
+  az: "E-poçt ünvanındakı boşluqları kəsir, kiçik hərflərə çevirir, vergüllə ayrılmış qeydi parçalayaraq sütunları çıxarır və xüsusi ayırıcı ilə birləşdirir."
+real_world_use:
+  en: "Standard data cleansing during extraction: normalizing email identifiers before customer deduplication and generating clean partitioned filenames (e.g. f's3://bucket/{date}/data.csv')."
+  az: "Məlumat qəbulu zamanı standart təmizləmə: müştəri dublikatlarını silməzdən əvvəl e-poçtları standartlaşdırmaq və dinamik fayl yolları (məs. f's3://anbar/{tarix}/data.csv') yaratmaq."
+common_mistakes:
+  en: |
+    - **Attempting in-place string mutation**: Strings are immutable in Python. `s.strip()` does NOT modify `s`; you must reassign: `s = s.strip()`.
+    - **Using + inside loops to concatenate text**: `result += line` creates a brand-new string object in RAM on every iteration, leading to O(N^2) memory copies. Always append to a list and call `''.join(list)`.
+    - **Forgetting that .split() without arguments splits by any whitespace**: `s.split()` collapses multiple consecutive spaces, while `s.split(' ')` retains empty string tokens.
+  az: |
+    - **Mətnin yerində dəyişəcəyini düşünmək**: Python-da mətnlər dəyişməzdir (immutable). `s.strip()` `s`-i dəyişmir; mütləq mənimsətmək lazımdır: `s = s.strip()`.
+    - **Dövrə daxilində + ilə mətni uzatmaq**: `result += line` hər addımda RAM-da təzə mətn obyekti yaradır və O(N^2) ləngimə törədir. Həmişə siyahıya yığıb sonda `''.join(siyahı)` edin.
+    - **Arqumentsiz .split()-in boşluqları avtomatik udduğunu unutmamaq**: `s.split()` bir neçə ardıcıl boşluğu birləşdirir, `s.split(' ')` isə boş simvolları saxlayır.
+interview_question:
+  question:
+    en: "Why are strings immutable in Python, and why is `join()` preferred over `+` for concatenating many strings?"
+    az: "Python-da mətnlər nə üçün dəyişməzdir (immutable) və çoxlu mətni birləşdirərkən nə üçün `+` əvəzinə `join()` seçilir?"
+  answer:
+    en: |
+      1. **Immutability Rationale**: Immutability ensures thread-safety, allows Python to cache hash values permanently (enabling strings to be used as dictionary keys), and enables memory-saving string interning.
+      2. **Performance of `+` vs `join()`**: Because strings cannot be modified in-place, evaluating `s1 + s2 + s3` allocates a new memory block and copies characters each time. In a loop of N strings, this produces quadratic O(N^2) time complexity.
+      3. **Linear Time of `join()`**: `''.join(list_of_strings)` computes the total required memory buffer length upfront in a single pass, allocates memory once, and copies all strings in linear O(N) time.
+    az: |
+      1. **Dəyişməzliyin Səbəbi**: Mətnlərin dəyişməz olması axın təhlükəsizliyini (thread-safety) təmin edir, Python-a hash dəyərini daimi saxlamağa (lüğətlərdə açar kimi işləməyə) və yaddaş qənaəti üçün eyni mətnləri ortaq ünvanda saxlamağa (interning) imkan verir.
+      2. **`+` vs `join()` Performansı**: Mətni yerində dəyişmək mümkün olmadığı üçün `s1 + s2` hər dəfə RAM-da yeni yaddaş bloku ayırır və simvolları təkrar köçürür. N sayda sətirlik dövrədə bu, O(N^2) kvadratik ləngimə yaradır.
+      3. **`join()` Xətti Sürəti**: `''.join(siyahı)` əvvəlcədən tələb olunan ümumi yaddaşı tək addımda hesablayır, yaddaşı cəmi bir dəfə ayırır və bütün mətnləri O(N) xətti vaxtda sürətlə köçürür.
+exercise:
+  question:
+    en: "Write a function `clean_user_input(first_name, last_name, email)` that strips leading/trailing spaces and capitalizes each name (.strip().capitalize()), and strips and lowercases the email (.strip().lower()). Return a dictionary: `{'name': f'{clean_first} {clean_last}', 'email': clean_email}`."
+    az: "first_name və last_name adlarını boşluqlardan təmizləyib ilk hərfini böyük edən (.strip().capitalize()), e-poçtu isə boşluqlardan təmizləyib kiçik hərflərə çevirən (.strip().lower()) `clean_user_input(first_name, last_name, email)` funksiyası yazın. Nəticəni lüğət kimi qaytarın: `{'name': f'{clean_first} {clean_last}', 'email': clean_email}`."
+  starter_code: |
+    def clean_user_input(first_name, last_name, email):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Use `.strip().capitalize()` for the names and `.strip().lower()` for the email, then return the dictionary."
+    az: "Adlar üçün `.strip().capitalize()`, e-poçt üçün `.strip().lower()` istifadə edin və lüğəti qaytarın."
+  solution: |
+    def clean_user_input(first_name, last_name, email):
+        clean_first = first_name.strip().capitalize()
+        clean_last = last_name.strip().capitalize()
+        clean_email = email.strip().lower()
+        return {
+            "name": f"{clean_first} {clean_last}",
+            "email": clean_email
+        }
+  test_code: |
+    res = clean_user_input("  ali ", "  mammadov ", " Ali@Domain.COM  ")
+    assert res["name"] == "Ali Mammadov", f"Expected 'Ali Mammadov', got {res['name']}"
+    assert res["email"] == "ali@domain.com", f"Expected 'ali@domain.com', got {res['email']}"
+
+flashcards:
+  - front:
+      en: "Why does `s = ' hello '; s.strip()` leave s unchanged?"
+      az: "`s = ' hello '; s.strip()` yazdıqda s dəyişəni nə üçün dəyişmir?"
+    back:
+      en: "Strings are immutable in Python. Methods like .strip() return a new string; you must reassign: `s = s.strip()`."
+      az: "Python-da mətnlər dəyişməzdir (immutable). .strip() kimi metodlar yeni mətn qaytarır; onu mütləq dəyişənə mənimsətməlisiniz: `s = s.strip()`."
+  - front:
+      en: "What is the Big-O time complexity difference between `+` and `join()` for joining N strings?"
+      az: "N sayda mətni birləşdirərkən `+` və `join()` arasındakı Big-O mürəkkəblik fərqi nədir?"
+    back:
+      en: "Repeated `+` concatenation is O(N^2) quadratic time. Using `''.join()` is O(N) linear time because it preallocates memory."
+      az: "Təkrar `+` birləşdirməsi O(N^2) kvadratik vaxt aparır. `''.join()` isə yaddaşı əvvəlcədən ayırdığı üçün O(N) xətti vaxtda işləyir."
+  - front:
+      en: "What does `string.split(',')` return?"
+      az: "`string.split(',')` metodu nə qaytarır?"
+    back:
+      en: "A list of substrings partitioned by the specified comma delimiter."
+      az: "Vergül ayırıcısına görə parçalanmış alt mətnlərdən ibarət siyahı (list) qaytarır."
+  - front:
+      en: "What is the difference between `.lower()` and `.casefold()`?"
+      az: "Python-da `.lower()` ilə `.casefold()` arasındakı fərq nədir?"
+    back:
+      en: "`.lower()` converts standard ASCII/Unicode casing. `.casefold()` is a more aggressive conversion designed for caseless international string comparisons (e.g. German 'ß' becomes 'ss')."
+      az: "`.lower()` standart hərfləri kiçildir. `.casefold()` isə beynəlxalq mətn müqayisələri üçün daha güclü çevrilmə aparır (məs. alman 'ß' simvolunu 'ss'-ə çevirir)."
+  - front:
+      en: "Why are f-strings faster than `%` formatting or `.format()`?"
+      az: "F-stringlər nə üçün `%` formatlamasından və ya `.format()` metodundan daha sürətlidir?"
+    back:
+      en: "F-strings are evaluated at runtime directly in bytecode (FORMAT_VALUE opcode) without parsing formatting string mini-languages at function call time."
+      az: "F-stringlər funksiya çağırışı zamanı mətn təhlili aparmadan birbaşa C səviyyəsində byte-code (FORMAT_VALUE) ilə icra olunur."

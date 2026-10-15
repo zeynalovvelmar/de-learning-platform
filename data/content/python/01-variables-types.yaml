@@ -1,0 +1,155 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "01-variables-types"
+order: 1
+level: "junior"
+title:
+  en: "Variables, Data Types, and Type Casting"
+  az: "Dəyişənlər, Data Tipləri və Tip Çevirmələri"
+quick_recap:
+  en: "Python dynamically assigns data types (int, float, str, bool, None). In data engineering, CSV and API payloads arrive as raw strings ('100', '19.99') that must be explicitly cast using int() or float(). None represents missing values (SQL NULL)."
+  az: "Python məlumat tiplərini (int, float, str, bool, None) dinamik təyin edir. Data mühəndisliyində CSV və API-dən gələn rəqəmlər xam mətn ('100', '19.99') kimi daxil olur və int() və ya float() ilə çevrilməlidir. None isə çatışmayan məlumatı (SQL NULL) bildirir."
+explanation:
+  en: |
+    Think of variables like labeled storage bins in a logistics warehouse:
+    - **int**: Whole countable quantities (e.g., 25 orders, 5 retries).
+    - **float**: Continuous measurements and currency (e.g., $19.99, 3.1415).
+    - **str**: Textual attributes (e.g., "customer_id", "completed").
+    - **bool**: Binary flags (`True` or `False`).
+    - **None**: An empty bin indicating the complete absence of data (identical to `NULL` in SQL).
+
+    In data pipelines, incoming data from text files (CSV, JSON, Kafka strings) always arrives typed as `str`. You must explicitly parse and cast values before applying arithmetic calculations.
+
+    ### Key Examples:
+
+    ```python
+    raw_val = "100"
+    num = int(raw_val)          # Casts text '100' to integer 100
+    price = float("19.99")      # Casts text '19.99' to float 19.99
+    flag = bool(1)              # Converts 1 to True
+    empty_val = None            # Represents missing data
+    ```
+  az: |
+    Dəyişənləri anbardakı etiketli saxlama qutuları kimi təsəvvür edin:
+    - **int**: Sayıla bilən tam ədədlər (məsələn, 25 sifariş, 5 təkrar cəhd).
+    - **float**: Kəsrli ölçülər və pul məbləğləri (məsələn, 19.99 AZN).
+    - **str**: Mətn atributları (məsələn, "müştəri_id", "tamamlandı").
+    - **bool**: İkili açar-bağla göstəriciləri (`True` və ya `False`).
+    - **None**: Dəyərin ümumiyyətlə olmadığını bildirən boş qutu (SQL-dəki `NULL` ilə eynidir).
+
+    Data boru kəmərlərində xarici fayllardan (CSV, JSON, loqlar) daxil olan bütün məlumatlar ilkin olaraq mətn (`str`) kimi oxunur. Riyazi hesablamalar aparmazdan əvvəl tipləri mütləq uyğun formata çevirməlisiniz.
+
+    ### Əsas Nümunələr:
+
+    ```python
+    raw_val = "100"
+    num = int(raw_val)          # '100' mətnini 100 tam ədədinə çevirir
+    price = float("19.99")      # '19.99' mətnini kəsr ədədə çevirir
+    flag = bool(1)              # 1 rəqəmini True məntiqi dəyərinə çevirir
+    empty_val = None            # Çatışmayan məlumatı təmsil edir
+    ```
+code: |
+  raw_quantity = "25"
+  raw_unit_price = "14.50"
+  user_country = None
+
+  # Type casting for calculation
+  quantity = int(raw_quantity)
+  unit_price = float(raw_unit_price)
+  total_amount = quantity * unit_price
+
+  print(f"Quantity: {quantity} ({type(quantity).__name__})")
+  print(f"Total Amount: ${total_amount:.2f}")
+  print(f"Country missing? {user_country is None}")
+what_it_does:
+  en: "Parses incoming string values ('25', '14.50') into integer and float types, computes the total product cost, and checks for a None value."
+  az: "Daxil olan xam mətnləri ('25', '14.50') tam (int) və kəsr (float) rəqəm tiplərinə çevirir, ümumi məbləği hesablayır və None dəyərini yoxlayır."
+real_world_use:
+  en: "The very first step in any ETL pipeline ingestion script: reading string tokens from flat files and enforcing database schema data types."
+  az: "İstənilən ETL boru kəmərinin ən birinci addımıdır: xam fayllardan oxunan mətnləri qəbul edib verilənlər bazası sxeminə uyğun data tiplərinə çevirmək."
+common_mistakes:
+  en: |
+    - **Checking None with == instead of is**: Writing `if x == None:` is an antipattern. `None` is a memory singleton; always check with `if x is None:`.
+    - **Directly casting float strings to int**: `int("19.99")` raises a `ValueError`. You must first cast to float: `int(float("19.99"))`.
+    - **Concatenating strings and numbers with +**: `"Count: " + 5` raises `TypeError`. Always use f-strings: `f"Count: {5}"`.
+  az: |
+    - **None-ı == ilə yoxlamaq**: `if x == None:` yazmaq səhvdir. `None` tək vahiddir (singleton); həmişə `if x is None:` yazılmalıdır.
+    - **Kəsrli mətni birbaşa int-ə çevirməyə çalışmaq**: `int("19.99")` birbaşa `ValueError` verir. Əvvəlcə float-a çevrilməlidir: `int(float("19.99"))`.
+    - **Mətnlə ədədi + ilə birləşdirmək**: `"Say: " + 5` xəta verir (`TypeError`). Həmişə f-string istifadə edin: `f"Say: {5}"`.
+interview_question:
+  question:
+    en: "What is the difference between == and is in Python, and why must you always write `if var is None`?"
+    az: "Python-da == və is operatorları arasındakı fərq nədir və nə üçün həmişə `if var is None` yazılmalıdır?"
+  answer:
+    en: |
+      1. **Value Equality (==)**: Compares whether two objects have equivalent values by invoking the `__eq__()` magic method.
+      2. **Identity Comparison (is)**: Compares whether two variables reference the exact same memory address in RAM via `id()`.
+      3. **Why `is None`**: `None` is a built-in singleton in Python, meaning only one instance of `None` ever exists in process memory. `is None` is faster because it compares memory pointers directly and cannot be overridden by custom class comparison operators.
+    az: |
+      1. **Dəyər Bərabərliyi (==)**: İki obyektin məzmunca bərabər olub-olmadığını yoxlayır (arxa planda `__eq__()` metodunu çağırır).
+      2. **Şəxsiyyət / Ünvan Bərabərliyi (is)**: İki dəyişənin RAM-da tam eyni yaddaş ünvanına (`id()`) baxdığını yoxlayır.
+      3. **Nə üçün `is None`**: `None` Python-da tək nüsxəli obyektdir (singleton). `is None` yazmaq yaddaş göstəricilərini birbaşa müqayisə etdiyi üçün həm daha sürətlidir, həm də siniflərin daxili müqayisə metodları tərəfindən dəyişdirilə bilməz.
+exercise:
+  question:
+    en: "Write a function `parse_order(qty_str, price_str)` that converts `qty_str` to an integer, `price_str` to a float, and returns their total product rounded to 2 decimal places."
+    az: "`qty_str` mətnini tam ədədə (int), `price_str` mətnini isə kəsr ədədə (float) çevirən və onların hasilini 2 kəsr rəqəminə yuvarlaqlaşdıraraq qaytaran `parse_order(qty_str, price_str)` funksiyası yazın."
+  starter_code: |
+    def parse_order(qty_str, price_str):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Cast with `int(qty_str)` and `float(price_str)`, then return `round(qty * price, 2)`."
+    az: "`int(qty_str)` və `float(price_str)` ilə tipləri çevirin, sonra `round(qty * price, 2)` qaytarın."
+  solution: |
+    def parse_order(qty_str, price_str):
+        qty = int(qty_str)
+        price = float(price_str)
+        return round(qty * price, 2)
+  test_code: |
+    assert parse_order("10", "15.50") == 155.0, "10 * 15.50 must equal 155.0"
+    assert parse_order("3", "9.99") == 29.97, "3 * 9.99 must equal 29.97"
+
+flashcards:
+  - front:
+      en: "What is the difference between int and float in Python?"
+      az: "Python-da int və float arasındakı fərq nədir?"
+    back:
+      en: "int represents whole numbers without decimals (e.g. 42). float represents numbers with decimal points (e.g. 19.99)."
+      az: "int kəsrsiz tam ədədləri bildirir (məs. 42). float isə kəsr hissəsi olan onluq ədədləri bildirir (məs. 19.99)."
+  - front:
+      en: "What does None represent in Python?"
+      az: "Python-da None nəyi bildirir?"
+    back:
+      en: "None represents the complete absence of a value (equivalent to NULL in SQL databases)."
+      az: "None hər hansı bir dəyərin ümumiyyətlə olmadığını bildirir (SQL verilənlər bazalarındakı NULL ilə eynidir)."
+  - front:
+      en: "Why should you use `is None` instead of `== None`?"
+      az: "Nə üçün `== None` əvəzinə `is None` istifadə edilməlidir?"
+    back:
+      en: "None is a singleton object in memory. `is` checks memory address identity directly, which is faster and safer than `==` value comparison."
+      az: "None yaddaşda tək obyekt nüsxəsidir (singleton). `is` birbaşa yaddaş ünvanını yoxlayır, bu da `==` müqayisəsindən daha sürətli və təhlükəsizdir."
+  - front:
+      en: "What happens if you run int('19.99') directly?"
+      az: "int('19.99') kodunu birbaşa icra etdikdə nə baş verir?"
+    back:
+      en: "Python raises a ValueError. Strings with decimal points must first be converted with float('19.99') before converting to int."
+      az: "Python ValueError xətası verir. Kəsr nöqtəsi olan mətnlər int-ə çevrilməzdən əvvəl mütləq float('19.99') ilə kəsr ədədə çevrilməlidir."
+  - front:
+      en: "What is the modern, recommended way to format variables inside strings in Python?"
+      az: "Python-da dəyişənləri mətn daxilində formatlamağın müasir və tövsiyə olunan üsulu hansıdır?"
+    back:
+      en: "F-strings (formatted string literals): f'User: {name}, Total: {total}'. It is faster and more readable than % or .format()."
+      az: "F-stringlər (formatlanmış mətn sabiti): f'İstifadəçi: {ad}, Məbləğ: {mebleg}'. Bu üsul % və ya .format()-dan həm daha sürətli, həm də oxunaqlıdır."

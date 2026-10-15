@@ -1,0 +1,141 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "07-loops-iteration"
+order: 7
+level: "junior"
+title:
+  en: "Loops, Iteration, Enumerate, and Zip"
+  az: "Dövrələr, İterasiya, Enumerate və Zip"
+quick_recap:
+  en: "Loops process records row-by-row. Core Pythonic utilities: `enumerate(items)` provides index and item pairs without manual counter variables, while `zip(headers, row)` pairs parallel lists together without error-prone `range(len())` index access. Use `continue` to skip invalid rows and `break` to exit early."
+  az: "Dövrələr qeydləri sətir-sətir emal edir. Ən vacib alətlər: `enumerate(siyahı)` əl ilə sayğac dəyişəni qurmadan indeks və element cütlərini verir, `zip(başlıqlar, sətir)` isə iki siyahını `range(len())` xətası olmadan cütləşdirir. Qüsurlu sətirləri ötürmək üçün `continue`, dövrədən tez çıxmaq üçün `break` istifadə olunur."
+explanation:
+  en: |
+    Think of a conveyor belt scanner inspecting thousands of boxes:
+    - **`for item in items:`**: The standard way to iterate. You inspect each box one by one.
+    - **`enumerate(items)`**: Stamps a sequence box number (1, 2, 3...) on each package as you inspect it, without needing to create a manual `i = 0; i += 1` variable.
+    - **`zip(list_a, list_b)`**: Takes two parallel conveyor belts (e.g. Belt A has column names, Belt B has row values) and pairs their corresponding elements into `(key, value)` tuples.
+
+    ### Why Avoid `range(len(items))` in Python:
+    Writing `for i in range(len(items)): val = items[i]` is un-pythonic, harder to read, and prone to index out of bounds errors. Always iterate directly over elements or use `enumerate()`!
+  az: |
+    Konveyer lentindəki minlərlə qutunu yoxlayan işçini təsəvvür edin:
+    - **`for item in items:`**: Standart dövrə. Hər qutuya tək-tək baxırsınız.
+    - **`enumerate(items)`**: Siz baxdıqca hər qutuya avtomatik sıra nömrəsi (1, 2, 3...) vurur; əl ilə `i = 0; i += 1` sayğac dəyişəni yaratmağa ehtiyac qalmır.
+    - **`zip(siyahı_a, siyahı_b)`**: İki paralel lenti (məsələn, A lentində sütun adları, B lentində sətir dəyərləri) bir-birinə bağlayıb `(başlıq, dəyər)` cütlərinə çevirir.
+
+    ### Niyə `range(len(items))` yazmaq tövsiyə edilmir:
+    Python-da `for i in range(len(items)): val = items[i]` yazmaq həm oxunaqlığı korlayır, həm də indeks xətalarına yol açır. Həmişə elementlərin üzərindən birbaşa keçin və ya `enumerate()` istifadə edin!
+code: |
+  headers = ["user_id", "email", "total_orders"]
+  raw_rows = [
+      [101, "ali@domain.com", 5],
+      [102, "leyla@domain.com", 0],
+      [103, "murad@domain.com", 12]
+  ]
+
+  # Pairing columns with values using zip()
+  records = []
+  for row_idx, row in enumerate(raw_rows, start=1):
+      record_dict = dict(zip(headers, row))
+      if record_dict["total_orders"] == 0:
+          continue  # Skip inactive accounts
+      records.append(record_dict)
+
+  print(f"Active processed records: {len(records)}")
+  print(f"Sample record: {records[0]}")
+what_it_does:
+  en: "Uses enumerate() to track row sequence numbers, pairs CSV headers with row values using zip() to create dictionaries, and filters inactive users with continue."
+  az: "enumerate() ilə sətir nömrələrini izləyir, zip() ilə başlıqları dəyərlərə bağlayıb lüğətlər qurur və continue ilə qeyri-aktiv sətirləri ötürür."
+real_world_use:
+  en: "The standard mechanism for parsing CSV files row-by-row into dictionary payloads before database ingestion (e.g. dict(zip(headers, row)))."
+  az: "CSV fayllarını sətir-sətir oxuyarkən hər sətri sütun adları ilə birləşdirib bazaya yazılacaq lüğət formatına gətirmək üçün standart üsuldur."
+common_mistakes:
+  en: |
+    - **Writing `for i in range(len(data)):` instead of `for item in data:`**: Clutters code and runs slower than direct iteration.
+    - **Using `zip()` on uneven lists without knowing it truncates**: `zip([1, 2], [A, B, C])` stops at the shortest list. Use `itertools.zip_longest` if missing values must be preserved.
+    - **Accidentally re-exhausting zip iterator**: `zip()` produces an iterator. Once consumed in a loop, it is empty!
+  az: |
+    - **`for x in data:` əvəzinə `for i in range(len(data)):` yazmaq**: Kodu ağırlaşdırır və birbaşa iterasiyadan ləng işləyir.
+    - **Fərqli ölçülü siyahılarda zip()-in qısa olanda dayandığını unutmamaq**: `zip([1, 2], [A, B, C])` ən qısa siyahıda dayanır. Çatışmayanları qorumaq üçün `itertools.zip_longest` lazımdır.
+    - **zip iteratorunun təkrar oxuna biləcəyini düşünmək**: `zip()` iterator qaytarır. Bir dəfə dövrədə istifadə edildikdən sonra boşalır!
+interview_question:
+  question:
+    en: "What is the difference between iterating with `range(len(lst))` versus `enumerate(lst)` and `zip()` in Python?"
+    az: "Python-da `range(len(lst))` ilə dövrə qurmaqla `enumerate(lst)` və `zip()` istifadə etmək arasındakı fərq nədir?"
+  answer:
+    en: |
+      1. **Pythonic Readability**: `enumerate()` returns `(index, item)` tuples directly, eliminating repetitive `lst[i]` bracket subscripting and removing off-by-one boundary bugs.
+      2. **Safety with Multiple Sequences**: `zip(a, b)` pairs elements cleanly without assuming both collections share the exact same length, eliminating `IndexError: list index out of range`.
+      3. **Iterator Memory Efficiency**: Both `enumerate()` and `zip()` produce lazy generators in Python 3. They evaluate one pair at a time in O(1) memory without allocating index arrays in RAM.
+    az: |
+      1. **Pythonic Oxunaqlıq**: `enumerate()` birbaşa `(indeks, element)` cütlərini qaytarır, təkrar-təkrar `lst[i]` mötərizəsi yazmağa ehtiyac qalmır və indeks səhvlərinin qarşısını alır.
+      2. **Təhlükəsizlik**: `zip(a, b)` iki siyahını təhlükəsiz cütləşdirir və siyahıların ölçüsü fərqli olduqda `IndexError: list index out of range` xətası vermədən ən qısa siyahıda dayanır.
+      3. **Yaddaş Qənaəti (Generators)**: `enumerate()` və `zip()` Python 3-də generator qaytarır. Onlar RAM-da indeks massivləri yaratmır, O(1) yaddaşda hər addımda tək cüt çıxarır.
+exercise:
+  question:
+    en: "Write a function `create_row_dicts(headers, rows)` that takes a list of column headers and a list of row lists, and uses `zip()` inside a loop to return a list of dictionaries."
+    az: "Sütun başlıqları siyahısını və sətirlər siyahısını qəbul edən və dövrə daxilində `zip()` istifadə edərək hər sətri lüğətə çevirib siyahı kimi qaytaran `create_row_dicts(headers, rows)` funksiyası yazın."
+  starter_code: |
+    def create_row_dicts(headers, rows):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Create an empty list, loop through each row in rows, and append `dict(zip(headers, row))`."
+    az: "Boş siyahı yaradın, rows daxilindəki hər sətir üçün `dict(zip(headers, row))` əlavə edin."
+  solution: |
+    def create_row_dicts(headers, rows):
+        result = []
+        for row in rows:
+            result.append(dict(zip(headers, row)))
+        return result
+  test_code: |
+    h = ["id", "val"]
+    r = [[1, "A"], [2, "B"]]
+    res = create_row_dicts(h, r)
+    assert res == [{"id": 1, "val": "A"}, {"id": 2, "val": "B"}]
+
+flashcards:
+  - front:
+      en: "What does `enumerate(items, start=1)` return?"
+      az: "`enumerate(items, start=1)` nə qaytarır?"
+    back:
+      en: "An iterator yielding tuples of (index, item), starting with index 1 instead of 0."
+      az: "İndeksi 0-dan deyil, 1-dən başlayan (indeks, element) cütlərini qaytaran iterator."
+  - front:
+      en: "What happens when you call `zip(list_a, list_b)` on lists of unequal lengths?"
+      az: "Fərqli uzunluqlu iki siyahıda `zip(list_a, list_b)` çağırdıqda nə baş verir?"
+    back:
+      en: "It stops pairing as soon as the shortest list is exhausted. Extra items in the longer list are ignored."
+      az: "Ən qısa siyahı bitən kimi dayanır. Uzun siyahıdakı artıq elementlər nəzərə alınmır."
+  - front:
+      en: "What does the `break` statement do inside a loop?"
+      az: "Dövrə daxilində `break` operatoru nə edir?"
+    back:
+      en: "It terminates the loop immediately and resumes execution at the next statement after the loop."
+      az: "Dövrəni dərhal dayandırır və dövrədən sonrakı növbəti əmrə keçir."
+  - front:
+      en: "What does the `continue` statement do inside a loop?"
+      az: "Dövrə daxilində `continue` operatoru nə edir?"
+    back:
+      en: "It skips the remainder of the current iteration and jumps to the next iteration."
+      az: "Cari addımın qalan hissəsini ötürür və dərhal növbəti addıma keçir."
+  - front:
+      en: "Why is `dict(zip(keys, values))` a common pattern in data engineering?"
+      az: "`dict(zip(keys, values))` nə üçün data mühəndisliyində çox məşhur bir modeldir?"
+    back:
+      en: "It instantly maps a row of CSV values to a dictionary keyed by column headers in a single line."
+      az: "CSV sətirindəki dəyərləri sütun başlıqları ilə tək sətirdə lüğətə (açar-dəyər) çevirməyə imkan verir."

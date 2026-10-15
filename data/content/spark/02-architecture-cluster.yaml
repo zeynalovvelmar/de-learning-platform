@@ -1,0 +1,205 @@
+id: "02-architecture-cluster"
+order: 2
+level: "junior"
+title:
+  en: "Spark Cluster Architecture: Driver, Cluster Manager, Worker & Executor"
+  az: "Spark Klaster Arxitekturası: Driver, Cluster Manager, Worker və Executor"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                       DRIVER NODE (The Brain)                          │
+    │  ┌──────────────────────────────────────────────────────────────────┐  │
+    │  │ SparkContext / SparkSession  ──►  Catalyst Optimizer & DAG Engine│  │
+    │  │ Task Scheduler               ──►  Tracks Progress & Metadata     │  │
+    │  └─────────────────────────────────┬────────────────────────────────┘  │
+    └────────────────────────────────────┼───────────────────────────────────┘
+                                         ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          CLUSTER MANAGER (YARN, Kubernetes, Standalone, Mesos)         │
+    │          Allocates physical memory & CPU resources across servers      │
+    └────────────────────────────────────┬───────────────────────────────────┘
+                                         ▼
+            ┌────────────────────────────┴───────────────────────────┐
+            ▼                                                        ▼
+    ┌─────────────────────────────────┐      ┌─────────────────────────────────┐
+    │      WORKER NODE 1 (Server A)   │      │      WORKER NODE 2 (Server B)   │
+    │  ┌───────────────────────────┐  │      │  ┌───────────────────────────┐  │
+    │  │  EXECUTOR 1 (JVM Process) │  │      │  │  EXECUTOR 2 (JVM Process) │  │
+    │  │  [RAM Memory: 16 GB]      │  │      │  │  [RAM Memory: 16 GB]      │  │
+    │  │  ├── Core 1 (Task A)      │  │      │  │  ├── Core 1 (Task C)      │  │
+    │  │  ├── Core 2 (Task B)      │  │      │  │  ├── Core 2 (Task D)      │  │
+    │  │  └── Storage / Cache Pool │  │      │  │  └── Storage / Cache Pool │  │
+    │  └───────────────────────────┘  │      │  └───────────────────────────┘  │
+    └─────────────────────────────────┘      └─────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                      DRIVER DÜYÜNÜ (Klasterin Beyni)                   │
+    │  ┌──────────────────────────────────────────────────────────────────┐  │
+    │  │ SparkSession / SparkContext  ──►  Catalyst Optimizer & DAG Qrafı │  │
+    │  │ Tapşırıq Planlayıcısı (Scheduler) ──► İcra vəziyyətini izləyir   │  │
+    │  └─────────────────────────────────┬────────────────────────────────┘  │
+    └────────────────────────────────────┼───────────────────────────────────┘
+                                         ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          CLUSTER MANAGER (YARN, Kubernetes, Standalone)                │
+    │          Klasterdəki fiziki yaddaş və CPU resurslarını bölüşdürür      │
+    └────────────────────────────────────┬───────────────────────────────────┘
+                                         ▼
+            ┌────────────────────────────┴───────────────────────────┐
+            ▼                                                        ▼
+    ┌─────────────────────────────────┐      ┌─────────────────────────────────┐
+    │     WORKER 1 (Fiziki Server A)  │      │     WORKER 2 (Fiziki Server B)  │
+    │  ┌───────────────────────────┐  │      │  ┌───────────────────────────┐  │
+    │  │  EXECUTOR 1 (JVM Prosesi) │  │      │  │  EXECUTOR 2 (JVM Prosesi) │  │
+    │  │  [RAM Yaddaşı: 16 GB]     │  │      │  │  [RAM Yaddaşı: 16 GB]     │  │
+    │  │  ├── Nüvə 1 (Tapşırıq A)  │  │      │  │  ├── Nüvə 1 (Tapşırıq C)  │  │
+    │  │  ├── Nüvə 2 (Tapşırıq B)  │  │      │  │  ├── Nüvə 2 (Tapşırıq D)  │  │
+    │  │  └── Keşləmə / Yaddaş Sahəsi│ │      │  └── Keşləmə / Yaddaş Sahəsi│ │
+    │  └───────────────────────────┘  │      │  └───────────────────────────┘  │
+    └─────────────────────────────────┘      └─────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a Spark cluster like a massive construction mega-project:
+    - **Driver Node (Chief Architect)**: Sits in the main project trailer. Writes the master architectural blueprints (DAG), breaks the complex building down into hundreds of individual tasks, and tracks who finished what. Does NOT lay bricks himself.
+    - **Cluster Manager (Resource Dispatcher)**: The logistics director (YARN, Kubernetes). Dispatches physical trucks and assigns vacant lots.
+    - **Worker Node (Physical Building Lot)**: A physical bare-metal server or cloud virtual machine inside a data center.
+    - **Executor (Construction Subcontractor)**: A dedicated JVM process residing inside a Worker Node. Holds memory pools and manages workers.
+    - **Cores / Task Slots (Craftsmen)**: The actual threads on the CPU cores. Each core executes exactly ONE partition task at a time. If an executor has 4 cores, it runs 4 tasks concurrently.
+
+    ### Cluster Deploy Modes:
+    - **Client Mode**: Driver runs on your local laptop/gateway machine. If you close your laptop lid, the entire cluster job dies immediately! (Good for interactive development only).
+    - **Cluster Mode**: Driver runs inside one of the worker nodes inside the private cloud network. Completely decoupled from your laptop. (Mandatory for production jobs and Airflow DAGs).
+  az: |
+    Spark klasterini nəhəng bir inşaat layihəsi kimi təsəvvür edin:
+    - **Driver Düyünü (Baş Memar)**: Ştabda oturur. Bütün binanın baş cizgisini (DAG qrafını) çəkir, böyük işi minlərlə xırda tapşırığa bölür və kimin hansı işi bitirdiyini qeyd edir. Özü kərpic qoymur, sadəcə idarə edir.
+    - **Cluster Manager (Resurs Dispetçeri)**: Şirkətin maddi-texniki təminat şöbəsi (məsələn YARN və ya Kubernetes). Maşınları və iş yerlərini bölüşdürür.
+    - **Worker Düyünü (Tikinti Sahəsi)**: Məlumat mərkəzindəki fiziki server və ya bulud virtual maşınıdır.
+    - **Executor (Tikinti Briqadası)**: Worker serverinin daxilində işləyən xüsusi JVM prosesidir. Özünün RAM sahəsi var və işçiləri idarə edir.
+    - **Cores / Tapşırıq Yuvaları (Fəhlələr)**: Prosessorun (CPU) nüvələridir. Hər nüvə eyni anda DƏQİQ BİR partisiya tapşırığını icra edir. Executor-da 4 nüvə varsa, eyni anda 4 tapşırığı paralel görür.
+
+    ### Klasterin İşə Salınma Rejimləri (Deploy Modes):
+    - **Client Mode**: Driver sizin öz kompüterinizdə işləyir. Noutbukunuzun qapağını bağlasanız və ya WiFi kəsilsə, bütün klaster işi dərhal məhv olur! (Yalnız test və sazlama üçündür).
+    - **Cluster Mode**: Driver klasterin daxilindəki təhlükəsiz bir maşına yerləşdirilir. Sizin kompüteriniz sönsə belə, klaster işini axıra qədər icra edir. (İstehsalat və Airflow üçün mütləq standartdır).
+quick_recap:
+  en: "Spark follows a Master-Worker distributed architecture: The Driver plans execution (DAG), the Cluster Manager assigns cluster resources, and Executors on Worker nodes run individual partition tasks in parallel across CPU cores."
+  az: "Spark Master-Worker paylanmış arxitekturasına əsaslanır: Driver icranı planlaşdırır (DAG qurur), Cluster Manager fiziki resursları ayırır, Worker maşınlarındakı Executor-lar isə CPU nüvələrində partisiya tapşırıqlarını paralel icra edir."
+code: |
+  from pyspark.sql import SparkSession
+
+  # Initializing Spark with explicit cluster configuration
+  spark = SparkSession.builder \
+      .appName("02_Cluster_Architecture_Inspection") \
+      .config("spark.executor.memory", "4g") \
+      .config("spark.executor.cores", "2") \
+      .config("spark.sql.shuffle.partitions", "8") \
+      .getOrCreate()
+
+  sc = spark.sparkContext
+
+  # Inspect runtime cluster properties
+  app_id = sc.applicationId
+  spark_version = sc.version
+  default_parallelism = sc.defaultParallelism
+  master_url = sc.master
+
+  print("=== Spark Cluster Runtime Diagnostics ===")
+  print(f"Application ID:       {app_id}")
+  print(f"Engine Version:       Spark {spark_version}")
+  print(f"Master Connection:    {master_url}")
+  print(f"Default Parallelism:  {default_parallelism} cores/slots")
+  print(f"Shuffle Partitions:   {spark.conf.get('spark.sql.shuffle.partitions')}")
+
+  # Inspect active status of the driver context
+  print(f"Driver Active:        {not sc._jsc.sc().isStopped()}")
+code_explanation:
+  en: |
+    - `sc.defaultParallelism`: Reflects the total number of CPU core execution slots available in the cluster.
+    - `spark.sql.shuffle.partitions`: Controls how many partitions are created during wide shuffle operations (defaults to 200 in Spark, but should be tuned to dataset size).
+    - `sc.applicationId`: The unique tracking ID registered with YARN or Kubernetes resource managers.
+  az: |
+    - `sc.defaultParallelism`: Klasterdə mövcud olan ümumi aktiv CPU nüvə yuvalarının sayını göstərir.
+    - `spark.sql.shuffle.partitions`: Şəbəkə şafflı (məs. groupBy, join) zamanı yaranan partisiya sayıdır (susmaya görə 200 olur, lakin məlumatın həcminə uyğun sazlanmalıdır).
+    - `sc.applicationId`: Klaster Menecerində (YARN və ya K8s) tətbiqin qeydiyyatdan keçdiyi unikal izləmə identifikatorudur.
+visual_output: |
+  === Spark Cluster Runtime Diagnostics ===
+  Application ID:       app-20261015151245-0042
+  Engine Version:       Spark 3.5.0
+  Master Connection:    local[*]
+  Default Parallelism:  8 cores/slots
+  Shuffle Partitions:   8
+  Driver Active:        True
+output_description:
+  en: "Terminal diagnosis demonstrating active Driver initialization, core slot allocation, and master cluster bindings."
+  az: "Aktiv Driver başladılmasını, mövcud CPU yuvalarının sayını və klaster bağlantısını göstərən terminal diaqnostikası."
+what_it_does:
+  en: "Exposes Spark's distributed runtime configuration, showing how the Driver coordinates core allocation and registers with the cluster manager."
+  az: "Spark-ın paylanmış iş mühiti konfiqurasiyasını aşkar edir və Driver-in nüvə yuvalarını necə əlaqələndirdiyini nümayiş etdirir."
+real_world_use:
+  en: "Tuning `spark-submit` memory and core flags (`--executor-memory 16G --executor-cores 4 --num-executors 20`) to eliminate cluster resource contention and maximize pipeline throughput."
+  az: "Airflow və ya Databricks kəmərlərində `spark-submit` parametrlərini (`--executor-memory`, `--num-executors`) düzgün təyin edərək resurs xərclərini minimuma endirmək və sürəti artırmaq."
+common_mistakes:
+  en: |
+    - **Allocating too many cores per executor (e.g. `--executor-cores 16`)**: Causes severe JVM garbage collection (GC) pauses because huge heaps take seconds to clean. Best practice is 4 to 5 cores per executor.
+    - **Allocating 1 core per executor**: Loses in-process JVM multithreading benefits and floods the cluster manager with hundreds of small container requests.
+    - **Running long production jobs in Client Mode**: Any laptop sleep, VPN disconnect, or network blip aborts the multi-hour batch job.
+  az: |
+    - **Bir executor-a həddən artıq çox nüvə vermək (məs. 16 core)**: Nəhəng JVM yaddaşı səbəbindən Zibil Təmizləmə (Garbage Collection - GC) dondurmalarına səbəb olur. Ən ideal qızıl qayda hər executor-a 4-5 nüvə verməkdir.
+    - **Hər executor-a cəmi 1 nüvə vermək**: Çoxlu kiçik konteyner yaradaraq klaster menecerini həddindən artıq yükləyir və ortaq yaddaş üstünlüyünü itirir.
+    - **İstehsalat işlərini Client Mode-da işlətmək**: Şəbəkənin 1 saniyəlik kəsilməsi və ya kompüterin yuxuya getməsi saatlarla davam edən kəməri yarımçıq məhv edir.
+interview_question:
+  question:
+    en: "What is the difference between Driver and Executor, and what happens to the Spark job if either one crashes?"
+    az: "Driver ilə Executor arasındakı fərq nədir və onlardan biri sıradan çıxarsa (crush olarsa) Spark işində nə baş verər?"
+  answer:
+    en: |
+      1. **Driver vs Executor Roles**:
+         - **Driver**: The master controller. Maintains SparkSession, creates execution plans (DAG), submits tasks to executors, and tracks status. Does not process data partitions directly.
+         - **Executor**: Worker agents residing on worker nodes. Executes tasks on partitions of data assigned by the driver and stores cached RDDs/DataFrames in its local RAM.
+      2. **Failure Handling (Fault Tolerance)**:
+         - **If an Executor dies**: Spark is fully resilient! The Driver detects executor failure via heartbeat timeout. It requests a new executor container from the Cluster Manager, reads RDD lineage from the DAG, and automatically reschedules the lost tasks on the new executor. The overall job survives without failing!
+         - **If the Driver dies**: The job terminates immediately with failure, because the entire execution DAG, metadata, and task coordination state reside only in the Driver's memory. In cluster mode, the cluster manager can restart the driver from scratch if `--supervise` or restart policy is configured.
+    az: |
+      1. **Rollar Arasındakı Fərq**:
+         - **Driver**: Baş komandirdir. SparkSession saxlayır, DAG planı qurur, tapşırıqları executor-lara paylayır və nəticələri izləyir. Cədvəllərin sətirlərini birbaşa emal etmir.
+         - **Executor**: Fəhlə agentlərdir. Driver-in göndərdiyi tapşırıqları verilənlərin müvafiq partisiya sətirləri üzərində icra edir və keşlənmiş məlumatları öz RAM-ında saxlayır.
+      2. **Xəta Baş Verdikdə Nə Olur? (Fault Tolerance)**:
+         - **Executor ölərsə**: Spark tam dözümlüdür! Driver nəbzin (heartbeat) kəsildiyini görür, Klaster Menecerindən təzə executor istəyir və DAG qrafındakı nəsil şəcərəsi (lineage) sayəsində itirilmiş tapşırıqları yenidən hesablayır. Kəmər ÇÖKMÜR və davam edir!
+         - **Driver ölərsə**: Bütün iş dərhal ÇÖKÜR! Çünki bütün DAG planı, tapşırıqların cari vəziyyəti və koordinasiya mərkəzi yalnız Driver-in yaddaşında yaşayır. Klaster rejimində yalnız xüsusi avtomatik yenidən başlatma konfiqurasiyası (`--supervise`) varsa, kəmər ən başdan təkrar başladılır.
+  interviewer_tips:
+    en: "This is a classic #1 interview question. Highlight 'Executor loss is recoverable via DAG lineage; Driver loss is fatal to the running job unless cluster supervisor restarts the entire application'."
+    az: "Bu, texniki müsahibələrin #1 klassik sualıdır. Mütləq 'Executor öldükdə DAG lineage sayəsində avtomatik bərpa olunur; Driver öldükdə isə beyin öldüyü üçün bütün iş dərhal məhv olur' fərqini qeyd edin."
+flashcards:
+  - front:
+      en: "What are the core responsibilities of the Spark Driver?"
+      az: "Spark Driver-in əsas öhdəlikləri hansılardır?"
+    back:
+      en: "Maintains SparkSession, builds DAG execution plans, translates code into stages/tasks, and schedules tasks onto executors."
+      az: "SparkSession-u saxlayır, DAG icra planını qurur, kodu mərhələ və tapşırıqlara bölür və işi executor-lara planlayır."
+  - front:
+      en: "What happens if a single Spark Executor process crashes during a job?"
+      az: "İş zamanı tək bir Spark Executor prosesi qəzaya uğrayarsa nə baş verir?"
+    back:
+      en: "The Driver detects the heartbeat loss, provisions a replacement executor, and recalculates the lost partition tasks using lineage."
+      az: "Driver nəbz itkisini aşkar edir, təzə executor tələb edir və DAG şəcərəsi sayəsində itirilmiş tapşırıqları yenidən hesablayır."
+  - front:
+      en: "What is the key difference between Client Mode and Cluster Mode deploy?"
+      az: "Client Mode ilə Cluster Mode işə salınması arasındakı əsas fərq nədir?"
+    back:
+      en: "In Client Mode, Driver runs on the submission machine; in Cluster Mode, Driver runs securely inside a worker node on the cluster."
+      az: "Client rejimində Driver kodu göndərən lokal kompüterdə işləyir; Cluster rejimində isə klaster daxilindəki bir worker maşında işləyir."
+  - front:
+      en: "Why is giving 16+ CPU cores to a single executor considered a bad practice?"
+      az: "Tək bir executor-a 16+ CPU nüvəsi vermək nə üçün səhv hesab olunur?"
+    back:
+      en: "Huge JVM heap sizes cause excessive Garbage Collection (GC) pauses that freeze executor execution."
+      az: "Nəhəng JVM yaddaşı yaradır və Zibil Təmizləyici (GC) dondurmaları executor-un işini saniyələrlə iflic edir."
+  - front:
+      en: "What is the recommended number of CPU cores per executor in production?"
+      az: "İstehsalatda hər bir executor üçün tövsiyə olunan ən optimal CPU nüvə sayı neçədir?"
+    back:
+      en: "4 to 5 cores per executor (optimal balance for HDFS throughput and low GC overhead)."
+      az: "Hər executor üçün 4-5 nüvə (yüksək I/O ötürücülüyü və aşağı GC gecikməsi üçün ən ideal balansdır)."

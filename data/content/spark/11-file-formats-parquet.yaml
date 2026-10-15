@@ -1,0 +1,210 @@
+id: "11-file-formats-parquet"
+order: 11
+level: "junior"
+title:
+  en: "File Formats & Storage in the Lakehouse: Parquet vs CSV & Delta Lake"
+  az: "Fayl Formatları və Saxlanma: Parquet, Sıxılma və Predicate Pushdown"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  ROW-ORIENTED (CSV / JSON): Full Row Scans (Heavy Disk I/O)            │
+    │  Row 1: [id: 1, name: "Alice", age: 30, salary: 5000, country: "AZ"]   │
+    │  Row 2: [id: 2, name: "Bob",   age: 25, salary: 4200, country: "US"]   │
+    │  Query: SELECT AVG(salary) FROM table                                  │
+    │  Problem: Disk MUST read all names, ages, and countries just to get    │
+    │  salary! 85% of disk throughput is completely wasted.                  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  COLUMNAR STORAGE (Apache Parquet): High Compression & Fast Queries    │
+    │  Column ID:      [1, 2, 3, ...]     (Compressed with Bit-Packing)      │
+    │  Column Salary:  [5000, 4200, ...]  (Read directly! 85% I/O skipped!)  │
+    │  Column Country: ["AZ", "US", ...]  (Snappy compressed dictionary)     │
+    │                                                                        │
+    │  SUPERPOWER: PREDICATE PUSHDOWN via Metadata Headers                   │
+    │  Parquet Row Group 1: [salary_min = 1000, salary_max = 2500]           │
+    │  If Query is WHERE salary > 4000 ──► WHOLE 128MB BLOCK SKIPPED ON DISK!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SƏTİRLİ SAXLANMA (CSV / JSON): Bütün Sətirləri Oxuma Məcburiyyəti     │
+    │  Sətir 1: [id: 1, ad: "Alice", yaş: 30, maaş: 5000, ölkə: "AZ"]       │
+    │  Sətir 2: [id: 2, ad: "Bob",   yaş: 25, maaş: 4200, ölkə: "US"]       │
+    │  Sorğu: SELECT AVG(maaş) FROM cədvəl                                   │
+    │  Problem: Disk təkcə maaşı hesablamaq üçün adları, yaşları və ölkələri │
+    │  də oxumağa məcburdur! Disk ötürücülüyünün 85%-i boşuna yanır.        │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SÜTUNLU SAXLANMA (Apache Parquet): Yüksək Sıxılma və Şimşək Sürəti    │
+    │  Sütun ID:    [1, 2, 3, ...]       (Bit sıxılması ilə)                 │
+    │  Sütun Maaş:  [5000, 4200, ...]    (YALNIZ bu sütun oxunur! 85% Qənaət)│
+    │  Sütun Ölkə:  ["AZ", "US", ...]    (Snappy lüğət sıxılması)            │
+    │                                                                        │
+    │  SUPER GÜC: METADATA İLƏ ŞƏRTİN ENDİRİLMƏSİ (PREDICATE PUSHDOWN)       │
+    │  Parquet Blok 1: [maaş_min = 1000, maaş_max = 2500]                    │
+    │  Sorğunuz: WHERE maaş > 4000 ──► BÜTÜN 128MB BLOK DİSKDƏN OXUNMADAN    │
+    │  BİRBAŞA KƏNARA ATILIR!                                                │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of Parquet vs CSV like reading a phone directory:
+    - **CSV (Row-Oriented)**: Every page prints: `John Doe, 34 years old, Engineer, 555-1234, Blood Type A+`. If your boss asks you: "Calculate the average phone number length", you are forced to read every person's name, age, job title, and medical blood type line-by-line just to look at the numbers.
+    - **Parquet (Column-Oriented)**: All phone numbers are printed in their own separate column block. Your eyes glance down ONLY that single column in 2 seconds, ignoring all names and medical data.
+
+    ### Why Apache Parquet is the Industry Gold Standard:
+    1. **Column Pruning**: If your table has 200 columns and your SQL query selects only 3, Parquet instructs the disk controller to read only those 3 byte offsets. 98.5% of disk I/O is eliminated!
+    2. **Compression (Snappy / ZSTD)**: Because an entire column contains identical data types (e.g. all integers or all country codes), compression algorithms achieve 5x to 10x smaller file sizes than text CSVs.
+    3. **Predicate Pushdown**: Parquet stores statistical metadata (min, max, null count) at the footer of each Row Group. If a row group has `max_age = 25` and your query is `WHERE age > 40`, Spark skips reading the entire 128MB block from S3 storage!
+    4. **Delta Lake (The Modern Extension)**: An open-source storage layer on top of Parquet that adds ACID transactions (`_delta_log/`), Time Travel (`RESTORE AS OF`), schema evolution, and `MERGE INTO` upsert operations.
+  az: |
+    Parquet ilə CSV arasındakı fərqi telefon məlumat kitabçası ilə təsəvvür edin:
+    - **CSV (Sətirli Saxlanma)**: Hər sətrdə yazılıb: `Murad Əliyev, 34 yaş, Mühəndis, 050-1234567, Qan qrupu A+`. Rəhbərlik sizdən: "Ölkədəki mobil nömrələrin prefikslərini çıxar" istədikdə, siz məcburən hər kəsin adını, peşəsini və qan qrupunu oxumalı olursunuz.
+    - **Parquet (Sütunlu Saxlanma)**: Bütün telefon nömrələri ayrıca bütöv bir sütun blokunda saxlanılır. Siz sadəcə o tək sütuna baxırsınız, adları və qan qruplarını diskdən ümumiyyətlə oxumursunuz.
+
+    ### Apache Parquet Niyə Müasir Data Mühəndisliyinin Qızıl Standartıdır?
+    1. **Sütunların Kəsilməsi (Column Pruning)**: Cədvəlinizdə 200 sütun varsa və siz cəmi 2 sütunu sorğulasanız, Parquet diskin yalnız həmin 2 sütununu oxuyur. Disk I/O yükünün 99%-i aradan qalxır!
+    2. **Yüksək Sıxılma (Snappy / ZSTD)**: Eyni sütunda ancaq eyni tipli məlumatlar (məsələn, ancaq tarixlər və ya ölkə kodları) saxlandığı üçün sıxılma alqoritmləri faylı CSV-dən 5-10 dəfə kiçik edir.
+    3. **Şərtin Endirilməsi (Predicate Pushdown)**: Parquet hər 128MB-lıq blokun sonunda statistik metadata saxlayır (min, max, null sayı). Əgər blokda `max_yaş = 25`-dirsə və sizin sorğunuz `WHERE yaş > 40`-dırsa, Spark həmin bütöv 128MB-lıq bloku S3-dən oxumadan dərhal ötürür!
+    4. **Delta Lake (Müasir Əlavə)**: Parquet-in üzərində qurulmuş anbar qatıdır. ACID tranzaksiyaları (`_delta_log/`), Zaman Səyahəti (Time Travel), sxem qorunması və `MERGE INTO` (Upsert) dəstəyi təmin edir.
+quick_recap:
+  en: "Apache Parquet is a columnar binary file format optimized for big data analytics. It enables Column Pruning (reading only requested columns) and Predicate Pushdown (skipping entire row groups using min/max metadata), slashing cloud storage costs and query latency."
+  az: "Apache Parquet böyük verilənlər analitikası üçün optimallaşdırılmış sütunlu binar fayl formatıdır. Column Pruning (yalnız seçilmiş sütunları oxumaq) və Predicate Pushdown (min/max statistikası ilə lazımsız blokları diskdən oxumadan keçmək) sayəsində saxlanc xərclərini və sorğu müddətini dəfələrlə azaldır."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.functions import col
+
+  spark = SparkSession.builder.appName("11_Parquet_Predicate_Pushdown").master("local[*]").getOrCreate()
+
+  # Create sample telemetry records with distinct temperature ranges
+  telemetry = [
+      (1, "AZE", 22.5, 2024),
+      (2, "AZE", 28.0, 2024),
+      (3, "USA", 15.0, 2023),
+      (4, "GBR", 18.5, 2023),
+      (5, "AZE", 42.0, 2024)   # High temp in 2024
+  ]
+  df = spark.createDataFrame(telemetry, ["id", "country", "temp", "year"])
+
+  # 1. WRITE AS PARTITIONED PARQUET (creates folders: year=2023/, year=2024/)
+  output_path = "/tmp/spark_parquet_demo"
+  df.write.mode("overwrite").partitionBy("year").parquet(output_path)
+  print(f"Dataset successfully written as partitioned Parquet to {output_path}")
+
+  # 2. READ AND INSPECT PREDICATE PUSHDOWN
+  read_df = spark.read.parquet(output_path)
+  filtered_query = read_df.filter((col("year") == 2024) & (col("temp") > 25.0)).select("id", "country", "temp")
+
+  print("\n=== Filtered Query Results ===")
+  filtered_query.show()
+
+  print("=== Physical Execution Plan (Notice PartitionFilters and PushedFilters!) ===")
+  filtered_query.explain(mode="simple")
+code_explanation:
+  en: |
+    - `df.write.partitionBy("year").parquet(...)`: Partitions data on the filesystem level into directory structures `year=2023/` and `year=2024/`.
+    - Look closely at the Physical Plan:
+      - `PartitionFilters: [isnotnull(year#23), (year#23 = 2024)]`: Spark completely skips opening the `year=2023/` directory! (Partition Pruning).
+      - `PushedFilters: [isnotnull(temp#22), (temp#22 > 25.0)]`: Spark pushes the temperature filter directly down into the Parquet reader, discarding low-temperature row groups before decompressing them.
+  az: |
+    - `df.write.partitionBy("year").parquet(...)`: Məlumatı fayl sistemi səviyyəsində `year=2023/` və `year=2024/` qovluqlarına bölür.
+    - Fiziki plandakı möcüzəyə baxın:
+      - `PartitionFilters: [(year = 2024)]`: Spark `year=2023/` qovluğunu heç açmır belə! (Partition Pruning).
+      - `PushedFilters: [(temp > 25.0)]`: Spark temperatur filtrini birbaşa Parquet fayl oxuyucusunun daxilinə ötürür (Predicate Pushdown) və aşağı temperaturlu blokları yaddaşa açmadan kənara atır.
+visual_output: |
+  Dataset successfully written as partitioned Parquet to /tmp/spark_parquet_demo
+
+  === Filtered Query Results ===
+  +---+-------+----+
+  | id|country|temp|
+  +---+-------+----+
+  |  2|    AZE|28.0|
+  |  5|    AZE|42.0|
+  +---+-------+----+
+
+  === Physical Execution Plan (Notice PartitionFilters and PushedFilters!) ===
+  == Physical Plan ==
+  *(1) Project [id#20L, country#21, temp#22]
+  +- *(1) Filter (isnotnull(temp#22) AND (temp#22 > 25.0))
+     +- *(1) FileScan parquet [id#20L,country#21,temp#22,year#23]
+        Batched: true, DataFilters: [isnotnull(temp#22), (temp#22 > 25.0)], Format: Parquet,
+        PartitionFilters: [isnotnull(year#23), (year#23 = 2024)],
+        PushedFilters: [IsNotNull(temp), GreaterThan(temp,25.0)],
+        ReadSchema: struct<id:bigint,country:string,temp:double>
+output_description:
+  en: "Physical execution plan proving PartitionFilters (skipping year 2023 folders) and PushedFilters (pushing temp > 25.0 down to Parquet metadata)."
+  az: "PartitionFilters (2023 qovluğunun ümumiyyətlə oxunmaması) və PushedFilters (temp > 25.0 şərtinin birbaşa fayl daxilinə endirilməsi) sübutunu göstərən icra planı."
+what_it_does:
+  en: "Demonstrates partitioned Parquet writes and exposes how Spark eliminates massive storage I/O using Partition Pruning and Predicate Pushdown."
+  az: "Partisiyalanmış Parquet yazılışını və Spark-ın Partition Pruning və Predicate Pushdown vasitəsilə disk I/O yükünü necə sıfırladığını nümayiş etdirir."
+real_world_use:
+  en: "The architecture behind Modern Data Lakes (AWS S3 + Athena/EMR, Azure ADLS + Databricks, Snowflake external tables). Querying petabyte-scale telemetry in seconds for fractions of a cent."
+  az: "Müasir Data Lakehouse arxitekturasının təməlidir (AWS S3 + Athena, Azure Databricks, Google BigQuery). Petabaytlarla məlumatın saniyələr içində qəpik-quruşa sorğulanmasını təmin edir."
+common_mistakes:
+  en: |
+    - **Storing multi-gigabyte production data as CSV or JSON**: Lacks column pruning, lacks compression, and cannot perform predicate pushdown, leading to 10x higher cloud storage and compute costs.
+    - **Over-partitioning by high-cardinality columns**: Running `partitionBy("user_id")` or `partitionBy("timestamp")` creates millions of tiny sub-folders with 1 KB files, crippling cloud object storage performance. Only partition by low-cardinality keys like `year`, `month`, or `region`.
+    - **Applying Python functions on filter columns**: Writing `.filter(my_python_func(col("year")) == 2024)` disables Predicate Pushdown completely because Spark cannot translate opaque Python bytecode into Parquet metadata filters.
+  az: |
+    - **İstehsalat məlumatlarını CSV və ya JSON-da saxlamaq**: Sütun kəsilməsi yoxdur, sıxılma zəifdir və predicate pushdown işləmir. Nəticədə bulud xərcləri 10 qat artır.
+    - **Yüksək kardinallıqlı sütunlara görə bölmək (Over-partitioning)**: `partitionBy("user_id")` və ya dəqiq zamana görə bölmək milyonlarla mikroskopik qovluq və 1 KB-lıq fayl yaradır və S3-ü kilitləyir. Yalnız az unikal dəyəri olan sütunlara görə bölün (`year`, `month`, `region`).
+    - **Süzgəc sütununda Python funksiyası çağırmaq**: `.filter(py_funksiyam(col("il")) == 2024)` yazdıqda Predicate Pushdown tamamilə sıradan çıxır, çünki Spark qaranlıq Python kodunu Parquet fayl filtrinə çevirə bilmir.
+interview_question:
+  question:
+    en: "Why is Apache Parquet vastly superior to CSV for analytical querying, and what is the difference between Partition Pruning and Predicate Pushdown?"
+    az: "Analitik sorğular üçün Apache Parquet nə üçün CSV-dən qat-qat üstündür və Partition Pruning ilə Predicate Pushdown arasındakı fərq nədir?"
+  answer:
+    en: |
+      1. **Why Parquet Beats CSV**:
+         - **Columnar Layout (Column Pruning)**: Parquet arranges data by columns rather than rows. If a query selects 3 out of 100 columns, only those exact column byte blocks are read from storage. CSV requires parsing every delimiter across every single row.
+         - **High Compression Ratios**: Homogeneous data types in a column compress with specialized encoders (Run-Length Encoding, Dictionary Encoding, Bit-Packing, Snappy), shrinking disk usage by 75% to 90%.
+         - **Embedded Schema & Metadata**: Parquet is self-describing, carrying schema definitions and min/max statistics in its binary footers.
+      2. **Partition Pruning vs Predicate Pushdown**:
+         - **Partition Pruning (Directory Level)**: Operates at the file system folder hierarchy. If data is partitioned by `year=2024/`, queries filtering on `year = 2024` skip traversing all other year directories entirely.
+         - **Predicate Pushdown (File Internal Level)**: Operates inside individual Parquet files. Spark passes the filter condition (`temp > 25.0`) to the Parquet reader. The reader inspects the min/max statistics in the footer of each 128MB Row Group; if `max_temp < 25.0`, it skips decompressing and reading that entire row group from disk.
+    az: |
+      1. **Parquet Niyə CSV-dən Üstündür?**:
+         - **Sütunlu Format (Column Pruning)**: Məlumatları sətir-sətir deyil, sütun-sütun saxlayır. 100 sütundan 3-ü seçilirsə, yalnız həmin 3 sütunun baytları diskdən oxunur. CSV isə hər bir sətri başdan-ayağa oxumağa məcburdur.
+         - **Yüksək Sıxılma**: Eyni tipli məlumatlar yan-yana olduğu üçün xüsusi alqoritmlər (Snappy, Lüğət Kodlaşdırması) faylı 75%-90% kiçildir.
+         - **Daxili Metadata**: Parquet öz sxemini və min/max statistikalarını faylın daxilində (footer) saxlayır.
+      2. **Partition Pruning ilə Predicate Pushdown Arasındakı Fərq**:
+         - **Partition Pruning (Qovluq Səviyyəsində)**: Fayl sistemi qovluqları səviyyəsində işləyir. Məlumat `year=2024/` qovluqlarına bölünübsə, `year = 2024` sorğusu digər bütün illərin qovluqlarına heç baş çəkmir.
+         - **Predicate Pushdown (Faylın Daxili Səviyyəsində)**: Parquet faylının daxilində işləyir. Spark `temp > 25.0` şərtini birbaşa Parquet fayl oxuyucusuna ötürür. Oxuyucu hər 128MB-lıq Row Group-un sonundakı min/max statistikasına baxır; əgər `max_temp < 25.0`-dirsə, həmin bütöv bloku diskdən oxumadan kənara atır.
+  interviewer_tips:
+    en: "Draw the clear boundary: Partition Pruning skips directory paths on storage; Predicate Pushdown skips row groups inside the file using min/max footer metadata."
+    az: "Mütləq aydın sərhəd qoyun: Partition Pruning qovluqları açmır; Predicate Pushdown isə faylın daxilindəki min/max footer statistikasına baxaraq sətir qruplarını oxumadan atır."
+flashcards:
+  - front:
+      en: "What is the primary architectural difference between CSV and Parquet file formats?"
+      az: "CSV ilə Parquet fayl formatları arasındakı ən əsas arxitektur fərq nədir?"
+    back:
+      en: "CSV is row-oriented text; Parquet is column-oriented binary with embedded metadata and compression."
+      az: "CSV sətir yönümlü mətndir; Parquet isə daxilində metadata və sıxılma olan sütun yönümlü binar formatdır."
+  - front:
+      en: "What is 'Column Pruning' in Apache Spark?"
+      az: "Apache Spark-da 'Column Pruning' nə deməkdir?"
+    back:
+      en: "The optimization where Spark reads only the specific byte offsets of referenced columns from storage, ignoring unselected columns."
+      az: "Spark-ın diskdən yalnız sorğuda tələb olunan sütunların baytlarını oxuyub, qalan sütunları oxumadan atması optimallaşdırmasıdır."
+  - front:
+      en: "How does 'Predicate Pushdown' accelerate query performance?"
+      az: "'Predicate Pushdown' sorğu performansını necə sürətləndirir?"
+    back:
+      en: "Pushes filter conditions into Parquet readers, using min/max footer metadata to skip entire 128MB row groups without reading them."
+      az: "Filtr şərtlərini fayl oxuyucusuna ötürür və min/max statistikası ilə bütöv 128MB-lıq blokları oxumadan keçir."
+  - front:
+      en: "What key capability does Delta Lake add on top of Apache Parquet?"
+      az: "Delta Lake Apache Parquet-in üzərinə hansı əsas üstünlüyü əlavə edir?"
+    back:
+      en: "ACID transactions with an undo/redo transaction log (`_delta_log`), Time Travel, and schema enforcement."
+      az: "ACID tranzaksiyaları (`_delta_log` tranzaksiya jurnalı ilə), Zaman Səyahəti (Time Travel) və sxem qorunması."
+  - front:
+      en: "Why should you never partition a dataset by high-cardinality fields like `timestamp` or `user_id`?"
+      az: "Nə üçün məlumatı `timestamp` və ya `user_id` kimi yüksək kardinallıqlı sahələrə görə partisiya etmək olmaz?"
+    back:
+      en: "It creates millions of microscopic sub-folders with tiny files, overwhelming storage metadata and crippling query performance."
+      az: "Milyonlarla xırda qovluq və mikroskopik fayl yaradır, saxlanc sistemini yükləyir və sorğuları iflic edir."

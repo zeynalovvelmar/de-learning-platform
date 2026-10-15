@@ -119,3 +119,35 @@ interview_question:
       1. **OLAP Sorğularının Sürətləndirilməsi**: Analitik anbarlar (ClickHouse, BigQuery, Snowflake) milyardlarla sətir emal edir. Denormallaşdırılmış sxemlər (Ulduz Sxemi, Vahid Böyük Cədvəl - OBT) paylanmış ağır JOIN və şəbəkə qarışdırma (shuffle) əməliyyatlarını aradan qaldırır.
       2. **Əvvəlcədən Hesablanmış Göstəricilər (Materialized Views)**: Ölçüləri əvvəlcədən hesablanmış aqreqasiyalarla birləşdirmək BI panellərinin (dashboards) sorğuları dərhal cavablandırmasını təmin edir.
       3. **Oxuma/Yazma Yükünün Balanslaşdırılması**: Əməliyyat yönümlü OLTP aşağı yazma yükünə və bütövlüyə (3NF) üstünlük verir. Analitik OLAP isə sütunlu oxuma sürətini artırmaq üçün saxlama təkrarlanmasını qəbul edir.
+
+flashcards:
+  - front:
+      en: "What are the two mandatory properties of a Primary Key (PK)?"
+      az: "Əsas Açarın (Primary Key) iki mütləq tələbi hansıdır?"
+    back:
+      en: "1. Uniqueness: No two rows can have the same primary key value. 2. Non-nullability: A primary key cannot contain NULL values."
+      az: "1. Unikallıq: Heç bir iki sətir eyni əsas açar dəyərinə malik ola bilməz. 2. NULL ola bilməməsi: Əsas açar sütununda heç vaxt NULL ola bilməz."
+  - front:
+      en: "What is referential integrity and which constraint enforces it?"
+      az: "Əlaqə bütövlüyü (referential integrity) nədir və onu hansı məhdudiyyət təmin edir?"
+    back:
+      en: "Referential integrity guarantees that relationships between tables remain consistent. It is enforced by Foreign Keys (FK), which require child values to match an existing parent PK."
+      az: "Əlaqə bütövlüyü cədvəllər arasındakı münasibətlərin ardıcıllığını təmin edir. Bu, Xarici Açar (FK) vasitəsilə təmin olunur və bala cədvəldəki dəyərin ana cədvəldəki Əsas Açara uyğunluğunu tələb edir."
+  - front:
+      en: "What is the core rule of the 3rd Normal Form (3NF) in simple terms?"
+      az: "3-cü Normal Formanın (3NF) əsas qaydası sadə dillə nədir?"
+    back:
+      en: "Every non-key attribute must depend directly on the primary key, the whole primary key, and nothing but the primary key (no transitive dependencies)."
+      az: "Açar olmayan hər bir sütun birbaşa və yalnız əsas açardan asılı olmalıdır. Sütunların başqa sütunlar üzərindən dolayısı ilə (tranzitiv) asılılığına yol verilmir."
+  - front:
+      en: "Why is denormalization (Star Schema / OBT) common in Data Engineering warehouses?"
+      az: "Data mühəndisliyi anbarlarında (DWH) nə üçün denormallaşdırma (Ulduz Sxemi / OBT) geniş tətbiq olunur?"
+    back:
+      en: "To avoid expensive distributed multi-table JOINs across billions of rows, significantly accelerating analytical query throughput and dashboard latency."
+      az: "Milyardlarla sətir üzərində paylanmış ağır çoxcədvəlli JOIN əməliyyatlarından qaçmaq, analitik sorğuların və BI panellərinin sürətini kəskin artırmaq üçün."
+  - front:
+      en: "Do Foreign Keys create indexes automatically in SQLite and PostgreSQL?"
+      az: "SQLite və PostgreSQL-də Xarici Açarlar (Foreign Keys) avtomatik indeks yaradırmı?"
+    back:
+      en: "No. FK columns must be explicitly indexed by the engineer; otherwise, JOIN operations and cascading actions cause expensive full table scans."
+      az: "Xeyr. FK sütunları data mühəndisi tərəfindən açıq şəkildə indekslənməlidir; əks halda JOIN və silmə əməliyyatları bütün cədvəlin daranmasına (table scan) səbəb olur."

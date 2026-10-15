@@ -1,0 +1,169 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "08-functions-modularity"
+order: 8
+level: "junior"
+title:
+  en: "Functions, Modularity, and The Mutable Default Trap"
+  az: "Funksiyalar, Modulluq və Dəyişən Arqument Tələsi"
+quick_recap:
+  en: "Functions package reusable transformation logic into modular units. The #1 classic Python interview trap: NEVER define mutable default arguments like `def append_item(val, items=[])`. Default arguments are evaluated only once at definition time, meaning `items` persists across all calls! Always use `items=None` and initialize inside."
+  az: "Funksiyalar təkrar istifadə olunan transformasiya kodunu vahid modullara yığır. Ən məşhur #1 klassik Python müsahibə tələsi: heç vaxt arqumentə susmaya görə boş siyahı qoymayın (`def add(val, items=[])`). Susmaya görə arqument funksiya elan ediləndə cəmi bircə dəfə yaradılır və sonrakı bütün çağırışlarda eyni siyahı yaddaşda qalır! Həmişə `items=None` istifadə edin."
+explanation:
+  en: |
+    Think of a function like an automated espresso machine:
+    You feed it inputs (coffee beans and water), press a button, and it returns a clean output (espresso). If the machine keeps leftover coffee residue inside for the next customer, that is a bug.
+    In Python, writing **Pure Functions** (same input $\rightarrow$ same output, no unexpected side effects) makes data pipelines reliable and testable.
+
+    ### The Famous "Mutable Default Argument" Trap:
+    ```python
+    def collect_event(event_id, buffer=[]):  # BUG!
+        buffer.append(event_id)
+        return buffer
+    ```
+    If you call `collect_event(1)`, it returns `[1]`.
+    If you call `collect_event(2)` expecting a new list, it returns `[1, 2]`!
+    Why? Because Python evaluates default arguments **once** when the function is first defined, not every time it is called.
+
+    ### The Correct Pythonic Pattern:
+    ```python
+    def collect_event(event_id, buffer=None):  # CORRECT
+        if buffer is None:
+            buffer = []
+        buffer.append(event_id)
+        return buffer
+    ```
+  az: |
+    Funksiyanı avtomatlaşdırılmış qəhvə aparatı kimi təsəvvür edin:
+    Siz daxili inqrediyentləri verirsiniz (qəhvə dənəsi və su), düyməni basırsınız və təmiz çıxış (qəhvə) alırsınız. Əgər aparat əvvəlki müştərinin qalıqlarını sonrakı müştərinin stəkanına töksə, bu böyük bir xətadır.
+    Python-da **Təmiz Funksiyalar (Pure Functions)** yazmaq (eyni giriş $\rightarrow$ eyni çıxış, gözlənilməz kənar təsirlər olmadan) data kəmərlərini etibarlı və test olunan edir.
+
+    ### Məşhur "Dəyişən Susmaya Görə Arqument" Tələsi:
+    ```python
+    def add_event(event_id, buffer=[]):  # BÖYÜK SƏHV!
+        buffer.append(event_id)
+        return buffer
+    ```
+    Birinci dəfə `add_event(1)` çağırdıqda `[1]` qayıdır.
+    İkinci dəfə təzə çağırışla `add_event(2)` çağırdıqda `[2]` deyil, `[1, 2]` qayıdır!
+    Niyə? Çünki Python susmaya görə arqumentləri hər çağırışda deyil, funksiya ilk dəfə yaddaşa yazılanda **cəmi bir dəfə** yaradır.
+
+    ### Düzgün Pythonic Qayda:
+    ```python
+    def add_event(event_id, buffer=None):  # DÜZGÜN
+        if buffer is None:
+            buffer = []
+        buffer.append(event_id)
+        return buffer
+    ```
+code: |
+  # The classic mutable default trap vs the correct pattern
+  def add_to_batch_correct(item, batch=None):
+      if batch is None:
+          batch = []
+      batch.append(item)
+      return batch
+
+  # Testing independent function calls
+  b1 = add_to_batch_correct("Order1")
+  b2 = add_to_batch_correct("Order2")
+
+  print(f"Batch 1: {b1}")
+  print(f"Batch 2: {b2} (correctly isolated!)")
+what_it_does:
+  en: "Demonstrates the industry-standard pattern for initializing mutable default arguments safely using None and explicit checks."
+  az: "Dəyişən susmaya görə arqumentləri None və aşkar yoxlama ilə təhlükəsiz başlatmağın sənaye standartı üsulunu göstərir."
+real_world_use:
+  en: "Structuring data transformations into small, testable unit functions (e.g. clean_timestamp, normalize_currency) used across Airflow DAG tasks."
+  az: "Airflow tapşırıqlarında və ETL kəmərlərində transformasiya məntiqini kiçik, təkrar istifadə edilən vahid funksiyalara bölmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using mutable defaults like `def f(data=[])`**: Leads to state pollution where previous function call data bleeds into new calls.
+    - **Forgetting the return statement**: A function without an explicit `return` implicitly returns `None`.
+    - **Modifying global variables inside functions without need**: Makes code unpredictable and untestable. Pass variables as arguments instead.
+  az: |
+    - **Susmaya görə dəyişən tip qoymaq `def f(data=[])`**: Əvvəlki çağırışların məlumatı növbəti çağırışlara qarışır və kəməri korlayır.
+    - **return yazmağı unutmaq**: Açıq `return` olmayan funksiyalar susmaya görə `None` qaytarır.
+    - **Funksiya içində qlobal dəyişənləri dəyişmək**: Kodu gözlənilməz və test olunmaz edir. Məlumatları arqument kimi ötürün.
+interview_question:
+  question:
+    en: "What happens when you define a function with `def append_item(val, items=[])` in Python, and how should it be fixed?"
+    az: "Python-da `def append_item(val, items=[])` funksiyasını təyin etdikdə nə baş verir və bu xəta necə aradan qaldırılmalıdır?"
+  answer:
+    en: |
+      1. **Definition-time Evaluation**: In Python, default parameter expressions are evaluated once when the `def` statement is executed (at module import time), not at runtime whenever the function is invoked.
+      2. **Persistent Shared State**: The list `[]` is created once in memory. Every subsequent call that relies on the default parameter reuses that exact same heap list object, causing data from past calls to persist.
+      3. **The Fix**: Always use `None` as the default sentinel value:
+         `def append_item(val, items=None):`
+         `    if items is None: items = []`
+    az: |
+      1. **Təyinat Zamanı Yaradılma**: Python-da susmaya görə arqumentlər funksiya çağırılan zaman deyil, `def` əmri icra ediləndə (skript yüklənəndə) cəmi bir dəfə yaradılır.
+      2. **Ortaq Yaddaşın Qalması**: Boş siyahı `[]` yaddaşda tək bir obyekt kimi qalır. Default dəyərə güvənən sonrakı hər bir çağırış eyni siyahını doldurur və əvvəlki zənglərin məlumatı silinmir.
+      3. **Həlli**: Həmişə susmaya görə `None` təyin edin:
+         `def append_item(val, items=None):`
+         `    if items is None: items = []`
+exercise:
+  question:
+    en: "Write a function `calculate_net_revenue(gross, discount_pct=0.0, tax_pct=0.18)` that computes: discounted = gross * (1 - discount_pct), tax = discounted * tax_pct, net = discounted - tax. Return the net revenue rounded to 2 decimal places."
+    az: "discounted = gross * (1 - discount_pct), tax = discounted * tax_pct, net = discounted - tax düsturu ilə xalis gəliri hesablayan və 2 kəsr rəqəminə yuvarlaqlaşdıraraq qaytaran `calculate_net_revenue(gross, discount_pct=0.0, tax_pct=0.18)` funksiyası yazın."
+  starter_code: |
+    def calculate_net_revenue(gross, discount_pct=0.0, tax_pct=0.18):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Compute discounted, then subtract the tax amount and return `round(net, 2)`."
+    az: "Endirimli məbləği tapın, vergi məbləğini çıxın və `round(net, 2)` qaytarın."
+  solution: |
+    def calculate_net_revenue(gross, discount_pct=0.0, tax_pct=0.18):
+        discounted = gross * (1 - discount_pct)
+        tax = discounted * tax_pct
+        net = discounted - tax
+        return round(net, 2)
+  test_code: |
+    assert calculate_net_revenue(100.0) == 82.0, "100 with default 18% tax must equal 82.0"
+    assert calculate_net_revenue(100.0, discount_pct=0.10) == 73.8
+
+flashcards:
+  - front:
+      en: "Why is `def func(lst=[])` considered a major antipattern in Python?"
+      az: "Python-da `def func(lst=[])` nə üçün ciddi xəta (antipattern) hesab olunur?"
+    back:
+      en: "Default arguments are evaluated once at definition time. The list persists across calls and accumulates data unexpectedly."
+      az: "Susmaya görə arqumentlər funksiya təyin ediləndə cəmi bircə dəfə yaradılır. Siyahı çağırışlar arasında yaddaşda qalır və məlumatları qarışdırır."
+  - front:
+      en: "What should you use as a default argument instead of a mutable object like a list?"
+      az: "Dəyişən obyekt (məs. siyahı) əvəzinə susmaya görə arqument kimi nə təyin edilməlidir?"
+    back:
+      en: "Use `None`, then initialize inside: `if lst is None: lst = []`."
+      az: "`None` təyin edilməli və daxildə başladılmalıdır: `if lst is None: lst = []`."
+  - front:
+      en: "What does a Python function return if it has no return statement?"
+      az: "Əgər funksiyada return əmri yoxdursa, funksiya nə qaytarır?"
+    back:
+      en: "It returns `None` by default."
+      az: "Susmaya görə `None` qaytarır."
+  - front:
+      en: "What are positional arguments vs keyword arguments?"
+      az: "Mövqe (positional) arqumentləri ilə açar sözlü (keyword) arqumentlər arasındakı fərq nədir?"
+    back:
+      en: "Positional arguments are matched by order `func(1, 2)`. Keyword arguments are explicitly passed by name `func(a=1, b=2)`."
+      az: "Mövqe arqumentləri sıraya görə uyğunlaşdırılır `func(1, 2)`. Açar sözlü arqumentlər isə adla ötürülür `func(a=1, b=2)`."
+  - front:
+      en: "What does a Pure Function mean in data engineering?"
+      az: "Data mühəndisliyində Təmiz Funksiya (Pure Function) nə deməkdir?"
+    back:
+      en: "A function that has no side effects and always returns the exact same output for the same input."
+      az: "Kənar təsirləri olmayan və eyni giriş üçün həmişə tam eyni çıxışı təmin edən etibarlı funksiya."

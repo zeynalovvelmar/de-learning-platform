@@ -1,0 +1,186 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "06-string-date-functions"
+order: 6
+level: "junior"
+title:
+  en: "String and Date Functions: Data Cleaning"
+  az: "Mətn və Tarix Funksiyaları: Məlumatların Təmizlənməsi"
+quick_recap:
+  en: "Scalar functions transform individual values row-by-row. String functions (UPPER, LOWER, TRIM, SUBSTR, ||) clean and standardize messy inputs. Date functions (strftime, DATE) parse and partition temporal events."
+  az: "Skalyar funksiyalar hər bir sətri ayrıca dəyişdirir. Mətn funksiyaları (UPPER, LOWER, TRIM, SUBSTR, ||) xam və səliqəsiz yazıları standartlaşdırır. Tarix funksiyaları (strftime, DATE) isə hadisələri partisiya və təhlil üçün formatlayır."
+explanation:
+  en: |
+    Think of an automated postal sorting facility:
+    Envelopes arrive with handwritten typos, trailing spaces, lowercase city codes, and inconsistent date stamps. Before robotic conveyor belts can dispatch parcels, an optical scanner cleans each address: it strips leading/trailing spaces, capitalizes city names, and prints a standardized year-month barcode.
+    In Data Engineering, **Scalar Functions** perform this exact hygiene on raw data streams. Unlike aggregate functions that combine rows, scalar functions process values row-by-row.
+
+    ### Key Data Engineering Scalar Functions:
+    - **String Standardization**:
+      - `TRIM(col)`: Strips accidental whitespace at edges.
+      - `LOWER(col)` / `UPPER(col)`: Normalizes case for reliable joining.
+      - `SUBSTR(col, start, len)`: Extracts substrings (1-based index).
+      - `col_a || ' ' || col_b`: Concatenates text strings.
+      - `LENGTH(col)`: Counts characters (useful for data quality checks).
+    - **Date and Temporal Operations**:
+      - `strftime('%Y-%m', date_col)`: Truncates dates to month cohorts.
+      - `strftime('%Y', date_col)`: Extracts year for partitioning.
+      - `date('now')`: Generates current date timestamps.
+
+    ### Real Dataset Examples:
+
+    1. **Text Standardization and Concatenation:**
+    ```sql
+    SELECT user_id, UPPER(first_name) || ' ' || UPPER(last_name) as full_name, LOWER(TRIM(email)) as clean_email FROM users LIMIT 5;
+    ```
+    Concatenates first and last names in uppercase and lowercases trimmed emails.
+
+    2. **Temporal Aggregation with strftime:**
+    ```sql
+    SELECT strftime('%Y-%m', order_date) as order_month, COUNT(*) as monthly_orders, ROUND(SUM(total_amount), 2) as monthly_revenue FROM orders GROUP BY order_month ORDER BY order_month ASC LIMIT 5;
+    ```
+    Extracts year-month from order_date and aggregates revenue by month.
+
+    3. **String Length Quality Audit:**
+    ```sql
+    SELECT user_id, email, LENGTH(email) as email_len FROM users WHERE LENGTH(email) > 15 LIMIT 5;
+    ```
+    Audits user email strings that exceed 15 characters for validation.
+  az: |
+    Avtomatlaşdırılmış poçt çeşidləmə mərkəzini təsəvvür edin:
+    Zərflər qeyri-səliqəli yazılarla, kənar boşluqlarla, kiçik hərflərlə yazılmış şəhər adları və fərqli tarix formatları ilə daxil olur. Konveyer lentləri bağlamaları göndərməzdən əvvəl skaner hər bir ünvanı təmizləyir: kənar boşluqları kəsir, şəhər adlarını böyük hərflərə çevirir və standart il-ay ştrix-kodunu vurur.
+    Data mühəndisliyində **Skalyar Funksiyalar** xam məlumat axınlarında bu təmizləmə işini görür. Bütün sətirləri birləşdirən aqreqat funksiyalardan fərqli olaraq, skalyar funksiyalar hər bir sətri ayrıca emal edir.
+
+    ### Əsas Mətn və Tarix Funksiyaları:
+    - **Mətn Standartlaşdırması**:
+      - `TRIM(sütun)`: Kənarlardakı lazımsız boşluqları təmizləyir.
+      - `LOWER(sütun)` / `UPPER(sütun)`: Həssaslığı aradan qaldıraraq etibarlı JOIN aparmaq üçün hərfləri eyniləşdirir.
+      - `SUBSTR(sütun, başlanğıc, uzunluq)`: Mətndən parça çıxarır (indeks 1-dən başlayır).
+      - `sütun_a || ' ' || sütun_b`: Mətnləri bir-birinə bağlayır (birləşdirir).
+      - `LENGTH(sütun)`: Simvol sayını ölçür (məlumat keyfiyyəti yoxlamaları üçün).
+    - **Tarix və Zaman Əməliyyatları**:
+      - `strftime('%Y-%m', tarix)`: Tarixi il-ay qrupuna çevirir.
+      - `strftime('%Y', tarix)`: Partisiyalama üçün ili çıxarır.
+      - `date('now')`: Cari tarixi əldə edir.
+
+    ### Real Sxem Üzərində Nümunələr:
+
+    1. **Mətnin Təmizlənməsi və Birləşdirilməsi:**
+    ```sql
+    SELECT user_id, UPPER(first_name) || ' ' || UPPER(last_name) as full_name, LOWER(TRIM(email)) as clean_email FROM users LIMIT 5;
+    ```
+    İstifadəçi ad və soyadını böyük hərflərlə birləşdirir və e-poçtu kiçik hərflərlə təmizləyir.
+
+    2. **strftime ilə Aylıq Aqreqasiya:**
+    ```sql
+    SELECT strftime('%Y-%m', order_date) as order_month, COUNT(*) as monthly_orders, ROUND(SUM(total_amount), 2) as monthly_revenue FROM orders GROUP BY order_month ORDER BY order_month ASC LIMIT 5;
+    ```
+    Sifariş tarixindən il-ayı çıxarır və aylıq gəliri hesablayır.
+
+    3. **Mətn Uzunluğunun Yoxlanılması:**
+    ```sql
+    SELECT user_id, email, LENGTH(email) as email_len FROM users WHERE LENGTH(email) > 15 LIMIT 5;
+    ```
+    Uzunluğu 15 simvoldan çox olan e-poçt ünvanlarını taparaq keyfiyyət yoxlaması aparır.
+code: |
+  SELECT user_id, 
+         UPPER(first_name) || ' ' || UPPER(last_name) as full_name, 
+         LOWER(TRIM(email)) as clean_email, 
+         SUBSTR(created_at, 1, 7) as signup_month 
+  FROM users 
+  LIMIT 5;
+what_it_does:
+  en: "Cleanses user names by concatenating them in uppercase, trims whitespace and normalizes email casing, and extracts the year-month registration cohort."
+  az: "İstifadəçi ad və soyadını böyük hərflərlə birləşdirir, e-poçt ünvanını boşluqlardan təmizləyib kiçik hərflərə gətirir və qeydiyyat il-ayını çıxarır."
+real_world_use:
+  en: "Standard practice in ingestion staging layers (Bronze to Silver in Medallion architecture) to ensure clean joins and reliable partition pruning."
+  az: "Medallion arxitekturasında (Bürüncdən Gümüş qata keçid) etibarlı JOIN əməliyyatları və partisiya süzülməsi təmin etmək üçün standart təmizləmə mərhələsidir."
+common_mistakes:
+  en: |
+    - **Case mismatch during joins**: 'user@domain.com' does not match 'User@domain.com'. Always standardize casing with `LOWER()` when joining on strings.
+    - **1-based index confusion in SUBSTR**: In SQLite and SQL engines, string indexes start at 1, not 0. `SUBSTR(col, 1, 4)` captures the first 4 characters.
+    - **Non-ISO date formats**: Storing dates as 'MM/DD/YYYY' breaks chronological sorting and makes range comparisons impossible without expensive parsing.
+  az: |
+    - **JOIN zamanı hərf registri fərqi**: 'user@domain.com' ilə 'User@domain.com' eyni deyil. Mətn sütunları üzrə birləşdirmə apararkən həmişə `LOWER()` ilə standartlaşdırın.
+    - **SUBSTR-də 1 indeksini unutmaq**: SQL və SQLite mühərriklərində sətir indeksləri 0-dan deyil, 1-dən başlayır. `SUBSTR(col, 1, 4)` ilk 4 simvolu kəsir.
+    - **Qeyri-ISO tarix formatları**: Tarixləri 'MM/DD/YYYY' kimi saxlamaq xronoloji çeşidləməni pozur və çevrilmə aparmadan diapazon axtarışını mümkünsüz edir.
+interview_question:
+  question:
+    en: "Why is the ISO-8601 ('YYYY-MM-DD') date format universally standard in data warehouses and lakehouses?"
+    az: "Data anbarı və lakehouse sistemlərində nə üçün ISO-8601 ('YYYY-MM-DD') tarix formatı qlobal standartdır?"
+  answer:
+    en: |
+      1. **Natural Alphabetical Sorting**: Strings in 'YYYY-MM-DD' order naturally sort chronologically using simple ASCII lexicographical comparisons, without needing date parsing functions.
+      2. **Storage Partitioning**: Cloud object stores (S3, GCS, ADLS) structure analytical folders as `/year=YYYY/month=MM/`. Standard formats allow query engines to perform partition pruning directly on directory paths.
+      3. **Global Disambiguation**: Unlike 'MM/DD/YYYY' (US) or 'DD/MM/YYYY' (Europe), ISO-8601 avoids regional ambiguity across distributed engineering teams.
+    az: |
+      1. **Təbii Əlifba Çeşidlənməsi**: 'YYYY-MM-DD' formatındakı mətnlər heç bir tarix funksiyasına ehtiyac olmadan birbaşa ASCII əlifba sırası ilə dəqiq xronoloji düzülür.
+      2. **Fayl Partisiyalama**: Bulud yaddaşlarında (S3, GCS) analitik qovluqlar `/year=YYYY/month=MM/` kimi qurulur. Standart format mühərriklərə partisiya budamasını birbaşa həyata keçirməyə imkan verir.
+      3. **Birmənalı Qlobal Uyğunluq**: 'MM/DD/YYYY' (ABŞ) və 'DD/MM/YYYY' (Avropa) qarışıqlığından fərqli olaraq, ISO-8601 bütün sistemlərdə eyni cür başa düşülür.
+exercise:
+  question:
+    en: "Extract the user_id, lowercased email as clean_email, and the email domain (characters after the '@' symbol) as domain for all users whose email ends with '.com'. Restrict output to 10 rows."
+    az: "E-poçt ünvanı '.com' ilə bitən bütün istifadəçilər üçün user_id, kiçik hərflərə çevrilmiş e-poçt (clean_email) və e-poçt domenini ('@' simvolundan sonrakı hissəni domain kimi) çıxaran sorğu yazın. Nəticəni ilk 10 sətirlə məhdudlaşdırın."
+  starter_code: |
+    SELECT user_id, 
+           LOWER(email) as clean_email, 
+           SUBSTR(email, ___) as domain
+    FROM users
+    WHERE ___
+    LIMIT 10;
+  hint:
+    en: "Use `INSTR(email, '@') + 1` to find the start of the domain name, and `WHERE email LIKE '%.com'`."
+    az: "Domenin başlanğıc mövqeyi üçün `INSTR(email, '@') + 1`, filtr üçün `WHERE email LIKE '%.com'` istifadə edin."
+  solution: |
+    SELECT user_id, 
+           LOWER(email) as clean_email, 
+           SUBSTR(email, INSTR(email, '@') + 1) as domain
+    FROM users
+    WHERE email LIKE '%.com'
+    LIMIT 10;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What is the difference between scalar functions and aggregate functions in SQL?"
+      az: "SQL-də skalyar funksiyalarla aqreqat funksiyalar arasındakı fərq nədir?"
+    back:
+      en: "Scalar functions transform values row-by-row, returning one output per input row. Aggregate functions collapse multiple rows into a single summary result."
+      az: "Skalyar funksiyalar hər bir sətri ayrıca dəyişdirir və hər sətir üçün bir nəticə qaytarır. Aqreqat funksiyalar isə çoxsaylı sətirləri tək bir xülasəyə yığır."
+  - front:
+      en: "What index does SUBSTR() begin with in SQLite and standard SQL?"
+      az: "SQLite və standart SQL-də SUBSTR() funksiyası hansı indeksdən başlayır?"
+    back:
+      en: "1 (1-based indexing). Character position 1 refers to the very first character of the string."
+      az: "1 (1 əsaslı indeksləmə). 1-ci mövqe mətnin ən birinci simvolunu bildirir."
+  - front:
+      en: "Why must you use LOWER() or UPPER() before performing text JOINs in ETL pipelines?"
+      az: "ETL boru kəmərlərində mətnlər üzrə JOIN etməzdən əvvəl nə üçün LOWER() və ya UPPER() tətbiq olunmalıdır?"
+    back:
+      en: "Because SQL string matching is case-sensitive. Inconsistent casing across data sources causes legitimate matching records to be dropped."
+      az: "Çünki SQL-də mətn müqayisəsi hərf registrinə həssasdır. Fərqli mənbələrdəki böyük/kiçik hərf fərqləri uyğun sətirlərin itməsinə səbəb olar."
+  - front:
+      en: "How does the || operator behave in SQLite and PostgreSQL?"
+      az: "SQLite və PostgreSQL-də || operatoru nə iş görür?"
+    back:
+      en: "It concatenates two or more strings together (e.g. first_name || ' ' || last_name)."
+      az: "İki və ya daha çox mətni bir-birinə bağlayır / birləşdirir (məs. ad || ' ' || soyad)."
+  - front:
+      en: "Why is ISO-8601 ('YYYY-MM-DD') preferred for partitioning data in data lakes?"
+      az: "Data lake-lərdə məlumatları partisiyalamaq üçün nə üçün ISO-8601 ('YYYY-MM-DD') formatına üstünlük verilir?"
+    back:
+      en: "It allows lexicographical string sorting to match chronological time, enabling query engines to prune storage folders without date conversions."
+      az: "Əlifba sırası ilə düzülüşün dəqiq xronoloji vaxta uyğun gəlməsini təmin edir və mühərriklərə konversiya etmədən qovluqları budamağa imkan verir."

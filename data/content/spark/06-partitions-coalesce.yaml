@@ -1,0 +1,194 @@
+id: "06-partitions-coalesce"
+order: 6
+level: "intermediate"
+title:
+  en: "Partitions, Repartition & Coalesce: Sizing Your Data"
+  az: "Partisiyalar, Repartition və Coalesce: Verilənlərin Düzgün Bölünməsi"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  REPARTITION(4): Full Cluster Shuffle (Can Increase OR Balance)        │
+    │  [Part 1] ───┐       ┌──► [New Part 1] (Balanced ~25%)                 │
+    │  [Part 2] ───┼─SHUFFLE──► [New Part 2] (Balanced ~25%)                 │
+    │  [Part 3] ───┘       ├──► [New Part 3] (Balanced ~25%)                 │
+    │                      └──► [New Part 4] (Balanced ~25%)                 │
+    │  Features: Full network exchange, perfect uniformity, expensive.       │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  COALESCE(2): No Shuffle, Local Merge (Can ONLY DECREASE)              │
+    │  [Part 1] ──┐                                                          │
+    │             ├──► Merged locally on Node A ──► [New Part 1 (50%)]       │
+    │  [Part 2] ──┘                                                          │
+    │  [Part 3] ──┐                                                          │
+    │             ├──► Merged locally on Node B ──► [New Part 2 (50%)]       │
+    │  [Part 4] ──┘                                                          │
+    │  Features: ZERO network traffic, fast, cannot increase partitions.     │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  REPARTITION(4): Tam Şəbəkə Şafflı (Həm Artırır, Həm Balanslaşdırır)   │
+    │  [Part 1] ───┐       ┌──► [Yeni Part 1] (Bərabər ~25%)                 │
+    │  [Part 2] ───┼─ŞAFFL─┼──► [Yeni Part 2] (Bərabər ~25%)                 │
+    │  [Part 3] ───┘       ├──► [Yeni Part 3] (Bərabər ~25%)                 │
+    │                      └──► [Yeni Part 4] (Bərabər ~25%)                 │
+    │  Xüsusiyyət: Tam şəbəkə hərəkəti, mükəmməl bərabərlik, xərclidir.      │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  COALESCE(2): Şafflsız Lokal Birləşmə (YALNIZ AZALDIR)                 │
+    │  [Part 1] ──┐                                                          │
+    │             ├──► Server A-da lokal birləşir ──► [Yeni Part 1 (50%)]    │
+    │  [Part 2] ──┘                                                          │
+    │  [Part 3] ──┐                                                          │
+    │             ├──► Server B-də lokal birləşir ──► [Yeni Part 2 (50%)]    │
+    │  [Part 4] ──┘                                                          │
+    │  Xüsusiyyət: Sıfır şəbəkə trafiki, çox sürətli, sayı artıra BİLMƏZ.    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of Spark partitions like moving furniture in moving vans:
+    - **The Golden Sizing Rule**: Partitions are the atomic unit of parallelism in Spark.
+      - If you have 100 CPU cores but only 2 partitions, 98 cores sit completely idle while 2 do all the work.
+      - Target partition size in production: **100 MB to 200 MB** uncompressed per partition.
+    - **`repartition(N)`**: You have 3 messy vans. You unload all boxes onto the street, reshuffle them equally by weight, and pack them into 6 fresh vans. It requires moving boxes between vans across the street (network shuffle), but every van has an identical load. Can increase or decrease partitions.
+    - **`coalesce(N)`**: You have 4 half-empty vans. Driver 1 climbs into Van 2, and Driver 3 climbs into Van 4. You simply combine adjacent loads without moving trucks across the city. It causes ZERO network traffic! However, it can ONLY decrease partitions, never increase.
+
+    ### The Dangerous `coalesce(1)` Antipattern:
+    Writing `df.coalesce(1).write.parquet(...)` to produce a single file forces the ENTIRE multi-terabyte dataset to stream into a single executor. That single executor runs out of memory (OOM) or takes 6 hours to write sequentially!
+  az: |
+    Spark partisiyalarını yük maşınları ilə köçmək kimi təsəvvür edin:
+    - **Qızıl Ölçü Qaydası**: Partisiya Spark-ın paralellik vahididir.
+      - Əgər klasterdə 100 nüvəniz (core) varsa, amma cədvəliniz cəmi 2 partisiyaya bölünübsə, 98 nüvə boş oturub çay içəcək, yalnız 2 nüvə işləyəcək.
+      - İstehsalatda ideal partisiya ölçüsü: Sıxılmamış halda **100 MB - 200 MB** arası olmalıdır.
+    - **`repartition(N)`**: Yükləri tamamilə yerə tökürsünüz, tərəzidə çəkib bütün maşınlara tam bərabər paylayırsınız. Bu, şəbəkə şafflı yaradır (xərclidir), amma həm partisiya sayını artıra bilir, həm də mükəmməl balans qurur.
+    - **`coalesce(N)`**: 4 ədəd yarım-boş maşınınız var. 1-ci maşının yükünü 2-ciyə, 3-cü maşının yükünü 4-cüyə qatırsınız. Yükləri küçəyə tökmədən (şəbəkə şafflı olmadan) yerində birləşdirirsiniz. Çox sürətlidir, amma YALNIZ partisiya sayını AZALDA bilir, artıra bilməz.
+
+    ### Təhlükəli `coalesce(1)` Tələsi:
+    Tək bir fayl əldə etmək üçün `df.coalesce(1).write.parquet(...)` yazmaq — terabaytlarla məlumatı tək bir executor-un boğazına tökmək deməkdir. Həmin executor ya dərhal OOM ilə çökür, ya da saatlarla təkbaşına işləyir.
+quick_recap:
+  en: "`repartition(N)` triggers a full network shuffle to increase or evenly balance partitions. `coalesce(N)` avoids shuffling by locally merging adjacent partitions on the same executor, making it ideal for shrinking partition counts before saving files."
+  az: "`repartition(N)` partisiya sayını artırmaq və ya bərabər bölmək üçün tam şəbəkə şafflı edir. `coalesce(N)` isə heç bir şaffl etmədən qonşu partisiyaları lokal birləşdirir, bu səbəbdən faylı yaddaşa yazmazdan əvvəl partisiya sayını azaltmaq üçün ən ideal yoldur."
+code: |
+  from pyspark.sql import SparkSession
+
+  spark = SparkSession.builder.appName("06_Partitions_Tuning").master("local[*]").getOrCreate()
+
+  # Create an unpartitioned sample dataset
+  data = [(i, f"item_{i}", i * 10) for i in range(1, 50001)]
+  df = spark.createDataFrame(data, ["id", "name", "value"])
+
+  initial_parts = df.rdd.getNumPartitions()
+  print(f"=== Initial Partitions Count: {initial_parts} ===")
+
+  # 1. REPARTITION: Increases partitions from N to 8 (Triggers RoundRobin Exchange)
+  repartitioned_df = df.repartition(8)
+  print(f"Partitions after repartition(8): {repartitioned_df.rdd.getNumPartitions()}")
+  print("\n--- Repartition Physical Plan (Note the Exchange node!) ---")
+  repartitioned_df.explain(mode="simple")
+
+  # 2. COALESCE: Decreases partitions from 8 down to 2 (NO Exchange node!)
+  coalesced_df = repartitioned_df.coalesce(2)
+  print(f"\nPartitions after coalesce(2): {coalesced_df.rdd.getNumPartitions()}")
+  print("\n--- Coalesce Physical Plan (NO Exchange node - Zero Network!) ---")
+  coalesced_df.explain(mode="simple")
+code_explanation:
+  en: |
+    - `df.rdd.getNumPartitions()`: Exposes the underlying RDD partition count.
+    - In the repartition plan: Notice `Exchange RoundRobinPartitioning(8)`. That means every single record is reshuffled over the network to guarantee equal partition sizing.
+    - In the coalesce plan: Notice `Coalesce 2`. There is NO Exchange node, proving zero network communication occurred.
+  az: |
+    - `df.rdd.getNumPartitions()`: Mövcud partisiya sayını göstərir.
+    - Repartition planına baxın: `Exchange RoundRobinPartitioning(8)` düyünü var. Bu o deməkdir ki, hər bir sətir şəbəkə üzərindən göndərilib bərabər paylanır.
+    - Coalesce planına baxın: `Coalesce 2` yazılıb, lakin heç bir `Exchange` düyünü yoxdur! Bu, sıfır şəbəkə trafiki ilə lokal birləşmənin sübutudur.
+visual_output: |
+  === Initial Partitions Count: 8 ===
+  Partitions after repartition(8): 8
+
+  --- Repartition Physical Plan (Note the Exchange node!) ---
+  == Physical Plan ==
+  Exchange RoundRobinPartitioning(8), REPARTITION_BY_NUM, [plan_id=45]
+  +- *(1) Scan ExistingRDD[id#0L,name#1,value#2L]
+
+  Partitions after coalesce(2): 2
+
+  --- Coalesce Physical Plan (NO Exchange node - Zero Network!) ---
+  == Physical Plan ==
+  Coalesce 2
+  +- Exchange RoundRobinPartitioning(8), REPARTITION_BY_NUM, [plan_id=45]
+     +- *(1) Scan ExistingRDD[id#0L,name#1,value#2L]
+output_description:
+  en: "Terminal execution plan comparing Exchange RoundRobinPartitioning in repartition vs the lightweight local Coalesce operator."
+  az: "Repartition əmrindəki Exchange şəbəkə düyünü ilə Coalesce əmrindəki yüngül lokal birləşmənin icra planı müqayisəsi."
+what_it_does:
+  en: "Demonstrates how to inspect, increase, and decrease Spark partitions, proving that coalesce avoids network shuffling while repartition enforces uniformity."
+  az: "Spark partisiyalarını yoxlamaq, artırmaq və azaltmağın yollarını göstərir; coalesce-in şəbəkəsiz işləməsini, repartition-un isə bərabər bölməsini nümayiş etdirir."
+real_world_use:
+  en: "Used right before writing files to cloud storage (S3 / ADLS / GCS). Using `coalesce(10)` reduces 200 tiny files into 10 properly sized 128MB Parquet files without network shuffle costs."
+  az: "Bulud anbarına (S3, ADLS) fayl yazmazdan əvvəl tətbiq olunur. `coalesce(10)` yazmaqla 200 ədəd xırda fayl əvəzinə heç bir şəbəkə şafflı olmadan 10 ədəd təmiz 128MB-lıq Parquet faylı yaradılır."
+common_mistakes:
+  en: |
+    - **Using `coalesce()` to increase partitions**: Calling `df.coalesce(100)` when you have 10 partitions does NOTHING. Spark silently ignores it and stays at 10. You MUST use `repartition()` to increase.
+    - **Over-coalescing with `coalesce(1)` on large datasets**: Causes a single executor to become the bottleneck, causing an OutOfMemoryError or killing cluster parallelism.
+    - **Leaving default 200 shuffle partitions for tiny datasets**: Results in 200 microscopic 5 KB files stored in S3, creating the infamous 'Small File Problem' for query engines.
+  az: |
+    - **Partisiya sayını artırmaq üçün `coalesce()` istifadə etmək**: 10 partisiya olan cədvəldə `coalesce(100)` yazsanız, Spark bunu səssizcə heçə sayır və say yenə 10 qalır. Artırmaq üçün mütləq `repartition()` yazılmalıdır.
+    - **Böyük cədvəldə `coalesce(1)` yazmaq**: Bütün paralelliyi öldürür və tək bir maşını yükləyərək OOM xətasına səbəb olur.
+    - **Kiçik məlumatlarda susmaya görə 200 partisiya saxlamaq**: S3-də 200 ədəd cırtdan 5 KB-lıq fayl yaradır və Data Lake-də məşhur 'Kiçik Fayl Problemi' (Small File Problem) törədir.
+interview_question:
+  question:
+    en: "What is the structural and mechanical difference between `repartition()` and `coalesce()`, and why is `coalesce(1)` dangerous for large datasets?"
+    az: "`repartition()` ilə `coalesce()` arasındakı struktur və mexaniki fərq nədir və böyük məlumatlarda `coalesce(1)` yazmaq nə üçün təhlükəlidir?"
+  answer:
+    en: |
+      1. **Structural & Mechanical Differences**:
+         - **`repartition(n)`**: Performs a **Full Network Shuffle** using Round-Robin or Hash partitioning. It redistributes data uniformly across the cluster. It can both **increase** and **decrease** partition counts.
+         - **`coalesce(n)`**: Avoids a full shuffle by **merging adjacent partitions** residing on the same executor/worker node. It requires **zero network transfer**. It can **only decrease** partition counts.
+      2. **The Danger of `coalesce(1)`**:
+         - While engineers use `coalesce(1)` to write a single output CSV/Parquet file, Spark's Catalyst optimizer pushes the coalesce operator upstream.
+         - As a result, the entire computation across preceding stages is forced down into a single executor thread! The remaining 99 executors sit idle, and that single executor will likely crash with an `OutOfMemoryError` (OOM) trying to buffer gigabytes of data.
+    az: |
+      1. **Struktur və Mexaniki Fərqlər**:
+         - **`repartition(n)`**: **Tam Şəbəkə Şafflı** həyata keçirir. Bütün sətirləri klaster boyu bərabər paylayır. Partisiya sayını həm **artıra**, həm də **azalda** bilir.
+         - **`coalesce(n)`**: Eyni serverdəki qonşu partisiyaları birləşdirir və **heç bir şəbəkə şafflı yaratmır**. YALNIZ partisiya sayını **azalda** bilir (artıra bilməz).
+      2. **`coalesce(1)` Niyə Təhlükəlidir?**:
+         - Tərtibatçılar tək bir fayl almaq üçün tez-tez `coalesce(1)` yazırlar. Lakin Catalyst optimallaşdırıcısı bu əmri kəmərdə yuxarıya çəkir.
+         - Nəticədə bütün əvvəlki mərhələlər tək bir executor daxilində tək bir nüvədə işləməyə məcbur olur! Klasterdəki digər bütün maşınlar boş qalır və həmin tək maşın gigabaytlarla məlumatı həzm edə bilməyib `OutOfMemoryError` (OOM) ilə çökür.
+  interviewer_tips:
+    en: "Explicitly point out that coalesce cannot increase partitions, and explain that coalesce(1) kills upstream parallelism during write operations."
+    az: "Mütləq qeyd edin ki, coalesce heç vaxt partisiya sayını artıra bilməz və coalesce(1) yazıldıqda bütün klasterin paralelliyi iflic olur."
+flashcards:
+  - front:
+      en: "Can `coalesce()` be used to increase the number of partitions in a DataFrame?"
+      az: "`coalesce()` funksiyası DataFrame-in partisiya sayını artırmaq üçün istifadə edilə bilərmi?"
+    back:
+      en: "No. `coalesce()` can only decrease partitions. To increase partitions, you must use `repartition()`."
+      az: "Xeyr. `coalesce()` yalnız partisiya sayını azalda bilər. Artırmaq üçün mütləq `repartition()` istifadə edilməlidir."
+  - front:
+      en: "Why is `coalesce(N)` vastly faster than `repartition(N)` when decreasing partitions?"
+      az: "Partisiyaları azaldarkən `coalesce(N)` nə üçün `repartition(N)`-dən qat-qat sürətlidir?"
+    back:
+      en: "Because it merges adjacent partitions locally without triggering an expensive full-cluster network shuffle."
+      az: "Çünki baha başa gələn şəbəkə şafflı etmədən qonşu partisiyaları yerli serverdə birləşdirir."
+  - front:
+      en: "What is the recommended target partition size for Spark DataFrames in memory?"
+      az: "Yaddaşda Spark DataFrame partisiyaları üçün tövsiyə olunan hədəf ölçü nə qədərdir?"
+    back:
+      en: "Between 100 MB and 200 MB per partition (uncompressed in RAM)."
+      az: "Hər partisiya üçün sıxılmamış halda 100 MB ilə 200 MB arası."
+  - front:
+      en: "What happens if a dataset of 50 GB is written using `df.coalesce(1)`?"
+      az: "50 GB-lıq məlumat `df.coalesce(1)` ilə fayla yazılarsa nə baş verir?"
+    back:
+      en: "All 50 GB must be processed by a single executor, destroying cluster parallelism and risking a fatal OutOfMemoryError."
+      az: "Bütün 50 GB tək bir executor tərəfindən işlənməyə məcbur olur, bütün paralellik ölür və OOM çöküşü riski yaranır."
+  - front:
+      en: "What is the default value of `spark.sql.shuffle.partitions` in Apache Spark?"
+      az: "Apache Spark-da `spark.sql.shuffle.partitions` parametrinin susmaya görə dəyəri neçədir?"
+    back:
+      en: "200. It should be tuned downwards for small datasets and upwards for multi-terabyte datasets."
+      az: "200. Kiçik məlumatlarda aşağı salınmalı, böyük terabaytlıq məlumatlarda isə artırılmalıdır."

@@ -1,0 +1,196 @@
+id: "01-what-is-spark"
+order: 1
+level: "junior"
+title:
+  en: "What is Apache Spark & Why In-Memory Computing?"
+  az: "Apache Spark Nədir və Niyə Yaddaşda (In-Memory) Hesablama?"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  HADOOP MAPREDUCE: Disk-Heavy Multi-Pass (Slow)                       │
+    │  [Input Data] ──► [Map Task] ──► (Disk Write) ──► (Disk Read) ──►      │
+    │  [Reduce Task] ──► (Disk Write) ──► Iteration 2 (Repeat Disk I/O)      │
+    │  Bottleneck: Hard Drive read/write speed (~150 MB/s)                   │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE SPARK: In-Memory Multi-Stage Pipeline (Up to 100x Faster)      │
+    │  [Input Data] ──► [Executor RAM] ──► [Transform 1] ──► [Transform 2]   │
+    │  ──► [Transform 3] ──► Final Action ──► Output Sink                    │
+    │  Superpower: Memory RAM throughput (~20,000 MB/s - 130x faster than HDD)│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  HADOOP MAPREDUCE: Hər Addımda Diskə Yazıb-Oxuyan Köhnə Model (Yavaş)  │
+    │  [Xammal Data] ──► [Map İşi] ──► (Diskə Yaz) ──► (Diskdən Oxu) ──►     │
+    │  [Reduce İşi] ──► (Diskə Yaz) ──► Növbəti Addım (Təkrar Disk I/O)      │
+    │  Darboğaz: Sərt diskin (HDD) məhdud oxuma/yazma sürəti (~150 MB/s)     │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE SPARK: Bütün İşi RAM Yaddaşda Görən Müasir Model (100x Sürət)   │
+    │  [Xammal Data] ──► [Executor RAM] ──► [Süzgəc] ──► [Qruplaşdır]        │
+    │  ──► [Hesabla] ──► Yekun Nəticə ──► Saxlanc Anbarı                     │
+    │  Üstünlük: Operativ yaddaşın (RAM) nəhəng ötürücülük qabiliyyəti       │
+    │  (~20,000 MB/s - Sərt diskdən 130 dəfə daha sürətli)                   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Imagine doing a complex multi-step math exam:
+    - **Hadoop MapReduce Method**: For every single addition, you must walk to a metal filing cabinet across the room, write down the intermediate number on paper, lock it in a drawer, walk back to your desk, sit down, open another drawer, read the number back, and then perform the next subtraction. The physical walking to and from the disk cabinet takes 99% of your total time.
+    - **Apache Spark Method**: You keep all the numbers directly on a clean whiteboard on your desk (RAM memory). You chain 10 calculations in seconds without ever leaving your chair.
+
+    ### Core Pillars of Apache Spark:
+    1. **Unified Engine**: One unified framework for Batch processing, Streaming (Structured Streaming), SQL queries (Spark SQL), and Machine Learning (MLlib).
+    2. **In-Memory Computing**: Intermediate transformation steps reside in the cluster's RAM rather than being flushed to persistent disks between steps.
+    3. **Polyglot APIs**: Write in PySpark (Python), Scala (native), SQL, or Java. PySpark communicates seamlessly with the underlying JVM engine via Py4J.
+  az: |
+    Mürəkkəb riyaziyyat imtahanı verdiyinizi təsəvvür edin:
+    - **Hadoop MapReduce Yolu**: Hər bir sadə vurma əməliyyatından sonra otağın o biri başındakı dəmir seyfə (sərt diskə) gedirsiniz, aralıq nəticəni kağıza yazıb seyfi bağlayırsınız. Sonra qayıdıb növbəti bölmə üçün seyfi təzədən açıb o rəqəmi oxuyursunuz. Vaxtınızın 99%-i seyfə gedib-gəlməyə (Disk I/O) sərf olunur.
+    - **Apache Spark Yolu**: Bütün aralıq rəqəmləri masanızın üstündəki lövhədə (RAM operativ yaddaşında) saxlayırsınız. Yerinizdən qalxmadan saniyələr içində ardıcıl 10 əməliyyatı yerinə yetirirsiniz.
+
+    ### Apache Spark-ın Əsas Dayaqları:
+    1. **Vahid Mühərrik (Unified Engine)**: Həm Böyük Həcmli Paket məlumatları (Batch), həm Real-vaxt Axınları (Structured Streaming), həm SQL sorğuları, həm də Maşın Öyrənməsi üçün tək bir mərkəzi çərçivə.
+    2. **Yaddaşda Hesablama (In-Memory Computing)**: Bütün aralıq addımlar RAM-da saxlanılır, hər xırda əməliyyat üçün diskə müraciət edilmir.
+    3. **PySpark Gücü**: Python-un sadə sintaksisi ilə yazırsınız, daxildə isə Py4J körpüsü ilə C/Java sürətində işləyən JVM mühərriki nəhəng klasteri hərəkətə gətirir.
+quick_recap:
+  en: "Spark is a distributed in-memory computing engine designed to replace disk-bound MapReduce. By keeping working datasets in RAM across a cluster of machines, Spark achieves 10x to 100x faster execution for iterative workloads and big data ETL."
+  az: "Spark disklərə bağlı köhnə MapReduce-u əvəz etmək üçün yaradılmış paylanmış və yaddaşda (In-Memory) işləyən hesablama mühərrikidir. Məlumatları klaster maşınlarının RAM-ında saxlayaraq böyük həcmli data kəmərlərini 100 dəfəyə qədər daha sürətli emal edir."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+
+  # 1. Initialize SparkSession (The entry point to all Spark functionality)
+  spark = SparkSession.builder \
+      .appName("01_Spark_Fundamentals") \
+      .master("local[*]") \
+      .getOrCreate()
+
+  # 2. Define schema explicitly (Production Best Practice)
+  schema = StructType([
+      StructField("user_id", IntegerType(), nullable=False),
+      StructField("username", StringType(), nullable=False),
+      StructField("country", StringType(), nullable=True),
+      StructField("orders_count", IntegerType(), nullable=True),
+      StructField("total_spent", DoubleType(), nullable=True)
+  ])
+
+  # 3. Sample distributed raw data
+  raw_data = [
+      (101, "elmar_de", "AZE", 15, 1420.50),
+      (102, "sarah_k", "USA", 3, 210.00),
+      (103, "murad_b", "AZE", 28, 3850.75),
+      (104, "john_doe", "GBR", None, None),
+      (105, "leyla_m", "AZE", 8, 890.20)
+  ]
+
+  # 4. Create PySpark DataFrame
+  df = spark.createDataFrame(data=raw_data, schema=schema)
+
+  # 5. Display visual DataFrame & Schema structure
+  print("=== Spark DataFrame Output ===")
+  df.show(truncate=False)
+
+  print("=== Schema Structure ===")
+  df.printSchema()
+code_explanation:
+  en: |
+    - `SparkSession.builder`: The modern Spark 2.0+ unified entry point. Sets application name and connects to the cluster manager.
+    - `StructType & StructField`: Explicit schema definition. In production, never let Spark infer schema for large CSVs (which requires an extra expensive full-file read pass).
+    - `df.show()` & `df.printSchema()`: The standard inspection actions to review distributed tabular data.
+  az: |
+    - `SparkSession.builder`: Müasir Spark 2.0+ vahid giriş nöqtəsidir. Tətbiqin adını təyin edir və klaster menecerinə qoşulur.
+    - `StructType & StructField`: Sxemin əvvəlcədən dəqiq elan edilməsi. İstehsalatda heç vaxt Spark-ın sxemi avtomatik təxmin etməsinə (`inferSchema=True`) icazə verməyin, çünki bu, bütün böyük faylı başdan-ayağa əlavə bir dəfə oxumağa məcbur edir.
+    - `df.show()` və `df.printSchema()`: Paylanmış cədvəli və sütun tiplərini ekranda vizual yoxlamaq üçün əsas aksiyalardır.
+visual_output: |
+  === Spark DataFrame Output ===
+  +-------+---------+-------+------------+-----------+
+  |user_id|username |country|orders_count|total_spent|
+  +-------+---------+-------+------------+-----------+
+  |101    |elmar_de |AZE    |15          |1420.5     |
+  |102    |sarah_k  |USA    |3           |210.0      |
+  |103    |murad_b  |AZE    |28          |3850.75    |
+  |104    |john_doe |GBR    |NULL        |NULL       |
+  |105    |leyla_m  |AZE    |8           |890.2      |
+  +-------+---------+-------+------------+-----------+
+
+  === Schema Structure ===
+  root
+   |-- user_id: integer (nullable = false)
+   |-- username: string (nullable = false)
+   |-- country: string (nullable = true)
+   |-- orders_count: integer (nullable = true)
+   |-- total_spent: double (nullable = true)
+output_description:
+  en: "Terminal output generated by PySpark showing the distributed tabular DataFrame grid and the strongly typed schema tree."
+  az: "PySpark tərəfindən ekrana çıxarılan paylanmış cədvəl formatı və tipləşdirilmiş sxem iyerarxiyası."
+what_it_does:
+  en: "Demonstrates how Spark initializes a cluster connection via SparkSession, establishes strongly typed schemas, and loads structured data into distributed memory."
+  az: "Spark-ın SparkSession vasitəsilə klasterlə əlaqə qurmasını, dəqiq sxem təyin etməsini və strukturlaşdırılmış məlumatı paylanmış yaddaşa yükləməsini nümayiş etdirir."
+real_world_use:
+  en: "The foundation of all production PySpark jobs in Databricks, AWS EMR, or Google Cloud Dataproc. Every ETL ingestion pipeline starts with SparkSession initialization and schema loading."
+  az: "Databricks, AWS EMR və ya Google Cloud Dataproc platformalarında işləyən bütün istehsalat PySpark kodlarının təməlidir. Hər bir ETL kəməri SparkSession başladılması ilə start götürür."
+common_mistakes:
+  en: |
+    - **Using `inferSchema=True` on multi-gigabyte files**: Forces Spark to scan the entire raw dataset twice (once just to guess column types, then again to load data), doubling ingestion time.
+    - **Creating multiple SparkSessions in one application**: Redundant and wastes JVM driver resources. Always reuse `SparkSession.builder.getOrCreate()`.
+    - **Calling `.collect()` on large DataFrames**: Pulls all terabytes of data from all executors into the single Driver machine's memory, instantly causing an OutOfMemory (OOM) crash.
+  az: |
+    - **Böyük fayllarda `inferSchema=True` istifadə etmək**: Spark-ı bütün məlumatı iki dəfə oxumağa məcbur edir (biri tipləri təxmin etmək, ikincisi yükləmək üçün) və icra vaxtını ikiqat uzadır.
+    - **Eyni proqramda bir neçə SparkSession yaratmaq**: Resursları israf edir. Həmişə mövcud sessiyanı götürən `.getOrCreate()` istifadə edilməlidir.
+    - **Böyük cədvəldə `.collect()` çağırmaq**: Bütün klasterdəki terabaytlarla məlumatı tək bir Driver kompüterinin yaddaşına çəkir və dərhal OOM (Out Of Memory) çöküşü törədir.
+interview_question:
+  question:
+    en: "Why is Apache Spark significantly faster than Hadoop MapReduce, and under what circumstances does Spark still spill data to disk?"
+    az: "Apache Spark nə üçün Hadoop MapReduce-dan qat-qat sürətlidir və hansı vəziyyətlərdə Spark da məlumatları diskə yazmağa məcbur olur?"
+  answer:
+    en: |
+      1. **In-Memory Pipelining vs Disk Spilling**: Hadoop MapReduce enforces a strict two-stage cycle (Map followed by Reduce), writing all intermediate state to HDFS disks between stages. In contrast, Spark constructs a Directed Acyclic Graph (DAG) and executes multi-step transformations entirely inside distributed RAM, minimizing disk I/O latency.
+      2. **When Spark Still Touches Disk**:
+         - **Shuffle Operations**: When data must be repartitioned across executors (e.g. wide joins, `groupByKey`, `reduceByKey`), Spark writes shuffle spill files to local executor scratch disks to prevent network deadlocks.
+         - **Memory Pressure (Spill-to-Disk)**: When partition sizes exceed the executor's allocated execution memory (`spark.memory.fraction`), Spark gracefully spills the overflow partitions to disk to prevent an immediate JVM OutOfMemoryError.
+         - **Explicit Persistence**: When developers configure caching with storage levels like `MEMORY_AND_DISK`.
+    az: |
+      1. **RAM-da Boru Xətti vs Diskə Yazılma**: Hadoop MapReduce hər addımdan (Map və Reduce) sonra bütün aralıq məlumatları HDFS disklərinə yazmağa məcburdur. Spark isə Birtərəfli Dövrsüz Qraf (DAG) qurur və mərhələləri disklərə müraciət etmədən birbaşa paylanmış RAM daxilində konveyer kimi icra edir.
+      2. **Spark-ın Diskə Yazmağa Məcbur Olduğu Hallar**:
+         - **Şəbəkə Şafflı (Shuffle)**: Məlumatlar executor-lar arasında yenidən paylananda (məsələn, böyük `join` və ya `groupBy`), Spark aralıq şaffl fayllarını executor-un yerli diskinə yazır.
+         - **Yaddaş Çatışmazlığı (Memory Spill)**: Bir partisiya executor-a ayrılmış RAM yaddaşından böyük olduqda, prosesin çökməməsi (OOM olmaması) üçün Spark artıq qalan hissəni avtomatik diskə boşaldır (spill to disk).
+         - **Açıq Keşləmə (Persistence)**: Tərtibatçı `MEMORY_AND_DISK` kimi xüsusi saxlama dərəcəsi seçdikdə.
+  interviewer_tips:
+    en: "Mentioning that Spark uses RAM is standard. To impress the interviewer, explicitly mention 'DAG execution pipeline' and the two exact scenarios where Spark writes to disk: 'Shuffle persistence' and 'Memory Spill-to-Disk'."
+    az: "Spark-ın RAM istifadə etdiyini demək sıravi cavabdır. Senior təəssüratı yaratmaq üçün mütləq 'DAG boru kəməri' və Spark-ın diskə yazdığı iki dəqiq halı qeyd edin: 'Şaffl zamanı aralıq yazılma' və 'Yaddaş dolduqda diskə boşalma (Memory Spill)'."
+flashcards:
+  - front:
+      en: "What is the primary architectural difference between Hadoop MapReduce and Apache Spark?"
+      az: "Hadoop MapReduce ilə Apache Spark arasındakı ən əsas arxitektur fərq nədir?"
+    back:
+      en: "MapReduce writes intermediate results to disk after every step; Spark executes transformations in distributed RAM memory."
+      az: "MapReduce hər addımdan sonra aralıq nəticələri diskə yazır; Spark isə transformasiyaları paylanmış RAM yaddaşında icra edir."
+  - front:
+      en: "What is the entry point for programming in modern Spark (Spark 2.0+)?"
+      az: "Müasir Spark-da (Spark 2.0+) proqramlaşdırma üçün əsas vahid giriş nöqtəsi nədir?"
+    back:
+      en: "The `SparkSession` class (instantiated with `SparkSession.builder...getOrCreate()`)."
+      az: "`SparkSession` sinfi (`SparkSession.builder...getOrCreate()` vasitəsilə başladılır)."
+  - front:
+      en: "Why is `inferSchema=True` an antipattern in production data pipelines?"
+      az: "İstehsalat data kəmərlərində `inferSchema=True` niyə səhv (antipattern) hesab edilir?"
+    back:
+      en: "It scans the entire dataset an extra time to infer data types, doubling ingestion latency on large files."
+      az: "Məlumat tiplərini tapmaq üçün bütün faylı əlavə bir dəfə oxuyur və böyük fayllarda emal vaxtını ikiqat uzadır."
+  - front:
+      en: "What dangerous error occurs if you call `.collect()` on a multi-terabyte DataFrame?"
+      az: "Çox terabaytlıq bir DataFrame-də `.collect()` çağırıldıqda hansı təhlükəli xəta baş verir?"
+    back:
+      en: "Driver OutOfMemoryError (OOM) because all distributed data is pulled into the single Driver node's RAM."
+      az: "Driver OutOfMemoryError (OOM) çöküşü; çünki bütün paylanmış məlumat tək bir Driver maşınının RAM-ına yüklənir."
+  - front:
+      en: "What does 'Spill-to-Disk' mean in Apache Spark?"
+      az: "Apache Spark-da 'Spill-to-Disk' nə deməkdir?"
+    back:
+      en: "When partition data exceeds allocated executor RAM, Spark writes the excess to local disk to avoid crashing with OOM."
+      az: "Partisiya executor-un RAM yaddaşına sığmadıqda, Spark prosesin çökməməsi üçün artıq məlumatı müvəqqəti diskə yazır."

@@ -1,0 +1,162 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "03-lists-slicing"
+order: 3
+level: "junior"
+title:
+  en: "Lists, Slicing, and Reference Semantics"
+  az: "Siyahılar, Dilimləmə və İstinad Məntiqi"
+quick_recap:
+  en: "Lists are mutable, dynamically sized ordered sequences in Python. Key operations include .append() (O(1) amortized), .pop() (O(1)), and slicing [start:stop:step]. Critical junior interview trap: `b = a` assigns an alias to the same memory object, not a copy. Use `a.copy()` or `a[:]` for an independent shallow copy."
+  az: "Siyahılar Python-da ölçüsü dinamik dəyişən nizamlı ardıcıllıqdır (mutable). Əsas əməliyyatlar: .append() (O(1)), .pop() (O(1)) və dilimləmə [start:stop:step]. Ən böyük Junior müsahibə tələsi: `b = a` nüsxə yaratmır, eyni obyektə istinad edir. Müstəqil nüsxə üçün `a.copy()` və ya `a[:]` istifadə edilməlidir."
+explanation:
+  en: |
+    Think of a list like a physical shopping conveyor belt:
+    Items arrive in exact sequence, you can place new items at the tail (`.append()`), remove the last item (`.pop()`), and inspect sections of the belt (`[:3]` slices the first 3 items).
+
+    ### Slicing Syntax: `list[start:stop:step]`
+    - `data[0]`: First item (0-based index).
+    - `data[-1]`: Last item.
+    - `data[:5]`: First 5 items (from index 0 up to, but not including, index 5).
+    - `data[5:]`: All items starting from index 5 to the end.
+    - `data[::-1]`: Reverses the list.
+
+    ### The Memory Reference Trap:
+    In Python, variables do not hold the list data directly; they hold a **pointer** to the list object in RAM:
+    - `b = a` $\rightarrow$ both variables point to the **same** list in memory! Mutating `b` modifies `a`.
+    - `b = a.copy()` $\rightarrow$ creates a new independent list with duplicate element references.
+  az: |
+    Siyahını kassa konveyer lenti kimi təsəvvür edin:
+    Məhsullar ardıcıl düzülür, lentin sonuna yeni məhsul qoya bilərsiniz (`.append()`), sonuncu məhsulu götürə bilərsiniz (`.pop()`) və lentin istənilən hissəsini dilimləyib baxa bilərsiniz (`[:3]` ilk 3 məhsul).
+
+    ### Dilimləmə Sintaksisi: `siyahı[başlanğıc:son:addım]`
+    - `data[0]`: Ən birinci element (0-dan başlayan indeks).
+    - `data[-1]`: Ən sonuncu element.
+    - `data[:5]`: İlk 5 element (0-cı indeksdən 5-ci indeksə qədər, 5 daxil deyil).
+    - `data[5:]`: 5-ci indeksdən sona qədər olan elementlər.
+    - `data[::-1]`: Siyahını tərsinə çevirir.
+
+    ### Yaddaş İstinadı Tələsi:
+    Python-da dəyişən siyahının özünü deyil, onun RAM-dakı **ünvanını (göstəricisini)** saxlayır:
+    - `b = a` $\rightarrow$ hər iki dəyişən eyni ünvana baxır! `b`-yə element əlavə etdikdə `a` da dəyişir.
+    - `b = a.copy()` $\rightarrow$ müstəqil yeni siyahı yaradır və birini dəyişmək digərinə təsir etmir.
+code: |
+  # Order IDs batch in an ETL buffer
+  order_batch = [101, 102, 103, 104, 105]
+
+  # Adding items
+  order_batch.append(106)
+
+  # Slicing: [start:stop]
+  first_three = order_batch[:3]
+  last_order = order_batch[-1]
+
+  # Reference vs Copy Gotcha
+  alias_batch = order_batch          # Points to the exact same list!
+  copied_batch = order_batch.copy()  # Independent shallow copy
+
+  order_batch.append(107)
+
+  print(f"Original Batch Count: {len(order_batch)}")
+  print(f"Alias Batch Count: {len(alias_batch)} (also modified!)")
+  print(f"Copied Batch Count: {len(copied_batch)} (isolated)")
+  print(f"First 3 Orders: {first_three}")
+what_it_does:
+  en: "Demonstrates adding elements, extracting slice windows, and shows the difference between variable aliasing and true list copying."
+  az: "Siyahıya element əlavə etməyi, dilimləmə ilə hissələri kəsməyi və istinad mənimsətməsi ilə müstəqil nüsxələmə arasındakı fərqi nümayiş etdirir."
+real_world_use:
+  en: "Used in batching data: accumulating records into memory lists (e.g. batch size of 500 records) before executing bulk database inserts via executemany."
+  az: "Məlumatların partiyalarla (batch) emalında: verilənlər bazasına toplu şəkildə (executemany) yazmazdan əvvəl qeydləri siyahıya yığıb ölçüsünü idarə etmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using assignment b = a thinking it creates a copy**: Modifying `b` accidentally mutates the source dataset `a`. Always use `a.copy()` or `a[:]`.
+    - **Modifying a list while iterating over it**: Running `for item in my_list: my_list.remove(item)` skips elements because internal index pointers shift.
+    - **Using list.insert(0, val) for FIFO queues**: Inserting at the head of a list is O(N) because every existing item must shift in memory. Use `collections.deque` instead.
+  az: |
+    - **b = a yazaraq kopyalandığını düşünmək**: `b`-ni dəyişdikdə ana məlumat `a` da xəbərsiz şəkildə dəyişir. Həmişə `a.copy()` və ya `a[:]` istifadə edin.
+    - **Dövrə zamanı siyahıdan element silmək**: `for x in list: list.remove(x)` yazdıqda indekslər sürüşdüyü üçün bəzi elementlər yoxlanılmadan ötürülür.
+    - **Növbə (queue) üçün list.insert(0, val) istifadə etmək**: Siyahının əvvəlinə element qoymaq O(N) vaxt aparır, çünki bütün elementlər yaddaşda sürüşməlidir. Bunun üçün `collections.deque` istifadə olunmalıdır.
+interview_question:
+  question:
+    en: "What happens in memory when you execute `a = [1, 2]; b = a; b.append(3)` in Python?"
+    az: "Python-da `a = [1, 2]; b = a; b.append(3)` kodunu icra etdikdə yaddaşda nə baş verir?"
+  answer:
+    en: |
+      1. **Object Allocation**: `a = [1, 2]` allocates a list object on the heap and binds variable name `a` to its memory address.
+      2. **Reference Binding**: `b = a` does NOT duplicate the list; it merely creates a second pointer `b` referencing the exact same heap memory address (`id(a) == id(b)`).
+      3. **In-place Mutation**: `b.append(3)` mutates the underlying list object in-place. Because variable `a` references that identical memory address, inspecting `a` will now display `[1, 2, 3]`. To prevent this, an explicit shallow copy (`b = a.copy()`) or deep copy (`copy.deepcopy(a)`) must be used.
+    az: |
+      1. **Yaddaşda Yaradılma**: `a = [1, 2]` heap yaddaşında bir siyahı obyekti yaradır və `a` dəyişəni həmin yaddaş ünvanını göstərir.
+      2. **İstinadın Bağlanması**: `b = a` yeni siyahı yaratmır; sadəcə `b` dəyişəninə də tam eyni yaddaş ünvanını bağlayır (`id(a) == id(b)`).
+      3. **Yerində Dəyişmə**: `b.append(3)` həmin ünvandakı obyekti yerindəcə genişləndirir. `a` dəyişəni də eyni ünvana baxdığı üçün `a`-nın qiyməti avtomatik `[1, 2, 3]` olur. Bunun qarşısını almaq üçün müstəqil nüsxə (`b = a.copy()`) yaradılmalıdır.
+exercise:
+  question:
+    en: "Write a function `get_batch_summary(records)` that takes a list of order IDs and returns a dictionary with keys: 'count' (number of records), 'first' (first record), 'last' (last record), and 'top_three' (a slice of the first three records)."
+    az: "Sifariş nömrələri siyahısını qəbul edən və 'count' (sayı), 'first' (ilk element), 'last' (son element) və 'top_three' (ilk 3 elementin dilimi) açarlarından ibarət lüğət qaytaran `get_batch_summary(records)` funksiyası yazın."
+  starter_code: |
+    def get_batch_summary(records):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Use `len(records)`, `records[0]`, `records[-1]`, and `records[:3]`."
+    az: "`len(records)`, `records[0]`, `records[-1]` və `records[:3]` sintaksisindən istifadə edin."
+  solution: |
+    def get_batch_summary(records):
+        return {
+            "count": len(records),
+            "first": records[0],
+            "last": records[-1],
+            "top_three": records[:3]
+        }
+  test_code: |
+    sample = [10, 20, 30, 40, 50]
+    res = get_batch_summary(sample)
+    assert res["count"] == 5, f"Expected count 5, got {res['count']}"
+    assert res["first"] == 10, f"Expected first 10, got {res['first']}"
+    assert res["last"] == 50, f"Expected last 50, got {res['last']}"
+    assert res["top_three"] == [10, 20, 30], f"Expected [10, 20, 30], got {res['top_three']}"
+
+flashcards:
+  - front:
+      en: "Are Python lists mutable or immutable?"
+      az: "Python siyahıları dəyişəndir (mutable), yoxsa dəyişməzdir (immutable)?"
+    back:
+      en: "Lists are mutable. You can add, remove, and modify elements in-place without creating a new list."
+      az: "Siyahılar dəyişəndir (mutable). Yeni siyahı yaratmadan elementləri yerindəcə əlavə etmək, silmək və dəyişdirmək mümkündür."
+  - front:
+      en: "What does `b = a` do when `a` is a list?"
+      az: "`a` siyahı olduqda `b = a` nə edir?"
+    back:
+      en: "It creates a reference (alias) to the exact same list in memory. Modifying `b` will also modify `a`."
+      az: "Eyni siyahı üçün yaddaşda ikinci bir istinad (ad) yaradır. `b`-ni dəyişdikdə `a` da dəyişir."
+  - front:
+      en: "How do you create an independent shallow copy of a list?"
+      az: "Siyahının müstəqil nüsxəsini necə yaratmaq olar?"
+    back:
+      en: "Using `b = a.copy()` or `b = a[:]`."
+      az: "`b = a.copy()` və ya `b = a[:]` yazmaqla."
+  - front:
+      en: "What is the time complexity of list.append() vs list.insert(0, val)?"
+      az: "list.append() ilə list.insert(0, val) arasındakı vaxt mürəkkəbliyi fərqi nədir?"
+    back:
+      en: "`.append()` at the end is O(1) amortized constant time. `.insert(0, val)` at the beginning is O(N) linear time because all elements must shift."
+      az: "Sona `.append()` etmək O(1) sabit vaxt aparır. Əvvələ `.insert(0, val)` etmək isə O(N) vaxt aparır, çünki bütün elementlər yaddaşda sürüşməlidir."
+  - front:
+      en: "What does the slice `data[-3:]` return?"
+      az: "`data[-3:]` dilimləməsi nə qaytarır?"
+    back:
+      en: "The last 3 elements of the list."
+      az: "Siyahının ən sonuncu 3 elementini qaytarır."

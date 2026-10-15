@@ -143,3 +143,35 @@ exercise:
     ORDER BY price ASC 
     LIMIT 3;
   order_matters: true
+
+flashcards:
+  - front:
+      en: "What is the default sort direction of ORDER BY if omitted?"
+      az: "ORDER BY zamanı istiqamət göstərilmədikdə standart sıralama hansıdır?"
+    back:
+      en: "ASC (Ascending) — sorting values from smallest to largest (A-Z, 0-9, earliest date to latest)."
+      az: "ASC (Artan sıra) — dəyərləri kiçikdən böyüyə doğru sıralayır (A-dan Z-yə, 0-dan 9-a, ən qədim tarixdən ən yeniyə)."
+  - front:
+      en: "Why must LIMIT always be accompanied by an ORDER BY clause for pagination?"
+      az: "Səhifələmə (pagination) zamanı LIMIT nə üçün həmişə ORDER BY ilə birgə işlədilməlidir?"
+    back:
+      en: "Relational tables are unordered mathematical sets. Without ORDER BY, the database does not guarantee row order, which leads to missing or duplicate rows across pages."
+      az: "Relyasion cədvəllər sırasız riyazi çoxluqlardır. ORDER BY olmadan mühərrik sabit ardıcıllığa zəmanət vermir və nəticədə səhifələr arasında sətirlər itə və ya təkrarlana bilər."
+  - front:
+      en: "What is the key functional difference between DISTINCT and GROUP BY?"
+      az: "DISTINCT və GROUP BY arasındakı əsas funksional fərq nədir?"
+    back:
+      en: "DISTINCT simply removes duplicate output rows. GROUP BY groups rows so that aggregate calculations (COUNT, SUM, AVG) can be performed per group."
+      az: "DISTINCT sadəcə təkrarlanan nəticə sətirlərini təmizləyir. GROUP BY isə sətirləri qruplaşdıraraq hər qrup üzrə aqreqat hesablamalar (COUNT, SUM, AVG) aparmağa imkan verir."
+  - front:
+      en: "Where do NULL values appear when sorting with ORDER BY in SQLite?"
+      az: "SQLite-da ORDER BY ilə sıralayarkən NULL dəyərlər hara düşür?"
+    back:
+      en: "In SQLite, NULL values are treated as smaller than any other value. Thus, NULLs appear first in ASC order and last in DESC order."
+      az: "SQLite-da NULL dəyərlər bütün digər dəyərlərdən kiçik hesab olunur. Buna görə də ASC sıralamada ən başda, DESC sıralamada isə ən sonda yerləşir."
+  - front:
+      en: "What is the performance drawback of overusing DISTINCT?"
+      az: "DISTINCT-dən həddindən artıq istifadə etməyin performans fəsadı nədir?"
+    back:
+      en: "DISTINCT requires sorting or hashing the entire result set in memory or temporary disk space to eliminate duplicates, creating high latency on large datasets."
+      az: "DISTINCT dublikatları təmizləmək üçün bütün nəticə çoxluğunu yaddaşda və ya diskdə çeşidləməyi (sort/hash) tələb edir və böyük həcmli məlumatlarda sorğunu kəskin ləngidir."

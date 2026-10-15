@@ -1,0 +1,196 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "11-generators-memory"
+order: 11
+level: "intermediate"
+title:
+  en: "Generators & Streaming: Processing Big Data in O(1) Memory"
+  az: "Generatorlar və Axın Emalı: Böyük Məlumatı O(1) Yaddaşla Emal Etmək"
+quick_recap:
+  en: "Generators compute data on-the-fly using `yield` instead of holding entire datasets in RAM. They enable constant $O(1)$ memory consumption regardless of whether you process 10 records or 100 million records. Remember: generators are single-pass iterators; once consumed, they are exhausted and will not produce items again."
+  az: "Generatorlar bütün məlumatı RAM-a yığmaq əvəzinə `yield` açar sözü ilə tələb olunduqca (Lazy Evaluation) tək-tək istehsal edir. Məlumatın 10 cərgə və ya 100 milyon cərgə olmasından asılı olmayaraq sabit $O(1)$ yaddaş sərfiyyatı təmin edir. Yadda saxlayın: generatorlar təkistifadəlikdir; bir dəfə oxunduqdan sonra tükənir və təkrar oxunduqda boş qalır."
+explanation:
+  en: |
+    Think of a generator like drinking water from a kitchen tap:
+    Instead of building an Olympic-sized reservoir in your living room to store all the water you will ever drink over 10 years (materializing a 50GB dataset into RAM as a `list`), you simply turn on the tap and take one fresh cup of water at a time (a **Generator** with `yield`). The memory footprint remains tiny and constant.
+
+    ### 1. The Magic of the `yield` Keyword
+    When Python encounters `yield`, it pauses function execution, saves the entire local state and instruction pointer, and emits the value to the caller. When the caller asks for the next item (`next(gen)` or inside a `for` loop), the function resumes execution immediately after the `yield` statement.
+
+    ```python
+    def count_up_to(limit):
+        n = 1
+        while n <= limit:
+            yield n  # Pauses and returns n
+            n += 1
+    ```
+
+    ### 2. List Comprehension vs Generator Expression
+    - List Comprehension: `[x * 2 for x in range(1_000_000)]` $\rightarrow$ Immediately allocates $\sim 8$ MB of RAM.
+    - Generator Expression: `(x * 2 for x in range(1_000_000))` $\rightarrow$ Allocates only $\sim 100$ bytes of RAM!
+
+    ### 3. Generator Pipelines (Unix-Pipe Style ETL)
+    You can chain generators together like assembly stations:
+    ```python
+    raw_lines = read_logs(file_stream)
+    parsed = parse_events(raw_lines)
+    errors = filter_critical_errors(parsed)
+    # Data streams through row-by-row without creating any intermediate lists in memory!
+    ```
+
+    ### 4. The Classic Traps:
+    1. **Exhaustion**: A generator can only be consumed once. A second `for` loop over the same generator yields nothing.
+    2. **Accidental Materialization**: If you call `list(gen)` on a 20GB generator stream, you immediately force Python to allocate all 20GB in RAM, causing an instant `MemoryError` (OOM crash).
+  az: |
+    Generatoru mətbəx krantından su içmək kimi təsəvvür edin:
+    Ömrünüz boyu içəcəyiniz bütün suyu qonaq otağınızda böyük bir hovuz tikib ora yığmaq (50GB-lıq məlumatı `list` kimi bütövlüklə RAM-a yükləmək) əvəzinə, krantı açıb hər dəfə ehtiyacınız olan bir stəkan suyu götürürsünüz (`yield` ilə işləyən **Generator**). Yaddaş sərfiyyatı hər zaman minimal və sabit qalır.
+
+    ### 1. `yield` Açar Sözünün Əsas Qaydası
+    Python `yield` əmri ilə qarşılaşdıqda funksiyanın icrasını dondurur, bütün daxili dəyişənləri və icra nöqtəsini yaddaşda saxlayır və cari dəyəri çağırana qaytarır. Çağıran növbəti elementi istədikdə (`next(gen)` və ya `for` dövrü), funksiya `yield`-dən dərhal sonra davam edir.
+
+    ```python
+    def say_qeder(limit):
+        n = 1
+        while n <= limit:
+            yield n  # Dondurur və n qaytarır
+            n += 1
+    ```
+
+    ### 2. List Comprehension və Generator İfadəsi Arasındakı Fərq
+    - List Comprehension: `[x * 2 for x in range(1_000_000)]` $\rightarrow$ Dərhal $\sim 8$ MB RAM tutur.
+    - Generator İfadəsi: `(x * 2 for x in range(1_000_000))` $\rightarrow$ Cəmi $\sim 100$ bayt RAM tutur!
+
+    ### 3. Generator Kəmərləri (Unix Boru Üslubu)
+    Generatorları montaj xətləri kimi bir-birinə zəncirləmək olar:
+    ```python
+    xammal = loqlari_oxu(fayl_axini)
+    pars_edilmis = hadiseleri_ayir(xammal)
+    xetalar = kritik_xetalari_suz(pars_edilmis)
+    # Məlumat yaddaşda heç bir aralıq siyahı yaratmadan cərgə-bə-cərgə axır!
+    ```
+
+    ### 4. Əsas Tələlər:
+    1. **Tükənmə**: Generator təkistifadəlikdir. Eyni generatoru ikinci dəfə `for` dövrünə salsanız, heç nə qaytarmayacaq.
+    2. **Təsadüfən Materiallaşdırma**: 20GB-lıq generator axınına `list(gen)` tətbiq etsəniz, bütün məlumatı dərhal RAM-a yığmağa məcbur edərək `MemoryError` (OOM çöküşü) törədərsiniz.
+code: |
+  import sys
+
+  # 1. Memory comparison: List vs Generator
+  n_items = 100_000
+  list_data = [x * 2 for x in range(n_items)]
+  gen_data = (x * 2 for x in range(n_items))
+
+  print(f"List memory usage:      {sys.getsizeof(list_data):>10,} bytes")
+  print(f"Generator memory usage: {sys.getsizeof(gen_data):>10,} bytes")
+
+  # 2. Generator function streaming items on demand
+  def stream_sensor_batches(total_batches):
+      for batch_id in range(1, total_batches + 1):
+          # Yielding simulated batch payload
+          yield {"batch_id": batch_id, "records": [10.5 * batch_id, 20.1 * batch_id]}
+
+  print("\nStreaming batches lazily:")
+  batch_stream = stream_sensor_batches(3)
+  for b in batch_stream:
+      print(f"  Processed on-the-fly: {b}")
+
+  # 3. Demonstration of generator exhaustion
+  print("\nTrying to iterate over consumed stream again:")
+  re_consumed = list(batch_stream)
+  print(f"  Result of exhausted generator: {re_consumed} (already consumed!)")
+what_it_does:
+  en: "Demonstrates memory conservation using generator expressions over list comprehensions, lazy streaming of batch payloads with yield, and shows generator exhaustion."
+  az: "Generator ifadələrinin siyahılardan qat-qat az yaddaş tutmasını, yield ilə axın emalını və generatorun təkistifadəlik tükənmə xüsusiyyətini nümayiş etdirir."
+real_world_use:
+  en: "Streaming multi-gigabyte CSV/Parquet files from S3/Blob storage, consuming Kafka topics, and running memory-efficient database cursor queries with fetchmany."
+  az: "Bulud anbarlarından (S3/Blob) çox giqabaytlıq faylları axınla oxumaq, Kafka hadisələrini emal etmək və verilənlər bazasından məlumatı yaddaşı doldurmadan sətir-bə-sətir çəkmək."
+common_mistakes:
+  en: |
+    - **Calling `list(generator)` on huge streams**: Destroys the entire streaming benefit and crashes the process with an Out Of Memory (OOM) error.
+    - **Attempting to iterate over an exhausted generator**: A generator can only be looped over once. To loop again, instantiate a new generator.
+    - **Confusing parentheses with 'tuple comprehensions'**: `(x for x in data)` creates a generator object, NOT a tuple. Tuples are created with `tuple(x for x in data)`.
+  az: |
+    - **Nəhəng axınlarda `list(generator)` çağırmaq**: Bütün axın üstünlüyünü məhv edir və prosesi Yaddaş Aşması (OOM / Out Of Memory) ilə çökdürür.
+    - **Tükənmiş generatoru təkrar oxumağa çalışmaq**: Generator yalnız bir dəfə oxuna bilər. Təkrar oxumaq üçün yeni generator obyekti yaradılmalıdır.
+    - **Mötərizələri 'tuple comprehension' zənn etmək**: `(x for x in data)` tuple deyil, generator obyekti yaradır. Tuple üçün `tuple(...)` yazılmalıdır.
+interview_question:
+  question:
+    en: "How do Python generators work under the hood, why are they essential for Big Data, and what happens when you iterate over an exhausted generator?"
+    az: "Python generatorları daxildə necə işləyir, Böyük Məlumat (Big Data) üçün nəyə görə əvəzolunmazdırlar və tükənmiş generatoru təkrar oxuduqda nə baş verir?"
+  answer:
+    en: |
+      1. **Internal Architecture & Iterator Protocol**: A generator function containing `yield` returns a generator iterator object that implements `__iter__()` and `__next__()`. When invoked, Python allocates a stack frame on the heap that persists state (local variables, bytecode instruction pointer). Each call to `next()` executes until the next `yield`, where execution freezes and returns the yielded value. When the function returns, Python raises `StopIteration`.
+      2. **Big Data Scalability**: Generators provide $O(1)$ space complexity. Processing a 100 GB file line-by-line requires only the memory of the current line (~a few hundred bytes), avoiding `MemoryError`.
+      3. **Exhaustion**: Once a generator completes and raises `StopIteration`, its internal state is exhausted. Any subsequent iteration immediately terminates without yielding elements and without raising an error.
+    az: |
+      1. **Daxili Arxitektura və Iterator Protokolu**: Daxilində `yield` olan funksiya `__iter__()` və `__next__()` metodlarını saxlayan generator obyekti qaytarır. Çağırıldıqda Python yığında daxili vəziyyəti (lokal dəyişənlər və baytkod göstəricisini) saxlayan karkas yaradır. Hər `next()` çağırışında kod növbəti `yield`-ə qədər işləyir və dəyəri qaytararaq dondurulur. Funksiya bitdikdə daxildə `StopIteration` xətası qaldırılır.
+      2. **Böyük Məlumat Uyğunluğu**: Generatorlar $O(1)$ yaddaş mürəkkəbliyi təqdim edir. 100 GB-lıq faylı sətir-bə-sətir oxumaq üçün cəmi bircə sətrin yaddaşı (bir neçə yüz bayt) kifayətdir və `MemoryError` yaranmır.
+      3. **Tükənmə**: Generator başa çatdıqda və `StopIteration` verdikdə onun daxili vəziyyəti tükənir. Növbəti hər hansı dövr heç bir xəta vermədən dərhal 0 elementlə başa çatır.
+exercise:
+  question:
+    en: "Write a generator function `stream_even_squares(numbers)` that takes an iterable of integers and yields `n * n` ONLY for even numbers (`n % 2 == 0`). Ensure it is a genuine generator using `yield`."
+    az: "Tam ədədlərdən ibarət kolleksiyanı qəbul edən və YALNIZ cüt ədədlərin (`n % 2 == 0`) kvadratını `n * n` qaytaran `stream_even_squares(numbers)` generator funksiyası yazın. `yield` açar sözündən istifadə edərək həqiqi generator olduğuna əmin olun."
+  starter_code: |
+    def stream_even_squares(numbers):
+        # yield istifadə edərək cüt ədədlərin kvadratını qaytarın
+        pass
+  hint:
+    en: "Iterate over `numbers` with `for n in numbers:`, check `if n % 2 == 0:`, and `yield n * n`."
+    az: "`for n in numbers:` ilə dövr edin, `if n % 2 == 0:` yoxlayın və `yield n * n` yazın."
+  solution: |
+    def stream_even_squares(numbers):
+        for n in numbers:
+            if n % 2 == 0:
+                yield n * n
+  test_code: |
+    import types
+    gen = stream_even_squares([1, 2, 3, 4, 5, 6])
+    assert isinstance(gen, types.GeneratorType), "Function must return a generator object, not a list"
+    results = list(gen)
+    assert results == [4, 16, 36], f"Expected [4, 16, 36], got {results}"
+    assert list(stream_even_squares([1, 3, 5])) == [], "Odds only must yield empty stream"
+
+flashcards:
+  - front:
+      en: "What keyword turns a standard Python function into a generator?"
+      az: "Standart Python funksiyasını generatora çevirən açar söz hansıdır?"
+    back:
+      en: "The `yield` keyword."
+      az: "`yield` açar sözü."
+  - front:
+      en: "What is Lazy Evaluation in data engineering?"
+      az: "Data mühəndisliyində Tənbəl Hesablama (Lazy Evaluation) nə deməkdir?"
+    back:
+      en: "Computing and retrieving data only at the exact moment it is requested, saving CPU and RAM."
+      az: "Məlumatı əvvəlcədən deyil, yalnız dəqiq tələb olunan anda hesablamaq və yaddaşa yükləmək."
+  - front:
+      en: "What is the memory complexity of a generator stream vs a full materialized list?"
+      az: "Generator axınının yaddaş mürəkkəbliyi ilə bütöv siyahının yaddaş mürəkkəbliyi necə fərqlənir?"
+    back:
+      en: "Generators operate in constant $O(1)$ memory; materialized lists require $O(N)$ linear memory."
+      az: "Generatorlar sabit $O(1)$ yaddaşla işləyir; bütöv siyahılar isə xətti $O(N)$ yaddaş tələb edir."
+  - front:
+      en: "What happens when you iterate over an already consumed (exhausted) generator?"
+      az: "Artıq oxunmuş (tükənmiş) generatoru ikinci dəfə oxumağa çalışdıqda nə baş verir?"
+    back:
+      en: "It immediately terminates with 0 items without raising an error."
+      az: "Heç bir xəta vermədən dərhal 0 elementlə başa çatır."
+  - front:
+      en: "What is the structural difference between `[x for x in data]` and `(x for x in data)`?"
+      az: "`[x for x in data]` ilə `(x for x in data)` arasındakı struktur fərqi nədir?"
+    back:
+      en: "`[...]` creates a list immediately in RAM; `(...)` creates an on-demand generator object."
+      az: "`[...]` dərhal RAM-da siyahı yaradır; `(...)` isə tələb olunduqca işləyən generator obyekti yaradır."

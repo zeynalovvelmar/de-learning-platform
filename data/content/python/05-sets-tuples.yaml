@@ -1,0 +1,147 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "05-sets-tuples"
+order: 5
+level: "junior"
+title:
+  en: "Sets, Tuples, and Uniqueness Operations"
+  az: "Çoxluqlar, Kortecellər və Unikallıq Əməliyyatları"
+quick_recap:
+  en: "Sets (`set()`) store unique, unordered elements with O(1) membership checking (`x in s`). They eliminate duplicates instantly and enable fast mathematical operations (union |, intersection &, difference -). Tuples (`()`) are immutable sequences with lower memory footprints than lists, guaranteeing data cannot be modified accidentally."
+  az: "Çoxluqlar (`set()`) unikal, sırasız elementləri saxlayır və O(1) sürətli yoxlama (`x in s`) təmin edir. Dublikatları bir göz qırpımında təmizləyir və riyazi çoxluq əməliyyatlarını (| birləşmə, & kəsişmə, - fərq) sürətlə aparır. Kortecellər (`tuple`) isə siyahıdan daha az yaddaş tutan dəyişməz ardıcıllıqdır."
+explanation:
+  en: |
+    Think of a collector's pouch of unique stamps:
+    - If you try to drop a duplicate stamp into the pouch, it simply disappears; only unique items exist. That is a **Set (`set()`)**.
+    - If you want to check if a specific stamp exists in the pouch, searching takes instant $O(1)$ constant time (unlike searching a list which takes $O(N)$ linear scans).
+
+    A **Tuple (`tuple`)** is like a printed laminated ID card: once created, its contents can never be edited (`immutable`). It is smaller in memory than a list and can be safely used as a dictionary key.
+
+    ### Powerful Set Operations (SQL Analogues):
+    - `set_a | set_b`: Union (combines all unique elements).
+    - `set_a & set_b`: Intersection (SQL `INTERSECT` — elements in both).
+    - `set_a - set_b`: Difference (SQL `EXCEPT` — elements in A but not B).
+  az: |
+    Kolleksiyaçının unikal marka torbasını təsəvvür edin:
+    - Əgər torbaya artıq mövcud olan eyni markanı atmağa çalışsanız, təkrar marka əlavə olunmur; torbada yalnız unikal əşyalar qalır. Bu, **Çoxluqdur (`set()`)**.
+    - Torbada müəyyən bir markanın olub-olmadığını yoxlamaq (`x in s`) siyahıdakı kimi bütün elementləri bir-bir gəzmədən ($O(N)$) anında tək addımda ($O(1)$) baş verir.
+
+    **Kortecel (`tuple`)** isə laminasiya olunmuş vəsiqə kimidir: bir dəfə yaradıldıqdan sonra heç vaxt dəyişdirilə bilməz (`immutable`). Yaddaşda siyahıdan az yer tutur və lüğətlərdə açar kimi istifadə edilə bilər.
+
+    ### Güclü Çoxluq Əməliyyatları (SQL Analoqları):
+    - `set_a | set_b`: Birləşmə (bütün unikal elementləri toplayır).
+    - `set_a & set_b`: Kəsişmə (SQL `INTERSECT` — hər iki tərəfdə olanlar).
+    - `set_a - set_b`: Fərq (SQL `EXCEPT` — A-da olub, B-də olmayanlar).
+code: |
+  # Raw user IDs with duplicates from an event stream
+  event_user_ids = [101, 102, 101, 103, 102, 104, 101]
+  active_customers = {101, 102, 105}
+
+  # Deduplicating via set
+  unique_users = set(event_user_ids)
+
+  # Set operations (SQL INTERSECT & EXCEPT analogues)
+  common_users = unique_users & active_customers   # Intersection
+  new_users = unique_users - active_customers      # Difference
+
+  # Tuple: immutable record (db connection config)
+  db_config = ("postgres.internal", 5432, "analytics_db")
+
+  print(f"Unique Users: {unique_users}")
+  print(f"Common in Active: {common_users}")
+  print(f"New Users to onboard: {new_users}")
+  print(f"DB Target: {db_config[0]}:{db_config[1]}")
+what_it_does:
+  en: "Removes duplicates from a stream of user IDs using set(), computes set intersections and differences, and demonstrates immutable tuple storage."
+  az: "İstifadəçi ID siyahısından təkrar elementləri set() ilə təmizləyir, kəsişmə və fərq əməliyyatlarını aparır və dəyişməz korteceli (tuple) nümayiş etdirir."
+real_world_use:
+  en: "Deduplicating incoming event keys and finding missing IDs during data reconciliation (e.g. comparing expected source rows against destination table rows)."
+  az: "Boru kəmərində daxil olan açarları deduplikasiya etmək və tutuşdurma zamanı itən qeydləri tapmaq (məs. mənbədə olan, lakin hədəf cədvələ çatmayan sətirləri `source_ids - dest_ids` ilə tapmaq)."
+common_mistakes:
+  en: |
+    - **Using a list for membership checking in large datasets**: Checking `if x in my_list` on 1,000,000 items takes O(N) linear time per check. Converting to `set` makes it instant O(1).
+    - **Creating a single-element tuple without a trailing comma**: `t = (42)` is parsed as an integer `42`. To make a tuple, you must include a comma: `t = (42,)`.
+    - **Assuming sets maintain insertion order**: Standard sets are unordered hash tables. Do not rely on item positions in sets.
+  az: |
+    - **Böyük həcmli məlumatda in yoxlamasını siyahıda aparmaq**: 1,000,000 elementlik siyahıda `x in list` hər dəfə O(N) vaxt aparır və proqramı dondurur. Siyahını `set`-ə çevirmək yoxlamanı O(1) edir.
+    - **Tək elementli tuple yaradarkən vergülü unutmaq**: `t = (42)` adi tam ədəd `42` kimi oxunur. Tuple olması üçün mütləq vergül qoyulmalıdır: `t = (42,)`.
+    - **Çoxluğun ardıcıllığı qoruduğunu düşünmək**: Çoxluqlar sırasızdır. Çoxluqda elementlərin indekslənməsinə arxalanmaq olmaz.
+interview_question:
+  question:
+    en: "What is the difference in performance between checking `x in my_list` versus `x in my_set`, and how does it affect data pipeline scalability?"
+    az: "`x in my_list` ilə `x in my_set` yoxlaması arasındakı performans fərqi nədir və bu data kəmərinin miqyaslanmasına necə təsir göstərir?"
+  answer:
+    en: |
+      1. **List Search Complexity (O(N))**: Python must scan elements sequentially from index 0 until a match is found. If the list has 1,000,000 elements, checking 1,000 incoming records takes 1,000,000,000 operations ($O(M \times N)$), bringing the pipeline to a crawl.
+      2. **Set Search Complexity (O(1))**: A set uses a hash table. Python hashes `x` and checks the bucket directly in constant time $O(1)$. Checking 1,000 records takes only 1,000 operations ($O(M)$).
+      3. **Pipeline Scalability**: Using sets for lookup tables (e.g. filtering blacklisted IP addresses or finding active customer keys) turns multi-hour batch runs into sub-second executions.
+    az: |
+      1. **Siyahıda Axtarış (O(N))**: Python elementi tapana qədər 0-cı indeksdən sona kimi ardıcıl oxuyur. 1 milyonluq siyahıda 1,000 yeni qeydi yoxlamaq 1 milyard əməliyyat ($O(M \times N)$) tələb edir və kəməri dondurur.
+      2. **Çoxluqda Axtarış (O(1))**: Çoxluq hash cədvəlindən istifadə edir. Python `x`-in hash kodunu tapıb birbaşa yaddaş xanasına baxır ($O(1)$). 1,000 qeydi yoxlamaq cəmi 1,000 əməliyyat ($O(M)$) çəkir.
+      3. **Kəmərin Miqyası**: Axtarış filtrlərində (məs. qara siyahıdakı IP-ləri və ya aktiv müştəri ID-lərini süzərkən) siyahı əvəzinə `set` istifadə etmək saatlarla davam edən skriptləri millisaniyələrə endirir.
+exercise:
+  question:
+    en: "Write a function `find_missing_ids(expected_ids, received_ids)` that takes two lists of IDs, converts them to sets, finds the IDs that were expected but never received, and returns them as a sorted list."
+    az: "İki ID siyahısını qəbul edən, onları çoxluğa (set) çevirərək gözlənilən, lakin daxil olmayan ID-ləri tapan və nəticəni sıralanmış siyahı kimi qaytaran `find_missing_ids(expected_ids, received_ids)` funksiyası yazın."
+  starter_code: |
+    def find_missing_ids(expected_ids, received_ids):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Convert both to sets, use the difference operator `-`, then use `sorted()` to return a sorted list."
+    az: "Hər ikisini set-ə çevirin, fərq operatoru `-` istifadə edin və `sorted()` ilə sıralanmış siyahı qaytarın."
+  solution: |
+    def find_missing_ids(expected_ids, received_ids):
+        missing = set(expected_ids) - set(received_ids)
+        return sorted(list(missing))
+  test_code: |
+    exp = [1, 2, 3, 4, 5]
+    rec = [2, 4]
+    res = find_missing_ids(exp, rec)
+    assert res == [1, 3, 5], f"Expected [1, 3, 5], got {res}"
+    assert find_missing_ids([10, 20], [10, 20]) == [], "Expected empty list"
+
+flashcards:
+  - front:
+      en: "What is the primary difference between a list and a tuple?"
+      az: "Siyahı (list) ilə kortecel (tuple) arasındakı əsas fərq nədir?"
+    back:
+      en: "Lists are mutable (can be changed). Tuples are immutable (cannot be changed after creation)."
+      az: "Siyahılar dəyişəndir (mutable). Kortecellər (tuple) isə dəyişməzdir (yaradıldıqdan sonra dəyişdirilə bilməz)."
+  - front:
+      en: "Why is `x in set_obj` significantly faster than `x in list_obj`?"
+      az: "`x in set_obj` yoxlaması nə üçün `x in list_obj`-dən qat-qat sürətlidir?"
+    back:
+      en: "Sets use hash tables offering O(1) average lookup time. Lists must scan sequentially in O(N) linear time."
+      az: "Çoxluqlar hash cədvəli istifadə edərək O(1) sabit vaxtda axtarır. Siyahılar isə O(N) xətti vaxtda bütün elementləri bir-bir gəzir."
+  - front:
+      en: "What does the set difference operator `set_a - set_b` return?"
+      az: "Çoxluq fərqi operatoru `set_a - set_b` nə qaytarır?"
+    back:
+      en: "All elements that are present in set_a but NOT present in set_b (equivalent to SQL EXCEPT)."
+      az: "set_a çoxluğunda olan, lakin set_b çoxluğunda OLMAYAN elementləri qaytarır (SQL EXCEPT ilə eynidir)."
+  - front:
+      en: "How do you define a tuple with exactly one element?"
+      az: "Cəmi bir elementi olan kortecel (tuple) necə yaradılır?"
+    back:
+      en: "You must include a trailing comma: `t = (42,)`. Without the comma, `t = (42)` is parsed as an int."
+      az: "Mütləq sonuna vergül qoyulmalıdır: `t = (42,)`. Vergül olmadan `t = (42)` adi tam ədəd kimi oxunur."
+  - front:
+      en: "Can a tuple be used as a dictionary key? Can a list?"
+      az: "Kortecel (tuple) lüğətdə açar ola bilərmi? Bəs siyahı (list)?"
+    back:
+      en: "Yes, tuples can be dictionary keys because they are immutable and hashable. Lists cannot because they are mutable."
+      az: "Bəli, kortecellər dəyişməz və hash oluna bilən olduğu üçün açar ola bilər. Siyahılar isə dəyişən olduğu üçün açar ola bilməz."

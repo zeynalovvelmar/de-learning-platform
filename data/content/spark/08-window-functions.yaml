@@ -1,0 +1,216 @@
+id: "08-window-functions"
+order: 8
+level: "intermediate"
+title:
+  en: "Window Functions & Analytical Rankings in PySpark"
+  az: "Pəncərə Funksiyaları (Window Functions) və Analitika"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  WINDOW SPECIFICATION: Window.partitionBy("dept").orderBy(desc("sal")) │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  DEPARTMENT: "Engineering" (Partition 1 on Executor A)                 │
+    │  [Murad, $5,000] ──► row_number: 1 │ rank: 1 │ lag(sal): NULL          │
+    │  [Elmar, $4,200] ──► row_number: 2 │ rank: 2 │ lag(sal): $5,000        │
+    │  [Leyla, $4,200] ──► row_number: 3 │ rank: 2 │ lag(sal): $4,200        │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  DEPARTMENT: "Marketing"   (Partition 2 on Executor B)                 │
+    │  [Sarah, $3,800] ──► row_number: 1 │ rank: 1 │ lag(sal): NULL          │
+    │  [John,  $2,500] ──► row_number: 2 │ rank: 2 │ lag(sal): $3,800        │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PƏNCƏRƏ TƏYİNATI: Window.partitionBy("dept").orderBy(desc("sal"))     │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  DEPARTAMENT: "Mühəndislik" (Partisiya 1 - Executor A-da)              │
+    │  [Murad, 5000 ₼] ──► row_number: 1 │ rank: 1 │ lag(maaş): NULL         │
+    │  [Elmar, 4200 ₼] ──► row_number: 2 │ rank: 2 │ lag(maaş): 5000 ₼       │
+    │  [Leyla, 4200 ₼] ──► row_number: 3 │ rank: 2 │ lag(maaş): 4200 ₼       │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  DEPARTAMENT: "Marketinq"   (Partisiya 2 - Executor B-də)              │
+    │  [Sarah, 3800 ₼] ──► row_number: 1 │ rank: 1 │ lag(maaş): NULL         │
+    │  [John,  2500 ₼] ──► row_number: 2 │ rank: 2 │ lag(maaş): 3800 ₼       │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of PySpark Window Functions like the Olympic Games:
+    - You don't rank all runners, swimmers, and weightlifters in one single chaotic race.
+    - **`partitionBy("sport")`**: Divides athletes into their separate sports (swimming, sprinting).
+    - **`orderBy(desc("score"))`**: Sorts the athletes inside that specific sport by their finish time.
+    - **Window Function (`row_number()`, `rank()`)**: Awards the Gold (1), Silver (2), and Bronze (3) medals within each sport separately.
+
+    ### The Most Important Analytical Functions:
+    - `row_number()`: Strict sequential numbering: `1, 2, 3, 4`. (Ties get distinct numbers). Ideal for picking the latest update or deduplicating.
+    - `rank()`: Gives equal rank to ties and leaves gaps: `1, 2, 2, 4`.
+    - `dense_rank()`: Gives equal rank to ties without gaps: `1, 2, 2, 3`.
+    - `lag(col, offset)`: Accesses the value of the PREVIOUS row in the window (essential for day-over-day growth and session change calculations).
+    - `lead(col, offset)`: Accesses the value of the NEXT row in the window.
+
+    ### The Catastrophic Window Trap:
+    If you write `Window.orderBy("salary")` without `.partitionBy()`, you force Spark to collect all billions of rows into a **SINGLE PARTITION** on a single executor to perform a global sort. This instantly crashes the executor with OOM.
+  az: |
+    PySpark Pəncərə Funksiyalarını (Window Functions) Olimpiya Oyunları kimi təsəvvür edin:
+    - Bütün qaçışçıları, üzgüçüləri və şahmatçıları bir-birinə qarışdırıb tək bir yarış keçirmirsiniz.
+    - **`partitionBy("idman_növü")`**: İdmançıları idman növlərinə görə ayrı-ayrı qruplara (partisiyalara) bölür.
+    - **`orderBy(desc("xal"))`**: Hər idman növü daxilində idmançıları nəticələrinə görə sıralayır.
+    - **Pəncərə Funksiyası (`row_number()`, `rank()`)**: Hər idman növü daxilində Qızıl (1), Gümüş (2) və Bürünc (3) medallarını təyin edir.
+
+    ### Ən Vacib Analitik Funksiyalar:
+    - `row_number()`: Qəti ardıcıl nömrələmə: `1, 2, 3, 4`. (Eyni dəyərlərə fərqli nömrə verir). Ən son qeydi seçmək və dublikatları silmək üçün ən yaxşı üsuldur.
+    - `rank()`: Eyni dəyərlərə eyni dərəcə verir və boşluq buraxır: `1, 2, 2, 4`.
+    - `dense_rank()`: Eyni dəyərlərə eyni dərəcə verir, amma boşluq buraxmır: `1, 2, 2, 3`.
+    - `lag(sutun, 1)`: Cari sətirdən ƏVVƏLKİ sətrin dəyərini gətirir (günbəgün artımı və dövriyyə fərqini tapmaq üçün əvəzolunmazdır).
+    - `lead(sutun, 1)`: Cari sətirdən NÖVBƏTİ sətrin dəyərini gətirir.
+
+    ### Ən Təhlükəli Pəncərə Tələsi:
+    Əgər `.partitionBy()` yazmadan birbaşa `Window.orderBy("maaş")` yazsanız, Spark qlobal sıralama aparmaq üçün terabaytlarla məlumatın hamısını **TƏK BİR PARTİSİYAYA** və tək bir executor-a yığmağa məcbur olur. Bu, bütün klasteri iflic edir və OOM çöküşünə səbəb olur.
+quick_recap:
+  en: "Window functions calculate running totals, rankings, and lead/lag differences across groups of rows without collapsing them into a single row like `groupBy`. Always provide a `.partitionBy()` clause to preserve cluster parallelism."
+  az: "Pəncərə funksiyaları cədvəl sətirlərini `groupBy` kimi tək bir cərgəyə sıxmadan qruplar üzrə dərəcələri, hərəkətli cəmləri və əvvəlki/sonrakı fərqləri hesablayır. Klaster paralelliyini qorumaq üçün hər zaman `.partitionBy()` göstərilməlidir."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.window import Window
+  from pyspark.sql.functions import col, row_number, rank, dense_rank, lag
+
+  spark = SparkSession.builder.appName("08_Window_Functions").master("local[*]").getOrCreate()
+
+  # Sample employee department payroll dataset
+  employees = [
+      ("Murad", "Engineering", 5000),
+      ("Elmar", "Engineering", 4200),
+      ("Leyla", "Engineering", 4200),
+      ("Ali",   "Engineering", 3100),
+      ("Sarah", "Marketing",   3800),
+      ("John",  "Marketing",   2500)
+  ]
+  df = spark.createDataFrame(employees, ["name", "department", "salary"])
+
+  # 1. Define Window Specification partitioned by department and ordered by salary desc
+  dept_window = Window.partitionBy("department").orderBy(col("salary").desc())
+
+  # 2. Compute row_number, rank, dense_rank, and previous peer salary (lag)
+  windowed_df = df \
+      .withColumn("row_num", row_number().over(dept_window)) \
+      .withColumn("rank", rank().over(dept_window)) \
+      .withColumn("dense_rank", dense_rank().over(dept_window)) \
+      .withColumn("prev_salary", lag("salary", 1).over(dept_window))
+
+  print("=== Analytical Window Rankings ===")
+  windowed_df.show()
+
+  # 3. Top-1 Highest Earner per Department (Deduplication / Top-N Pattern)
+  print("=== Top-1 Earner per Department (filter row_num == 1) ===")
+  top1_df = windowed_df.filter(col("row_num") == 1).select("department", "name", "salary")
+  top1_df.show()
+code_explanation:
+  en: |
+    - `Window.partitionBy("department").orderBy(...)`: Defines the distributed boundary. Data is shuffled by department so all employees of a department land on the same worker node.
+    - Notice rows for Elmar and Leyla (both have salary 4200):
+      - `row_number()` assigns `2` and `3`.
+      - `rank()` assigns `2` and `2`, followed by `4` for Ali (skipping 3).
+      - `dense_rank()` assigns `2` and `2`, followed by `3` for Ali (no gap).
+    - `filter(col("row_num") == 1)` is the gold-standard pattern for Top-N and deduplication pipelines.
+  az: |
+    - `Window.partitionBy("department").orderBy(...)`: Paylanma sərhədini təyin edir. Məlumatlar departamentə görə şaffl olunur ki, eyni şöbənin bütün işçiləri eyni qovşağa düşsün.
+    - Elmar və Leylanın sətirlərinə diqqət edin (hər ikisinin maaşı 4200-dür):
+      - `row_number()`: `2` və `3` nömrələyir.
+      - `rank()`: hər ikisinə `2` verir və Aliyə keçəndə `4` yazır (3-ü buraxır).
+      - `dense_rank()`: hər ikisinə `2` verir və Aliyə keçəndə `3` yazır (boşluq buraxmır).
+    - `filter(col("row_num") == 1)`: Data mühəndisliyində dublikatları silmək və hər qrupdan ən son/ən yaxşı qeydi seçmək üçün qızıl standartdır.
+visual_output: |
+  === Analytical Window Rankings ===
+  +-----+-----------+------+-------+----+----------+-----------+
+  |name |department |salary|row_num|rank|dense_rank|prev_salary|
+  +-----+-----------+------+-------+----+----------+-----------+
+  |Murad|Engineering|5000  |1      |1   |1         |NULL       |
+  |Elmar|Engineering|4200  |2      |2   |2         |5000       |
+  |Leyla|Engineering|4200  |3      |2   |2         |4200       |
+  |Ali  |Engineering|3100  |4      |4   |3         |4200       |
+  |Sarah|Marketing  |3800  |1      |1   |1         |NULL       |
+  |John |Marketing  |2500  |2      |2   |2         |3800       |
+  +-----+-----------+------+-------+----+----------+-----------+
+
+  === Top-1 Earner per Department (filter row_num == 1) ===
+  +-----------+-----+------+
+  |department |name |salary|
+  +-----------+-----+------+
+  |Engineering|Murad|5000  |
+  |Marketing  |Sarah|3800  |
+  +-----------+-----+------+
+output_description:
+  en: "Terminal output proving the visual difference between row_number, rank, and dense_rank on tie values, plus lag computation and Top-1 department extraction."
+  az: "Eyni dəyərlərdə row_number, rank və dense_rank arasındakı fərqi, lag sütununu və hər şöbə üzrə top-1 işçinin seçilməsini göstərən terminal çıxışı."
+what_it_does:
+  en: "Demonstrates window partitioning, sorting, analytical ranking algorithms, previous-row value access, and the Top-N deduplication design pattern."
+  az: "Pəncərə bölgüsünü, analitik dərəcələmə alqoritmlərini, əvvəlki sətrin oxunmasını və Top-N dublikat təmizlənməsi naxışını nümayiş etdirir."
+real_world_use:
+  en: "Deduplicating slowly changing dimension (SCD Type 1/2) records from CDC streams where only the latest updated timestamp per primary key must be retained."
+  az: "CDC axınlarında dəyişən məlumatları (SCD) emal edərkən hər açar üzrə ən son zaman anına (timestamp) sahib qeydi seçib köhnə dublikatları təmizləmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Omitting `partitionBy()` on large DataFrames**: Forces all cluster data into a single partition on one executor, crashing the job with OOM.
+    - **Confusing `rank()` with `dense_rank()`**: Using `rank()` when consecutive numbering is required causes subtle downstream logic bugs due to ranking gaps.
+    - **Using unbounded window frames unnecessarily**: Specifying unbounded window frames for aggregates forces Spark to hold all history in executor memory.
+  az: |
+    - **Böyük cədvəldə `partitionBy()` yazmağı unutmaq**: Bütün klaster məlumatını tək bir partisiya və tək bir executor-a yığır və OOM çöküşünə səbəb olur.
+    - **`rank()` ilə `dense_rank()`-ı səhv salmaq**: Ardıcıl sıra tələb olunan yerdə `rank()` işlətdikdə boşluqlar yaranır və hesabatları korlayır.
+    - **Gərəksiz yerə sərhədsiz (unbounded) pəncərə çərçivəsi açmaq**: Yaddaşda lazımsız nəhəng tarixçə saxlayaraq RAM-ı doldurur.
+interview_question:
+  question:
+    en: "How does Spark execute Window functions across a distributed cluster, and what catastrophe occurs if you define a window with `Window.orderBy(...)` without specifying `.partitionBy(...)`?"
+    az: "Spark paylanmış klasterdə Pəncərə Funksiyalarını (Window Functions) necə icra edir və `.partitionBy(...)` yazmadan yalnız `Window.orderBy(...)` təyin etdikdə hansı fəlakət baş verir?"
+  answer:
+    en: |
+      1. **Distributed Window Execution**:
+         - When you define `Window.partitionBy("key").orderBy("val")`, Spark hashes each record by `"key"` and performs a **Shuffle Exchange**.
+         - All rows sharing the same partition key land on the exact same executor. That executor locally sorts the partition rows and iterates sequentially to calculate `row_number`, running aggregates, or lead/lag values.
+      2. **The Catastrophe of Omitting `partitionBy()`**:
+         - If an engineer writes `Window.orderBy("val")` without `partitionBy()`, Spark can no longer parallelize the calculation across keys.
+         - To perform a single global order across the entire dataset, Spark's Catalyst optimizer moves **ALL partitions across the entire multi-terabyte dataset into a SINGLE partition (Partition 0)** on a single executor node!
+         - The remaining 99% of your cluster cores sit idle, and that single executor suffers massive disk spills, extreme GC pauses, and inevitably crashes with `java.lang.OutOfMemoryError: Java heap space`.
+    az: |
+      1. **Paylanmış İcra Mexanizmi**:
+         - `Window.partitionBy("key").orderBy("val")` yazdıqda Spark sətirləri açara görə heşləyir və **Şəbəkə Şafflı (Exchange)** aparır.
+         - Eyni açara sahib bütün sətirlər eyni executor-a toplanır. Həmin executor sətirləri öz daxilində sıralayır və ardıcıl oxuyaraq `row_number`, `lag` və ya hərəkətli cəmləri hesablayır.
+      2. **`partitionBy()` Yazılmadıqda Baş Verən Fəlakət**:
+         - Əgər mühəndis `partitionBy()` yazmadan birbaşa `Window.orderBy("val")` yazarsa, Spark artıq işi açarlar üzrə paralelləşdirə bilməz.
+         - Qlobal ardıcıllığı təmin etmək üçün Catalyst bütün terabaytlarla məlumatın hamısını **TƏK BİR PARTİSİYAYA (Partisiya 0)** və tək bir executor-un yaddaşına yığmağa məcbur olur!
+         - Klasterdəki digər 99% nüvələr boş qalır, həmin tək executor isə nəhəng diskə boşalma (spill) və dondurucu GC-dən sonra `java.lang.OutOfMemoryError: Java heap space` ilə çökür.
+  interviewer_tips:
+    en: "Explain that omitting partitionBy converts a distributed cluster back into a single slow machine. Always emphasize that partitionBy is the bridge that maintains distributed parallelism."
+    az: "Müsahibədə deyin ki, partitionBy yazmamaq yüzlərlə maşından ibarət klasteri tək bir zəif kompüterə çevirmək deməkdir. Mütləq 'bütün məlumatın tək partisiya 0-a yığılması və OOM olması' izahını verin."
+flashcards:
+  - front:
+      en: "What is the difference between `row_number()` and `rank()` in PySpark?"
+      az: "PySpark-da `row_number()` ilə `rank()` arasındakı fərq nədir?"
+    back:
+      en: "`row_number()` assigns strictly unique sequential integers; `rank()` assigns identical numbers to ties and skips subsequent numbers."
+      az: "`row_number()` qəti unikal ardıcıl rəqəmlər verir; `rank()` isə bərabər dəyərlərə eyni rəqəmi verir və növbəti nömrəni ötürür."
+  - front:
+      en: "What is the difference between `rank()` and `dense_rank()`?"
+      az: "`rank()` ilə `dense_rank()` arasındakı fərq nədir?"
+    back:
+      en: "`rank()` leaves gaps after ties (e.g. 1, 2, 2, 4); `dense_rank()` leaves no gaps after ties (e.g. 1, 2, 2, 3)."
+      az: "`rank()` bərabər dəyərlərdən sonra boşluq buraxır (1, 2, 2, 4); `dense_rank()` isə boşluq buraxmır (1, 2, 2, 3)."
+  - front:
+      en: "What happens if you define a PySpark Window without `.partitionBy()`?"
+      az: "PySpark-da `.partitionBy()` olmadan Pəncərə təyin etsəniz nə baş verər?"
+    back:
+      en: "All dataset rows are collapsed into a single partition on a single executor, destroying parallelism and causing an OOM crash."
+      az: "Bütün məlumat tək bir executor-da tək bir partisiyaya yığılır, paralellik məhv olur və OOM çöküşü baş verir."
+  - front:
+      en: "What function accesses the previous row's value inside a Window frame?"
+      az: "Pəncərə çərçivəsində əvvəlki sətrin dəyərini oxumaq üçün hansı funksiya istifadə olunur?"
+    back:
+      en: "The `lag(column, offset)` function."
+      az: "`lag(sutun, offset)` funksiyası."
+  - front:
+      en: "How is `row_number() == 1` used for deduplication in data engineering?"
+      az: "Data mühəndisliyində `row_number() == 1` dublikatları silmək üçün necə istifadə olunur?"
+    back:
+      en: "By partitioning by business key, ordering by timestamp descending, and filtering rows where `row_num == 1`."
+      az: "Biznes açarına görə bölüb, tarixə görə azalan sırada düzərək `row_num == 1` olan ən son sətirləri seçməklə."

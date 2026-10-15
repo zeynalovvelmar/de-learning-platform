@@ -1,0 +1,233 @@
+id: "05-dataframe-operations"
+order: 5
+level: "junior"
+title:
+  en: "PySpark DataFrame Mastery: Transformations, Columns & Cleansing"
+  az: "PySpark DataFrame Əsasları: Məlumat Təmizlənməsi və Sütun Əməliyyatları"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  RAW DIRTY INGESTION STREAM (Unclean, Missing Values, Bad Formats)     │
+    │  [order_id: 101, raw_amt: "120.50 USD", country: NULL, disc: "N/A"]    │
+    │  [order_id: 102, raw_amt: "-50.00",     country: "US", disc: "0.10"]   │
+    └───────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼ PYSPARK CLEANING PIPELINE
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  1. .filter(amount > 0)          ──► Eliminates corrupt negative rows  │
+    │  2. .withColumn("clean_country") ──► when(col.isNull, "UNKNOWN")       │
+    │  3. .withColumn("final_total")   ──► amount * (1.0 - discount)         │
+    │  4. .drop("raw_amt", "disc")     ──► Discards unneeded staging strings │
+    └───────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CURATED GOLDEN DATAFRAME (Ready for Warehouse / Analytics)            │
+    │  [order_id: 101, amount: 120.50, country: "UNKNOWN", final_total: 120.5]│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  XAM ÇİRKLİ MƏLUMAT AXINI (NULL dəyərlər, Səhv formatlar, Mənfilər)   │
+    │  [order_id: 101, raw_amt: "120.50 USD", country: NULL, disc: "N/A"]    │
+    │  [order_id: 102, raw_amt: "-50.00",     country: "US", disc: "0.10"]   │
+    └───────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼ PYSPARK TƏMİZLƏNMƏ KONVEYERİ
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  1. .filter(amount > 0)          ──► Mənfi səhv sətirləri atır         │
+    │  2. .withColumn("clean_country") ──► when(col.isNull, "UNKNOWN")       │
+    │  3. .withColumn("final_total")   ──► amount * (1.0 - discount)         │
+    │  4. .drop("raw_amt", "disc")     ──► Lazımsız xam sütunları təmizləyir │
+    └───────────────────────────────────┬────────────────────────────────────┘
+                                        │
+                                        ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TƏMİZLƏNMİŞ QIZIL MƏLUMAT CƏDVƏLİ (Anbar və Hesabatlar üçün Hazır)    │
+    │  [order_id: 101, amount: 120.50, country: "UNKNOWN", final_total: 120.5]│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of PySpark DataFrame cleansing like an automated airport luggage scanner:
+    - **Raw Luggage**: Bags arrive with torn stickers, missing owner tags, and incorrect weights.
+    - **The Pipeline**:
+      - `filter()`: Throws out dangerous or invalid luggage (e.g. negative bag weight).
+      - `withColumn()`: Prints and attaches a brand new standardized barcode tag.
+      - `when().otherwise()`: If the destination tag is missing (`NULL`), stamps it as "UNKNOWN/INSPECT".
+      - `drop()`: Shreds and discards temporary paper packing tape from the bag.
+
+    ### Essential PySpark Functions (from `pyspark.sql.functions`):
+    - `col("name")`: References a column object to perform arithmetic or boolean logic.
+    - `lit("value")`: Injects a literal constant scalar value (integer, string) into a column.
+    - `when(condition, val).otherwise(val)`: Distributed SQL `CASE WHEN` equivalent.
+    - `coalesce(colA, colB, lit("default"))`: Returns the first non-null value across columns.
+    - `withColumnRenamed("old", "new")`: Fast metadata rename without data copying.
+  az: |
+    PySpark DataFrame təmizlənməsini hava limanındakı baqaj təhlükəsizlik xətti kimi təsəvvür edin:
+    - **Xam Baqaj**: Çamadanlar cırılmış etiketlərlə, itmiş adlarla və ya səhv çəkilərlə gəlir.
+    - **Konveyer Addımları**:
+      - `filter()`: Səhv və ya qadağan olunmuş baqajları (məsələn, mənfi çəkili səhvləri) xəttdən çıxarır.
+      - `withColumn()`: Çamadana təzə, standart və hesablanmış ştrix-kod yapışdırır.
+      - `when().otherwise()`: Əgər şəhər adı boşdursa (`NULL`), üzərinə "MƏLUM_DEYİL" möhürü vurur.
+      - `drop()`: Artıq lazım olmayan köhnə kağız lentləri soyub zibilə atır.
+
+    ### Ən Əsas PySpark Funksiyaları (`pyspark.sql.functions`):
+    - `col("sutun")`: Sütun obyektinə müraciət edir (hesablama və ya müqayisə aparmaq üçün).
+    - `lit(100)`: Sütuna sabit bir rəqəm və ya mətn dəyəri (literal) yazmaq üçün istifadə olunur.
+    - `when(sert, deyer).otherwise(diger)`: SQL-dəki `CASE WHEN` operatorunun birbaşa analoqudur.
+    - `coalesce(a, b, lit("default"))`: Sütunlar arasında ilk NULL olmayan dəyəri seçir.
+    - `withColumnRenamed("kohnə", "yeni")`: Məlumatı kopyalamadan dərhal sütun adını dəyişir.
+quick_recap:
+  en: "PySpark DataFrames manipulate distributed rows using declarative column expressions (`col`, `lit`, `when/otherwise`). Clean transformations pipeline in-memory with narrow dependencies, eliminating raw data anomalies before loading into downstream Lakehouse tables."
+  az: "PySpark DataFrame-ləri sütun ifadələri (`col`, `lit`, `when/otherwise`) vasitəsilə paylanmış sətirləri dəyişir. Təmizləmə transformasiyaları dar asılılıqla yaddaşda konveyer kimi axır və məlumat anbarına yalnız keyfiyyətli sətirlərin getməsini təmin edir."
+code: |
+  from pyspark.sql import SparkSession
+  from pyspark.sql.functions import col, lit, when, coalesce, round, upper
+
+  spark = SparkSession.builder.appName("05_DataFrame_Cleansing").master("local[*]").getOrCreate()
+
+  # Simulated raw incoming customer orders
+  raw_orders = [
+      (1001, "USR_A", 150.00, 0.10, "AZE"),
+      (1002, "USR_B", -40.00, 0.00, "USA"),   # Invalid negative amount!
+      (1003, "USR_C", 200.00, None, None),     # Missing discount and country!
+      (1004, "USR_D", 85.50, 0.20, "gbr"),     # Lowercase country
+      (1005, "USR_E", 0.00, 0.05, "TUR")       # Zero revenue order
+  ]
+  schema = ["order_id", "user_code", "gross_amount", "discount_pct", "country_code"]
+  df_raw = spark.createDataFrame(raw_orders, schema)
+
+  print("=== 1. Raw Incoming Dirty Orders ===")
+  df_raw.show()
+
+  # PRODUCTION CLEANSING PIPELINE
+  clean_df = df_raw \
+      .filter(col("gross_amount") > 0) \
+      .withColumn("safe_discount", coalesce(col("discount_pct"), lit(0.0))) \
+      .withColumn("clean_country", when(col("country_code").isNull(), lit("UNKNOWN"))
+                                  .otherwise(upper(col("country_code")))) \
+      .withColumn("net_revenue", round(col("gross_amount") * (lit(1.0) - col("safe_discount")), 2)) \
+      .withColumnRenamed("user_code", "customer_id") \
+      .drop("discount_pct", "country_code")
+
+  print("=== 2. Cleaned & Curated Golden Orders ===")
+  clean_df.show()
+code_explanation:
+  en: |
+    - `.filter(col("gross_amount") > 0)`: Drops corrupt negative or zero balance rows.
+    - `coalesce(col("discount_pct"), lit(0.0))`: If discount is NULL, safely replaces it with 0.0.
+    - `when(...).otherwise(...)`: Replaces NULL countries with 'UNKNOWN' and normalizes text to uppercase ('GBR').
+    - `round(..., 2)`: Financial calculations should always be rounded to avoid floating point precision artifacts.
+    - `.drop()`: Eliminates legacy staging columns to keep the output schema lean.
+  az: |
+    - `.filter(col("gross_amount") > 0)`: Mənfi və ya sıfır olan yararsız sətirləri kənarlaşdırır.
+    - `coalesce(col("discount_pct"), lit(0.0))`: Endirim NULL olduqda onu təhlükəsiz şəkildə 0.0 ilə əvəzləyir.
+    - `when(...).otherwise(...)`: Ölkəsi NULL olanlara 'UNKNOWN' yazır, qalanlarını böyük hərflərlə standartlaşdırır ('GBR').
+    - `round(..., 2)`: Maliyyə hesablamalarında onluq xətaların olmaması üçün 2 kəsr rəqəminə yuvarlaqlaşdırır.
+    - `.drop()`: Artıq ehtiyac qalmayan köhnə sütunları ataraq cədvəli yığcam edir.
+visual_output: |
+  === 1. Raw Incoming Dirty Orders ===
+  +--------+---------+------------+------------+------------+
+  |order_id|user_code|gross_amount|discount_pct|country_code|
+  +--------+---------+------------+------------+------------+
+  |1001    |USR_A    |150.0       |0.1         |AZE         |
+  |1002    |USR_B    |-40.0       |0.0         |USA         |
+  |1003    |USR_C    |200.0       |NULL        |NULL        |
+  |1004    |USR_D    |85.5        |0.2         |gbr         |
+  |1005    |USR_E    |0.0         |0.05        |TUR         |
+  +--------+---------+------------+------------+------------+
+
+  === 2. Cleaned & Curated Golden Orders ===
+  +--------+-----------+------------+-------------+-------------+-----------+
+  |order_id|customer_id|gross_amount|safe_discount|clean_country|net_revenue|
+  +--------+-----------+------------+-------------+-------------+-----------+
+  |1001    |USR_A      |150.0       |0.1          |AZE          |135.0      |
+  |1003    |USR_C      |200.0       |0.0          |UNKNOWN      |200.0      |
+  |1004    |USR_D      |85.5        |0.2          |GBR          |68.4       |
+  +--------+-----------+------------+-------------+-------------+-----------+
+output_description:
+  en: "Before-and-after comparison showing corrupt orders removed, NULLs handled with safe defaults, countries standardized, and final net revenues calculated."
+  az: "Əvvəlki və sonrakı vəziyyətin müqayisəsi: səhv sətirlər silinib, NULL-lar doldurulub, ölkələr standartlaşdırılıb və xalis gəlir hesablanıb."
+what_it_does:
+  en: "Teaches standard production PySpark data cleansing idioms: filtering anomalies, conditional transformations, null coalescing, and column projection."
+  az: "İstehsalatda ən çox istifadə olunan PySpark təmizləmə qaydalarını öyrədir: anomaliyaları süzmək, şərti dəyişikliklər, NULL idarəetməsi və sütun proyeksiyası."
+real_world_use:
+  en: "The Bronze-to-Silver curation stage in Medallion (Lakehouse) data architecture. Raw vendor JSON/CSV feeds are parsed, validated, and normalized before writing to Delta/Parquet."
+  az: "Medallion (Lakehouse) arxitekturasında Bürüncdən Gümüşə (Bronze-to-Silver) təmizlənmə mərhələsidir. Xam məlumatlar yoxlanılır, təmizlənir və anbara yazılır."
+common_mistakes:
+  en: |
+    - **Chaining 50+ `.withColumn()` calls in a loop**: Creates a massive, deeply nested Catalyst logical plan tree that causes a `java.lang.StackOverflowError`.
+    - **Using Python's standard `and` / `or` / `not` instead of bitwise `&` / `|` / `~`**: In PySpark, you MUST use `(col("a") > 1) & (col("b") < 5)`. Python boolean operators do not work on distributed column expressions and raise `ValueError`.
+    - **Forgetting parentheses around boolean conditions**: `col("a") > 1 & col("b") < 5` fails because bitwise `&` has higher operator precedence than `>`. Always wrap each condition in parentheses: `(col("a") > 1) & (col("b") < 5)`.
+  az: |
+    - **Dövr daxilində 50+ `.withColumn()` zəncirləmək**: Nəhəng daxili plan ağacı yaradır və Catalyst-in `StackOverflowError` ilə çökməsinə səbəb olur.
+    - **Python-un `and` / `or` sözlərini işlətmək**: PySpark-da mütləq bitwise `&` və `|` işlədilməlidir: `(col("a") > 1) & (col("b") < 5)`. Adi `and`/`or` xəta törədir.
+    - **Şərtləri mötərizəyə almamaq**: `col("a") > 1 & col("b") < 5` xəta verir, çünki `&` işarəsi müqayisədən daha yüksək prioritetə malikdir. Hər bir şərt mütləq mötərizəyə alınmalıdır: `(...) & (...)`.
+interview_question:
+  question:
+    en: "Why is repeatedly calling `.withColumn()` in a Python loop considered a severe anti-pattern in PySpark, and what is the performant alternative?"
+    az: "PySpark-da dövr daxilində təkrar-təkrar `.withColumn()` çağırmaq nə üçün təhlükəli xəta (anti-pattern) hesab olunur və bunun optimal alternativi nədir?"
+  answer:
+    en: |
+      1. **The Catalyst StackOverflow Problem**:
+         - In PySpark, DataFrames are immutable. Every single invocation of `.withColumn()` does not mutate the existing DataFrame in-place; instead, it generates a brand new DataFrame and wraps the logical plan in an additional `Project` node in the Catalyst Abstract Syntax Tree (AST).
+         - If a developer loops over 100 column transformations:
+           `for c in columns: df = df.withColumn(c, ...)`
+           This constructs a 100-level deeply nested tree of unary project nodes. When an action is called, Catalyst attempts to optimize this recursive tree and blows the JVM call stack, throwing a fatal `java.lang.StackOverflowError`.
+      2. **The High-Performance Production Solution**:
+         - Execute all column projections simultaneously inside a single `.select()` call using a list comprehension:
+           ```python
+           new_columns = [col(c).alias(c) for c in df.columns] + [new_expr1.alias("col1"), new_expr2.alias("col2")]
+           df = df.select(*new_columns)
+           ```
+         - This generates a single, flat `Project` node with zero recursion, executing orders of magnitude faster.
+    az: |
+      1. **Catalyst StackOverflow Təhlükəsi**:
+         - PySpark-da DataFrame-lər dəyişməzdir (immutable). Hər bir `.withColumn()` çağırışı mövcud cədvəli yerində dəyişmir; əvəzinə tam yeni DataFrame yaradır və Catalyst-in daxili sintaksis ağacına (AST) yeni bir `Project` düyünü əlavə edir.
+         - Əgər tərtibatçı 100 sütun üçün dövr yazıb hər addımda `.withColumn()` çağırarsa:
+           `for c in columns: df = df.withColumn(c, ...)`
+           Ağacda 100 qat iç-içə keçmiş dərin rekurziya yaranır. Sonda aksiya çağırılanda Catalyst bu nəhəng ağacı təhlil edərkən JVM yaddaşı dolur və tətbiq `java.lang.StackOverflowError` ilə çökür.
+      2. **Yüksək Performanslı İstehsalat Həlli**:
+         - Bütün sütunları tək bir `.select()` çağırışı içində siyahı comprehension ilə eyni anda generasiya etmək:
+           ```python
+           new_cols = [col(c) for c in df.columns] + [hesablanan_ifade.alias("yeni_ad")]
+           df = df.select(*new_cols)
+           ```
+         - Bu, ağacda cəmi TƏK BİR yastı `Project` düyünü yaradır və heç bir yaddaş/rekurziya problemi törətmir.
+  interviewer_tips:
+    en: "Top candidates always highlight 'Catalyst Analyzer StackOverflowError' due to nested Project nodes and demonstrate single-pass `.select(*projections)` as the senior remedy."
+    az: "Müsahibədə dərhal 'Catalyst analizatorunda iç-içə Project düyünlərinin StackOverflowError yaratması'nı və həll yolu kimi tək bir `.select(*projections)` istifadəsini vurğulayın."
+flashcards:
+  - front:
+      en: "Why must you use `&` and `|` instead of Python's `and` and `or` when filtering PySpark DataFrames?"
+      az: "PySpark DataFrame-lərini süzərkən nə üçün `and`/`or` əvəzinə `&` və `|` işlədilməlidir?"
+    back:
+      en: "PySpark overrides bitwise operators `&` and `|` to build distributed column expressions; Python's `and`/`or` evaluate boolean truth values."
+      az: "PySpark paylanmış sütun ifadələri qurmaq üçün `&` və `|` operatorlarını istifadə edir; Python-un `and`/`or` sözləri isə lokal məntiqi qiymətləndirir."
+  - front:
+      en: "Why must every condition in a PySpark boolean filter be wrapped in parentheses: `(col('a') > 1) & (col('b') < 5)`?"
+      az: "Nə üçün PySpark-da hər bir şərt mütləq mötərizəyə alınmalıdır: `(col('a') > 1) & (col('b') < 5)`?"
+    back:
+      en: "In Python, the bitwise `&` operator has higher precedence than comparison operators like `>` and `<`."
+      az: "Python-da `&` bit operatoru `>` və `<` müqayisələrindən daha yüksək icra prioritetinə malikdir."
+  - front:
+      en: "What does the PySpark `lit()` function do?"
+      az: "PySpark-da `lit()` funksiyası nə işə yarayır?"
+    back:
+      en: "Wraps a literal Python scalar value (e.g. `lit(100)`, `lit('AZ')`) into a PySpark Column object."
+      az: "Sadə Python dəyərini (məs. `lit(100)` və ya `lit('AZ')`) PySpark-ın Sütun (Column) obyektinə çevirir."
+  - front:
+      en: "What happens if you run a loop with 100 chained `.withColumn()` operations?"
+      az: "100 ədəd ardıcıl `.withColumn()` olan dövr işlətdikdə nə baş verir?"
+    back:
+      en: "Catalyst builds a 100-level nested AST project tree that crashes the JVM with `java.lang.StackOverflowError`."
+      az: "Catalyst daxildə 100 mərtəbəli iç-içə ağac qurur və JVM `java.lang.StackOverflowError` ilə çökür."
+  - front:
+      en: "What is the difference between `.drop()` and `.select()` in PySpark?"
+      az: "PySpark-da `.drop()` ilə `.select()` arasındakı fərq nədir?"
+    back:
+      en: "`.drop()` removes specified columns keeping the rest; `.select()` explicitly projects only the specified columns discarding the rest."
+      az: "`.drop()` qeyd olunan sütunları silib qalanları saxlayır; `.select()` isə yalnız göstərilən sütunları götürür, qalanlarını atır."

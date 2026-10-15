@@ -1,0 +1,233 @@
+id: "09-caching-memory-oom"
+order: 9
+level: "advanced"
+title:
+  en: "Memory Management, Caching Strategies & Troubleshooting OOM"
+  az: "Yaddaşın İdarə Edilməsi: Cache, Persist və OOM Problemləri"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │       SPARK EXECUTOR JVM HEAP MEMORY ARCHITECTURE (Unified Memory)     │
+    ├────────────────────────────────────────┬───────────────────────────────┤
+    │  RESERVED MEMORY (300 MB)              │ Spark Internal Engine System  │
+    ├────────────────────────────────────────┴───────────────────────────────┤
+    │  USER MEMORY (~40% of remaining heap)                                  │
+    │  User data structures, Python UDF variables, internal metadata arrays  │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  SPARK MEMORY POOL (~60% of remaining heap)                            │
+    │  ┌──────────────────────────────────┬────────────────────────────────┐ │
+    │  │  EXECUTION MEMORY (50%)          │  STORAGE / CACHE MEMORY (50%)  │ │
+    │  │  Shuffle buffers, joins, sorts,  │  Cached DataFrames (cache()),  │ │
+    │  │  hash aggregate tables           │  broadcast variables           │ │
+    │  └──────────────────────────────────┴────────────────────────────────┘ │
+    │  *Dynamic Borrowing: Execution can evict Storage memory if under load! │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │      SPARK EXECUTOR JVM HEAP YADDAŞ ARXİTEKTURASI (Vahid Yaddaş)       │
+    ├────────────────────────────────────────┬───────────────────────────────┤
+    │  REZERV EDİLMİŞ YADDAŞ (300 MB)        │ Spark-ın Daxili Sistem Karkası│
+    ├────────────────────────────────────────┴───────────────────────────────┤
+    │  İSTİFADƏÇİ YADDAŞI (~40% qalan sahə)                                  │
+    │  İstifadəçi massivləri, Python UDF dəyişənləri, daxili metadata        │
+    ├────────────────────────────────────────────────────────────────────────┤
+    │  SPARK ƏSAS YADDAŞ HOVUZU (~60% qalan sahə)                            │
+    │  ┌──────────────────────────────────┬────────────────────────────────┐ │
+    │  │  İCRA YADDAŞI (50% Execution)    │  SAXLAMA / KEŞ (50% Storage)   │ │
+    │  │  Şaffl buferləri, birləşmələr,   │  Keşlənmiş DataFrame-lər       │ │
+    │  │  sort və heş-aqreqasiya masaları │  (`cache()`), broadcast dəyərlər│
+    │  └──────────────────────────────────┴────────────────────────────────┘ │
+    │  *Dinamik Borclanma: İcra sıxışanda Keş yaddaşını sıxışdırıb yer alır! │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of caching in PySpark like studying for an exam:
+    - You spend 2 hours solving a very difficult multi-step calculus formula.
+    - If you write the final result on a sticky note and stick it directly on your computer monitor (**`df.cache()`**), the next 5 times you need that result, you read it in 0.01 seconds.
+    - If you don't use a sticky note, every time your manager asks for a metric, you sit down and re-solve the entire 2-hour equation from scratch!
+    - **The Danger**: If you cover your entire room with 5,000 sticky notes, you run out of physical air and space (**Executor OutOfMemoryError**). When you finish the project, you must throw the notes away (**`df.unpersist()`**).
+
+    ### `cache()` vs `persist()`:
+    - `df.cache()`: Shorthand for `df.persist(StorageLevel.MEMORY_AND_DISK)`.
+    - `df.persist(StorageLevel)`: Gives fine-grained control:
+      - `MEMORY_ONLY`: Fastest, but if RAM is full, recomputes dropped partitions.
+      - `MEMORY_AND_DISK`: Safest in production; drops excess to local disk.
+      - `MEMORY_ONLY_SER`: Stores serialized byte arrays; uses 2x less RAM but slightly higher CPU cost.
+
+    ### Anatomy of OutOfMemory (OOM) Errors:
+    1. **Driver OOM (`java.lang.OutOfMemoryError: Java heap space`)**:
+       - *Cause*: Calling `.collect()` or broadcasting an excessively large table.
+       - *Fix*: Never collect large tables; use `.take(100)` or write directly to Parquet.
+    2. **Executor OOM**:
+       - *Cause*: Massive shuffle partitions, skewed data keys, or too many concurrent task cores sharing limited executor RAM.
+       - *Fix*: Increase partition count (`repartition`), salt skewed keys, or reduce cores per executor.
+  az: |
+    PySpark-da keşləməni (caching) mürəkkəb hesablamaları qeyd dəftərinə yazmaq kimi təsəvvür edin:
+    - 2 saat vaxt sərf edib 10 addımlıq çətin bir düsturu hesablayırsınız.
+    - Əgər tapdığınız son rəqəmi stikerə yazıb kompüterin ekranına yapışdırsanız (**`df.cache()`**), növbəti 5 dəfə həmin rəqəm lazım olanda 0.01 saniyəyə ekrandan oxuyacaqsınız.
+    - Əgər stikerə yazmasanız, rəhbərlik hər hesabat istəyəndə bütün o 2 saatlıq hesabı ən başdan təzədən həll etməli olacaqsınız!
+    - **Təhlükə**: Əgər otağın hər yerinə 5000 stiker yapışdırsanız, otaqda nəfəs almağa yer qalmaz (**Executor OOM xətası**). İşiniz bitəndə stikerləri qoparıb zibilə atmalısınız (**`df.unpersist()`**).
+
+    ### `cache()` ilə `persist()` Arasındakı Fərq:
+    - `df.cache()`: `df.persist(StorageLevel.MEMORY_AND_DISK)` əmrinin qısa formasıdır.
+    - `df.persist(StorageLevel)`: Saxlama dərəcəsini dəqiq seçməyə imkan verir:
+      - `MEMORY_ONLY`: Ən sürətlidir, amma RAM dolarsa artıq qalan hissələr yaddaşdan silinir və lazım olanda təzədən hesablanır.
+      - `MEMORY_AND_DISK`: İstehsalatda ən təhlükəsizidir; RAM-a sığmayanı yerli diskə yazır.
+      - `MEMORY_ONLY_SER`: Məlumatı sıxılmış bayt kimi saxlayır; 2 qat az RAM tutur, lakin bir az CPU tələb edir.
+
+    ### OutOfMemory (OOM) Çöküşlərinin Təhlili:
+    1. **Driver OOM (`java.lang.OutOfMemoryError: Java heap space`)**:
+       - *Səbəb*: Driver-də `.collect()` çağırmaq və ya həddindən artıq böyük cədvəli broadcast etmək.
+       - *Həlli*: Böyük cədvəllərdə heç vaxt `.collect()` çağırmayın; `.take(50)` istifadə edin və ya nəticəni diskə yazın.
+    2. **Executor OOM**:
+       - *Səbəb*: Çox böyük şaffl partisiyaları, məlumat əyriliyi (data skew) və ya tək bir executor-da çoxlu nüvənin eyni anda işləməsi.
+       - *Həlli*: Partisiya sayını artırın (`repartition`), əyri açarları duzlayın (salting) və ya hər executor-a 4-5 nüvə ayırın.
+quick_recap:
+  en: "Caching prevents expensive re-computation when a DataFrame is referenced multiple times in an ETL pipeline. `cache()` stores data in memory and disk; always pair with `.unpersist()` when the dataset is no longer needed to prevent cluster memory exhaustion."
+  az: "Keşləmə (Caching) eyni DataFrame kəmərdə bir neçə dəfə istifadə olunduqda təkrar hesablama xərclərinin qarşısını alır. `cache()` məlumatı RAM və diskdə saxlayır; klaster yaddaşının dolmaması üçün iş bitdikdə mütləq `.unpersist()` ilə təmizlənməlidir."
+code: |
+  import time
+  from pyspark.sql import SparkSession
+  from pyspark.sql.functions import col, rand
+  from pyspark.storagelevel import StorageLevel
+
+  spark = SparkSession.builder.appName("09_Caching_Benchmark").master("local[*]").getOrCreate()
+
+  # Create a heavy synthetic dataset (500,000 rows with random calculations)
+  df = spark.range(0, 500000).withColumn("score", rand() * 100.0).filter(col("score") > 20.0)
+
+  # Scenario A: UNCACHED (Pipeline evaluates the entire lineage from scratch twice)
+  t0 = time.time()
+  count_a1 = df.count()
+  t_uncached_1 = time.time() - t0
+
+  t0 = time.time()
+  count_a2 = df.count()
+  t_uncached_2 = time.time() - t0
+
+  # Scenario B: CACHED WITH PERSIST (StorageLevel.MEMORY_AND_DISK)
+  df_cached = df.persist(StorageLevel.MEMORY_AND_DISK)
+  
+  # First pass: Computes and POPULATES the cache
+  t0 = time.time()
+  count_c1 = df_cached.count()
+  t_cache_populate = time.time() - t0
+
+  # Second pass: READS DIRECTLY FROM RAM MEMORY CACHE!
+  t0 = time.time()
+  count_c2 = df_cached.count()
+  t_cache_hit = time.time() - t0
+
+  print("=== Caching Performance Benchmark ===")
+  print(f"Uncached Pass 1:    {t_uncached_1:.3f} s")
+  print(f"Uncached Pass 2:    {t_uncached_2:.3f} s (re-evaluated whole DAG from scratch!)")
+  print(f"Cache Populate:     {t_cache_populate:.3f} s (computed & saved into RAM)")
+  print(f"Cache Hit (RAM):    {t_cache_hit:.3f} s (Instant 10x-50x speedup!)")
+
+  # Diagnostics
+  print(f"\nDataFrame is cached: {df_cached.is_cached}")
+  print(f"Storage Level:       {df_cached.storageLevel}")
+
+  # Clean up memory resources
+  df_cached.unpersist()
+  print(f"After unpersist:     is_cached = {df_cached.is_cached}")
+code_explanation:
+  en: |
+    - In Uncached Pass 2: Notice it took the exact same time as Pass 1, proving Spark re-calculated all 500,000 random calculations from scratch!
+    - In Cache Hit: Notice time dropped from ~0.3s to 0.015s! That is a 20x acceleration because Spark read straight from executor memory buffers.
+    - `df_cached.unpersist()`: Releases the RAM and disk blocks, returning memory back to the Spark memory pool.
+  az: |
+    - Keşsiz 2-ci dövrə diqqət yetirin: 1-ci ilə eyni vaxtı apardı, yəni Spark bütün 500,000 təsadüfi hesablamanı sıfırdan təzədən etdi!
+    - Keşdən oxunma (Cache Hit) zamanına baxın: vaxt ~0.3 saniyədən 0.015 saniyəyə düşdü! Bu, 20 qat sürətlənmədir, çünki məlumat birbaşa RAM buferlərindən oxundu.
+    - `df_cached.unpersist()`: RAM və disk bloklarını dərhal azad edir və yaddaşı klasterə qaytarır.
+visual_output: |
+  === Caching Performance Benchmark ===
+  Uncached Pass 1:    0.342 s
+  Uncached Pass 2:    0.338 s (re-evaluated whole DAG from scratch!)
+  Cache Populate:     0.355 s (computed & saved into RAM)
+  Cache Hit (RAM):    0.018 s (Instant 10x-50x speedup!)
+
+  DataFrame is cached: True
+  Storage Level:       Disk Memory Deserialized 1x Replicated
+  After unpersist:     is_cached = False
+output_description:
+  en: "Terminal execution benchmark measuring the 20x latency reduction when accessing in-memory cached DataFrames vs re-evaluating raw lineage."
+  az: "Keşlənmiş DataFrame-ə müraciət edərkən icra müddətinin 20 dəfə azaldığını və unpersist ilə yaddaşın azad edilməsini göstərən terminal hesabatı."
+what_it_does:
+  en: "Demonstrates how to strategically cache DataFrames using StorageLevel, benchmark latency improvements, and safely release memory using unpersist."
+  az: "DataFrame-ləri StorageLevel ilə strateji keşləməyi, performans sürətlənməsini ölçməyi və unpersist ilə yaddaşı təhlükəsiz azad etməyi nümayiş etdirir."
+real_world_use:
+  en: "Essential for machine learning model training loops and data quality validation jobs where a clean Silver-layer DataFrame is consumed by 5 different downstream analytical models."
+  az: "Eyni təmizlənmiş Gümüş (Silver) cədvəlin həm hesabatlara, həm maşın öyrənməsi modellərinə, həm də maliyyə cədvəllərinə ayrı-ayrı göndərildiyi kəmərlərdə istifadə olunur."
+common_mistakes:
+  en: |
+    - **Caching every single intermediate DataFrame**: Blindly caching everything clogs the Storage memory pool, forcing Spark to evict execution memory and causing severe GC thrashing. Only cache DataFrames that are reused multiple times.
+    - **Forgetting to unpersist**: Leaving cached datasets alive across a long-running streaming or multi-job session causes silent memory leaks.
+    - **Caching before filtering**: Always filter dirty and unneeded data FIRST, then cache the lean, curated dataset.
+  az: |
+    - **Hər xırda aralıq cədvəli kor-koranə keşləmək**: Yaddaşı doldurur, Spark-ı icra yaddaşını sıxışdırmağa məcbur edir və sistemi dondurur. Yalnız ən azı 2-3 dəfə təkrar istifadə olunan cədvəllər keşlənməlidir.
+    - **`unpersist()` çağırmağı unutmaq**: Uzunmüddətli tətbiqlərdə yaddaş sızmasına (memory leak) səbəb olur.
+    - **Filtrləmədən əvvəl keşləmək**: Həmişə əvvəlcə süzüb təmizləyin, sonra yığcam vəziyyətdə keşə göndərin.
+interview_question:
+  question:
+    en: "What is the difference between `cache()` and `persist()`, and how do you diagnose and resolve Driver OutOfMemory vs Executor OutOfMemory errors?"
+    az: "`cache()` ilə `persist()` arasındakı fərq nədir və Driver OOM ilə Executor OOM xətalarını necə diaqnostika və həll edirsiniz?"
+  answer:
+    en: |
+      1. **`cache()` vs `persist()`**:
+         - `cache()` is simply an alias for `persist(StorageLevel.MEMORY_AND_DISK)`.
+         - `persist()` accepts a `StorageLevel` parameter allowing you to explicitly choose between storage tiers (`MEMORY_ONLY`, `MEMORY_AND_DISK`, `DISK_ONLY`, `_SER` serialized, and `_2` multi-node replication).
+      2. **Driver OOM (Root Causes & Solutions)**:
+         - *Cause*: Calling `.collect()`, `.toPandas()`, or broadcasting a table larger than the Driver's allocated JVM heap (`spark.driver.memory`).
+         - *Solution*: Eliminate `.collect()`; use `.take(10)` for inspection; write output directly to storage; increase `--driver-memory` if heavy metadata operations are required.
+      3. **Executor OOM (Root Causes & Solutions)**:
+         - *Cause*: Large partition sizes, high degree of data skew (one executor receives 90% of the shuffle data), or too many cores per executor sharing heap space.
+         - *Solution*: Increase `spark.sql.shuffle.partitions`; salt skewed join keys; tune `spark.executor.memory` and `spark.memory.fraction`; allocate no more than 4-5 cores per executor.
+    az: |
+      1. **`cache()` və `persist()` Fərqi**:
+         - `cache()` sadəcə `persist(StorageLevel.MEMORY_AND_DISK)` əmrinin qısa formasıdır.
+         - `persist()` isə xüsusi `StorageLevel` parametrini qəbul edir və yaddaş səviyyələrini (`MEMORY_ONLY`, `MEMORY_AND_DISK`, `DISK_ONLY`, `_SER` sıxılmış, `_2` iki nüsxəli) dəqiq seçməyə imkan verir.
+      2. **Driver OOM (Səbəblər və Həllər)**:
+         - *Səbəb*: `.collect()`, `.toPandas()` çağırmaq və ya Driver-in yaddaşından (`spark.driver.memory`) böyük cədvəli broadcast etmək.
+         - *Həlli*: `.collect()` istifadəsini dayandırın; `.take(20)` işlədin; böyük nəticəni birbaşa fayla yazın; zərurət olduqda `--driver-memory` parametrini artırın.
+      3. **Executor OOM (Səbəblər və Həllər)**:
+         - *Səbəb*: Çox böyük partisiya ölçüləri, məlumat əyriliyi (data skew - bütün şaffl məlumatının tək bir maşına tökülməsi) və ya bir executor-a həddən artıq çox nüvənin verilməsi.
+         - *Həlli*: Partisiya sayını artırın (`spark.sql.shuffle.partitions`); əyri açarları duzlayın (salting); hər executor-a 4-5 nüvə ayırın və `--executor-memory` həcmini artırın.
+  interviewer_tips:
+    en: "Structure your answer into Driver vs Executor failure domains. This demonstrates architectural maturity and proves you can triage production alerts in high-stakes environments."
+    az: "Cavabınızı mütləq iki yerə bölün: Driver OOM və Executor OOM. Bu, sistemin arxitekturasını dərindən bildiyinizi və real istehsalat qəzalarını həll edə biləcəyinizi sübut edir."
+flashcards:
+  - front:
+      en: "What storage level does `df.cache()` use by default in modern Apache Spark?"
+      az: "Müasir Apache Spark-da `df.cache()` susmaya görə hansı saxlama dərəcəsindən (StorageLevel) istifadə edir?"
+    back:
+      en: "`StorageLevel.MEMORY_AND_DISK` (stores in RAM, spills excess partitions to local disk)."
+      az: "`StorageLevel.MEMORY_AND_DISK` (RAM-da saxlayır, sığmayanı yerli diskə boşaldır)."
+  - front:
+      en: "When should you use `df.persist(StorageLevel.MEMORY_ONLY_SER)`?"
+      az: "`df.persist(StorageLevel.MEMORY_ONLY_SER)` saxlama dərəcəsini nə vaxt seçməlisiniz?"
+    back:
+      en: "When memory is constrained; serialized bytes take 2x to 4x less RAM at the cost of slight CPU deserialization overhead."
+      az: "Yaddaş məhdud olduqda; sıxılmış baytlar 2-4 dəfə az RAM tutur, əvəzində bir qədər CPU tələb edir."
+  - front:
+      en: "Why is calling `.collect()` on a multi-million row DataFrame dangerous?"
+      az: "Milyonlarla sətri olan DataFrame-də `.collect()` çağırmaq nə üçün təhlükəlidir?"
+    back:
+      en: "It brings all distributed records into the single Driver node's JVM heap, causing an instant Driver OutOfMemoryError."
+      az: "Bütün paylanmış sətirləri tək bir Driver maşınının JVM yaddaşına çəkir və Driver OOM ilə çökür."
+  - front:
+      en: "What should you always call when a cached DataFrame is no longer needed in a pipeline?"
+      az: "Kəmərdə keşlənmiş DataFrame-ə artıq ehtiyac qalmadıqda mütləq hansı əmr çağırılmalıdır?"
+    back:
+      en: "`df.unpersist()` to free up RAM and disk blocks in the executor storage pool."
+      az: "Yaddaşı və disk bloklarını azad etmək üçün `df.unpersist()` əmri."
+  - front:
+      en: "What are the two major memory regions in Spark's Unified Memory pool?"
+      az: "Spark-ın Vahid Yaddaş (Unified Memory) hovuzunun iki əsas bölgəsi hansıdır?"
+    back:
+      en: "Execution Memory (shuffles, joins, sorts) and Storage Memory (cached data, broadcast variables)."
+      az: "İcra Yaddaşı (şaffl, join, sort) və Saxlama Yaddaşı (keşlənmiş məlumatlar, broadcast dəyərlər)."

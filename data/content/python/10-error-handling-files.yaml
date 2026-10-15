@@ -1,0 +1,259 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "10-error-handling-files"
+order: 10
+level: "intermediate"
+title:
+  en: "Defensive Pipelines: Error Handling, Context Managers & DLQ"
+  az: "Müdafiəli Kəmərlər: Xətaların İdarə Edilməsi, Kontekst Menecerləri və DLQ"
+quick_recap:
+  en: "Never let one corrupted row crash a multi-hour data pipeline. Use `try-except` with specific exception types (`ValueError`, `KeyError`) instead of catching bare `Exception`. Route malformed rows into a Dead-Letter Queue (DLQ). Always access files and streams using context managers (`with open(...) as f`) to guarantee resource cleanup even during crashes."
+  az: "Saatlarla davam edən bir data kəmərinin cəmi bir xarab cərgəyə görə çökməsinə imkan verməyin. Kor-koranə bütün xətaları tutmaq əvəzinə dəqiq xəta tiplərini (`ValueError`, `KeyError`) tutun. Xətalı qeydləri 'Dead-Letter Queue' (DLQ / Xətalı Məlumat Növbəsi) ünvanına yönəldin. Faylları açarkən kəmər çökdükdə belə resursların bağlanmasına zəmanət verən `with open(...) as f` kontekst menecerindən istifadə edin."
+explanation:
+  en: |
+    Think of error handling like electrical circuit breakers in a modern building:
+    If a short circuit occurs in a kitchen appliance, the breaker trips safely, cutting power to that single outlet while the rest of the house remains lit and safe. Without circuit breakers, a single spark starts an electrical fire that burns down the whole building (a pipeline crashing at 3:00 AM on row 4,500,000).
+
+    ### 1. The Full Try-Except-Else-Finally Anatomy:
+    ```python
+    try:
+        # Code that might raise an exception
+        value = int(raw_string)
+    except ValueError as e:
+        # Runs ONLY if ValueError occurred
+        handle_error(e)
+    else:
+        # Runs ONLY if NO exception was raised in try block
+        process_clean_value(value)
+    finally:
+        # ALWAYS runs (ideal for closing connections, releasing locks)
+        cleanup_resources()
+    ```
+
+    ### 2. Specific Exceptions vs The Silent Trap
+    **Never** write bare `except:`:
+    ```python
+    try:
+        process_row(row)
+    except:  # ANTIPATTERN! Swallows KeyboardInterrupt, SystemExit, and typos!
+        pass
+    ```
+    Always catch the specific expected error: `except (ValueError, KeyError, TypeError) as e:`.
+
+    ### 3. Context Managers (`with` statement)
+    In operating systems, file descriptors and database connections are strictly limited resources.
+    ```python
+    # BAD: Leaks file descriptors if an error occurs mid-read
+    f = open("data.csv")
+    data = f.read()
+    f.close()
+
+    # GOOD: Guarantees file closure even on unexpected exceptions
+    with open("data.csv", "r", encoding="utf-8") as f:
+        data = f.read()
+    ```
+
+    ### 4. The Dead-Letter Queue (DLQ) Pattern:
+    In production ETL, dirty data is guaranteed. When a record fails parsing, instead of crashing the batch:
+    1. Catch the specific error.
+    2. Append the bad record along with the error reason to a DLQ list or error table.
+    3. Continue processing the remaining records.
+    4. Alert the team with the DLQ summary.
+  az: |
+    Xəta idarəetməsini binadakı elektrik qoruyucuları (avtomatlar) kimi təsəvvür edin:
+    Məişət texnikasında qısaqapanma baş verərsə, avtomat dərhal atır və yalnız həmin yuvanın cərəyanını kəsir, evin qalan hissəsi isə işıqlı və təhlükəsiz qalır. Qoruyucu olmasa, kiçik bir qığılcım bütün evi yandırar (yəni 4,500,000-cu cərgədə gecə saat 03:00-da bütün kəmərin çökməsi).
+
+    ### 1. Try-Except-Else-Finally Strukturu:
+    ```python
+    try:
+        # Xəta törədə biləcək kod
+        value = int(raw_string)
+    except ValueError as e:
+        # YALNIZ ValueError baş verdikdə işləyir
+        xetani_qeyd_et(e)
+    else:
+        # YALNIZ try blokunda heç bir xəta OLMADIQDA işləyir
+        temiz_deyeri_isle(value)
+    finally:
+        # HƏR ZAMAN (xəta olsa da, olmasa da) işləyir
+        resurslari_temizle()
+    ```
+
+    ### 2. Dəqiq Xəta Tipləri və "Səssiz Udma" Tələsi
+    Heç vaxt boş `except:` yazmayın:
+    ```python
+    try:
+        process_row(row)
+    except:  # BÖYÜK SƏHV! Bütün sistem siqnallarını və səhvləri gizlədir!
+        pass
+    ```
+    Həmişə gözlənilən dəqiq xətanı tutun: `except (ValueError, KeyError, TypeError) as e:`.
+
+    ### 3. Kontekst Menecerləri (`with` açar sözü)
+    Əməliyyat sistemlərində fayl deskriptorları və verilənlər bazası əlaqələri məhdud resursdur.
+    ```python
+    # SƏHV: Oxuma zamanı xəta çıxsa fayl açıq qalır və yaddaş sızır
+    f = open("data.csv")
+    data = f.read()
+    f.close()
+
+    # DÜZGÜN: Xəta çıxsa belə faylın bağlanmasına zəmanət verir
+    with open("data.csv", "r", encoding="utf-8") as f:
+        data = f.read()
+    ```
+
+    ### 4. Dead-Letter Queue (DLQ / Xətalı Məlumat Növbəsi) Naxışı:
+    İstehsalat kəmərlərində çirkli məlumatların gəlməsi qaçılmazdır. Cərgə pars edilə bilmədikdə bütün kəməri çökdürmək əvəzinə:
+    1. Dəqiq xətanı tutun.
+    2. Xətalı cərgəni və xətanın səbəbini DLQ siyahısına və ya xəta cədvəlinə yazın.
+    3. Qalan düzgün cərgələri emal etməyə davam edin.
+    4. Sonda komandaya DLQ hesabatı verin.
+code: |
+  import io
+  import csv
+
+  # Simulated raw CSV data containing dirty records
+  raw_csv_feed = """transaction_id,amount,user_id
+  TX1001,45.50,USR1
+  TX1002,INVALID_AMOUNT,USR2
+  TX1003,120.00,USR3
+  TX1004,-10.00,USR4
+  TX1005,,USR5
+  """
+
+  clean_records = []
+  dead_letter_queue = []
+
+  # Using context manager to process stream safely
+  with io.StringIO(raw_csv_feed.strip()) as stream:
+      reader = csv.DictReader(stream)
+      for row in reader:
+          tx_id = row.get("transaction_id")
+          raw_amt = row.get("amount", "")
+          
+          try:
+              amount = float(raw_amt)
+              if amount <= 0:
+                  raise ValueError(f"Non-positive amount: {amount}")
+          except (ValueError, TypeError) as err:
+              # Route corrupted data to Dead-Letter Queue without terminating pipeline
+              dead_letter_queue.append({"tx_id": tx_id, "raw_amount": raw_amt, "reason": str(err)})
+          else:
+              # Successfully validated record
+              clean_records.append({"tx_id": tx_id, "amount": amount, "user_id": row["user_id"]})
+
+  print(f"Clean processed records: {len(clean_records)}")
+  for r in clean_records:
+      print(f"  OK: {r}")
+
+  print(f"\nDead-Letter Queue (DLQ) records: {len(dead_letter_queue)}")
+  for d in dead_letter_queue:
+      print(f"  DLQ: tx={d['tx_id']} reason={d['reason']}")
+what_it_does:
+  en: "Demonstrates defensive ETL processing using try/except/else to ingest valid numeric rows while routing malformed rows into a Dead-Letter Queue without terminating the batch."
+  az: "Düzgün cərgələri emal edən və xətalı cərgələri kəməri dayandırmadan Dead-Letter Queue siyahısına yönləndirən müdafiəli ETL məntiqini nümayiş etdirir."
+real_world_use:
+  en: "Production Airflow/Spark data ingestion pipelines where millions of incoming streaming records must not fail the daily SLA due to a handful of corrupted partner payloads."
+  az: "Gündəlik milyonlarla cərgə emal edən istehsalat kəmərlərində bir neçə zədəli qeydə görə bütün günlük SLA-nın çökməsinin qarşısını almaq üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using bare `except:` without specifying exception classes**: This catches `KeyboardInterrupt` and `SystemExit`, making pipelines impossible to terminate gracefully.
+    - **Not closing files (omitting `with`)**: Leaking open file handles or connection sockets can exhaust OS file descriptor limits (`EMFILE: Too many open files`).
+    - **Discarding errors silently with `pass`**: Swallowing exceptions without routing them to logs or a DLQ creates silent data loss that is difficult to detect.
+  az: |
+    - **Xəta tipini göstərmədən boş `except:` yazmaq**: `KeyboardInterrupt` və sistem siqnallarını da tutur və kəməri düzgün dayandırmağı qeyri-mümkün edir.
+    - **Faylları bağlamamaq (`with` istifadə etməmək)**: Açıq fayl deskriptorları yığılaraq əməliyyat sisteminin limitini bitirir (`Too many open files`).
+    - **Xətaları `pass` ilə səssizcə udmaq**: Loq yazmadan və ya DLQ-ya göndərmədən xətanı gizlətmək xəbərsiz məlumat itkisinə səbəb olur.
+interview_question:
+  question:
+    en: "What is the Dead-Letter Queue (DLQ) pattern, and why should you never write `except: pass` in production data pipelines?"
+    az: "Dead-Letter Queue (DLQ) naxışı nədir və nə üçün istehsalat data kəmərlərində heç vaxt `except: pass` yazılmamalıdır?"
+  answer:
+    en: |
+      1. **The Danger of `except: pass`**: A bare `except: pass` catches everything, including syntax errors, variable typos (`NameError`), memory exhaustion, and process termination signals (`KeyboardInterrupt`). It silently swallows critical software bugs, leading to silent data corruption where upstream systems think the pipeline succeeded, but missing data was dropped invisibly.
+      2. **The DLQ Pattern**: Instead of crashing the whole pipeline or silently dropping records, unparseable records are isolated and redirected into a separate storage sink (such as an S3 error bucket, Kafka DLQ topic, or error table) alongside the error reason and timestamp. The main pipeline continues processing healthy records to meet business SLAs, while an alerting system notifies engineers to inspect and replay the DLQ records.
+    az: |
+      1. **`except: pass` Təhlükəsi**: Boş `except: pass` hər şeyi — həm sintaksis səhvlərini, həm dəyişən adlarındakı səhvləri (`NameError`), həm də prosesin dayandırılma siqnallarını (`KeyboardInterrupt`) səssizcə udur. Nəticədə sistem kəmərin uğurla bitdiyini zənn edir, lakin əslində minlərlə məlumat itir və bu xətanı tapmaq çox çətin olur.
+      2. **DLQ Naxışı**: Bütün kəməri çökdürmək və ya məlumatları gizlicə itirmək əvəzinə, xətalı cərgələr səbəbi və vaxtı ilə birlikdə xüsusi ehtiyat anbara (məsələn S3 xəta qovluğu, Kafka DLQ topiki və ya xəta cədvəli) yönləndirilir. Əsas kəmər biznes SLA-sını qoruyaraq sağlam cərgələri emal etməyə davam edir, data mühəndisləri isə sonra DLQ-ya düşən məlumatları araşdırıb təkrar emal edirlər.
+exercise:
+  question:
+    en: "Write a function `parse_batch_safely(raw_records)` that takes a list of dictionaries with keys `'id'` and `'value'`. Attempt to convert each `'value'` to an integer `int(v)`. Return a tuple of two lists: `(valid_records, failed_records)`. `valid_records` contains dicts `{'id': id, 'value': int_val}`. `failed_records` contains dicts `{'id': id, 'error': str(exception)}` for any row that raised `ValueError` or `TypeError`."
+    az: "`'id'` və `'value'` açarları olan lüğətlər siyahısını qəbul edən `parse_batch_safely(raw_records)` funksiyası yazın. Hər bir `'value'` dəyərini `int(v)` ilə tam ədədə çevirməyə çalışın. İki siyahıdan ibarət tuple qaytarın: `(valid_records, failed_records)`. `valid_records` daxilində `{'id': id, 'value': int_val}`, `failed_records` daxilində isə `ValueError` və ya `TypeError` baş verən qeydlər üçün `{'id': id, 'error': str(exception)}` olmalıdır."
+  starter_code: |
+    def parse_batch_safely(raw_records):
+        valid = []
+        failed = []
+        # try/except istifadə edərək elementləri ayırın
+        return (valid, failed)
+  hint:
+    en: "Iterate with a for loop, wrap `int(row['value'])` in `try...except (ValueError, TypeError) as e:`, and append to the respective list."
+    az: "Dövrlə keçin, `int(row['value'])` əmrini `try...except (ValueError, TypeError) as e:` daxilinə alın və uyğun siyahıya əlavə edin."
+  solution: |
+    def parse_batch_safely(raw_records):
+        valid = []
+        failed = []
+        for row in raw_records:
+            try:
+                val = int(row['value'])
+                valid.append({'id': row['id'], 'value': val})
+            except (ValueError, TypeError) as e:
+                failed.append({'id': row['id'], 'error': str(e)})
+        return (valid, failed)
+  test_code: |
+    sample = [
+        {'id': 1, 'value': '100'},
+        {'id': 2, 'value': 'invalid'},
+        {'id': 3, 'value': 250},
+        {'id': 4, 'value': None}
+    ]
+    val, fail = parse_batch_safely(sample)
+    assert len(val) == 2, f"Expected 2 valid records, got {len(val)}"
+    assert val[0] == {'id': 1, 'value': 100}
+    assert val[1] == {'id': 3, 'value': 250}
+    assert len(fail) == 2, f"Expected 2 failed records, got {len(fail)}"
+    assert fail[0]['id'] == 2 and fail[1]['id'] == 4
+
+flashcards:
+  - front:
+      en: "Why is a bare `except:` considered dangerous in production data pipelines?"
+      az: "İstehsalat data kəmərlərində xəta növü göstərilməyən `except:` nə üçün təhlükəlidir?"
+    back:
+      en: "It catches everything including system exits and syntax errors, hiding critical bugs and causing silent data loss."
+      az: "Bütün xətaları (sistem siqnalları və sintaksis səhvləri daxil) udur, kritik xətaları gizlədir və məlumat itkisinə səbəb olur."
+  - front:
+      en: "What is the purpose of the `else` block in a `try/except/else/finally` structure?"
+      az: "`try/except/else/finally` strukturunda `else` blokunun rolu nədir?"
+    back:
+      en: "It executes only if the code in the `try` block ran successfully without raising any exceptions."
+      az: "Yalnız `try` blokundakı kod heç bir xəta törətmədən uğurla başa çatdıqda icra olunur."
+  - front:
+      en: "What does the `finally` block guarantee?"
+      az: "`finally` bloku nəyə zəmanət verir?"
+    back:
+      en: "It executes unconditionally whether an exception occurred or not, ensuring resources like connections and files are closed."
+      az: "Xəta baş versə də, verməsə də mütləq icra olunur və fayl və ya verilənlər bazası əlaqələrinin bağlanmasını təmin edir."
+  - front:
+      en: "Why must you use context managers (`with open(...) as f`) for file handling?"
+      az: "Fayllarla işləyərkən nə üçün mütləq `with open(...) as f` kontekst menecerindən istifadə edilməlidir?"
+    back:
+      en: "It guarantees the file descriptor is closed automatically, preventing file handle leaks even if exceptions occur."
+      az: "Fayl deskriptorunun avtomatik bağlanmasına zəmanət verir və kodda xəta çıxsa belə resurs sızmasının qarşısını alır."
+  - front:
+      en: "What is a Dead-Letter Queue (DLQ) in data engineering?"
+      az: "Data mühəndisliyində Dead-Letter Queue (DLQ) nədir?"
+    back:
+      en: "A storage sink where malformed or unprocessable records are safely routed so the main pipeline can continue processing valid data."
+      az: "Xətalı cərgələrin ayrıca saxlanıldığı ehtiyat kanal; əsas kəmərin çökmədən sağlam məlumatları emal etməsinə imkan verir."

@@ -1,0 +1,194 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "09-comprehensions"
+order: 9
+level: "intermediate"
+title:
+  en: "List & Dict Comprehensions: Expressive Transformations"
+  az: "List və Dict Comprehensions: Bir Sətirdə Məlumat Çevrilmələri"
+quick_recap:
+  en: "Comprehensions provide a concise, declarative syntax for transforming and filtering collections: `[expr for item in items if condition]`. They run faster than manual `.append()` loops because Python executes the loop and list population directly in optimized C-level bytecode (`LIST_APPEND`). Avoid nested, unreadable comprehensions in production."
+  az: "Comprehensions kolleksiyaları süzmək və transformasiya etmək üçün qısa və aydın sintaksis təqdim edir: `[ifade for element in kolleksiya if sert]`. Python dövrü və siyahını birbaşa C səviyyəli sürətli baytkodla (`LIST_APPEND`) icra etdiyi üçün adi `for` dövrü və `.append()`-dən nəzərəçarpacaq dərəcədə sürətlidir. Oxunaqlılığı qorumaq üçün iç-içə qəliz comprehensions yazmaqdan çəkinin."
+explanation:
+  en: |
+    Imagine an automated sorting conveyor at a packing plant:
+    Instead of an operator inspecting each fruit manually, deciding whether it is fresh, and dropping it into a crate one by one (a manual `for` loop with `.append()`), you switch on a calibrated conveyor belt with a built-in filter grid (a **List Comprehension**). The clean items are processed and packed in one continuous, efficient stream.
+
+    ### 1. List Comprehension Syntax
+    The standard formula:
+    `[<what_to_keep_or_transform> for <item> in <iterable> if <filter_condition>]`
+
+    **Example**: Extract positive sales amounts and convert them to cents:
+    ```python
+    raw_sales = [12.50, -5.00, 0.0, 45.00]
+    cents = [int(s * 100) for s in raw_sales if s > 0]
+    # Result: [1250, 4500]
+    ```
+
+    ### 2. Dict Comprehensions (Fast In-Memory Indexing)
+    In Data Engineering pipelines, you frequently turn lists of database rows or API JSON payloads into hash maps for fast $O(1)$ lookups:
+    ```python
+    users = [{"id": 101, "name": "Alice"}, {"id": 102, "name": "Bob"}]
+    user_lookup = {u["id"]: u["name"] for u in users}
+    # Result: {101: 'Alice', 102: 'Bob'}
+    ```
+
+    ### 3. The Ternary Value Transformation (`if-else`)
+    - If you are **filtering items out**, place `if` at the end:
+      `[x for x in data if x > 0]`
+    - If you are **transforming values conditionally** (e.g. replacing NULLs), place `if-else` before `for`:
+      `[x if x is not None else 0 for x in data]`
+
+    ### 4. The Data Engineering Production Rule:
+    If a comprehension exceeds 2 lines, requires nested loops, or needs a `try/except` block, **do not use a comprehension**. Use a standard `for` loop with explicit logging. Readability and debuggability in production always come first.
+  az: |
+    Meyvə qablaşdırma zavodundakı avtomatlaşdırılmış çeşidləmə xəttini təsəvvür edin:
+    Fəhlənin hər bir meyvəni tək-tək əlinə götürüb, yoxlayıb, sonra yeşiyə atması (adi `for` dövrü və `.append()`) əvəzinə, kalibrlənmiş ələyi olan sürətli konveyer xəttini işə salırsınız (**List Comprehension**). Təmiz məhsullar vahid və fasiləsiz axınla süzülüb yeşiyə yığılır.
+
+    ### 1. List Comprehension Sintaksisi
+    Əsas düstur:
+    `[<nə_saxlanılsın_və_çevrilsin> for <element> in <kolleksiya> if <süzgəc_şərti>]`
+
+    **Nümunə**: Müsbət satış məbləğlərini seçmək və qəpiyə çevirmək:
+    ```python
+    raw_sales = [12.50, -5.00, 0.0, 45.00]
+    cents = [int(s * 100) for s in raw_sales if s > 0]
+    # Nəticə: [1250, 4500]
+    ```
+
+    ### 2. Dict Comprehensions (Sürətli Yaddaş İndekslənməsi)
+    Data Mühəndisliyində verilənlər bazasından və ya API-dən gələn cərgələri $O(1)$ axtarış sürəti qazanmaq üçün tez-tez lüğətə çevirirlər:
+    ```python
+    users = [{"id": 101, "name": "Alice"}, {"id": 102, "name": "Bob"}]
+    user_lookup = {u["id"]: u["name"] for u in users}
+    # Nəticə: {101: 'Alice', 102: 'Bob'}
+    ```
+
+    ### 3. Ternary Şərti Dəyər Dəyişməsi (`if-else`)
+    - Əgər elementləri **süzüb kənarlaşdırırsınızsa**, `if` ən sonda yazılır:
+      `[x for x in data if x > 0]`
+    - Əgər hər bir elementin **dəyərini şərtlə dəyişirsinizsə** (məs. NULL dəyərləri 0 ilə əvəzləmək), `if-else` `for`-dan əvvəl yazılır:
+      `[x if x is not None else 0 for x in data]`
+
+    ### 4. Data Mühəndisliyinin İstehsalat Qaydası:
+    Əgər comprehension 2 sətirdən uzun olursa, iç-içə dövrlər tələb edirsə və ya `try/except` xəta tutması lazımdırsa, **comprehension istifadə etməyin**. Açıq-aydın `for` dövrü və loqlar yazın. İstehsalatda kodun oxunması və asan sazlanması hər şeydən üstündür.
+code: |
+  # Raw incoming sensor records from an IoT stream
+  sensor_readings = [
+      {"sensor_id": "temp_01", "reading": 23.4, "status": "OK"},
+      {"sensor_id": "temp_02", "reading": None, "status": "ERR"},
+      {"sensor_id": "temp_03", "reading": 45.1, "status": "OK"},
+      {"sensor_id": "temp_04", "reading": -99.0, "status": "MALFUNCTION"},
+  ]
+
+  # 1. List Comprehension: Filter OK sensors and round readings
+  valid_temps = [round(r["reading"]) for r in sensor_readings if r["status"] == "OK" and r["reading"] is not None]
+
+  # 2. Dict Comprehension: Build fast lookup map {sensor_id: reading}
+  sensor_map = {r["sensor_id"]: r["reading"] for r in sensor_readings if r["status"] == "OK"}
+
+  # 3. Ternary Value Transformation: Replace None/invalid readings with 0.0
+  sanitized_readings = [r["reading"] if r["status"] == "OK" and r["reading"] is not None else 0.0 for r in sensor_readings]
+
+  print("Valid rounded temps:", valid_temps)
+  print("Sensor lookup map:", sensor_map)
+  print("Sanitized readings:", sanitized_readings)
+what_it_does:
+  en: "Demonstrates list and dictionary comprehensions for filtering invalid readings, building fast ID-to-value hash lookup indexes, and conditional value replacements."
+  az: "Səhv qeydləri süzmək, sürətli açar-dəyər indeks xəritəsi qurmaq və şərti dəyər əvəzetmələri üçün list və dict comprehension istifadəsini nümayiş etdirir."
+real_world_use:
+  en: "Normalizing batched API payloads, stripping whitespace from header strings, and creating lookup hash maps from Dimension tables in ETL pipelines."
+  az: "ETL kəmərlərində API qeydlərini təmizləmək, başlıq sətirlərindəki boşluqları kəsmək və Dimensiya cədvəllərindən sürətli axtarış xəritələri qurmaq."
+common_mistakes:
+  en: |
+    - **Mixing up filter `if` with ternary `if-else` syntax**: `[x for x in lst if x > 0]` filters elements, whereas `[x if x > 0 else 0 for x in lst]` transforms every element. Putting `else` at the end causes a `SyntaxError`.
+    - **Overly complex nested comprehensions**: Writing 3-level comprehensions that are impossible to debug when a production pipeline fails.
+    - **Using comprehensions for side-effects**: Using `[print(x) for x in data]` builds an unnecessary list of `None` in memory. Use a standard `for` loop instead.
+  az: |
+    - **Süzgəc `if` ilə ternary `if-else` sintaksisini qarışdırmaq**: `[x for x in lst if x > 0]` elementləri süzür, `[x if x > 0 else 0 for x in lst]` isə hər elementi çevirir. `else`-i ən sonda yazmaq `SyntaxError` yaradır.
+    - **Həddindən artıq mürəkkəb iç-içə comprehensions**: Kəmər çökəndə sazlanması (debug) qeyri-mümkün olan 3 qatlı qəliz ifadələr yazmaq.
+    - **Comprehension-u kənar təsirlər üçün işlətmək**: `[print(x) for x in data]` yazmaq yaddaşda lazımsız `None` siyahısı yaradır. Bunun üçün adi `for` dövrü istifadə edin.
+interview_question:
+  question:
+    en: "Why is a list comprehension usually faster than a `for` loop with `.append()`, and when should you avoid them?"
+    az: "List comprehension nə üçün `.append()` olan adi `for` dövründən daha sürətlidir və hansı hallarda onlardan qaçınmaq lazımdır?"
+  answer:
+    en: |
+      1. **Bytecode Optimization**: In a standard `for` loop with `.append()`, Python looks up the attribute `.append` on every iteration and performs an interpreter function call. In a list comprehension, the iteration and appending run directly in optimized C-level bytecode using the `LIST_APPEND` instruction.
+      2. **When to Avoid**:
+         - **Heavy Memory Footprint**: A comprehension creates the entire list in RAM immediately. If you have millions of rows, use a **generator expression** `(x for x in data)` to stream records.
+         - **Complex Logic & Error Handling**: If you need `try/except` blocks, logging, or multi-step logic, standard `for` loops are much easier to read and maintain.
+    az: |
+      1. **Baytkod Səviyyəsində Optimallaşdırma**: Adi `for` dövründə `.append()` istifadə edəndə Python hər təkrarda metod axtarışı və funksiya çağırışı edir. List comprehension isə daxili C səviyyəsində xüsusi `LIST_APPEND` baytkodu ilə birbaşa yaddaşda işləyir.
+      2. **Nə zaman qaçınmaq lazımdır**:
+         - **Böyük Yaddaş Sərfi**: Comprehension bütün siyahını dərhal RAM-da yaradır. Milyonlarla cərgəniz varsa, yaddaş partlamasından qaçmaq üçün **generator ifadəsi** `(x for x in data)` istifadə olunmalıdır.
+         - **Mürəkkəb Məntiq və Xəta İdarəetməsi**: Kodda `try/except`, loqlar və ya çoxmərhələli addımlar lazımdırsa, adi `for` dövrü daha oxunaqlı və idarəolunandır.
+exercise:
+  question:
+    en: "Given customer transactions `transactions = [{'tx_id': 'TX1', 'amount': 150.0, 'valid': True}, {'tx_id': 'TX2', 'amount': -20.0, 'valid': True}, {'tx_id': 'TX3', 'amount': 300.0, 'valid': False}, {'tx_id': 'TX4', 'amount': 85.5, 'valid': True}]`. Write a function `build_valid_transaction_index(transactions)` that uses a dictionary comprehension to return a dictionary mapping `tx_id` to `amount` ONLY for transactions where `valid` is True AND `amount` is greater than 0."
+    az: "`transactions` tranzaksiya siyahısı verilib. Yalnız `valid` dəyəri True VƏ `amount` 0-dan böyük olan qeydləri seçib `tx_id: amount` lüğətini quran və dict comprehension istifadə edən `build_valid_transaction_index(transactions)` funksiyası yazın."
+  starter_code: |
+    def build_valid_transaction_index(transactions):
+        # Dict comprehension istifadə edərək lüğəti qaytarın
+        pass
+  hint:
+    en: "Use syntax `{tx['tx_id']: tx['amount'] for tx in transactions if tx['valid'] and tx['amount'] > 0}`."
+    az: "`{tx['tx_id']: tx['amount'] for tx in transactions if tx['valid'] and tx['amount'] > 0}` sintaksisindən istifadə edin."
+  solution: |
+    def build_valid_transaction_index(transactions):
+        return {tx['tx_id']: tx['amount'] for tx in transactions if tx['valid'] and tx['amount'] > 0}
+  test_code: |
+    sample = [
+        {'tx_id': 'TX1', 'amount': 150.0, 'valid': True},
+        {'tx_id': 'TX2', 'amount': -20.0, 'valid': True},
+        {'tx_id': 'TX3', 'amount': 300.0, 'valid': False},
+        {'tx_id': 'TX4', 'amount': 85.5, 'valid': True}
+    ]
+    res = build_valid_transaction_index(sample)
+    assert res == {'TX1': 150.0, 'TX4': 85.5}, f"Expected {{'TX1': 150.0, 'TX4': 85.5}}, got {res}"
+    assert build_valid_transaction_index([]) == {}, "Empty list must return empty dict"
+
+flashcards:
+  - front:
+      en: "What is the core syntax structure of a List Comprehension?"
+      az: "List Comprehension-un əsas sintaksis strukturu necədir?"
+    back:
+      en: "`[expression for item in iterable if condition]`."
+      az: "`[ifade for element in kolleksiya if sert]`."
+  - front:
+      en: "Why is a list comprehension faster than an explicit `for` loop with `.append()`?"
+      az: "List comprehension nə üçün `.append()` olan adi `for` dövründən daha sürətlidir?"
+    back:
+      en: "It avoids Python method lookup overhead by running via optimized C-level bytecode (`LIST_APPEND`)."
+      az: "Python metod axtarışını aradan qaldırır və optimallaşdırılmış C səviyyəli baytkodla (`LIST_APPEND`) icra olunur."
+  - front:
+      en: "Where does the condition go when using `if/else` to transform values in a comprehension?"
+      az: "Comprehension daxilində dəyərləri `if/else` ilə dəyişərkən şərt harada yazılır?"
+    back:
+      en: "Before the `for` keyword: `[x if x > 0 else 0 for x in data]`. Filtering-only `if` goes after."
+      az: "`for` açar sözündən əvvəl: `[x if x > 0 else 0 for x in data]`. Yalnız süzgəc `if` isə sonra yazılır."
+  - front:
+      en: "How do you construct a dictionary comprehension from a list of user objects `users`?"
+      az: "`users` obyektlər siyahısından dict comprehension necə qurulur?"
+    back:
+      en: "`{u['id']: u['name'] for u in users}`."
+      az: "`{u['id']: u['name'] for u in users}`."
+  - front:
+      en: "When should you replace a list comprehension with a generator expression in data engineering?"
+      az: "Data mühəndisliyində list comprehension-u nə vaxt generator ifadəsi ilə əvəzləməlisiniz?"
+    back:
+      en: "When processing massive datasets where materializing the entire list in RAM would cause an Out Of Memory (OOM) error."
+      az: "Bütün siyahını RAM-da saxlamaq Yaddaş Aşması (OOM / Out Of Memory) xətası törədə biləcək böyük məlumat dəstlərində."

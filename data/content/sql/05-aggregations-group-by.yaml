@@ -1,0 +1,182 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "05-aggregations-group-by"
+order: 5
+level: "junior"
+title:
+  en: "Aggregations and GROUP BY"
+  az: "Aqreqasiya və GROUP BY"
+quick_recap:
+  en: "Aggregate functions (COUNT, SUM, AVG, MIN, MAX) collapse multiple rows into single summary metrics. GROUP BY segments data into buckets. WHERE filters rows before aggregation; HAVING filters aggregated groups."
+  az: "Aqreqat funksiyaları (COUNT, SUM, AVG, MIN, MAX) çoxsaylı sətirləri tək bir yekun göstəriciyə yığır. GROUP BY məlumatları qruplara bölür. WHERE aqreqasiyadan əvvəl sətirləri süzür; HAVING isə qruplaşdırılmış qrupları süzür."
+explanation:
+  en: |
+    Think of a retail store's pile of paper receipts at the end of the day:
+    - If you want the total daily revenue, you sum up every receipt into a single number.
+    - If you want revenue by payment method, you first sort receipts into physical piles (Cash, Credit Card, Gift Card) and then sum each pile separately.
+    In SQL, sorting rows into piles is **GROUP BY**, and calculating summary metrics on each pile is done with **Aggregate Functions** (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`).
+
+    ### Logical Execution Order:
+    Understanding when grouping happens is critical for writing efficient analytical queries:
+    1. **FROM**: Identify and load tables
+    2. **WHERE**: Discard rows that do not meet initial criteria (filters raw rows)
+    3. **GROUP BY**: Divide remaining rows into distinct groups
+    4. **HAVING**: Discard aggregated groups that do not meet condition (filters groups)
+    5. **SELECT**: Compute summary metrics and project columns
+    6. **ORDER BY**: Sort aggregated output rows
+    7. **LIMIT**: Slice top N summary groups
+
+    ### Real Dataset Examples:
+
+    1. **Table-wide Summary Metrics:**
+    ```sql
+    SELECT COUNT(*) as total_orders, COUNT(DISTINCT user_id) as unique_customers FROM orders;
+    ```
+    Computes total orders (500) and unique buyers across the entire orders table without grouping.
+
+    2. **Grouping by Categorical Attribute:**
+    ```sql
+    SELECT status, COUNT(*) as order_count, ROUND(SUM(total_amount), 2) as total_sales FROM orders GROUP BY status;
+    ```
+    Groups all 500 orders by their status ('completed', 'cancelled', 'refunded') and computes sales per status.
+
+    3. **Filtering Groups with HAVING:**
+    ```sql
+    SELECT user_id, COUNT(*) as order_count FROM orders GROUP BY user_id HAVING COUNT(*) >= 5;
+    ```
+    Groups orders by user and retains only loyal power users who placed 5 or more orders (57 users).
+  az: |
+    Günün sonunda pərakəndə mağazadakı kassa qəbzlərini təsəvvür edin:
+    - Günlük ümumi gəliri bilmək istəyirsinizsə, bütün qəbzləri toplayıb tək bir rəqəm alırsınız.
+    - Ödəniş üsuluna görə gəliri bilmək istəyirsinizsə, əvvəlcə qəbzləri masanın üstündə ayrı-ayrı qovluqlara (Nağd, Kart, Hədiyyə Kartı) ayırırsınız, sonra hər qovluğu ayrıca toplayırsınız.
+    SQL-də sətirləri qovluqlara ayırmaq **GROUP BY**, hər qovluq üzrə yekun göstəriciləri hesablamaq isə **Aqreqat Funksiyalarıdır** (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`).
+
+    ### Məntiqi İcra Ardıcıllığı:
+    Qruplaşdırmanın nə vaxt baş verdiyini bilmək analitik sorğuların düzgün yazılması üçün həlledicidir:
+    1. **FROM**: Mənbə cədvəlləri müəyyən edir
+    2. **WHERE**: İlkin şərtləri ödəməyən xam sətirləri kənarlaşdırır (xam sətir filtri)
+    3. **GROUP BY**: Qalan sətirləri təyin olunmuş sütunlar üzrə qruplara bölür
+    4. **HAVING**: Aqreqat şərtini ödəməyən qrupları kənarlaşdırır (qrup filtri)
+    5. **SELECT**: Aqreqat göstəriciləri hesablayır və sütunları çıxarır
+    6. **ORDER BY**: Yekun qrupları sıralayır
+    7. **LIMIT**: Tələb olunan sayda qrupu kəsir
+
+    ### Real Sxem Üzərində Nümunələr:
+
+    1. **Ümumi Cədvəl Səviyyəsində Aqreqasiya:**
+    ```sql
+    SELECT COUNT(*) as total_orders, COUNT(DISTINCT user_id) as unique_customers FROM orders;
+    ```
+    Bütün 500 sifarişi və unikal müştəri sayını qruplaşdırma olmadan ümumi hesablayır.
+
+    2. **Kateqoriyalar Üzrə Qruplaşdırma:**
+    ```sql
+    SELECT status, COUNT(*) as order_count, ROUND(SUM(total_amount), 2) as total_sales FROM orders GROUP BY status;
+    ```
+    Sifarişləri statusuna görə ('completed', 'cancelled', 'refunded') qruplara bölür və hər birinin gəlirini hesablayır.
+
+    3. **HAVING ilə Qrupların Süzgəclənməsi:**
+    ```sql
+    SELECT user_id, COUNT(*) as order_count FROM orders GROUP BY user_id HAVING COUNT(*) >= 5;
+    ```
+    Sifarişləri istifadəçilərə görə qruplaşdırır və yalnız 5 və ya daha çox sifariş vermiş fəal müştəriləri (57 istifadəçi) saxlayır.
+code: |
+  SELECT status, 
+         COUNT(*) as order_count, 
+         ROUND(SUM(total_amount), 2) as total_sales, 
+         ROUND(AVG(total_amount), 2) as avg_order_val 
+  FROM orders 
+  GROUP BY status;
+what_it_does:
+  en: "Groups all 500 orders by status and calculates the order count, total sales volume, and average order value for each status bucket."
+  az: "Bütün 500 sifarişi statusuna görə qruplaşdırır və hər bir status üzrə sifariş sayını, ümumi satış həcmini və orta sifariş məbləğini hesablayır."
+real_world_use:
+  en: "Fundamental building block for daily KPI aggregation tables in data warehouses, financial rollups, and reporting marts."
+  az: "Data anbarlarında gündəlik KPI aqreqasiya cədvəlləri, maliyyə xülasələri və analitik data mart-ların qurulmasında ən əsas mexanizmdir."
+common_mistakes:
+  en: |
+    - **Filtering aggregated metrics in WHERE instead of HAVING**: `WHERE COUNT(*) >= 5` throws an error because WHERE runs before groups are formed. Always use HAVING for aggregate conditions.
+    - **Assuming COUNT(*) and COUNT(col) are identical**: `COUNT(*)` counts every row regardless of content, while `COUNT(col)` excludes rows where the column is NULL.
+    - **Selecting unaggregated columns not in GROUP BY**: In standard SQL, every column in the SELECT clause must either be in the GROUP BY clause or wrapped inside an aggregate function.
+  az: |
+    - **WHERE daxilində aqreqat şərti yazmaq**: `WHERE COUNT(*) >= 5` sintaksis xətası verir, çünki WHERE qruplaşdırmadan əvvəl icra olunur. Aqreqat şərtləri üçün həmişə HAVING istifadə olunmalıdır.
+    - **COUNT(*) ilə COUNT(sütun) fərqini unutmaq**: `COUNT(*)` məzmundan asılı olmayaraq bütün sətirləri sayır, `COUNT(sütun)` isə həmin sütunun NULL olduğu sətirləri nəzərə almır.
+    - **GROUP BY-da olmayan sütunları SELECT-də birbaşa yazmaq**: Standart SQL-də SELECT-dəki hər bir sütun ya GROUP BY siyahısında olmalı, ya da aqreqat funksiyası ilə əhatə olunmalıdır.
+interview_question:
+  question:
+    en: "What is the difference between WHERE and HAVING, and how does it impact query execution performance?"
+    az: "WHERE və HAVING arasındakı fərq nədir və bu sorğunun icra performansına necə təsir göstərir?"
+  answer:
+    en: |
+      The core distinction lies in the logical execution lifecycle and performance efficiency:
+      1. **Execution Timing**: WHERE executes *before* rows are grouped (filtering raw rows). HAVING executes *after* grouping has completed (filtering aggregate buckets).
+      2. **Aggregate Expressions**: WHERE cannot accept aggregate functions (`SUM`, `COUNT`) because groups do not exist yet. HAVING evaluates aggregate expressions.
+      3. **Performance Impact**: A selective WHERE clause discards unwanted rows early, reducing the dataset size before the expensive grouping and sorting phase. Putting non-aggregate conditions into HAVING forces the engine to group all data first before throwing it away, wasting CPU and memory.
+    az: |
+      Əsas fərq icra mərhələsində və performans səmərəliliyindədir:
+      1. **İcra Zamanı**: WHERE sətirlər qruplaşdırılmazdan *əvvəl* işləyir (xam sətirləri süzür). HAVING isə qruplaşdırma tamamlandıqdan *sonra* işləyir (aqreqat qrupları süzür).
+      2. **Aqreqat İfadələr**: WHERE aqreqat funksiyalarını (`SUM`, `COUNT`) qəbul etmir, çünki qruplar hələ mövcud deyil. HAVING isə aqreqat ifadələri yoxlayır.
+      3. **Performansa Təsiri**: Dəqiq WHERE şərti lazımsız sətirləri dərhal kənarlaşdıraraq ağır qruplaşdırma mərhələsinə ötürülən həcmi azaldır. Aqreqat olmayan şərtləri HAVING daxilinə yazmaq isə mühərriki əvvəlcə bütün məlumatları qruplaşdırmağa, sonra isə atmağa məcbur edir və yaddaşı israf edir.
+exercise:
+  question:
+    en: "Write a query to find each category_id and its average product price (rounded to 2 decimal places as avg_price) for categories with an average price strictly greater than 30.0."
+    az: "Orta qiyməti 30.0-dan ciddi böyük olan kateqoriyalar üçün category_id və orta məhsul qiymətini (2 kəsr rəqəminə yuvarlaqlaşdıraraq avg_price kimi) qaytaran sorğu yazın."
+  starter_code: |
+    SELECT category_id, ___
+    FROM products
+    GROUP BY category_id
+    HAVING ___;
+  hint:
+    en: "Use ROUND(AVG(price), 2) as avg_price in SELECT and filter with HAVING AVG(price) > 30.0."
+    az: "SELECT-də ROUND(AVG(price), 2) as avg_price yazın və HAVING AVG(price) > 30.0 ilə süzün."
+  solution: |
+    SELECT category_id, ROUND(AVG(price), 2) as avg_price
+    FROM products
+    GROUP BY category_id
+    HAVING AVG(price) > 30.0;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What is the primary difference in execution order between WHERE and HAVING?"
+      az: "WHERE və HAVING arasındakı icra ardıcıllığı fərqi nədir?"
+    back:
+      en: "WHERE filters raw rows BEFORE grouping. HAVING filters aggregated buckets AFTER GROUP BY has completed."
+      az: "WHERE xam sətirləri qruplaşdırmadan ƏVVƏL süzür. HAVING isə qruplaşdırma tamamlandıqdan SONRA aqreqat qrupları süzür."
+  - front:
+      en: "Does COUNT(column_name) count NULL values?"
+      az: "COUNT(sütun_adı) NULL dəyərləri sayırmı?"
+    back:
+      en: "No. COUNT(*) counts every single row including NULLs, but COUNT(column_name) ignores rows where that column is NULL."
+      az: "Xeyr. COUNT(*) NULL daxil bütün sətirləri sayır, lakin COUNT(sütun_adı) həmin sütunun NULL olduğu sətirləri nəzərə almır."
+  - front:
+      en: "Can you filter on an aggregate function like SUM(amount) inside a WHERE clause?"
+      az: "WHERE bəndində SUM(məbləğ) kimi aqreqat funksiyası ilə süzgəcləmə aparmaq olarmı?"
+    back:
+      en: "No. In SQL syntax, aggregates are not allowed in WHERE because individual rows are processed before groups are created. Use HAVING."
+      az: "Xeyr. SQL sintaksisində WHERE daxilində aqreqat qadağandır, çünki qruplar yaranmamışdan əvvəl tək-tək sətirlər süzülür. HAVING istifadə edilməlidir."
+  - front:
+      en: "What happens if a column in SELECT is not in GROUP BY and not wrapped in an aggregate?"
+      az: "SELECT-dəki sütun GROUP BY-da deyilsə və aqreqat funksiyasına salınmayıbsa nə baş verir?"
+    back:
+      en: "Standard SQL rejects the query as invalid. Some engines (like SQLite) return an arbitrary non-deterministic row's value from the group."
+      az: "Standart SQL sorğunu səhv kimi rədd edir. SQLite kimi bəzi mühərriklər isə qrupdan təsadüfi (qeyri-müəyyən) bir sətrin dəyərini qaytarır."
+  - front:
+      en: "Why is putting non-aggregate filters in WHERE better for query performance than HAVING?"
+      az: "Aqreqat olmayan filtrləri HAVING əvəzinə WHERE-ə yazmaq nə üçün daha yüksək performans verir?"
+    back:
+      en: "WHERE eliminates rows before the expensive grouping/sorting step, saving CPU and memory. HAVING groups everything first before discarding."
+      az: "WHERE sətirləri ağır qruplaşdırma və çeşidləmə addımından əvvəl silir, yaddaşa və CPU-ya qənaət edir. HAVING isə əvvəlcə hər şeyi qruplaşdırıb sonra silir."

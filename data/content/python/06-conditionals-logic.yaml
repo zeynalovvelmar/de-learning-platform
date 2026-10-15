@@ -1,0 +1,164 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, test_code: string}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "06-conditionals-logic"
+order: 6
+level: "junior"
+title:
+  en: "Conditionals, Truthy/Falsy, and Data Validation"
+  az: "Şərtlər, Həqiqət/Yalan Dəyərləri və Məlumat Yoxlanışı"
+quick_recap:
+  en: "Conditionals (if/elif/else) evaluate expressions for data quality filtering and validation. Core concept: Python evaluates empty collections ([], {}, set()), empty strings (''), 0, 0.0, and None as Falsy. When 0 is a legitimate data point, use explicit `if value is not None` to prevent accidental drops."
+  az: "Şərti ifadələr (if/elif/else) məlumatların keyfiyyət yoxlanışını və filtrlənməsini təmin edir. Əsas anlayış: Python-da boş kolleksiyalar ([], {}), boş mətn (''), 0, 0.0 və None 'Falsy' (yalan) hesab olunur. 0-ın qanuni məlumat olduğu hallarda səhvlərin qarşısını almaq üçün `if dəyər is not None` yazılmalıdır."
+explanation:
+  en: |
+    Think of a quality control scanner on a factory pipeline:
+    Every product package is inspected against rules:
+    - If the weight is below zero $\rightarrow$ send to defective reject bin.
+    - If the customer address is missing $\rightarrow$ flag for investigation.
+    - Otherwise $\rightarrow$ approve for delivery.
+    In Python, this gating is achieved via `if`, `elif`, and `else`.
+
+    ### Python's "Truthy" and "Falsy" Values:
+    In Python, any object can be tested for truth value:
+    - **Falsy values**: `None`, `False`, `0`, `0.0`, `""` (empty string), `[]` (empty list), `{}` (empty dict), `set()` (empty set).
+    - **Truthy values**: Everything else (any non-zero number, non-empty text, non-empty collection).
+
+    > [!WARNING]
+    > If a temperature column contains `0` degrees, writing `if not temp:` will trigger because `0` is Falsy! Always use `if temp is None:` when checking for missingness.
+  az: |
+    Zavod konveyerindəki keyfiyyət yoxlama skanerini təsəvvür edin:
+    Hər bir bağlama qaydalara görə yoxlanılır:
+    - Çəki sıfırdan kiçikdirsə $\rightarrow$ qüsurlu qutuya at.
+    - Müştəri ünvanı boşdursa $\rightarrow$ xəta siyahısına yaz.
+    - Digər hallarda $\rightarrow$ göndərişi təsdiq et.
+    Python-da bu marşrutlaşdırma `if`, `elif` və `else` ilə təmin edilir.
+
+    ### "Truthy" və "Falsy" (Doğru və Yalan) Anlayışı:
+    Python-da istənilən obyekt şərt daxilində yoxlana bilər:
+    - **Falsy (Yalan sayılanlar)**: `None`, `False`, `0`, `0.0`, `""` (boş mətn), `[]` (boş siyahı), `{}` (boş lüğət), `set()` (boş çoxluq).
+    - **Truthy (Doğru sayılanlar)**: Digər bütün dəyərlər (sıfırdan fərqli ədədlər, dolu mətnlər, elementləri olan kolleksiyalar).
+
+    > [!WARNING]
+    > Əgər temperatur sütununda `0` dərəcə varsa, `if not temp:` yazsanız şərt işə düşəcək, çünki `0` Falsy-dir! Dəyərin olub-olmadığını yoxlayarkən həmişə `if temp is None:` yazın.
+code: |
+  # Validating an incoming transaction event
+  transaction = {
+      "user_id": 101,
+      "amount": -50.0,
+      "email": ""
+  }
+
+  errors = []
+
+  # Rule 1: Amount must exist and be strictly positive
+  if transaction.get("amount") is None or transaction["amount"] <= 0:
+      errors.append("Invalid transaction amount (must be positive)")
+
+  # Rule 2: Email must not be empty string
+  if not transaction.get("email"):
+      errors.append("Missing or empty email address")
+
+  is_valid = len(errors) == 0
+
+  print(f"Transaction valid? {is_valid}")
+  print(f"Validation errors detected: {errors}")
+what_it_does:
+  en: "Applies defensive data quality validation checks to a raw dictionary payload, catching negative amounts and empty strings before database writes."
+  az: "Xam məlumat lüğətinə müdafiəli keyfiyyət yoxlamaları tətbiq edir, mənfi məbləğləri və boş mətnləri bazaya yazılmazdan əvvəl tutur."
+real_world_use:
+  en: "Building data validation stages (Data Quality / Expectations framework) that quarantine corrupt records into a Dead-Letter Queue (DLQ) table."
+  az: "Məlumat keyfiyyəti (Data Quality) qatlarında: qüsurlu sətirləri əsas bazaya buraxmamaq və xətalar cədvəlinə (Dead-Letter Queue) yönləndirmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using `if val:` to check for existence when val can be 0**: If `count = 0`, `if count:` evaluates to False! Use `if count is not None:`.
+    - **Using `if x == True:` instead of `if x:`**: Redundant boolean comparison. Write `if is_valid:` directly.
+    - **Confusing `and` / `or` precedence**: `and` has higher precedence than `or`. Always use parentheses: `if (a or b) and c:`.
+  az: |
+    - **Dəyər 0 ola bildikdə `if val:` yazmaq**: Əgər `say = 0`-dırsa, `if say:` False verir! Həmişə `if say is not None:` yazın.
+    - **`if x == True:` yazmaq**: Artıq koddur. Birbaşa `if x:` yazmaq daha təmiz və sürətlidir.
+    - **`and` və `or` üstünlüyünü qarışdırmaq**: `and` operatoru `or`-dan daha yüksək üstünlüyə malikdir. Şübhə olduqda həmişə mötərizə qoyun: `if (a or b) and c:`.
+interview_question:
+  question:
+    en: "What are Falsy values in Python, and what subtle bug occurs when validating numeric sensor data using `if not value:`?"
+    az: "Python-da Falsy dəyərlər hansılardır və rəqəmsal sensor məlumatlarını `if not value:` ilə yoxlayarkən hansı xəta baş verir?"
+  answer:
+    en: |
+      1. **Falsy Inventory**: `None`, `False`, zero of any numeric type (`0`, `0.0`), and empty sequences/collections (`""`, `[]`, `()`, `{}`).
+      2. **The Sensor Bug**: If a sensor measures temperature, speed, or voltage, `0.0` is a valid reading (e.g. 0°C freezing point). Writing `if not value:` evaluates `0.0` as Falsy, causing the pipeline to falsely flag a valid zero reading as missing data.
+      3. **Correct Pattern**: Check explicitly for non-existence: `if value is None:` or `if value is None or math.isnan(value):`.
+    az: |
+      1. **Falsy Dəyərlər**: `None`, `False`, sıfır rəqəmləri (`0`, `0.0`) və boş kolleksiyalar (`""`, `[]`, `()`, `{}`).
+      2. **Sensor Xətası**: Əgər sensor temperatur və ya sürət ölçürsə, `0.0` tamamilə düzgün və qanuni göstəricidir (məs. 0°C donma həddi). `if not value:` yazdıqda Python 0-ı Falsy hesab edir və kəmər səhvən 0 dərəcəni "məlumat çatışmır" kimi qeyd edib silir.
+      3. **Düzgün Qayda**: Məlumatın yoxluğunu aşkar yoxlamaq: `if value is None:` yazılmalıdır.
+exercise:
+  question:
+    en: "Write a function `categorize_customer(spend, country)` that returns: 'VIP' if spend >= 1000, 'Domestic Active' if spend >= 100 and country == 'AZ', 'International Active' if spend >= 100 and country != 'AZ', and 'Standard' otherwise."
+    az: "`spend >= 1000` olduqda 'VIP', `spend >= 100` və `country == 'AZ'` olduqda 'Domestic Active', `spend >= 100` və `country != 'AZ'` olduqda 'International Active', digər hallarda 'Standard' qaytaran `categorize_customer(spend, country)` funksiyası yazın."
+  starter_code: |
+    def categorize_customer(spend, country):
+        # Kodu bura yazın
+        pass
+  hint:
+    en: "Use an if/elif/else chain checking `spend >= 1000` first."
+    az: "Əvvəlcə `spend >= 1000` şərtini yoxlayan if/elif/else zəncirindən istifadə edin."
+  solution: |
+    def categorize_customer(spend, country):
+        if spend >= 1000:
+            return "VIP"
+        elif spend >= 100:
+            if country == "AZ":
+                return "Domestic Active"
+            else:
+                return "International Active"
+        else:
+            return "Standard"
+  test_code: |
+    assert categorize_customer(1500, "AZ") == "VIP"
+    assert categorize_customer(200, "AZ") == "Domestic Active"
+    assert categorize_customer(200, "US") == "International Active"
+    assert categorize_customer(50, "AZ") == "Standard"
+
+flashcards:
+  - front:
+      en: "Which values evaluate to False (Falsy) in a Python if statement?"
+      az: "Python if şərtində hansı dəyərlər False (Falsy) kimi qiymətləndirilir?"
+    back:
+      en: "None, False, 0, 0.0, empty strings (''), and empty collections ([], {}, set())."
+      az: "None, False, 0, 0.0, boş mətn ('') və boş kolleksiyalar ([], {}, set())."
+  - front:
+      en: "Why is `if not x:` dangerous when checking numeric columns?"
+      az: "Rəqəm sütunlarını yoxlayarkən `if not x:` nə üçün təhlükəlidir?"
+    back:
+      en: "Because 0 is a valid number, but evaluates to False. Use `if x is None:` instead."
+      az: "Çünki 0 qanuni bir rəqəmdir, lakin False sayılır. Bunun əvəzinə `if x is None:` yazılmalıdır."
+  - front:
+      en: "What is the ternary operator syntax in Python for single-line conditions?"
+      az: "Python-da tək sətirlik şərt (üçlü operator - ternary) sintaksisi necədir?"
+    back:
+      en: "`x = true_val if condition else false_val`."
+      az: "`x = dogru_deyer if sert else yalan_deyer`."
+  - front:
+      en: "Which operator has higher precedence: `and` or `or`?"
+      az: "Hansı operator daha yüksək üstünlüyə (precedence) malikdir: `and` yoxsa `or`?"
+    back:
+      en: "`and` has higher precedence than `or`. Always use parentheses `(a or b) and c` to avoid logic errors."
+      az: "`and` operatoru `or`-dan daha yüksəkdir. Məntiq xətalarından qaçmaq üçün həmişə mötərizə `(a or b) and c` qoyun."
+  - front:
+      en: "How does Python optimize boolean evaluation with short-circuiting?"
+      az: "Python qısa-qapanma (short-circuiting) ilə məntiqi yoxlamanı necə optimallaşdırır?"
+    back:
+      en: "In `A and B`, if A is False, B is never evaluated. In `A or B`, if A is True, B is never evaluated."
+      az: "`A and B` zamanı A False-dursa, B ümumiyyətlə yoxlanılmır. `A or B` zamanı A True-dursa, B yoxlanılmır."

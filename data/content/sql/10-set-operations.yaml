@@ -1,0 +1,186 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "10-set-operations"
+order: 10
+level: "advanced"
+title:
+  en: "Set Operations: UNION, UNION ALL, INTERSECT, EXCEPT"
+  az: "Çoxluq Əməliyyatları: UNION, UNION ALL, INTERSECT, EXCEPT"
+quick_recap:
+  en: "Set operations combine query results vertically. UNION ALL stacks rows directly without duplicate checks (maximum performance). UNION eliminates duplicates via sorting/hashing. INTERSECT finds overlapping rows; EXCEPT returns rows present only in the first set."
+  az: "Çoxluq əməliyyatları sorğu nəticələrini şaquli olaraq birləşdirir. UNION ALL dublikatları yoxlamadan sətirləri birbaşa birləşdirir (maksimum performans). UNION dublikatları təmizləyir. INTERSECT ortaq sətirləri tapır; EXCEPT isə yalnız birinci çoxluqda olan sətirləri qaytarır."
+explanation:
+  en: |
+    Think of two delivery trucks unloading cargo containers at a central logistics warehouse:
+    - **UNION ALL**: Both trucks unload all their cargo directly onto the conveyor belt without stopping to inspect barcodes. It is instantaneous and keeps every single box.
+    - **UNION**: Inspectors stand at the door, scanning every single barcode, comparing it against every other box, and throwing away duplicate boxes. It is 10x slower and requires huge temporary storage.
+    - **INTERSECT**: Inspectors look for product models that arrived on BOTH Truck 1 AND Truck 2.
+    - **EXCEPT**: Inspectors look for items that were delivered by Truck 1, but NEVER delivered by Truck 2.
+
+    ### Golden Rules for Set Operations:
+    1. Both queries must return the exact same number of columns.
+    2. Columns at matching positions must have compatible data types.
+    3. The column names of the final result set are taken from the FIRST query.
+
+    ### Real Dataset Examples:
+
+    1. **Stacking Event Streams with UNION ALL:**
+    ```sql
+    SELECT user_id, 'Placed Order' as activity_type FROM orders WHERE order_date >= '2023-01-01'
+    UNION ALL
+    SELECT user_id, 'Logged In' as activity_type FROM login_events WHERE login_time >= '2022-01-01'
+    LIMIT 10;
+    ```
+    Unifies orders and login events into a single consolidated activity stream without paying deduplication overhead.
+
+    2. **Finding Common Entities with INTERSECT:**
+    ```sql
+    SELECT user_id FROM users
+    INTERSECT
+    SELECT user_id FROM orders
+    LIMIT 5;
+    ```
+    Identifies users who exist in the users table AND have placed at least one order.
+
+    3. **Finding Non-Overlapping Records with EXCEPT:**
+    ```sql
+    SELECT user_id FROM users
+    EXCEPT
+    SELECT user_id FROM orders;
+    ```
+    Finds users who registered but never placed an order (11 users).
+  az: |
+    Mərkəzi logistika anbarında yük boşaldan iki yük maşınını təsəvvür edin:
+    - **UNION ALL**: Hər iki maşın bütün qutuları ştrix-kodları yoxlamadan birbaşa konveyer lentinə tökür. Bu addım dərhal baş verir və bütün qutuları saxlayır.
+    - **UNION**: Qapıda duran nəzarətçilər hər qutunun kodunu yoxlayır, digər bütün qutularla müqayisə edir və eyni olan dublikat qutuları atır. Bu proses 10 dəfə daha ləng gedir və böyük müvəqqəti saxlama yeri tələb edir.
+    - **INTERSECT**: Nəzarətçilər HƏM 1-ci, HƏM DƏ 2-ci maşında olan ortaq məhsulları tapır.
+    - **EXCEPT**: Nəzarətçilər 1-ci maşında olan, lakin 2-ci maşında HEÇ VAXT gəlməyən məhsulları tapır.
+
+    ### Çoxluq Əməliyyatlarının Qızıl Qaydaları:
+    1. Hər iki sorğu dəqiq eyni sayda sütun qaytarmalıdır.
+    2. Uyğun mövqedəki sütunların məlumat tipləri bir-biri ilə uyğun olmalıdır.
+    3. Yekun nəticədə sütun adları BİRİNCİ sorğudan götürülür.
+
+    ### Real Sxem Üzərində Nümunələr:
+
+    1. **Hadisə Axınlarının UNION ALL ilə Birləşdirilməsi:**
+    ```sql
+    SELECT user_id, 'Placed Order' as activity_type FROM orders WHERE order_date >= '2023-01-01'
+    UNION ALL
+    SELECT user_id, 'Logged In' as activity_type FROM login_events WHERE login_time >= '2022-01-01'
+    LIMIT 10;
+    ```
+    Sifarişləri və giriş hadisələrini deduplikasiya yükü olmadan vahid axında birləşdirir.
+
+    2. **INTERSECT ilə Ortaq İstifadəçilər:**
+    ```sql
+    SELECT user_id FROM users
+    INTERSECT
+    SELECT user_id FROM orders
+    LIMIT 5;
+    ```
+    Həm qeydiyyatdan keçmiş, həm də ən azı bir sifariş vermiş ortaq istifadəçiləri tapır.
+
+    3. **EXCEPT ilə Sifariş Verməmiş İstifadəçilər:**
+    ```sql
+    SELECT user_id FROM users
+    EXCEPT
+    SELECT user_id FROM orders;
+    ```
+    Qeydiyyatdan keçmiş, lakin heç vaxt sifariş verməmiş istifadəçiləri (11 nəfər) aşkar edir.
+code: |
+  SELECT user_id, 'Placed Order' as activity_type 
+  FROM orders 
+  WHERE order_date >= '2023-01-01'
+  UNION ALL
+  SELECT user_id, 'Logged In' as activity_type 
+  FROM login_events 
+  WHERE login_time >= '2022-01-01'
+  LIMIT 10;
+what_it_does:
+  en: "Vertically concatenates two disparate event streams into a single activity feed without performing expensive duplicate deduplication."
+  az: "İki fərqli hadisə axınını əlavə deduplikasiya xərci çəkmədən şaquli olaraq vahid fəaliyyət lentində birləşdirir."
+real_world_use:
+  en: "Standard practice in data lakes and warehouses for appending daily delta batches to historical data, and creating unified multi-source event logs."
+  az: "Data lake və anbarlarda gündəlik yeni məlumatları köhnə arxivə calamaq və çoxmənbəli vahid hadisə qeydləri yaratmaq üçün standartdır."
+common_mistakes:
+  en: |
+    - **Defaulting to UNION instead of UNION ALL**: UNION triggers an expensive sorting and hashing pass to find and remove duplicates. In 95% of data pipeline transformations, UNION ALL is what you want.
+    - **Mismatched column counts**: Attempting to combine 3 columns with 2 columns will immediately fail with a query syntax error.
+    - **Incorrect placement of ORDER BY**: ORDER BY applies to the combined result and must appear only once at the very end of the compound query, not inside individual SELECT branches.
+  az: |
+    - **UNION ALL əvəzinə vərdişlə UNION yazmaq**: UNION bütün məlumatları yaddaşda çeşidləyərək təkrarları axtarır. Boru kəmərlərinin 95%-ində əslində tələb olunan sürətli UNION ALL-dur.
+    - **Sütun sayının fərqli olması**: 3 sütunlu sorğu ilə 2 sütunlu sorğunu birləşdirməyə çalışmaq dərhal sintaksis xətası verir.
+    - **ORDER BY-ın yerini səhv salmaq**: ORDER BY yekun birləşmiş nəticəyə tətbiq olunur və fərdi budaqların daxilində deyil, yalnız sorğunun ən sonunda yazılmalıdır.
+interview_question:
+  question:
+    en: "Why is UNION ALL strongly preferred over UNION in distributed big data engines like Spark, Snowflake, and BigQuery?"
+    az: "Spark, Snowflake və BigQuery kimi paylanmış böyük verilənlər mühərriklərində nə üçün UNION əvəzinə qəti şəkildə UNION ALL üstün tutulur?"
+  answer:
+    en: |
+      1. **Zero Data Shuffle**: UNION ALL is a simple append operation. The query engine reads partitions from both inputs and streams them directly to the output without transferring data across the network.
+      2. **Avoids Distributed Hash Deduplication**: Plain UNION requires an expensive distributed shuffle phase where all rows must be hashed, repartitioned across worker nodes, and sorted in memory to eliminate duplicates. On terabyte-scale datasets, this can cause out-of-memory (OOM) errors, high network I/O, and 10x slower runtimes.
+    az: |
+      1. **Sıfır Şəbəkə Qarışdırması (Zero Shuffle)**: UNION ALL sadə bir ardıcıl əlavəetmədir. Mühərrik hər iki mənbənin partisiya fayllarını birbaşa oxuyur və heç bir şəbəkə hərəkəti (shuffle) olmadan çıxışa yönləndirir.
+      2. **Paylanmış Hash Deduplikasiyadan Qaçış**: Sadə UNION təkrarları silmək üçün bütün sətirləri şəbəkə üzərindən qovşaqlar arasında yenidən paylamağı (shuffle) və yaddaşda hash cədvəlləri qurmağı tələb edir. Terabayt miqyasında bu, yaddaş tükənməsinə (OOM), həddindən artıq şəbəkə yükünə və 10 dəfəyə qədər ləngiməyə səbəb olur.
+exercise:
+  question:
+    en: "Write a query using EXCEPT to find all user_id values that exist in the users table but have placed zero orders (do not exist in the orders table)."
+    az: "EXCEPT istifadə edərək users cədvəlində mövcud olan, lakin heç vaxt sifariş verməmiş (orders cədvəlində olmayan) bütün user_id dəyərlərini tapan sorğu yazın."
+  starter_code: |
+    SELECT user_id FROM users
+    EXCEPT
+    ___;
+  hint:
+    en: "Subtract `SELECT user_id FROM orders` from `SELECT user_id FROM users` using EXCEPT."
+    az: "`SELECT user_id FROM users` çoxluğundan `SELECT user_id FROM orders` çoxluğunu EXCEPT ilə çıxın."
+  solution: |
+    SELECT user_id FROM users
+    EXCEPT
+    SELECT user_id FROM orders;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What is the key performance and behavioral difference between UNION and UNION ALL?"
+      az: "UNION və UNION ALL arasındakı əsas performans və davranış fərqi nədir?"
+    back:
+      en: "UNION ALL appends results directly without checking for duplicates (very fast). UNION sorts and hashes the combined dataset to eliminate duplicate rows (much slower)."
+      az: "UNION ALL dublikatları yoxlamadan nəticələri birbaşa calayır (çox sürətlidir). UNION isə təkrarları təmizləmək üçün bütün nəticəni yaddaşda çeşidləyir (çox ləngdir)."
+  - front:
+      en: "What does the INTERSECT operator do?"
+      az: "INTERSECT operatoru nə iş görür?"
+    back:
+      en: "It returns only the distinct rows that appear in the results of BOTH queries."
+      az: "Yalnız HƏR İKİ sorğunun nəticəsində mövcud olan unikal ortaq sətirləri qaytarır."
+  - front:
+      en: "What does the EXCEPT operator do in SQL?"
+      az: "SQL-də EXCEPT operatoru nə edir?"
+    back:
+      en: "It returns distinct rows from the first query that DO NOT appear in the result of the second query (set difference)."
+      az: "Birinci sorğuda olan, lakin ikinci sorğunun nəticəsində OLMAYAN unikal sətirləri qaytarır (çoxluqların fərqi)."
+  - front:
+      en: "Where does the ORDER BY clause belong in a compound query with UNION / UNION ALL?"
+      az: "UNION / UNION ALL olan mürəkkəb sorğuda ORDER BY bəndi hara yazılmalıdır?"
+    back:
+      en: "At the very end of the final query. It sorts the entire combined result set, not individual branches."
+      az: "Yalnız sonuncu sorğunun ən sonunda. Fərdi budaqları deyil, bütün birləşdirilmiş nəticəni sıralayır."
+  - front:
+      en: "Why is UNION ALL the default choice in distributed big data pipelines (Spark, Snowflake)?"
+      az: "Paylanmış data kəmərlərində (Spark, Snowflake) nə üçün susmaya görə UNION ALL seçilir?"
+    back:
+      en: "Because it avoids an expensive distributed network shuffle and hash deduplication across cluster worker nodes."
+      az: "Klaster qovşaqları arasında ağır paylanmış şəbəkə qarışdırmasından (shuffle) və hash deduplikasiya xərcindən qaçmaq üçün."

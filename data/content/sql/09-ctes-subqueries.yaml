@@ -1,0 +1,220 @@
+# YAML Schema for Lessons:
+# id: string
+# order: integer
+# level: junior | intermediate | advanced
+# title: {en: string, az: string}
+# quick_recap: {en: string, az: string}
+# explanation: {en: string, az: string}
+# code: string
+# what_it_does: {en: string, az: string}
+# real_world_use: {en: string, az: string}
+# common_mistakes: {en: string, az: string}
+# interview_question: {question: {en: string, az: string}, answer: {en: string, az: string}}
+# exercise (optional): {question: {en: string, az: string}, starter_code: string, hint: {en: string, az: string}, solution: string, order_matters: boolean}
+# flashcards (optional): list of {front: {en: string, az: string}, back: {en: string, az: string}}
+
+id: "09-ctes-subqueries"
+order: 9
+level: "intermediate"
+title:
+  en: "Common Table Expressions (CTEs) and Subqueries"
+  az: "CTE (Ümumi Cədvəl İfadələri) və Alt Sorğular"
+quick_recap:
+  en: "CTEs (WITH clause) define temporary named result sets for the scope of a single query. They transform deeply nested, unmaintainable subqueries into clean, sequential pipeline stages (the core pattern of tools like dbt)."
+  az: "CTE (WITH bəndi) sorğu müddətində müvəqqəti nəticə çoxluğuna ad verir. Dərin iç-içə keçmiş oxunmaz alt sorğuları pilləli, aydın mərhələlərə bölür (dbt kimi müasir alətlərin təməl prinsipidir)."
+explanation:
+  en: |
+    Think of preparing a gourmet dish in a professional kitchen:
+    - An amateur cooks everything in a single chaotic pan: chopping vegetables while burning sauce in tangled layers. This is what deeply nested subqueries look like (`SELECT ... FROM (SELECT ... FROM (SELECT ...))`).
+    - A professional chef prepares ingredients beforehand into clean, labeled bowls: "Bowl 1: chopped greens", "Bowl 2: seasoned beef", "Bowl 3: marinade sauce". Then, they calmly assemble the dish by combining the prepped bowls.
+    In SQL, this organized prep-work is a **CTE (`WITH ... AS (...)`)**. It breaks down 200-line transformations into clear, sequential stages that can be read from top to bottom.
+
+    ### Subqueries vs. CTEs:
+    - **Subquery**: Nested inline inside a `FROM` or `WHERE` clause. Hard to read beyond 1-2 levels.
+    - **CTE**: Declared upfront with the `WITH` keyword. Can be referenced multiple times and chained into downstream CTEs.
+
+    ### Real Dataset Examples:
+
+    1. **Modular Customer Aggregation CTE:**
+    ```sql
+    WITH customer_orders AS (
+        SELECT user_id, COUNT(*) as order_count, SUM(total_amount) as lifetime_spend
+        FROM orders
+        GROUP BY user_id
+    )
+    SELECT u.user_id, u.first_name, u.email, co.order_count, ROUND(co.lifetime_spend, 2) as lifetime_spend
+    FROM users u
+    JOIN customer_orders co ON u.user_id = co.user_id
+    WHERE co.order_count >= 6
+    LIMIT 5;
+    ```
+    Pre-aggregates orders per user and joins to users to identify high-frequency buyers.
+
+    2. **Scalar Subquery Filter:**
+    ```sql
+    SELECT product_id, product_name, price
+    FROM products
+    WHERE price > (SELECT AVG(price) FROM products)
+    LIMIT 5;
+    ```
+    Uses a scalar subquery to find products priced above the catalog average.
+
+    3. **Correlated Subquery with EXISTS:**
+    ```sql
+    SELECT u.user_id, u.first_name, u.email
+    FROM users u
+    WHERE EXISTS (
+        SELECT 1 FROM orders o WHERE o.user_id = u.user_id AND o.status = 'completed'
+    )
+    LIMIT 5;
+    ```
+    Tests for existence of completed customer orders without duplicating customer rows.
+  az: |
+    Peşəkar mətbəxdə mürəkkəb bir yeməyin hazırlanmasını təsəvvür edin:
+    - Həvəskar aşpaz hər şeyi tək bir tavada xaotik şəkildə eyni vaxtda etməyə çalışır: tərəvəzləri doğrayarkən sousu yandırır və əti qarışdırır. İç-içə keçmiş 4-5 mərtəbəli alt sorğular (`SELECT ... FROM (SELECT ... FROM (SELECT ...))`) məhz belə görünür.
+    - Peşəkar aşpaz isə əvvəlcədən ərzaqları təmiz, üzəri yazılmış qablara hazırlayır: "1-ci Qab: doğranmış tərəvəzlər", "2-ci Qab: marinad olunmuş ət", "3-cü Qab: ədviyyatlı sous". Sonda isə bu hazır qabları səliqə ilə birləşdirib yeməyi bişirir.
+    SQL-də bu səliqəli hazırlıq **CTE (`WITH ... AS (...)`)** adlanır. O, 200 sətirlik mürəkkəb boru kəmərlərini yuxarıdan aşağıya rahat oxunan aydın pillələrə bölür.
+
+    ### Alt Sorğular və CTE Müqayisəsi:
+    - **Alt Sorğu (Subquery)**: `FROM` və ya `WHERE` daxilində mötərizədə yazılır. 2-3 qatdan sonra oxunması və idarəsi çox çətinləşir.
+    - **CTE**: Sorğunun başında `WITH` açar sözü ilə elan edilir. Yuxarıdan aşağıya oxunur və növbəti addımlarda təkrar istifadə edilə bilər.
+
+    ### Real Sxem Üzərində Nümunələr:
+
+    1. **Pilləli Müştəri Xülasəsi CTE-si:**
+    ```sql
+    WITH customer_orders AS (
+        SELECT user_id, COUNT(*) as order_count, SUM(total_amount) as lifetime_spend
+        FROM orders
+        GROUP BY user_id
+    )
+    SELECT u.user_id, u.first_name, u.email, co.order_count, ROUND(co.lifetime_spend, 2) as lifetime_spend
+    FROM users u
+    JOIN customer_orders co ON u.user_id = co.user_id
+    WHERE co.order_count >= 6
+    LIMIT 5;
+    ```
+    İstifadəçi sifarişlərini əvvəlcədən qruplaşdırır və istifadəçilərlə birləşdirərək ən fəal müştəriləri tapır.
+
+    2. **Skalyar Alt Sorğu ilə Filtrləmə:**
+    ```sql
+    SELECT product_id, product_name, price
+    FROM products
+    WHERE price > (SELECT AVG(price) FROM products)
+    LIMIT 5;
+    ```
+    Kataloqun orta qiymətindən baha olan məhsulları tapmaq üçün tək dəyər qaytaran alt sorğudan istifadə edir.
+
+    3. **EXISTS ilə Əlaqəli Alt Sorğu (Correlated Subquery):**
+    ```sql
+    SELECT u.user_id, u.first_name, u.email
+    FROM users u
+    WHERE EXISTS (
+        SELECT 1 FROM orders o WHERE o.user_id = u.user_id AND o.status = 'completed'
+    )
+    LIMIT 5;
+    ```
+    Müştəri sətirlərini çoxaltmadan tamamlanmış sifarişi olan istifadəçiləri aşkar edir.
+code: |
+  WITH customer_orders AS (
+      SELECT user_id, 
+             COUNT(*) as order_count, 
+             SUM(total_amount) as lifetime_spend
+      FROM orders
+      GROUP BY user_id
+  )
+  SELECT u.user_id, 
+         u.first_name, 
+         u.email, 
+         co.order_count, 
+         ROUND(co.lifetime_spend, 2) as lifetime_spend
+  FROM users u
+  JOIN customer_orders co ON u.user_id = co.user_id
+  WHERE co.order_count >= 6
+  LIMIT 5;
+what_it_does:
+  en: "Encapsulates order aggregation in a named CTE (customer_orders), then joins it to users to display power customers with 6 or more orders."
+  az: "Sifarişlərin aqreqasiyasını müstəqil customer_orders CTE-sində hesablayır, sonra istifadəçilər cədvəli ilə birləşdirərək 6 və daha çox sifarişi olan müştəriləri göstərir."
+real_world_use:
+  en: "The standard architectural pattern in dbt (data build tool) pipelines, structuring analytics into staging, intermediate, and mart layers."
+  az: "Müasir dbt (data build tool) boru kəmərlərində analitikanı ilkin (staging), aralıq (intermediate) və analitik mart qatlarına bölmək üçün standart arxitektura modelidir."
+common_mistakes:
+  en: |
+    - **Repeating the WITH keyword**: Use `WITH cte_a AS (...), cte_b AS (...)`. Only one `WITH` keyword is allowed at the start; subsequent CTEs are separated by commas.
+    - **Assuming CTEs persist across queries**: CTEs exist only for the execution duration of the single SQL statement they precede. They are not permanent tables or views.
+    - **Over-nesting when simple joins suffice**: Do not create unnecessary CTEs for trivial 1-line operations that can be written directly in a simple JOIN.
+  az: |
+    - **WITH sözünü hər dəfə təkrar yazmaq**: `WITH cte_a AS (...), cte_b AS (...)` yazılmalıdır. Başda yalnız bircə dəfə `WITH` yazılır, sonrakı CTE-lər sadəcə vergüllə ayrılır.
+    - **CTE-nin bazada qaldığını düşünmək**: CTE yalnız aid olduğu tək bir SQL sorğusunun icrası müddətində mövcuddur. Daimi cədvəl və ya view deyil.
+    - **Sadə sorğularda həddindən artıq CTE yaratmaq**: Birbaşa sadə JOIN ilə həll olunan tək sətirlik əməliyyatlar üçün lüzumsuz yerə çoxsaylı CTE qurmaq kodu ağırlaşdırır.
+interview_question:
+  question:
+    en: "Why do modern data teams (especially using dbt) enforce CTEs over nested subqueries?"
+    az: "Müasir data komandaları (xüsusən dbt istifadə edənlər) nə üçün iç-içə alt sorğular əvəzinə qəti şəkildə CTE-ləri tələb edirlər?"
+  answer:
+    en: |
+      1. **Linear Readability**: CTEs execute like top-to-bottom procedural code. An engineer reads `staging` -> `cleansed` -> `aggregated` -> `final_mart` sequentially. Nested subqueries must be decrypted from the inside out.
+      2. **Unit Debugging**: In production pipelines, debugging a 300-line model is trivial with CTEs: you simply change the final line to `SELECT * FROM intermediate_stage` to verify intermediate state.
+      3. **DRY (Don't Repeat Yourself)**: A single CTE can be referenced multiple times across downstream joins, avoiding duplicate copy-pasted subquery logic.
+    az: |
+      1. **Xətti Oxunaqlıq**: CTE-lər yuxarıdan aşağıya doğru təbii pillələrlə oxunur: `ilkin` -> `təmizlənmiş` -> `aqreqasiya` -> `yekun_mart`. İç-içə alt sorğuları isə daxildən xaricə doğru çətinliklə oxumaq lazım gəlir.
+      2. **Rahat Xəta Axtarışı (Debugging)**: İstehsalat kəmərində 300 sətirlik kodu yoxlamaq çox asandır: sonuncu sətri `SELECT * FROM araliq_merhele` edərək istənilən aralıq pillənin nəticəsini dərhal görmək olur.
+      3. **Təkrarın Qarşısının Alınması (DRY)**: Tək bir CTE sorğu daxilində aşağıdakı bir neçə JOIN-də təkrar istifadə edilə bilər və eyni məntiqi təkrar yazmağa ehtiyac qalmır.
+exercise:
+  question:
+    en: "Write a query using a CTE named user_spend that calculates the user_id and total_spent (sum of total_amount rounded to 2 decimals) from orders grouped by user_id. Then select user_id and total_spent from user_spend where total_spent > 1000.0."
+    az: "orders cədvəlindən istifadəçilərə görə qruplaşdıraraq user_id və total_spent (total_amount cəmi, 2 kəsr rəqəminə yuvarlaqlaşdırılmış) hesablayan user_spend adlı CTE quran sorğu yazın. Ardınca user_spend-dən total_spent > 1000.0 olan user_id və total_spent sütunlarını seçin."
+  starter_code: |
+    WITH user_spend AS (
+        SELECT user_id, ___
+        FROM orders
+        GROUP BY user_id
+    )
+    SELECT user_id, total_spent
+    FROM user_spend
+    WHERE ___;
+  hint:
+    en: "Define `ROUND(SUM(total_amount), 2) as total_spent` in the CTE, then filter `WHERE total_spent > 1000.0` in the outer SELECT."
+    az: "CTE daxilində `ROUND(SUM(total_amount), 2) as total_spent` hesablayın, xarici SELECT-də isə `WHERE total_spent > 1000.0` ilə süzün."
+  solution: |
+    WITH user_spend AS (
+        SELECT user_id, ROUND(SUM(total_amount), 2) as total_spent
+        FROM orders
+        GROUP BY user_id
+    )
+    SELECT user_id, total_spent
+    FROM user_spend
+    WHERE total_spent > 1000.0;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What does CTE stand for and what SQL clause declares it?"
+      az: "CTE abreviaturası nə deməkdir və hansı SQL açar sözü ilə elan edilir?"
+    back:
+      en: "Common Table Expression. Declared using the `WITH` clause at the start of a query."
+      az: "Common Table Expression (Ümumi Cədvəl İfadəsi). Sorğunun başında `WITH` bəndi ilə elan edilir."
+  - front:
+      en: "Does a CTE persist in the database as a table after the query finishes?"
+      az: "Sorğu bitdikdən sonra CTE cədvəl kimi verilənlər bazasında qalırmı?"
+    back:
+      en: "No. A CTE exists strictly during the execution of that single query. It is not saved to the schema like a permanent table or VIEW."
+      az: "Xeyr. CTE yalnız aid olduğu tək bir sorğunun icrası müddətində mövcuddur. Daimi cədvəl və ya VIEW kimi sxemdə saxlanılmır."
+  - front:
+      en: "How do you declare multiple CTEs in a single query?"
+      az: "Tək bir sorğuda bir neçə CTE necə elan edilir?"
+    back:
+      en: "Write `WITH` once, then separate subsequent CTE definitions with commas: `WITH cte1 AS (...), cte2 AS (...) SELECT ...`."
+      az: "Başda bircə dəfə `WITH` yazılır, ardınca gələn CTE-lər sadəcə vergüllə ayrılır: `WITH cte1 AS (...), cte2 AS (...) SELECT ...`."
+  - front:
+      en: "Why are CTEs preferred over nested subqueries for complex pipeline logic?"
+      az: "Mürəkkəb boru kəməri məntiqində nə üçün iç-içə alt sorğular əvəzinə CTE-lərə üstünlük verilir?"
+    back:
+      en: "They make SQL modular and readable from top to bottom (like linear code), make step-by-step debugging easy, and eliminate duplicate logic."
+      az: "SQL kodunu modullu və yuxarıdan aşağıya xətti oxunan edir, pilləli xəta axtarışını asanlaşdırır və təkrarlanan məntiqi aradan qaldırır."
+  - front:
+      en: "What is the difference between an inline subquery and a correlated subquery?"
+      az: "Sadə alt sorğu ilə əlaqəli (correlated) alt sorğu arasındakı fərq nədir?"
+    back:
+      en: "An inline subquery runs independently once. A correlated subquery references columns from the outer query and re-evaluates for every row processed by the outer query."
+      az: "Sadə alt sorğu xaricdən asılı olmadan bircə dəfə işləyir. Əlaqəli (correlated) alt sorğu isə xarici sorğunun sütunlarına istinad edir və hər bir xarici sətir üçün yenidən icra olunur."
