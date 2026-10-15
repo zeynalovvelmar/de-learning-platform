@@ -115,7 +115,7 @@ code_explanation:
       - `dense_rank()` assigns `2` and `2`, followed by `3` for Ali (no gap).
     - `filter(col("row_num") == 1)` is the gold-standard pattern for Top-N and deduplication pipelines.
   az: |
-    - `Window.partitionBy("department").orderBy(...)`: Paylanma sərhədini təyin edir. Məlumatlar departamentə görə şaffl olunur ki, eyni şöbənin bütün işçiləri eyni qovşağa düşsün.
+    - `Window.partitionBy("department").orderBy(...)`: Paylanma sərhədini təyin edir. Məlumatlar departamentə görə shuffle olunur ki, eyni şöbənin bütün işçiləri eyni qovşağa düşsün.
     - Elmar və Leylanın sətirlərinə diqqət edin (hər ikisinin maaşı 4200-dür):
       - `row_number()`: `2` və `3` nömrələyir.
       - `rank()`: hər ikisinə `2` verir və Aliyə keçəndə `4` yazır (3-ü buraxır).
@@ -174,7 +174,7 @@ interview_question:
          - The remaining 99% of your cluster cores sit idle, and that single executor suffers massive disk spills, extreme GC pauses, and inevitably crashes with `java.lang.OutOfMemoryError: Java heap space`.
     az: |
       1. **Paylanmış İcra Mexanizmi**:
-         - `Window.partitionBy("key").orderBy("val")` yazdıqda Spark sətirləri açara görə heşləyir və **Şəbəkə Şafflı (Exchange)** aparır.
+         - `Window.partitionBy("key").orderBy("val")` yazdıqda Spark sətirləri açara görə heşləyir və **Şəbəkə Shuffle-ı (Exchange)** aparır.
          - Eyni açara sahib bütün sətirlər eyni executor-a toplanır. Həmin executor sətirləri öz daxilində sıralayır və ardıcıl oxuyaraq `row_number`, `lag` və ya hərəkətli cəmləri hesablayır.
       2. **`partitionBy()` Yazılmadıqda Baş Verən Fəlakət**:
          - Əgər mühəndis `partitionBy()` yazmadan birbaşa `Window.orderBy("val")` yazarsa, Spark artıq işi açarlar üzrə paralelləşdirə bilməz.

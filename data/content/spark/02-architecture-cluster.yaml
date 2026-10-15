@@ -122,7 +122,7 @@ code_explanation:
     - `sc.applicationId`: The unique tracking ID registered with YARN or Kubernetes resource managers.
   az: |
     - `sc.defaultParallelism`: Klasterdə mövcud olan ümumi aktiv CPU nüvə yuvalarının sayını göstərir.
-    - `spark.sql.shuffle.partitions`: Şəbəkə şafflı (məs. groupBy, join) zamanı yaranan partisiya sayıdır (susmaya görə 200 olur, lakin məlumatın həcminə uyğun sazlanmalıdır).
+    - `spark.sql.shuffle.partitions`: Şəbəkə shuffle-ı (məs. groupBy, join) zamanı yaranan partisiya sayıdır (susmaya görə 200 olur, lakin məlumatın həcminə uyğun sazlanmalıdır).
     - `sc.applicationId`: Klaster Menecerində (YARN və ya K8s) tətbiqin qeydiyyatdan keçdiyi unikal izləmə identifikatorudur.
 visual_output: |
   === Spark Cluster Runtime Diagnostics ===
@@ -147,7 +147,7 @@ common_mistakes:
     - **Allocating 1 core per executor**: Loses in-process JVM multithreading benefits and floods the cluster manager with hundreds of small container requests.
     - **Running long production jobs in Client Mode**: Any laptop sleep, VPN disconnect, or network blip aborts the multi-hour batch job.
   az: |
-    - **Bir executor-a həddən artıq çox nüvə vermək (məs. 16 core)**: Nəhəng JVM yaddaşı səbəbindən Zibil Təmizləmə (Garbage Collection - GC) dondurmalarına səbəb olur. Ən ideal qızıl qayda hər executor-a 4-5 nüvə verməkdir.
+    - **Bir executor-a həddən artıq çox nüvə vermək (məs. 16 core)**: Nəhəng JVM yaddaşı səbəbindən Garbage Collection (GC) dondurmalarına səbəb olur. Ən ideal qızıl qayda hər executor-a 4-5 nüvə verməkdir.
     - **Hər executor-a cəmi 1 nüvə vermək**: Çoxlu kiçik konteyner yaradaraq klaster menecerini həddindən artıq yükləyir və ortaq yaddaş üstünlüyünü itirir.
     - **İstehsalat işlərini Client Mode-da işlətmək**: Şəbəkənin 1 saniyəlik kəsilməsi və ya kompüterin yuxuya getməsi saatlarla davam edən kəməri yarımçıq məhv edir.
 interview_question:
@@ -167,7 +167,7 @@ interview_question:
          - **Driver**: Baş komandirdir. SparkSession saxlayır, DAG planı qurur, tapşırıqları executor-lara paylayır və nəticələri izləyir. Cədvəllərin sətirlərini birbaşa emal etmir.
          - **Executor**: Fəhlə agentlərdir. Driver-in göndərdiyi tapşırıqları verilənlərin müvafiq partisiya sətirləri üzərində icra edir və keşlənmiş məlumatları öz RAM-ında saxlayır.
       2. **Xəta Baş Verdikdə Nə Olur? (Fault Tolerance)**:
-         - **Executor ölərsə**: Spark tam dözümlüdür! Driver nəbzin (heartbeat) kəsildiyini görür, Klaster Menecerindən təzə executor istəyir və DAG qrafındakı nəsil şəcərəsi (lineage) sayəsində itirilmiş tapşırıqları yenidən hesablayır. Kəmər ÇÖKMÜR və davam edir!
+         - **Executor ölərsə**: Spark tam dözümlüdür! Driver nəbzin (heartbeat) kəsildiyini görür, Klaster Menecerindən təzə executor istəyir və DAG qrafındakı lineage (asılılıq zənciri) sayəsində itirilmiş tapşırıqları yenidən hesablayır. Kəmər ÇÖKMÜR və davam edir!
          - **Driver ölərsə**: Bütün iş dərhal ÇÖKÜR! Çünki bütün DAG planı, tapşırıqların cari vəziyyəti və koordinasiya mərkəzi yalnız Driver-in yaddaşında yaşayır. Klaster rejimində yalnız xüsusi avtomatik yenidən başlatma konfiqurasiyası (`--supervise`) varsa, kəmər ən başdan təkrar başladılır.
   interviewer_tips:
     en: "This is a classic #1 interview question. Highlight 'Executor loss is recoverable via DAG lineage; Driver loss is fatal to the running job unless cluster supervisor restarts the entire application'."
@@ -184,7 +184,7 @@ flashcards:
       az: "İş zamanı tək bir Spark Executor prosesi qəzaya uğrayarsa nə baş verir?"
     back:
       en: "The Driver detects the heartbeat loss, provisions a replacement executor, and recalculates the lost partition tasks using lineage."
-      az: "Driver nəbz itkisini aşkar edir, təzə executor tələb edir və DAG şəcərəsi sayəsində itirilmiş tapşırıqları yenidən hesablayır."
+      az: "Driver nəbz itkisini aşkar edir, təzə executor tələb edir və DAG lineage sayəsində itirilmiş tapşırıqları yenidən hesablayır."
   - front:
       en: "What is the key difference between Client Mode and Cluster Mode deploy?"
       az: "Client Mode ilə Cluster Mode işə salınması arasındakı əsas fərq nədir?"
@@ -196,7 +196,7 @@ flashcards:
       az: "Tək bir executor-a 16+ CPU nüvəsi vermək nə üçün səhv hesab olunur?"
     back:
       en: "Huge JVM heap sizes cause excessive Garbage Collection (GC) pauses that freeze executor execution."
-      az: "Nəhəng JVM yaddaşı yaradır və Zibil Təmizləyici (GC) dondurmaları executor-un işini saniyələrlə iflic edir."
+      az: "Nəhəng JVM yaddaşı yaradır və Garbage Collection (GC) fasilələri executor-un işini saniyələrlə dondurur."
   - front:
       en: "What is the recommended number of CPU cores per executor in production?"
       az: "İstehsalatda hər bir executor üçün tövsiyə olunan ən optimal CPU nüvə sayı neçədir?"

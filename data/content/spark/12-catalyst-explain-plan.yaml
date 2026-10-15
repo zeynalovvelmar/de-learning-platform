@@ -86,12 +86,12 @@ explanation:
     - `FileScan parquet`: Məlumatın diskdən oxunması (`PartitionFilters` və `PushedFilters`-ə baxın).
     - `Filter`: Yaddaşda sətirlərin süzülməsi.
     - `Project`: Sütunların seçilməsi və riyazi hesablamalar.
-    - `Exchange`: Şəbəkə Şafflı (Shuffle) sərhədidir!
+    - `Exchange`: Şəbəkə Shuffle-ı (Exchange) sərhədidir!
     - `HashAggregate`: Qruplaşdırma və cəmləmə əməliyyatıdır.
     - `*(1)` və ya `*(2)` (Ulduz işarəsi): **Whole-Stage Code Generation (Tungsten)** aktivdir, kod birbaşa prosessor registrlərində maşın sürəti ilə işləyir!
 quick_recap:
   en: "The Catalyst Optimizer translates high-level SQL and PySpark into optimized physical RDD bytecode through 4 phases: Analysis, Logical Optimization, Physical Planning, and Tungsten Whole-Stage Code Generation. Reading `.explain()` plans allows engineers to verify Predicate Pushdown and identify bottleneck Shuffles."
-  az: "Catalyst Optimizer yüksək səviyyəli SQL və PySpark kodunu 4 mərhələdən (Analiz, Məntiqi Plan, Fiziki Plan və Tungsten Kod Yaradılması) keçirərək optimal maşın baytkoduna çevirir. `.explain()` planını oxumaq mühəndisə süzgəclərin diskə enməsini (Predicate Pushdown) və şaffl darboğazlarını görməyə imkan verir."
+  az: "Catalyst Optimizer yüksək səviyyəli SQL və PySpark kodunu 4 mərhələdən (Analiz, Məntiqi Plan, Fiziki Plan və Tungsten Kod Yaradılması) keçirərək optimal maşın baytkoduna çevirir. `.explain()` planını oxumaq mühəndisə süzgəclərin diskə enməsini (Predicate Pushdown) və shuffle darboğazlarını görməyə imkan verir."
 code: |
   from pyspark.sql import SparkSession
   from pyspark.sql.functions import col, sum as _sum
@@ -134,7 +134,7 @@ code_explanation:
     - `Parsed Logical Plan`-a baxın: Tipləri hələ yoxlanmamış xam sintaksis ağacıdır.
     - `Analyzed Logical Plan`-a baxın: Tiplər kataloqla tutuşdurularaq təsdiqlənib (`amount: double`).
     - `Optimized Logical Plan`-a baxın: Şərtlər sadələşdirilib və istifadə olunmayan sütunlar (`tx_id`) plandan tamamilə silinib (Column Pruning).
-    - `Physical Plan`-a baxın: `Exchange hashpartitioning` şafflı və onun ətrafında `*(1)` və `*(2)` ulduzlu Whole-Stage Codegen blokları var!
+    - `Physical Plan`-a baxın: `Exchange hashpartitioning` shuffle əməliyyatı və onun ətrafında `*(1)` və `*(2)` ulduzlu Whole-Stage Codegen blokları var!
 visual_output: |
   === Spark SQL Query Results ===
   +--------+-----------------+
@@ -177,7 +177,7 @@ what_it_does:
   az: "Catalyst mühərrikinin bütün 4 mərhələli həyat dövrünü nümayiş etdirir və PySpark ilə Spark SQL-in tam eyni fiziki maşın koduna çevrildiyini sübut edir."
 real_world_use:
   en: "The primary tool used by senior data engineers during performance tuning. Inspecting `.explain()` reveals whether a join is using broadcast, whether filters are pushed to Parquet, and where expensive shuffles occur."
-  az: "Senior data mühəndislərinin performans sazlama zamanı istifadə etdiyi ən əsas silahdır. `.explain()` sorğunun broadcast istifadə etdiyini, süzgəclərin diskə endiyini və şafflın harada olduğunu anında göstərir."
+  az: "Senior data mühəndislərinin performans sazlama zamanı istifadə etdiyi ən əsas silahdır. `.explain()` sorğunun broadcast istifadə etdiyini, süzgəclərin diskə endiyini və shuffle-ın harada olduğunu anında göstərir."
 common_mistakes:
   en: |
     - **Assuming PySpark DataFrame API is faster than Spark SQL**: In Spark, both APIs compile down to the exact same Catalyst AST and generate identical physical bytecode. Write whichever is more readable!

@@ -157,12 +157,12 @@ interview_question:
     az: |
       1. **RAM-da Boru Xətti vs Diskə Yazılma**: Hadoop MapReduce hər addımdan (Map və Reduce) sonra bütün aralıq məlumatları HDFS disklərinə yazmağa məcburdur. Spark isə Birtərəfli Dövrsüz Qraf (DAG) qurur və mərhələləri disklərə müraciət etmədən birbaşa paylanmış RAM daxilində konveyer kimi icra edir.
       2. **Spark-ın Diskə Yazmağa Məcbur Olduğu Hallar**:
-         - **Şəbəkə Şafflı (Shuffle)**: Məlumatlar executor-lar arasında yenidən paylananda (məsələn, böyük `join` və ya `groupBy`), Spark aralıq şaffl fayllarını executor-un yerli diskinə yazır.
+         - **Şəbəkə Shuffle-ı (Shuffle)**: Məlumatlar executor-lar arasında yenidən paylananda (məsələn, böyük `join` və ya `groupBy`), Spark aralıq shuffle fayllarını executor-un yerli diskinə yazır.
          - **Yaddaş Çatışmazlığı (Memory Spill)**: Bir partisiya executor-a ayrılmış RAM yaddaşından böyük olduqda, prosesin çökməməsi (OOM olmaması) üçün Spark artıq qalan hissəni avtomatik diskə boşaldır (spill to disk).
          - **Açıq Keşləmə (Persistence)**: Tərtibatçı `MEMORY_AND_DISK` kimi xüsusi saxlama dərəcəsi seçdikdə.
   interviewer_tips:
     en: "Mentioning that Spark uses RAM is standard. To impress the interviewer, explicitly mention 'DAG execution pipeline' and the two exact scenarios where Spark writes to disk: 'Shuffle persistence' and 'Memory Spill-to-Disk'."
-    az: "Spark-ın RAM istifadə etdiyini demək sıravi cavabdır. Senior təəssüratı yaratmaq üçün mütləq 'DAG boru kəməri' və Spark-ın diskə yazdığı iki dəqiq halı qeyd edin: 'Şaffl zamanı aralıq yazılma' və 'Yaddaş dolduqda diskə boşalma (Memory Spill)'."
+    az: "Spark-ın RAM istifadə etdiyini demək sıravi cavabdır. Senior təəssüratı yaratmaq üçün mütləq 'DAG boru kəməri' və Spark-ın diskə yazdığı iki dəqiq halı qeyd edin: 'Shuffle zamanı aralıq yazılma' və 'Yaddaş dolduqda diskə boşalma (Memory Spill)'."
 flashcards:
   - front:
       en: "What is the primary architectural difference between Hadoop MapReduce and Apache Spark?"

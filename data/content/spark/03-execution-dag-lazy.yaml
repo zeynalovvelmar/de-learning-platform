@@ -158,7 +158,7 @@ interview_question:
       2. **Tənbəl Hesablamanın 3 Əsas Üstünlüyü**:
          - **Qlobal Sorğu Optimallaşdırması**: Spark bütün reseptə icradan əvvəl bütöv baxdığı üçün Catalyst filtrləri birləşdirir (Filter Fusion), lazımsız sətirləri fayldan oxumadan kəsir (Predicate Pushdown) və istifadə olunmayan sütunları atır (Column Pruning).
          - **Yaddaş və I/O Qənaəti**: Hər xırda addım üçün yaddaşda və ya diskdə aralıq cədvəllər yaratmır, məlumatı birbaşa axınla (pipelining) emal edir.
-         - **Xətalara qarşı Yüksək Dözümlülük (Lineage)**: İcra zamanı bir maşın sıradan çıxarsa, bütün kəməri təzədən başlatmağa ehtiyac qalmır; DAG şəcərəsi sayəsində yalnız həmin itirilmiş xırda partisiya yenidən hesablanır.
+         - **Xətalara qarşı Yüksək Dözümlülük (Lineage)**: İcra zamanı bir maşın sıradan çıxarsa, bütün kəməri təzədən başlatmağa ehtiyac qalmır; DAG lineage sayəsində yalnız həmin itirilmiş xırda partisiya yenidən hesablanır.
   interviewer_tips:
     en: "Always list the specific optimization techniques enabled by lazy evaluation: 'Predicate Pushdown', 'Column Pruning', and 'DAG fault-tolerant Lineage recovery'."
     az: "Müsahibədə sadəcə 'yavaş hesablayır' deməyin; mütləq Catalyst-in 'Predicate Pushdown', 'Column Pruning' optimallaşdırmalarını və 'DAG Lineage bərpası'nı sadalayın."

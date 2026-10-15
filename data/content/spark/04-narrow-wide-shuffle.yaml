@@ -3,7 +3,7 @@ order: 4
 level: "intermediate"
 title:
   en: "Narrow vs Wide Dependencies & The Cost of Shuffling"
-  az: "Dar və Geniş Transformasiyalar: Şəbəkə Şafflı (Shuffle)"
+  az: "Dar və Geniş Transformasiyalar: Şəbəkə Shuffle-ı (Shuffle)"
 infographic:
   en: |
     ```text
@@ -35,9 +35,9 @@ infographic:
     └────────────────────────────────────────────────────────────────────────┘
                                     VS
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  GENİŞ ASILILIQ (Şaffl / Shuffle: Şəbəkə Trafiki və Diskə Yazılma!)    │
+    │  GENİŞ ASILILIQ (Shuffle: Şəbəkə Trafiki və Diskə Yazılma!)           │
     │  [Part 1 (Açarlar: A, B)] ───┐        ┌──► [Yeni Part 1 (Bütün A-lar)] │
-    │                              ├──ŞAFFL──┤                               │
+    │                              ├──SHUFFLE──┤                               │
     │  [Part 2 (Açarlar: A, B)] ───┘        └──► [Yeni Part 2 (Bütün B-lər)] │
     │  Qayda: 1 giriş partisiyası BİRN EÇƏ fərqli çıxışa paylanır.           │
     │  Mərhələlər: Məcburi MƏRHƏLƏ SƏRHƏDİ yaradır (Mərhələ 1 bitir, 2 başlar)│
@@ -60,19 +60,19 @@ explanation:
   az: |
     Vergi sənədlərini yoxlayan 4 ofis işçisini təsəvvür edin:
     - **Dar Transformasiya (Şəxsi Masada İş)**: Hər işçi öz qovluğundakı boş vərəqləri cırır (filter) və yuxarısına nömrə vurur (select). Heç kim yerindən durmur, otaqda danışmır, vaxt itkisi sıfırdır. Hər 4 nəfər eyni anda maksimum sürətlə işləyir.
-    - **Geniş Transformasiya (Nəhəng Qovluq Şafflı)**: Rəis qəfil əmr verir: "Bütün sənədləri vətəndaşların anadan olduğu şəhərə görə qruplaşdırın!" İndi 4 işçinin hamısı ayağa qalxmalı, otaqda ora-bura qaçmalı, Bakı sənədlərini 1-ci işçiyə, Gəncə sənədlərini 2-ci işçiyə verməlidir. Dəhlizdə tıxac yaranır (şəbəkə kilitlənir), sənədlər yerə tökülür (diskə spill olur) və ən sonuncu işçi qurtarana qədər heç kim növbəti mərhələyə keçə bilmir.
+    - **Geniş Transformasiya (Nəhəng Shuffle Hadisəsi)**: Rəis qəfil əmr verir: "Bütün sənədləri vətəndaşların anadan olduğu şəhərə görə qruplaşdırın!" İndi 4 işçinin hamısı ayağa qalxmalı, otaqda ora-bura qaçmalı, Bakı sənədlərini 1-ci işçiyə, Gəncə sənədlərini 2-ci işçiyə verməlidir. Dəhlizdə tıxac yaranır (şəbəkə kilitlənir), sənədlər yerə tökülür (diskə spill olur) və ən sonuncu işçi qurtarana qədər heç kim növbəti mərhələyə keçə bilmir.
 
-    ### Şaffl Niyə Spark-ın 1 Nömrəli Düşmənidir?
-    1. **Diskə Yazılma**: Bütün executor-lar göndərməzdən əvvəl aralıq şaffl fayllarını yerli diskə yazmalıdır.
+    ### Shuffle Niyə Spark-ın 1 Nömrəli Düşmənidir?
+    1. **Diskə Yazılma**: Bütün executor-lar göndərməzdən əvvəl aralıq shuffle fayllarını yerli diskə yazmalıdır.
     2. **Şəbəkə Yüklənməsi**: Giqabaytlarla məlumat serverlər arasındakı şəbəkə kabellərindən axır.
     3. **Serializasiya**: JVM obyektləri baytlara çevrilir və qarşı tərəfdə təzədən yığılır (CPU sərfiyyatı).
-    4. **Məcburi Gözləmə**: 1-ci Mərhələdəki bütün şaffl bitməyənə qədər 2-ci Mərhələ başlaya bilməz.
+    4. **Məcburi Gözləmə**: 1-ci Mərhələdəki bütün shuffle bitməyənə qədər 2-ci Mərhələ başlaya bilməz.
 
     ### Geniş Transformasiya Nümunələri:
     `groupBy()`, `distinct()`, `join()` (broadcast olmayan), `repartition()`, `reduceByKey()`.
 quick_recap:
   en: "Narrow transformations (filter, map) process partitions independently within the same Stage with 0 network movement. Wide transformations (groupBy, join) require a Shuffle across the cluster network, splitting the DAG into separate Stages and introducing heavy disk and network latency."
-  az: "Dar transformasiyalar (filter, map) partisiya məlumatlarını eyni Mərhələ daxilində şəbəkəsiz emal edir. Geniş transformasiyalar (groupBy, join) isə bütün klaster üzrə Şaffl tələb edir, DAG-ı ayrı Mərhələlərə bölür və ağır şəbəkə/disk gecikməsi yaradır."
+  az: "Dar transformasiyalar (filter, map) partisiya məlumatlarını eyni Mərhələ daxilində şəbəkəsiz emal edir. Geniş transformasiyalar (groupBy, join) isə bütün klaster üzrə Shuffle tələb edir, DAG-ı ayrı Mərhələlərə bölür və ağır şəbəkə/disk gecikməsi yaradır."
 code: |
   from pyspark.sql import SparkSession
   from pyspark.sql.functions import col, count
@@ -107,7 +107,7 @@ code_explanation:
     - Look at Plan 2 (Wide): It contains `Exchange hashpartitioning(country#10, 200)`. The `Exchange` keyword is Spark's explicit signature for a physical network Shuffle boundary!
   az: |
     - 1-ci Plana (Dar) diqqət yetirin: Yalnız `Project` və `Filter` var. Şəbəkə trafiki yoxdur, tək bir mərhələdə icra olunur.
-    - 2-ci Plana (Geniş) diqqət yetirin: `Exchange hashpartitioning(country, 200)` düyünü var. Planda `Exchange` sözünü görmək — arxa planda fiziki Şəbəkə Şafflının (Shuffle) baş verdiyini sübut edən əsas işarədir!
+    - 2-ci Plana (Geniş) diqqət yetirin: `Exchange hashpartitioning(country, 200)` düyünü var. Planda `Exchange` sözünü görmək — arxa planda fiziki Şəbəkə Shuffle-ının (Shuffle) baş verdiyini sübut edən əsas işarədir!
 visual_output: |
   === 1. Narrow Pipeline Execution Plan (NO Exchange Node) ===
   == Physical Plan ==
@@ -132,26 +132,26 @@ visual_output: |
   +-------+--------+
 output_description:
   en: "Physical plan comparison showing the absence of Exchange in narrow operations vs the presence of 'Exchange hashpartitioning' in wide operations."
-  az: "Dar əməliyyatda Exchange olmadığını, geniş qruplaşdırmada isə 'Exchange hashpartitioning' şaffl sərhədinin yarandığını göstərən icra planı müqayisəsi."
+  az: "Dar əməliyyatda Exchange olmadığını, geniş qruplaşdırmada isə 'Exchange hashpartitioning' shuffle sərhədinin yarandığını göstərən icra planı müqayisəsi."
 what_it_does:
   en: "Illustrates the exact physical execution difference between narrow transformations (which pipeline in-memory) and wide transformations (which force cluster shuffles)."
-  az: "Dar transformasiyalarla (yaddaşda konveyer kimi axan) geniş transformasiyaların (klaster boyu şaffl məcbur edən) icra fərqini nümayiş etdirir."
+  az: "Dar transformasiyalarla (yaddaşda konveyer kimi axan) geniş transformasiyaların (klaster boyu shuffle məcbur edən) icra fərqini nümayiş etdirir."
 real_world_use:
   en: "Minimizing expensive shuffles is the primary goal of Spark performance engineering. Engineers filter data early, broadcast small dimension tables, and pre-partition datasets to eliminate unnecessary Exchange nodes."
-  az: "Spark performansının optimallaşdırılmasının 1 nömrəli hədəfi şafflları minimuma endirməkdir. Mühəndislər filtrləri əvvələ çəkir, kiçik cədvəlləri broadcast edir və partisiyaları əvvəlcədən nizamlayırlar."
+  az: "Spark performansının optimallaşdırılmasının 1 nömrəli hədəfi shuffle əməliyyatlarını minimuma endirməkdir. Mühəndislər filtrləri əvvələ çəkir, kiçik cədvəlləri broadcast edir və partisiyaları əvvəlcədən nizamlayırlar."
 common_mistakes:
   en: |
     - **Grouping before filtering**: Calling `df.groupBy("country").count().filter(col("country") == "AZ")` shuffles all 200 countries across the network before discarding 199 of them! Always filter BEFORE grouping.
     - **Using `groupByKey()` in legacy RDD code instead of `reduceByKey()`**: `groupByKey()` sends every single raw record over the network before aggregating; `reduceByKey()` combines records locally first (map-side combine), reducing network traffic by 95%.
     - **Ignoring the default 200 shuffle partitions for small datasets**: Shuffling a 1 MB file across 200 partitions creates 200 tiny files and massive scheduling overhead.
   az: |
-    - **Filtrləmədən əvvəl qruplaşdırmaq**: `df.groupBy("country").count().filter("country == 'AZ'")` yazdıqda Spark bütün 200 ölkəni şəbəkədən şaffl edib qurtarandan sonra 199-nu atır! Həmişə əvvəlcə süzün, sonra qruplaşdırın.
+    - **Filtrləmədən əvvəl qruplaşdırmaq**: `df.groupBy("country").count().filter("country == 'AZ'")` yazdıqda Spark bütün 200 ölkəni şəbəkədən shuffle edib qurtarandan sonra 199-nu atır! Həmişə əvvəlcə süzün, sonra qruplaşdırın.
     - **`groupByKey()` istifadə etmək**: `groupByKey()` bütün xammal sətirləri şəbəkəyə tökür; `reduceByKey()` isə əvvəlcə hər maşında lokal cəmləyir (map-side combine) və şəbəkə yükünü 95% azaldır.
-    - **Kiçik məlumatlarda susmaya görə 200 şaffl partisiya saxlamaq**: Cəmi 1 MB-lıq faylı 200 yerə bölmək boşuna vaxt və resurs itkisidir.
+    - **Kiçik məlumatlarda susmaya görə 200 shuffle partisiya saxlamaq**: Cəmi 1 MB-lıq faylı 200 yerə bölmək boşuna vaxt və resurs itkisidir.
 interview_question:
   question:
     en: "What is the difference between Narrow and Wide transformations in Spark, what role does a Shuffle play, and how do they impact Stage creation?"
-    az: "Spark-da Dar (Narrow) və Geniş (Wide) transformasiyalar arasındakı fərq nədir, Şaffl (Shuffle) burada hansı rolu oynayır və Mərhələlərin (Stages) yaranmasına necə təsir edir?"
+    az: "Spark-da Dar (Narrow) və Geniş (Wide) transformasiyalar arasındakı fərq nədir, Shuffle burada hansı rolu oynayır və Mərhələlərin (Stages) yaranmasına necə təsir edir?"
   answer:
     en: |
       1. **Narrow vs Wide Transformation**:
@@ -166,14 +166,14 @@ interview_question:
       1. **Dar və Geniş Fərqi**:
          - **Dar (Narrow)**: Bir giriş partisiyası cəmi bircə çıxış partisiya ilə əlaqəlidir (`map`, `filter`, `select`). İcra yerli server daxilində gedir və **şəbəkə trafiki sıfırdır**.
          - **Geniş (Wide)**: Bir çıxış partisiya bir neçə giriş partisiyasının məlumatından asılıdır (`groupBy`, `join`, `distinct`). Bütün sətirlərin açara görə klasterdə paylanmasını tələb edir.
-      2. **Şafflın (Shuffle) Rolu**:
-         - **Şaffl**: Eyni açara (məs. eyni `customer_id`-yə) sahib sətirlərin eyni executor-a çatması üçün məlumatların şəbəkə üzərindən yer dəyişməsidir. Diskə yazılma, şəbəkə ötürülməsi və deserializasiya tələb edir.
+      2. **Shuffle-ın Rolu**:
+         - **Shuffle**: Eyni açara (məs. eyni `customer_id`-yə) sahib sətirlərin eyni executor-a çatması üçün məlumatların şəbəkə üzərindən yer dəyişməsidir. Diskə yazılma, şəbəkə ötürülməsi və deserializasiya tələb edir.
       3. **Mərhələlərin (Stages) Yaranması**:
          - Spark ardıcıl bütün dar transformasiyaları birləşdirib **tək bir Mərhələ (Stage)** daxilində boru kəməri kimi işlədir.
-         - Hər bir geniş transformasiya isə **məcburi Mərhələ Sərhədidir**. 1-ci Mərhələdəki bütün işçilər şaffl fayllarını diskə yazıb bitirməyincə, 2-ci Mərhələ başlaya bilməz.
+         - Hər bir geniş transformasiya isə **məcburi Mərhələ Sərhədidir**. 1-ci Mərhələdəki bütün işçilər shuffle fayllarını diskə yazıb bitirməyincə, 2-ci Mərhələ başlaya bilməz.
   interviewer_tips:
     en: "Explain that Stages in Spark DAG are literally defined by Shuffle boundaries. If a job has 3 wide transformations, it will have at least 4 stages. Use the term 'Exchange' which is Spark's physical plan operator for a Shuffle."
-    az: "Müsahibəçiyə izah edin ki, Spark DAG-ında Mərhələlər (Stages) birbaşa Şaffl sərhədləri ilə təyin olunur. 3 geniş əməliyyat varsa, ən az 4 mərhələ olacaq. Spark-ın daxili planındakı 'Exchange' terminini mütləq işlədin."
+    az: "Müsahibəçiyə izah edin ki, Spark DAG-ında Mərhələlər (Stages) birbaşa Shuffle sərhədləri ilə təyin olunur. 3 geniş əməliyyat varsa, ən az 4 mərhələ olacaq. Spark-ın daxili planındakı 'Exchange' terminini mütləq işlədin."
 flashcards:
   - front:
       en: "What defines a Narrow Transformation in Apache Spark?"
@@ -186,16 +186,16 @@ flashcards:
       az: "Apache Spark-da Geniş Transformasiyanı (Wide) müəyyən edən əsas xüsusiyyət nədir?"
     back:
       en: "Child partitions depend on data from multiple parent partitions, forcing a full cluster network Shuffle."
-      az: "Çıxış partisiyaları bir neçə giriş partisiyasından asılıdır və bütün klaster boyu Şaffl (Shuffle) məcbur edir."
+      az: "Çıxış partisiyaları bir neçə giriş partisiyasından asılıdır və bütün klaster boyu Shuffle məcbur edir."
   - front:
       en: "How does Spark determine where one Stage ends and the next Stage begins in a DAG?"
       az: "Spark DAG daxilində bir Mərhələnin (Stage) harada bitib digərinin başladığını necə müəyyən edir?"
     back:
       en: "At every Wide Transformation boundary where a network Shuffle (Exchange) is required."
-      az: "Şəbəkə Şafflının (Exchange) tələb olunduğu hər bir Geniş Transformasiya sərhədində."
+      az: "Şəbəkə Shuffle-ının (Exchange) tələb olunduğu hər bir Geniş Transformasiya sərhədində."
   - front:
       en: "What operator in a Spark `.explain()` physical plan indicates a network Shuffle?"
-      az: "Spark `.explain()` fiziki planında şəbəkə şafflını göstərən açar operator hansıdır?"
+      az: "Spark `.explain()` fiziki planında şəbəkə shuffle əməliyyatını göstərən açar operator hansıdır?"
     back:
       en: "The `Exchange` operator (e.g. `Exchange hashpartitioning(...)`)."
       az: "`Exchange` operatoru (məsələn `Exchange hashpartitioning(...)`)."
@@ -204,4 +204,4 @@ flashcards:
       az: "`reduceByKey` paylanmış hesablamada nə üçün `groupByKey`-dən qat-qat üstündür?"
     back:
       en: "`reduceByKey` combines values locally on each node before shuffling (map-side combine), slashing network traffic by 90%+."
-      az: "`reduceByKey` şaffldan əvvəl hər serverdə məlumatı lokal cəmləyir (map-side combine) və şəbəkə yükünü 90%+-dan çox azaldır."
+      az: "`reduceByKey` shuffle-dan əvvəl hər serverdə məlumatı lokal cəmləyir (map-side combine) və şəbəkə yükünü 90%+-dan çox azaldır."

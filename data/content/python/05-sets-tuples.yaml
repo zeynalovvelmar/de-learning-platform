@@ -18,10 +18,10 @@ order: 5
 level: "junior"
 title:
   en: "Sets, Tuples, and Uniqueness Operations"
-  az: "Çoxluqlar, Kortecellər və Unikallıq Əməliyyatları"
+  az: "Set-lər, Tuple-lar və Unikallıq Əməliyyatları"
 quick_recap:
   en: "Sets (`set()`) store unique, unordered elements with O(1) membership checking (`x in s`). They eliminate duplicates instantly and enable fast mathematical operations (union |, intersection &, difference -). Tuples (`()`) are immutable sequences with lower memory footprints than lists, guaranteeing data cannot be modified accidentally."
-  az: "Çoxluqlar (`set()`) unikal, sırasız elementləri saxlayır və O(1) sürətli yoxlama (`x in s`) təmin edir. Dublikatları bir göz qırpımında təmizləyir və riyazi çoxluq əməliyyatlarını (| birləşmə, & kəsişmə, - fərq) sürətlə aparır. Kortecellər (`tuple`) isə siyahıdan daha az yaddaş tutan dəyişməz ardıcıllıqdır."
+  az: "Çoxluqlar (`set()`) unikal, sırasız elementləri saxlayır və O(1) sürətli yoxlama (`x in s`) təmin edir. Dublikatları bir göz qırpımında təmizləyir və riyazi çoxluq əməliyyatlarını (| birləşmə, & kəsişmə, - fərq) sürətlə aparır. Tuple-lar (`tuple`) isə siyahıdan daha az yaddaş tutan dəyişməz ardıcıllıqdır."
 explanation:
   en: |
     Think of a collector's pouch of unique stamps:
@@ -39,7 +39,7 @@ explanation:
     - Əgər torbaya artıq mövcud olan eyni markanı atmağa çalışsanız, təkrar marka əlavə olunmur; torbada yalnız unikal əşyalar qalır. Bu, **Çoxluqdur (`set()`)**.
     - Torbada müəyyən bir markanın olub-olmadığını yoxlamaq (`x in s`) siyahıdakı kimi bütün elementləri bir-bir gəzmədən ($O(N)$) anında tək addımda ($O(1)$) baş verir.
 
-    **Kortecel (`tuple`)** isə laminasiya olunmuş vəsiqə kimidir: bir dəfə yaradıldıqdan sonra heç vaxt dəyişdirilə bilməz (`immutable`). Yaddaşda siyahıdan az yer tutur və lüğətlərdə açar kimi istifadə edilə bilər.
+    **Tuple (`tuple`)** isə laminasiya olunmuş vəsiqə kimidir: bir dəfə yaradıldıqdan sonra heç vaxt dəyişdirilə bilməz (`immutable`). Yaddaşda siyahıdan az yer tutur və lüğətlərdə açar kimi istifadə edilə bilər.
 
     ### Güclü Çoxluq Əməliyyatları (SQL Analoqları):
     - `set_a | set_b`: Birləşmə (bütün unikal elementləri toplayır).
@@ -66,7 +66,7 @@ code: |
   print(f"DB Target: {db_config[0]}:{db_config[1]}")
 what_it_does:
   en: "Removes duplicates from a stream of user IDs using set(), computes set intersections and differences, and demonstrates immutable tuple storage."
-  az: "İstifadəçi ID siyahısından təkrar elementləri set() ilə təmizləyir, kəsişmə və fərq əməliyyatlarını aparır və dəyişməz korteceli (tuple) nümayiş etdirir."
+  az: "İstifadəçi ID siyahısından təkrar elementləri set() ilə təmizləyir, kəsişmə və fərq əməliyyatlarını aparır və dəyişməz tuple strukturunu nümayiş etdirir."
 real_world_use:
   en: "Deduplicating incoming event keys and finding missing IDs during data reconciliation (e.g. comparing expected source rows against destination table rows)."
   az: "Boru kəmərində daxil olan açarları deduplikasiya etmək və tutuşdurma zamanı itən qeydləri tapmaq (məs. mənbədə olan, lakin hədəf cədvələ çatmayan sətirləri `source_ids - dest_ids` ilə tapmaq)."
@@ -117,10 +117,10 @@ exercise:
 flashcards:
   - front:
       en: "What is the primary difference between a list and a tuple?"
-      az: "Siyahı (list) ilə kortecel (tuple) arasındakı əsas fərq nədir?"
+      az: "Siyahı (list) ilə tuple arasındakı əsas fərq nədir?"
     back:
       en: "Lists are mutable (can be changed). Tuples are immutable (cannot be changed after creation)."
-      az: "Siyahılar dəyişəndir (mutable). Kortecellər (tuple) isə dəyişməzdir (yaradıldıqdan sonra dəyişdirilə bilməz)."
+      az: "Siyahılar dəyişəndir (mutable). Tuple-lar isə dəyişməzdir (yaradıldıqdan sonra dəyişdirilə bilməz)."
   - front:
       en: "Why is `x in set_obj` significantly faster than `x in list_obj`?"
       az: "`x in set_obj` yoxlaması nə üçün `x in list_obj`-dən qat-qat sürətlidir?"
@@ -135,13 +135,13 @@ flashcards:
       az: "set_a çoxluğunda olan, lakin set_b çoxluğunda OLMAYAN elementləri qaytarır (SQL EXCEPT ilə eynidir)."
   - front:
       en: "How do you define a tuple with exactly one element?"
-      az: "Cəmi bir elementi olan kortecel (tuple) necə yaradılır?"
+      az: "Cəmi bir elementi olan tuple necə yaradılır?"
     back:
       en: "You must include a trailing comma: `t = (42,)`. Without the comma, `t = (42)` is parsed as an int."
       az: "Mütləq sonuna vergül qoyulmalıdır: `t = (42,)`. Vergül olmadan `t = (42)` adi tam ədəd kimi oxunur."
   - front:
       en: "Can a tuple be used as a dictionary key? Can a list?"
-      az: "Kortecel (tuple) lüğətdə açar ola bilərmi? Bəs siyahı (list)?"
+      az: "Tuple lüğətdə (dict) açar ola bilərmi? Bəs siyahı (list)?"
     back:
       en: "Yes, tuples can be dictionary keys because they are immutable and hashable. Lists cannot because they are mutable."
-      az: "Bəli, kortecellər dəyişməz və hash oluna bilən olduğu üçün açar ola bilər. Siyahılar isə dəyişən olduğu üçün açar ola bilməz."
+      az: "Bəli, tuple-lar dəyişməz (immutable) və hash oluna bilən olduğu üçün açar ola bilər. Siyahılar isə dəyişən olduğu üçün açar ola bilməz."

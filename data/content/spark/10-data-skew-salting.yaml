@@ -162,7 +162,7 @@ common_mistakes:
     - **Choosing too small a salt bucket**: If a key has 100 million rows, salting with `0..1` (2 buckets) still leaves 50 million rows per partition. Match salt buckets to available cluster cores.
     - **Ignoring Adaptive Query Execution (AQE)**: In Spark 3.0+, enabling `spark.sql.adaptive.skewJoin.enabled = true` allows Spark to automatically detect and split skewed join partitions at runtime!
   az: |
-    - **Bütün açarları kor-koranə duzlamaq**: Onsuz da bərabər paylanmış kiçik açarları duzlamaq əlavə şaffl və vaxt itkisidir. Duzlama yalnız problemli nəhəng açarlara tətbiq edilməlidir.
+    - **Bütün açarları kor-koranə duzlamaq**: Onsuz da bərabər paylanmış kiçik açarları duzlamaq əlavə shuffle və vaxt itkisidir. Duzlama yalnız problemli nəhəng açarlara tətbiq edilməlidir.
     - **Duz sayını çox kiçik seçmək**: 100 milyon sətirli açarı cəmi 2 yerə bölsəniz, yenə hərəyə 50 milyon düşəcək. Duz sayını klasterin nüvələrinə uyğun seçin (məs. 16, 32).
     - **Spark 3.0+ AQE funksiyasını unutmaq**: Müasir Spark-da `spark.sql.adaptive.skewJoin.enabled = true` qoyduqda Spark birləşmələrdəki əyri açarları iş vaxtı avtomatik aşkar edib parçalaya bilir!
 interview_question:

@@ -30,16 +30,16 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  REPARTITION(4): Tam Şəbəkə Şafflı (Həm Artırır, Həm Balanslaşdırır)   │
+    │  REPARTITION(4): Tam Şəbəkə Shuffle-ı (Həm Artırır, Həm Balanslaşdırır)   │
     │  [Part 1] ───┐       ┌──► [Yeni Part 1] (Bərabər ~25%)                 │
-    │  [Part 2] ───┼─ŞAFFL─┼──► [Yeni Part 2] (Bərabər ~25%)                 │
+    │  [Part 2] ───┼─SHUFFLE┼──► [Yeni Part 2] (Bərabər ~25%)                 │
     │  [Part 3] ───┘       ├──► [Yeni Part 3] (Bərabər ~25%)                 │
     │                      └──► [Yeni Part 4] (Bərabər ~25%)                 │
     │  Xüsusiyyət: Tam şəbəkə hərəkəti, mükəmməl bərabərlik, xərclidir.      │
     └────────────────────────────────────────────────────────────────────────┘
                                     VS
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  COALESCE(2): Şafflsız Lokal Birləşmə (YALNIZ AZALDIR)                 │
+    │  COALESCE(2): Shuffle Olmadan Lokal Birləşmə (YALNIZ AZALDIR)                 │
     │  [Part 1] ──┐                                                          │
     │             ├──► Server A-da lokal birləşir ──► [Yeni Part 1 (50%)]    │
     │  [Part 2] ──┘                                                          │
@@ -65,14 +65,14 @@ explanation:
     - **Qızıl Ölçü Qaydası**: Partisiya Spark-ın paralellik vahididir.
       - Əgər klasterdə 100 nüvəniz (core) varsa, amma cədvəliniz cəmi 2 partisiyaya bölünübsə, 98 nüvə boş oturub çay içəcək, yalnız 2 nüvə işləyəcək.
       - İstehsalatda ideal partisiya ölçüsü: Sıxılmamış halda **100 MB - 200 MB** arası olmalıdır.
-    - **`repartition(N)`**: Yükləri tamamilə yerə tökürsünüz, tərəzidə çəkib bütün maşınlara tam bərabər paylayırsınız. Bu, şəbəkə şafflı yaradır (xərclidir), amma həm partisiya sayını artıra bilir, həm də mükəmməl balans qurur.
-    - **`coalesce(N)`**: 4 ədəd yarım-boş maşınınız var. 1-ci maşının yükünü 2-ciyə, 3-cü maşının yükünü 4-cüyə qatırsınız. Yükləri küçəyə tökmədən (şəbəkə şafflı olmadan) yerində birləşdirirsiniz. Çox sürətlidir, amma YALNIZ partisiya sayını AZALDA bilir, artıra bilməz.
+    - **`repartition(N)`**: Yükləri tamamilə yerə tökürsünüz, tərəzidə çəkib bütün maşınlara tam bərabər paylayırsınız. Bu, şəbəkə shuffle-ı yaradır (xərclidir), amma həm partisiya sayını artıra bilir, həm də mükəmməl balans qurur.
+    - **`coalesce(N)`**: 4 ədəd yarım-boş maşınınız var. 1-ci maşının yükünü 2-ciyə, 3-cü maşının yükünü 4-cüyə qatırsınız. Yükləri küçəyə tökmədən (şəbəkə shuffle-ı olmadan) yerində birləşdirirsiniz. Çox sürətlidir, amma YALNIZ partisiya sayını AZALDA bilir, artıra bilməz.
 
     ### Təhlükəli `coalesce(1)` Tələsi:
     Tək bir fayl əldə etmək üçün `df.coalesce(1).write.parquet(...)` yazmaq — terabaytlarla məlumatı tək bir executor-un boğazına tökmək deməkdir. Həmin executor ya dərhal OOM ilə çökür, ya da saatlarla təkbaşına işləyir.
 quick_recap:
   en: "`repartition(N)` triggers a full network shuffle to increase or evenly balance partitions. `coalesce(N)` avoids shuffling by locally merging adjacent partitions on the same executor, making it ideal for shrinking partition counts before saving files."
-  az: "`repartition(N)` partisiya sayını artırmaq və ya bərabər bölmək üçün tam şəbəkə şafflı edir. `coalesce(N)` isə heç bir şaffl etmədən qonşu partisiyaları lokal birləşdirir, bu səbəbdən faylı yaddaşa yazmazdan əvvəl partisiya sayını azaltmaq üçün ən ideal yoldur."
+  az: "`repartition(N)` partisiya sayını artırmaq və ya bərabər bölmək üçün tam şəbəkə shuffle-ı edir. `coalesce(N)` isə heç bir shuffle etmədən qonşu partisiyaları lokal birləşdirir, bu səbəbdən faylı yaddaşa yazmazdan əvvəl partisiya sayını azaltmaq üçün ən ideal yoldur."
 code: |
   from pyspark.sql import SparkSession
 
@@ -129,7 +129,7 @@ what_it_does:
   az: "Spark partisiyalarını yoxlamaq, artırmaq və azaltmağın yollarını göstərir; coalesce-in şəbəkəsiz işləməsini, repartition-un isə bərabər bölməsini nümayiş etdirir."
 real_world_use:
   en: "Used right before writing files to cloud storage (S3 / ADLS / GCS). Using `coalesce(10)` reduces 200 tiny files into 10 properly sized 128MB Parquet files without network shuffle costs."
-  az: "Bulud anbarına (S3, ADLS) fayl yazmazdan əvvəl tətbiq olunur. `coalesce(10)` yazmaqla 200 ədəd xırda fayl əvəzinə heç bir şəbəkə şafflı olmadan 10 ədəd təmiz 128MB-lıq Parquet faylı yaradılır."
+  az: "Bulud anbarına (S3, ADLS) fayl yazmazdan əvvəl tətbiq olunur. `coalesce(10)` yazmaqla 200 ədəd xırda fayl əvəzinə heç bir şəbəkə shuffle-ı olmadan 10 ədəd təmiz 128MB-lıq Parquet faylı yaradılır."
 common_mistakes:
   en: |
     - **Using `coalesce()` to increase partitions**: Calling `df.coalesce(100)` when you have 10 partitions does NOTHING. Spark silently ignores it and stays at 10. You MUST use `repartition()` to increase.
@@ -153,8 +153,8 @@ interview_question:
          - As a result, the entire computation across preceding stages is forced down into a single executor thread! The remaining 99 executors sit idle, and that single executor will likely crash with an `OutOfMemoryError` (OOM) trying to buffer gigabytes of data.
     az: |
       1. **Struktur və Mexaniki Fərqlər**:
-         - **`repartition(n)`**: **Tam Şəbəkə Şafflı** həyata keçirir. Bütün sətirləri klaster boyu bərabər paylayır. Partisiya sayını həm **artıra**, həm də **azalda** bilir.
-         - **`coalesce(n)`**: Eyni serverdəki qonşu partisiyaları birləşdirir və **heç bir şəbəkə şafflı yaratmır**. YALNIZ partisiya sayını **azalda** bilir (artıra bilməz).
+         - **`repartition(n)`**: **Tam Şəbəkə Shuffle-ı** həyata keçirir. Bütün sətirləri klaster boyu bərabər paylayır. Partisiya sayını həm **artıra**, həm də **azalda** bilir.
+         - **`coalesce(n)`**: Eyni serverdəki qonşu partisiyaları birləşdirir və **heç bir şəbəkə shuffle-ı yaratmır**. YALNIZ partisiya sayını **azalda** bilir (artıra bilməz).
       2. **`coalesce(1)` Niyə Təhlükəlidir?**:
          - Tərtibatçılar tək bir fayl almaq üçün tez-tez `coalesce(1)` yazırlar. Lakin Catalyst optimallaşdırıcısı bu əmri kəmərdə yuxarıya çəkir.
          - Nəticədə bütün əvvəlki mərhələlər tək bir executor daxilində tək bir nüvədə işləməyə məcbur olur! Klasterdəki digər bütün maşınlar boş qalır və həmin tək maşın gigabaytlarla məlumatı həzm edə bilməyib `OutOfMemoryError` (OOM) ilə çökür.
@@ -173,7 +173,7 @@ flashcards:
       az: "Partisiyaları azaldarkən `coalesce(N)` nə üçün `repartition(N)`-dən qat-qat sürətlidir?"
     back:
       en: "Because it merges adjacent partitions locally without triggering an expensive full-cluster network shuffle."
-      az: "Çünki baha başa gələn şəbəkə şafflı etmədən qonşu partisiyaları yerli serverdə birləşdirir."
+      az: "Çünki baha başa gələn şəbəkə shuffle-ı etmədən qonşu partisiyaları yerli serverdə birləşdirir."
   - front:
       en: "What is the recommended target partition size for Spark DataFrames in memory?"
       az: "Yaddaşda Spark DataFrame partisiyaları üçün tövsiyə olunan hədəf ölçü nə qədərdir?"

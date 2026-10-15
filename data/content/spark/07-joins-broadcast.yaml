@@ -27,15 +27,15 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  SORT-MERGE JOIN (Hər İki Cədvəl Böyükdür: Ağır Şaffl və Sıralama)     │
-    │  [Böyük Cədvəl A (100 GB)] ──► Açar üzrə ŞAFFL ──► Sırala ──┐          │
+    │  SORT-MERGE JOIN (Hər İki Cədvəl Böyükdür: Ağır Shuffle və Sıralama)     │
+    │  [Böyük Cədvəl A (100 GB)] ──► Açar üzrə SHUFFLE ──► Sırala ──┐          │
     │                                                             ├──Birləşdir│
-    │  [Böyük Cədvəl B (80 GB)]  ──► Açar üzrə ŞAFFL ──► Sırala ──┘          │
+    │  [Böyük Cədvəl B (80 GB)]  ──► Açar üzrə SHUFFLE ──► Sırala ──┘          │
     │  Xərc: Nəhəng şəbəkə trafiki + diskə boşalma (spill) riski.            │
     └────────────────────────────────────────────────────────────────────────┘
                                     VS
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  BROADCAST HASH JOIN (Biri Kiçik Cədvəldir <10MB: SIFIR ŞAFFL!)        │
+    │  BROADCAST HASH JOIN (Biri Kiçik Cədvəldir <10MB: SIFIR SHUFFLE!)        │
     │  [Kiçik Cədvəl (<10MB)] ──► Driver hamıya nüsxəsini PAYLAYIR (Broadcast)│
     │                                                                        │
     │  Server 1: [Lokal Partisiya A1] ──Lokal Hash Cədvəllə Birləşir──► Nəticə│
@@ -58,15 +58,15 @@ explanation:
     Paylanmış cədvəl birləşməsini kitabxana tərcüməsi kimi təsəvvür edin:
     - 10 mərtəbəli kitabxanada 500,000 xarici dildə kitab var (bu, böyük Fakt cədvəlidir).
     - Əlinizdə cəmi 5 vərəqlik kiçik lüğət var: ölkə kodlarını tam ada çevirir (kiçik Dimensiya cədvəli).
-    - **Sort-Merge Join Yolu (Dəhşətli dərəcədə yavaş)**: 500,000 kitabı mərtəbələrdən yığıb şəhərin mərkəzindəki stadiona daşıyırsınız, əlifba sırası ilə düzürsünüz və lüğətlə tutuşdurursunuz. Şəhərin bütün yolları iflic olur (nəhəng şəbəkə şafflı).
+    - **Sort-Merge Join Yolu (Dəhşətli dərəcədə yavaş)**: 500,000 kitabı mərtəbələrdən yığıb şəhərin mərkəzindəki stadiona daşıyırsınız, əlifba sırası ilə düzürsünüz və lüğətlə tutuşdurursunuz. Şəhərin bütün yolları iflic olur (nəhəng şəbəkə shuffle-ı).
     - **Broadcast Hash Join Yolu (Ağıllı və sürətli)**: Həmin 5 vərəqlik lüğətin 10 nüsxəsini çıxarıb hər mərtəbədəki kitabxanaçının cibinə qoyursunuz. Hər kəs öz rəfindəki kitabları yerindən tərpətmədən tərcümə edir. **Tək bir kitab belə yerindən oynamır!**
 
     ### Spark-ın İki Əsas Birləşmə Strategiyası:
     1. **Broadcast Hash Join (BHJ)**: Cədvəllərdən biri `spark.sql.autoBroadcastJoinThreshold` həddindən (susmaya görə **10 MB**) kiçik olduqda avtomatik seçilir. Driver kiçik cədvəli yaddaşına çəkir və bütün executor-lara nüsxəsini paylayır.
-    2. **Sort-Merge Join (SMJ)**: Hər iki cədvəl böyük olduqda istifadə olunur. Hər iki tərəf şəbəkədən şaffl olunur və hər qovşaqda açara görə sıralanaraq birləşdirilir.
+    2. **Sort-Merge Join (SMJ)**: Hər iki cədvəl böyük olduqda istifadə olunur. Hər iki tərəf şəbəkədən shuffle olunur və hər qovşaqda açara görə sıralanaraq birləşdirilir.
 quick_recap:
   en: "Broadcast Hash Join eliminates shuffles on the large table by replicating the small table (<10MB) to all executor nodes. For two large tables, Spark falls back to Sort-Merge Join, requiring both tables to be shuffled and sorted by key."
-  az: "Broadcast Hash Join kiçik cədvəlin (<10MB) nüsxəsini bütün executor-lara paylayaraq böyük cədvəlin şəbəkədə şaffl olunmasının qarşısını alır. Hər iki cədvəl böyük olduqda isə Spark Sort-Merge Join strategiyasına keçir və hər iki tərəfi şəbəkədə şaffl edib sıralayır."
+  az: "Broadcast Hash Join kiçik cədvəlin (<10MB) nüsxəsini bütün executor-lara paylayaraq böyük cədvəlin şəbəkədə shuffle olunmasının qarşısını alır. Hər iki cədvəl böyük olduqda isə Spark Sort-Merge Join strategiyasına keçir və hər iki tərəfi şəbəkədə shuffle edib sıralayır."
 code: |
   from pyspark.sql import SparkSession
   from pyspark.sql.functions import col, broadcast
@@ -109,7 +109,7 @@ code_explanation:
   az: |
     - `broadcast(dim_countries)`: Catalyst optimallaşdırıcısına `dim_countries` cədvəlini həddindən asılı olmayaraq bütün executor-lara paylamağı (broadcast etməyi) açıq şəkildə əmr edir.
     - Fiziki plana baxın: `BroadcastHashJoin [country_id]` və `BroadcastExchange` düyünlərini görəcəksiniz.
-    - Ən mühüm detal: Böyük `fact_sales` cədvəlində heç bir `Exchange` (şaffl) yoxdur! Yalnız kiçik cədvəl şəbəkədən paylanıb.
+    - Ən mühüm detal: Böyük `fact_sales` cədvəlində heç bir `Exchange` (shuffle) yoxdur! Yalnız kiçik cədvəl şəbəkədən paylanıb.
 visual_output: |
   === Broadcast Joined Result ===
   +-----+--------------+------+--------+
@@ -133,10 +133,10 @@ visual_output: |
            +- *(2) Scan ExistingRDD[country_id#5L,country_id#5L,currency#7]
 output_description:
   en: "Execution plan demonstrating the high-speed BroadcastHashJoin operator where the build-side table is distributed via BroadcastExchange."
-  az: "Kiçik cədvəlin BroadcastExchange ilə paylandığını və birləşmənin BroadcastHashJoin ilə şafflsız baş verdiyini sübut edən icra planı."
+  az: "Kiçik cədvəlin BroadcastExchange ilə paylandığını və birləşmənin BroadcastHashJoin ilə shuffle olmadan baş verdiyini sübut edən icra planı."
 what_it_does:
   en: "Demonstrates how to optimize distributed table joins using broadcast hints to prevent large table shuffles."
-  az: "Böyük cədvəlin şaffl olunmasının qarşısını almaq üçün broadcast ipucundan istifadə edərək paylanmış birləşməni optimallaşdırmağı nümayiş etdirir."
+  az: "Böyük cədvəlin shuffle olunmasının qarşısını almaq üçün broadcast ipucundan istifadə edərək paylanmış birləşməni optimallaşdırmağı nümayiş etdirir."
 real_world_use:
   en: "Star schema data warehouses: Fact tables (Billions of rows) joined with Dimension tables (Customers, Dates, Stores). Broadcasting dimension tables speeds up daily ETL jobs by hours."
   az: "Ulduz sxemli (Star Schema) data anbarlarında: Milyardlarla sətirli Fakt cədvəlini kiçik Dimensiya cədvəlləri (Tarix, Mağaza, Kateqoriya) ilə birləşdirəndə istifadə olunur və işi saatlarla sürətləndirir."
@@ -167,7 +167,7 @@ interview_question:
       1. **Daxili Mexanizm**:
          - **1-ci Addım (Driver-ə Yığılma)**: Driver kiçik cədvəlin bütün hissələrini öz JVM yaddaşına çəkir və orada tək bir Hash Cədvəli qurur.
          - **2-ci Addım (Bütün Klasterə Yayılma)**: Driver BitTorrent bənzəri P2P protokolu ilə bu lüğəti klasterdəki hər bir Executor-un RAM yaddaşına kopyalayır.
-         - **3-cü Addım (Lokal Axtarış)**: Hər bir executor özündə olan böyük cədvəl sətirlərini lokal lüğətlə $O(1)$ sürətində yoxlayır. **Böyük cədvəl üçün şəbəkə şafflı SIFIRDIR!**
+         - **3-cü Addım (Lokal Axtarış)**: Hər bir executor özündə olan böyük cədvəl sətirlərini lokal lüğətlə $O(1)$ sürətində yoxlayır. **Böyük cədvəl üçün şəbəkə shuffle-ı SIFIRDIR!**
       2. **Hədd (Threshold)**:
          - `spark.sql.autoBroadcastJoinThreshold` parametri ilə idarə olunur. Susmaya görə **10 MB**-dır. `-1` təyin etsəniz, broadcast tamamilə söndürülür.
       3. **Baş Verən Fəlakət (Driver OOM)**:
@@ -181,7 +181,7 @@ flashcards:
       az: "Broadcast Hash Join (BHJ) strategiyasının ən böyük performans üstünlüyü nədir?"
     back:
       en: "It completely eliminates the expensive network shuffle on the large table."
-      az: "Böyük cədvəl üzərindəki baha başa gələn şəbəkə şafflını (shuffle) tamamilə aradan qaldırır."
+      az: "Böyük cədvəl üzərindəki baha başa gələn şəbəkə shuffle-ını tamamilə aradan qaldırır."
   - front:
       en: "What is the default table size threshold for automatic broadcast joins in Spark?"
       az: "Spark-da cədvəllərin avtomatik broadcast edilməsi üçün susmaya görə ölçü həddi neçədir?"
@@ -199,7 +199,7 @@ flashcards:
       az: "Spark nə vaxt Sort-Merge Join (SMJ) strategiyasından istifadə edir?"
     back:
       en: "When both joining tables are too large to fit into broadcast memory, requiring both to be shuffled and sorted by key."
-      az: "Hər iki cədvəl broadcast üçün çox böyük olduqda; hər iki tərəf şəbəkədən şaffl olunur və açara görə sıralanır."
+      az: "Hər iki cədvəl broadcast üçün çox böyük olduqda; hər iki tərəf şəbəkədən shuffle olunur və açara görə sıralanır."
   - front:
       en: "How do you explicitly force a Broadcast Join in PySpark code?"
       az: "PySpark kodunda açıq şəkildə Broadcast Join-i necə məcbur edirsiniz?"

@@ -37,10 +37,10 @@ infographic:
     │  SPARK ƏSAS YADDAŞ HOVUZU (~60% qalan sahə)                            │
     │  ┌──────────────────────────────────┬────────────────────────────────┐ │
     │  │  İCRA YADDAŞI (50% Execution)    │  SAXLAMA / KEŞ (50% Storage)   │ │
-    │  │  Şaffl buferləri, birləşmələr,   │  Keşlənmiş DataFrame-lər       │ │
+    │  │  Shuffle buferləri, birləşmələr,   │  Keşlənmiş DataFrame-lər       │ │
     │  │  sort və heş-aqreqasiya masaları │  (`cache()`), broadcast dəyərlər│
     │  └──────────────────────────────────┴────────────────────────────────┘ │
-    │  *Dinamik Borclanma: İcra sıxışanda Keş yaddaşını sıxışdırıb yer alır! │
+    │  *Dinamik Yaddaş Paylaşımı (Dynamic Borrowing): İcra sıxışanda Keş yaddaşını sıxışdırıb yer alır! │
     └────────────────────────────────────────────────────────────────────────┘
     ```
 explanation:
@@ -84,7 +84,7 @@ explanation:
        - *Səbəb*: Driver-də `.collect()` çağırmaq və ya həddindən artıq böyük cədvəli broadcast etmək.
        - *Həlli*: Böyük cədvəllərdə heç vaxt `.collect()` çağırmayın; `.take(50)` istifadə edin və ya nəticəni diskə yazın.
     2. **Executor OOM**:
-       - *Səbəb*: Çox böyük şaffl partisiyaları, məlumat əyriliyi (data skew) və ya tək bir executor-da çoxlu nüvənin eyni anda işləməsi.
+       - *Səbəb*: Çox böyük shuffle partisiyaları, məlumat əyriliyi (data skew) və ya tək bir executor-da çoxlu nüvənin eyni anda işləməsi.
        - *Həlli*: Partisiya sayını artırın (`repartition`), əyri açarları duzlayın (salting) və ya hər executor-a 4-5 nüvə ayırın.
 quick_recap:
   en: "Caching prevents expensive re-computation when a DataFrame is referenced multiple times in an ETL pipeline. `cache()` stores data in memory and disk; always pair with `.unpersist()` when the dataset is no longer needed to prevent cluster memory exhaustion."
@@ -195,7 +195,7 @@ interview_question:
          - *Səbəb*: `.collect()`, `.toPandas()` çağırmaq və ya Driver-in yaddaşından (`spark.driver.memory`) böyük cədvəli broadcast etmək.
          - *Həlli*: `.collect()` istifadəsini dayandırın; `.take(20)` işlədin; böyük nəticəni birbaşa fayla yazın; zərurət olduqda `--driver-memory` parametrini artırın.
       3. **Executor OOM (Səbəblər və Həllər)**:
-         - *Səbəb*: Çox böyük partisiya ölçüləri, məlumat əyriliyi (data skew - bütün şaffl məlumatının tək bir maşına tökülməsi) və ya bir executor-a həddən artıq çox nüvənin verilməsi.
+         - *Səbəb*: Çox böyük partisiya ölçüləri, məlumat əyriliyi (data skew - bütün shuffle məlumatının tək bir maşına tökülməsi) və ya bir executor-a həddən artıq çox nüvənin verilməsi.
          - *Həlli*: Partisiya sayını artırın (`spark.sql.shuffle.partitions`); əyri açarları duzlayın (salting); hər executor-a 4-5 nüvə ayırın və `--executor-memory` həcmini artırın.
   interviewer_tips:
     en: "Structure your answer into Driver vs Executor failure domains. This demonstrates architectural maturity and proves you can triage production alerts in high-stakes environments."
@@ -230,4 +230,4 @@ flashcards:
       az: "Spark-ın Vahid Yaddaş (Unified Memory) hovuzunun iki əsas bölgəsi hansıdır?"
     back:
       en: "Execution Memory (shuffles, joins, sorts) and Storage Memory (cached data, broadcast variables)."
-      az: "İcra Yaddaşı (şaffl, join, sort) və Saxlama Yaddaşı (keşlənmiş məlumatlar, broadcast dəyərlər)."
+      az: "İcra Yaddaşı (shuffle, join, sort) və Saxlama Yaddaşı (keşlənmiş məlumatlar, broadcast dəyərlər)."
