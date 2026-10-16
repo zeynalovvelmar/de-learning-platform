@@ -19,7 +19,9 @@ import {
   ChevronRight, 
   Search, 
   Code,
-  X
+  X,
+  Trophy,
+  GraduationCap
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -77,29 +79,31 @@ export function Sidebar({
       {isOpenMobile && (
         <div 
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-16 bottom-0 z-40 flex w-80 flex-col border-r border-zinc-200 bg-zinc-50 transition-transform duration-300 ease-in-out dark:border-zinc-800 dark:bg-zinc-950 lg:static lg:translate-x-0 ${
+        className={`fixed top-16 bottom-0 z-40 flex w-80 flex-col border-r border-zinc-200/80 bg-zinc-50/95 transition-transform duration-300 ease-in-out dark:border-zinc-800 dark:bg-zinc-950/95 lg:static lg:translate-x-0 ${
           isOpenMobile ? 'left-0 translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Top: Progress and Search */}
-        <div className="border-b border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="border-b border-zinc-200/80 p-4 dark:border-zinc-800">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {language === 'az' ? 'Ümumi Tərəqqi' : 'Overall Progress'}
-            </span>
-            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+              <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span>{language === 'az' ? 'Platforma Tərəqqisi' : 'Curriculum Progress'}</span>
+            </div>
+            <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
               {completionPercentage}% ({completedLessons.size}/{totalPlatformLessons})
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200/90 dark:bg-zinc-800 shadow-inner">
             <div 
-              className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 transition-all duration-500 rounded-full"
               style={{ width: `${completionPercentage}%` }}
             />
           </div>
@@ -109,10 +113,10 @@ export function Sidebar({
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-400" />
             <input
               type="text"
-              placeholder={language === 'az' ? 'Dərslərdə axtarış...' : 'Search lessons...'}
+              placeholder={language === 'az' ? 'Dərs mövzusu və ya açar söz...' : 'Search lessons...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white py-1.5 pl-8 pr-3 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500"
+              className="w-full rounded-xl border border-zinc-200/90 bg-white py-1.5 pl-8 pr-7 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 transition shadow-2xs"
             />
             {searchQuery && (
               <button 
@@ -126,7 +130,7 @@ export function Sidebar({
         </div>
 
         {/* Modules & Lessons List */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
           {modules.map((mod) => {
             const isExpanded = expandedModules[mod.id] || searchQuery.length > 0;
             const lessons = moduleLessons[mod.id] || [];
@@ -147,25 +151,25 @@ export function Sidebar({
             const moduleCompletedCount = lessons.filter((l) => isLessonCompleted(l.id)).length;
 
             return (
-              <div key={mod.id} className="rounded-xl overflow-hidden mb-1">
+              <div key={mod.id} className="rounded-xl overflow-hidden">
                 {/* Module Header Button */}
                 <button
                   onClick={() => toggleModule(mod.id)}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs font-semibold rounded-lg transition ${
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs font-semibold rounded-xl transition ${
                     activeModuleId === mod.id
-                      ? 'bg-blue-50 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200'
+                      ? 'bg-blue-50/90 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/40'
                       : 'text-zinc-700 hover:bg-zinc-200/50 dark:text-zinc-300 dark:hover:bg-zinc-900/60'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <span className="p-1 rounded-md bg-white shadow-xs dark:bg-zinc-900">
+                    <span className="p-1 rounded-lg bg-white shadow-xs dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80">
                       {MODULE_ICONS[mod.id] || <Box className="h-4 w-4" />}
                     </span>
-                    <span className="truncate">{t(mod.title)}</span>
+                    <span className="truncate font-bold">{t(mod.title)}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+                    <span className="text-[10px] font-mono font-medium text-zinc-400 dark:text-zinc-500">
                       {moduleCompletedCount}/{mod.total_lessons}
                     </span>
                     {isExpanded ? (
@@ -178,7 +182,7 @@ export function Sidebar({
 
                 {/* Lessons list */}
                 {isExpanded && (
-                  <div className="mt-1 ml-4 pl-2 border-l border-zinc-200 dark:border-zinc-800 space-y-0.5 py-1">
+                  <div className="mt-1 ml-4 pl-2 border-l border-zinc-200/80 dark:border-zinc-800 space-y-0.5 py-1">
                     {filteredLessons.map((lesson) => {
                       const isActive = activeLessonId === lesson.id;
                       const completed = isLessonCompleted(lesson.id);
@@ -192,7 +196,7 @@ export function Sidebar({
                           }}
                           className={`group flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition ${
                             isActive
-                              ? 'bg-blue-600 font-medium text-white shadow-xs'
+                              ? 'bg-blue-600 font-semibold text-white shadow-sm shadow-blue-500/25'
                               : 'text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-200'
                           }`}
                         >
@@ -218,26 +222,26 @@ export function Sidebar({
 
                           <div className="flex items-center gap-1 shrink-0 ml-1">
                             {lesson.has_exercise && (
-                              <span title="Interactive Code Exercise">
+                              <span title="Interactive Sandbox Exercise">
                                 <Code
                                   className={`h-3 w-3 ${
-                                    isActive ? 'text-white/80' : 'text-amber-500/80'
+                                    isActive ? 'text-white/80' : 'text-amber-500'
                                   }`}
                                 />
                               </span>
                             )}
                             <span
-                              className={`rounded px-1 py-0.2 text-[9px] font-semibold uppercase ${
+                              className={`rounded-md px-1 py-0.2 text-[9px] font-black uppercase ${
                                 isActive
                                   ? 'bg-white/20 text-white'
                                   : lesson.level === 'junior'
                                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
-                                  : lesson.level === 'mid'
+                                  : lesson.level === 'mid' || lesson.level === 'intermediate'
                                   ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
                                   : 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400'
                               }`}
                             >
-                              {lesson.level}
+                              {lesson.level === 'junior' ? 'JR' : lesson.level === 'mid' || lesson.level === 'intermediate' ? 'MID' : 'SR'}
                             </span>
                           </div>
                         </button>

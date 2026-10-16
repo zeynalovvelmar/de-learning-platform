@@ -1,24 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLanguage } from '@/context/language-context';
 import { useProgress } from '@/context/progress-context';
 import { LessonDetail, LessonSummary } from '@/types';
 import { CodeSandbox } from './CodeSandbox';
+import { Markdown } from './Markdown';
+import { CodeBlock } from './CodeBlock';
+import { AsciiDiagram } from './AsciiDiagram';
+import { hasAnimatedInfographic, AnimatedInfographic } from './viz/registry';
+import { detectLanguage } from '@/lib/highlight';
+import { estimateReadMinutes } from '@/lib/markdown';
 import { 
   CheckCircle2, 
   Circle, 
   BookOpen, 
-  Copy, 
-  Check, 
   Briefcase, 
-  AlertCircle, 
+  AlertTriangle, 
   HelpCircle, 
   ChevronRight, 
   ChevronLeft,
   Sparkles,
   Terminal,
-  Code
+  Code,
+  BookCheck,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -41,8 +50,8 @@ export function LessonView({
 }: LessonViewProps) {
   const { language, t } = useLanguage();
   const { isLessonCompleted, toggleLessonCompleted } = useProgress();
-  const [copiedCode, setCopiedCode] = useState(false);
   const [showInterviewAnswer, setShowInterviewAnswer] = useState(false);
+  const [showRawAscii, setShowRawAscii] = useState(false);
 
   const completed = isLessonCompleted(lesson.id);
 
@@ -62,28 +71,65 @@ export function LessonView({
     toggleLessonCompleted(lesson.id);
   };
 
-  const handleCopyCode = (codeText: string) => {
-    navigator.clipboard.writeText(codeText);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
-
   // Determine sandbox type
   const isSQLModule = moduleId === 'sql';
   const isPythonModule = moduleId === 'python';
   const hasInteractiveSandbox = isSQLModule || isPythonModule || !!lesson.exercise;
 
+  // Level badge styling
+  const levelText = (lesson.level || 'junior').toLowerCase();
+  const levelBadge = () => {
+    if (levelText.includes('senior') || levelText.includes('advanced')) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-300">
+          Senior DE
+        </span>
+      );
+    }
+    if (levelText.includes('mid') || levelText.includes('intermediate')) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+          Mid DE
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+        Junior DE
+      </span>
+    );
+  };
+
+  // Estimated read time
+  const readMinutes = useMemo(
+    () => estimateReadMinutes(t(lesson.explanation), t(lesson.code_explanation), lesson.code || ''),
+    [lesson, t]
+  );
+
+  // Check if lesson has a custom interactive animated infographic
+  const hasViz = hasAnimatedInfographic(moduleId, lesson.id);
+  const codeLang = detectLanguage(lesson.code || '', moduleId);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
-            <span>{moduleTitle}</span>
-            <span>•</span>
-            <span>{language === 'az' ? 'Dərs' : 'Lesson'} {lesson.order < 10 ? `0${lesson.order}` : lesson.order}</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <span className="text-accent">{moduleTitle}</span>
+            <span className="text-muted">•</span>
+            <span className="text-ink-2">
+              {language === 'az' ? 'Dərs' : 'Lesson'} {lesson.order < 10 ? `0${lesson.order}` : lesson.order}
+            </span>
+            <span>{levelBadge()}</span>
+            <span className="text-muted">•</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted">
+              <Clock className="h-3.5 w-3.5" />
+              {readMinutes} {language === 'az' ? 'dəq oxu' : 'min read'}
+            </span>
           </div>
-          <h1 className="mt-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+
+          <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
             {t(lesson.title)}
           </h1>
         </div>
@@ -92,19 +138,19 @@ export function LessonView({
           {lesson.flashcards && lesson.flashcards.length > 0 && (
             <button
               onClick={onOpenFlashcards}
-              className="flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100 dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50 transition"
+              className="flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50/80 px-3.5 py-2 text-xs font-semibold text-purple-700 shadow-xs transition hover:bg-purple-100 hover:shadow-sm dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50"
             >
               <BookOpen className="h-4 w-4" />
-              <span>{lesson.flashcards.length} {language === 'az' ? 'Flashcard' : 'Flashcards'}</span>
+              <span>{lesson.flashcards.length} {language === 'az' ? 'Flashcard' : 'Cards'}</span>
             </button>
           )}
 
           <button
             onClick={handleToggleComplete}
-            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold shadow-xs transition ${
               completed
-                ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-500'
-                : 'border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20'
+                : 'border border-line bg-surface text-ink-2 hover:bg-surface-2'
             }`}
           >
             {completed ? (
@@ -122,79 +168,121 @@ export function LessonView({
         </div>
       </div>
 
-      {/* Infographic / Architecture ASCII Diagram */}
-      {lesson.infographic && (
-        <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-900 p-4 text-zinc-100 shadow-md dark:border-zinc-800">
-          <div className="flex items-center gap-2 border-b border-zinc-800 pb-2.5 text-xs font-mono font-semibold text-zinc-400">
-            <Terminal className="h-4 w-4 text-cyan-400" />
-            <span>{language === 'az' ? 'Arxitektura & Axın Diaqramı' : 'Architecture & Flow Diagram'}</span>
+      {/* Quick Recap TL;DR Executive Banner */}
+      {lesson.quick_recap && (
+        <div className="mt-6 relative overflow-hidden rounded-2xl border border-indigo-200/80 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-cyan-50/60 p-4.5 shadow-xs dark:border-indigo-900/50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-cyan-950/20">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-500/30">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                {language === 'az' ? 'Qısa İcmal (TL;DR)' : 'Executive Summary (TL;DR)'}
+              </span>
+              <div className="mt-1">
+                <Markdown source={t(lesson.quick_recap)} idScope="recap-" className="text-xs sm:text-sm text-ink-2 font-medium" />
+              </div>
+            </div>
           </div>
-          <pre className="mt-3 overflow-x-auto font-mono text-[11px] sm:text-xs leading-relaxed text-cyan-200">
-            {t(lesson.infographic)}
-          </pre>
         </div>
       )}
 
-      {/* Quick Summary Highlights: Real World & Common Pitfalls */}
-      {(lesson.what_it_does || lesson.real_world_use || lesson.common_mistakes) && (
+      {/* Infographics: Interactive Animated Visual OR Polished ASCII Architecture Diagram */}
+      {hasViz ? (
+        <div className="mt-6 space-y-3">
+          <AnimatedInfographic moduleId={moduleId} lessonId={lesson.id} />
+          {lesson.infographic && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowRawAscii((v) => !v)}
+                className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-accent font-mono transition"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>
+                  {showRawAscii
+                    ? (language === 'az' ? 'ASCII Diaqramı Gizlət' : 'Hide ASCII Blueprint')
+                    : (language === 'az' ? 'ASCII Diaqrama Bax' : 'View ASCII Blueprint')}
+                </span>
+              </button>
+            </div>
+          )}
+          {showRawAscii && lesson.infographic && (
+            <AsciiDiagram
+              diagramText={t(lesson.infographic)}
+              title={language === 'az' ? 'ARXİTEKTURA & AXIN DİAQRAMI (RAW BLUEPRINT)' : 'ARCHITECTURE & FLOW DIAGRAM (RAW BLUEPRINT)'}
+            />
+          )}
+        </div>
+      ) : lesson.infographic ? (
+        <AsciiDiagram
+          diagramText={t(lesson.infographic)}
+          title={language === 'az' ? 'ARXİTEKTURA & AXIN DİAQRAMI' : 'ARCHITECTURE & FLOW DIAGRAM'}
+        />
+      ) : null}
+
+      {/* Quick Highlights: Real World & Common Pitfalls */}
+      {(lesson.real_world_use || lesson.common_mistakes || lesson.what_it_does) && (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {lesson.real_world_use && (
-            <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-950 dark:bg-blue-950/20">
+            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/60 p-4.5 dark:border-blue-900/50 dark:bg-blue-950/20 shadow-xs">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
                 <Briefcase className="h-4 w-4" />
                 <span>{language === 'az' ? 'Real İstehsalat Tətbiqi' : 'Real-World Production Use'}</span>
               </div>
-              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-                {t(lesson.real_world_use)}
-              </p>
+              <div className="mt-2 text-xs sm:text-sm">
+                <Markdown source={t(lesson.real_world_use)} idScope="rw-" />
+              </div>
             </div>
           )}
 
           {lesson.common_mistakes && (
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4 dark:border-amber-950 dark:bg-amber-950/20">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                <AlertCircle className="h-4 w-4" />
-                <span>{language === 'az' ? 'Tez-tez Edilən Xətalar' : 'Common Pitfalls'}</span>
+            <div className="rounded-2xl border border-rose-200/80 bg-rose-50/60 p-4.5 dark:border-rose-950/60 dark:bg-rose-950/20 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                <AlertTriangle className="h-4 w-4" />
+                <span>{language === 'az' ? 'Tez-tez Edilən Xətalar (Tələlər)' : 'Common Pitfalls & Traps'}</span>
               </div>
-              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
-                {t(lesson.common_mistakes)}
-              </p>
+              <div className="mt-2 text-xs sm:text-sm">
+                <Markdown source={t(lesson.common_mistakes)} idScope="pit-" />
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Deep-Dive Theory Explanation */}
-      <div className="mt-8">
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-3">
-          {language === 'az' ? 'Nəzəriyyə və Əsas Prinsiplər' : 'Deep-Dive Concepts'}
-        </h2>
-        <div className="prose prose-zinc dark:prose-invert max-w-none text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 space-y-3 whitespace-pre-wrap">
-          {t(lesson.explanation)}
+      {/* Deep-Dive Theory Explanation (Rendered via Markdown with Section Badges & Syntax Highlighting) */}
+      <div className="mt-8 rounded-2xl border border-line bg-surface p-6 sm:p-7 shadow-xs">
+        <div className="flex items-center gap-2.5 border-b border-line pb-3.5">
+          <BookCheck className="h-5 w-5 text-accent" />
+          <h2 className="text-lg font-bold text-ink">
+            {language === 'az' ? 'Dərin Nəzəriyyə və Əsas Prinsiplər' : 'Deep-Dive Concepts & Principles'}
+          </h2>
+        </div>
+        <div className="mt-4">
+          <Markdown source={t(lesson.explanation)} lead idScope="expl-" />
         </div>
       </div>
 
-      {/* Production Code Example */}
+      {/* Production Code Example (Syntax-Highlighted with Dual Themes, Copy & Line Wrap) */}
       {lesson.code && (
-        <div className="mt-8 rounded-2xl border border-zinc-200 bg-zinc-950 overflow-hidden shadow-sm dark:border-zinc-800">
-          <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-            <span className="text-xs font-mono font-medium text-zinc-400">
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-2">
+            <Terminal className="h-4 w-4 text-accent" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-ink">
               {language === 'az' ? 'İstehsalat Kodu Nümunəsi' : 'Production Code Example'}
-            </span>
-            <button
-              onClick={() => handleCopyCode(lesson.code || '')}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition"
-            >
-              {copiedCode ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              <span>{copiedCode ? (language === 'az' ? 'Kopyalandı' : 'Copied') : (language === 'az' ? 'Kopyala' : 'Copy')}</span>
-            </button>
+            </h3>
           </div>
-          <pre className="p-4 overflow-x-auto font-mono text-xs leading-relaxed text-zinc-100">
-            {lesson.code}
-          </pre>
+
+          <CodeBlock
+            code={lesson.code}
+            lang={codeLang}
+            title={`${moduleId}/${lesson.id}`}
+            lineNumbers
+          />
+
           {lesson.code_explanation && (
-            <div className="border-t border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-300 whitespace-pre-wrap">
-              {t(lesson.code_explanation)}
+            <div className="mt-3 rounded-xl border border-line bg-surface-2/60 p-4 text-xs text-ink-2">
+              <Markdown source={t(lesson.code_explanation)} idScope="codeexp-" />
             </div>
           )}
         </div>
@@ -202,11 +290,12 @@ export function LessonView({
 
       {/* Visual Output Block (if provided) */}
       {lesson.visual_output && (
-        <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-900/90 p-4 dark:border-zinc-800">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-            {language === 'az' ? 'İcra Nəticəsi və Müqayisə' : 'Output / Benchmark Result'}
-          </span>
-          <pre className="mt-2 overflow-x-auto font-mono text-xs text-zinc-200 whitespace-pre-wrap">
+        <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950 p-4.5 shadow-md">
+          <div className="flex items-center gap-2 pb-2 border-b border-zinc-800 text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+            <Terminal className="h-3.5 w-3.5" />
+            <span>{language === 'az' ? 'İcra Nəticəsi və Müqayisə (Output)' : 'Output / Benchmark Result'}</span>
+          </div>
+          <pre className="mt-3 overflow-x-auto font-mono text-xs text-zinc-200 whitespace-pre-wrap leading-relaxed">
             {lesson.visual_output}
           </pre>
         </div>
@@ -215,10 +304,14 @@ export function LessonView({
       {/* Interactive Code Sandbox / Hands-on Exercise */}
       {hasInteractiveSandbox && (
         <div className="mt-10">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
-            <Code className="h-5 w-5 text-blue-500" />
-            <span>{language === 'az' ? 'İnteraktiv Təcrübə (Sandbox)' : 'Interactive Code Sandbox'}</span>
-          </h2>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-white shadow-sm shadow-accent/20">
+              <Code className="h-4 w-4" />
+            </div>
+            <h2 className="text-lg font-bold text-ink">
+              {language === 'az' ? 'İnteraktiv Təcrübə (Sandbox)' : 'Interactive Code Sandbox'}
+            </h2>
+          </div>
           <CodeSandbox
             moduleId={moduleId}
             lessonId={lesson.id}
@@ -231,36 +324,53 @@ export function LessonView({
 
       {/* Senior DE Interview Q&A */}
       {lesson.interview_question && (
-        <div className="mt-10 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-purple-50/30 p-5 dark:border-indigo-950 dark:from-indigo-950/20 dark:to-purple-950/10">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-            <HelpCircle className="h-4 w-4" />
-            <span>{language === 'az' ? 'Müsahibə Sualı (Senior Data Engineer)' : 'Interview Question (Senior DE)'}</span>
+        <div className="mt-10 overflow-hidden rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 p-5 shadow-xs dark:border-indigo-950 dark:from-indigo-950/20 dark:via-zinc-900 dark:to-purple-950/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+              <HelpCircle className="h-4 w-4" />
+              <span>{language === 'az' ? 'Müsahibə Sualı (Senior Data Engineer)' : 'Interview Question (Senior DE)'}</span>
+            </div>
+            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-extrabold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+              FAANG / Tier-1
+            </span>
           </div>
 
-          <h3 className="mt-2 text-base font-bold text-zinc-900 dark:text-zinc-100">
-            {t(lesson.interview_question.question)}
-          </h3>
+          <div className="mt-3 text-base font-bold text-ink">
+            <Markdown source={t(lesson.interview_question.question)} idScope="iq-" />
+          </div>
 
-          <div className="mt-3">
+          <div className="mt-4">
             <button
               onClick={() => setShowInterviewAnswer(!showInterviewAnswer)}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-600 shadow-xs hover:bg-indigo-50 dark:border-indigo-900/60 dark:bg-zinc-800 dark:text-indigo-300 dark:hover:bg-zinc-700 transition"
             >
-              {showInterviewAnswer
-                ? (language === 'az' ? '▲ Cavabı Gizlət' : '▲ Hide Answer')
-                : (language === 'az' ? '▼ İdeal Cavabı Göstər' : '▼ Show Model Answer')}
+              {showInterviewAnswer ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  <span>{language === 'az' ? 'Cavabı Gizlət' : 'Hide Answer'}</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  <span>{language === 'az' ? 'İdeal Cavabı Göstər' : 'Show Model Answer'}</span>
+                </>
+              )}
             </button>
 
             {showInterviewAnswer && (
-              <div className="mt-3 space-y-3 pt-3 border-t border-indigo-200/60 dark:border-indigo-900/60">
-                <p className="text-xs sm:text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
-                  {t(lesson.interview_question.answer)}
-                </p>
+              <div className="mt-4 space-y-3 pt-3 border-t border-indigo-200/60 dark:border-indigo-900/60">
+                <div className="text-xs sm:text-sm leading-relaxed text-ink-2">
+                  <Markdown source={t(lesson.interview_question.answer)} idScope="ia-" />
+                </div>
 
                 {lesson.interview_question.interviewer_tips && (
-                  <div className="rounded-xl border border-indigo-200 bg-white/70 p-3 text-xs text-indigo-950 dark:border-indigo-900 dark:bg-zinc-900 dark:text-indigo-200">
-                    💡 <strong>{language === 'az' ? 'Müsahibə Məsləhəti:' : 'Interviewer Tip:'}</strong>{' '}
-                    {t(lesson.interview_question.interviewer_tips)}
+                  <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 text-xs text-indigo-950 dark:border-indigo-900/80 dark:bg-indigo-950/40 dark:text-indigo-200">
+                    <span className="font-bold">
+                      💡 {language === 'az' ? 'Müsahibəçi Qiymətləndirmə Meyarı:' : 'Interviewer Evaluation Rubric:'}
+                    </span>{' '}
+                    <div className="mt-1">
+                      <Markdown source={t(lesson.interview_question.interviewer_tips)} idScope="itips-" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -270,16 +380,20 @@ export function LessonView({
       )}
 
       {/* Bottom Navigation: Previous & Next Lesson */}
-      <div className="mt-12 flex items-center justify-between border-t border-zinc-200 pt-6 dark:border-zinc-800">
+      <div className="mt-12 flex items-center justify-between border-t border-line pt-6">
         {prevLesson ? (
           <button
             onClick={() => onSelectLesson(prevLesson.id)}
-            className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition"
+            className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-4 py-2.5 text-xs font-semibold text-ink-2 shadow-xs hover:bg-surface-2 transition"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 text-muted" />
             <div className="text-left">
-              <span className="block text-[10px] text-zinc-400">{language === 'az' ? 'Əvvəlki Dərs' : 'Previous'}</span>
-              <span className="truncate max-w-[140px] sm:max-w-[200px] block">{t(prevLesson.title)}</span>
+              <span className="block text-[10px] font-medium text-muted uppercase tracking-wider">
+                {language === 'az' ? 'Əvvəlki Dərs' : 'Previous'}
+              </span>
+              <span className="truncate max-w-[140px] sm:max-w-[220px] block font-bold text-ink">
+                {t(prevLesson.title)}
+              </span>
             </div>
           </button>
         ) : <div />}
@@ -287,11 +401,15 @@ export function LessonView({
         {nextLesson ? (
           <button
             onClick={() => onSelectLesson(nextLesson.id)}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-500 transition"
+            className="flex items-center gap-2.5 rounded-xl bg-accent px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-accent/20 hover:opacity-90 transition"
           >
             <div className="text-right">
-              <span className="block text-[10px] text-blue-200">{language === 'az' ? 'Növbəti Dərs' : 'Next'}</span>
-              <span className="truncate max-w-[140px] sm:max-w-[200px] block">{t(nextLesson.title)}</span>
+              <span className="block text-[10px] font-medium text-white/80 uppercase tracking-wider">
+                {language === 'az' ? 'Növbəti Dərs' : 'Next'}
+              </span>
+              <span className="truncate max-w-[140px] sm:max-w-[220px] block font-bold text-white">
+                {t(nextLesson.title)}
+              </span>
             </div>
             <ChevronRight className="h-4 w-4" />
           </button>
