@@ -1,0 +1,207 @@
+id: "03-materializations-view-table-incremental"
+order: 3
+level: "intermediate"
+title:
+  en: "Materializations: View, Table, Ephemeral & Incremental"
+  az: "Materializasiyalar: View, Table, Ephemeral və İnkremental"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                  dbt MATERIALIZATION STRATEGIES                        │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. VIEW (`materialized='view'`) ──────────► Zero storage cost.
+       • Recomputed every time BI runs a query. Ideal for light staging transforms.
+
+    2. TABLE (`materialized='table'`) ────────► High read speed for BI.
+       • Fully re-creates and rewrites the table on every run (`DROP & CREATE`).
+
+    3. EPHEMERAL (`materialized='ephemeral'`) ─► Invisible in warehouse!
+       • Injected as a CTE (`WITH model AS (...)`) into downstream models.
+
+    4. INCREMENTAL (`materialized='incremental'`) ──► ⚡ THE PRODUCTION WORKHORSE!
+       • Run 1 (Initial): Builds the full table.
+       • Run 2+ (Subsequent): Only processes rows where `updated_at > max(date)`.
+       ✨ Transforms 100M rows in seconds instead of hours! Saves 90% cloud cost!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                  dbt MATERİALİZASİYA STRATEGİYALARI                    │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. VIEW (`materialized='view'`) ──────────► Sıfır disk xərci.
+       • Hər sorğu veriləndə yenidən hesablanır. Yüngül Staging üçün idealdır.
+
+    2. TABLE (`materialized='table'`) ────────► BI üçün ən yüksək oxuma sürəti.
+       • Hər `dbt run` zamanı cədvəl sıfırdan silinib yenidən yazılır (`DROP & CREATE`).
+
+    3. EPHEMERAL (`materialized='ephemeral'`) ─► Anbarda fiziki mövcud deyil!
+       • Aşağı axın modellərinin daxilinə CTE (`WITH ...`) kimi birbaşa yeridilir.
+
+    4. İNKREMENTAL (`materialized='incremental'`) ──► ⚡ İSTEHSALATIN ƏSAS GÜCÜ!
+       • 1-ci İcra: Bütün cədvəli qurur.
+       • 2+ İcralar: Yalnız `updated_at > max(tarix)` olan təzə sətirləri əlavə/merge edir.
+       ✨ 100 milyonluq cədvəli saatlarla deyil, saniyələr içində yeniləyir!
+    ```
+explanation:
+  en: |
+    ### What is a Materialization?
+    A materialization is the strategy dbt uses to persist a model in your data warehouse. You configure it inside the model using:
+    `{{ config(materialized='view') }}` or globally in `dbt_project.yml`.
+
+    ### The 4 Major Materializations
+    1. **`view` (Default)**:
+       - Compiles to `CREATE OR REPLACE VIEW`.
+       - **Pros**: Takes no warehouse storage; fast to run in dbt; always reflects the freshest source data.
+       - **Cons**: Slow for downstream analysts if the view contains heavy joins or window functions.
+       - *Best for*: Early staging models (`models/staging/`).
+    2. **`table`**:
+       - Compiles to `CREATE TABLE ... AS SELECT`.
+       - **Pros**: Lightning-fast read queries for BI dashboards (Power BI, Tableau) because results are pre-computed on disk.
+       - **Cons**: Every `dbt run` completely drops and rewrites the entire table from scratch. Inefficient for large datasets.
+       - *Best for*: Aggregated business marts (`models/marts/`) with small-to-medium size.
+    3. **`ephemeral`**:
+       - Does NOT create any physical table or view in your warehouse.
+       - dbt interpolates the code as a CTE (Common Table Expression: `WITH temp_model AS (...)`) directly into models that reference it.
+       - *Best for*: Minor helper models that you don't want cluttering your public warehouse schema.
+    4. **`incremental` (The Most Important for Production Data Engineers)**:
+       - **The Problem**: A table with 200 million rows cannot be rebuilt from scratch every 15 minutes without huge cloud compute bills.
+       - **The Solution**: On the first run, dbt builds the table. On every subsequent run, dbt inserts or merges ONLY the records that were created or modified since the last run.
+       - **How it works**:
+         - Uses the `is_incremental()` macro to conditionally filter data.
+         - Uses `{{ this }}` to reference the existing target table in the warehouse to find the latest timestamp: `(SELECT MAX(event_timestamp) FROM {{ this }})`.
+         - Uses `unique_key='transaction_id'` to update existing rows and insert new ones (atomic `MERGE`).
+         - If the schema changes or data is corrupted, run `dbt run --full-refresh` to rebuild from scratch.
+  az: |
+    ### Materializasiya Nədir?
+    Materializasiya dbt modelinin verilənlər anbarında hansı fiziki formada saxlanacağını təyin edən strategiyadır. Faylın başında təyin olunur:
+    `{{ config(materialized='view') }}` və ya `dbt_project.yml` daxilində qrup halında verilir.
+
+    ### 4 Əsas Materializasiya Növü
+    1. **`view` (İlkin / Default forma)**:
+       - Anbarda `CREATE VIEW` əmrini icra edir.
+       - **Müsbət tərəfi**: Diskdə yer tutmur; `dbt run` dərhal bitir; həmişə mənbədəki ən son məlumatı göstərir.
+       - **Mənfi tərəfi**: Əgər içində ağır JOIN və ya pəncərə funksiyaları varsa, BI panelləri hər dəfə çox ləng açılacaq.
+       - *Harda istifadə olunur*: Xam məlumatı təmizləyən ilkin layda (`models/staging/`).
+    2. **`table` (Fiziki Cədvəl)**:
+       - Anbarda `CREATE TABLE AS SELECT` əmrini icra edir.
+       - **Müsbət tərəfi**: Məlumat fiziki diskə yazıldığı üçün BI panelləri (Power BI, Tableau) saniyənin içində açılır.
+       - **Mənfi tərəfi**: Hər `dbt run` veriləndə bütün cədvəli sıfırdan silib təzədən yazır. Böyük həcmlərdə baha başa gəlir.
+       - *Harda istifadə olunur*: Kiçik və orta həcmli biznes vitrinlərində (`models/marts/`).
+    3. **`ephemeral` (Müvəqqəti / Görünməz)**:
+       - Verilənlər anbarında heç bir cədvəl və ya view yaratmır.
+       - dbt bu modeli onu çağıran digər modellərin içinə birbaşa CTE (`WITH model AS (...)`) kimi yerləşdirir.
+       - *Harda istifadə olunur*: Bazanı lazımsız köməkçi cədvəllərlə doldurmamaq üçün.
+    4. **`incremental` (İnkremental — Data Mühəndisi Üçün Ən Vacib Növ)**:
+       - **Problem**: 200 milyonluq tranzaksiya cədvəlini hər saat sıfırdan hesablamaq bulud büdcəsini tükəndirər.
+       - **Həll**: İlk dəfə bütün cədvəl qurulur. Sonrakı hər `dbt run` zamanı isə yalnız **ən sonuncu icradan sonra gələn yeni və ya dəyişən sətirlər** bazaya əlavə (və ya MERGE) edilir.
+       - **İş mexanizmi**:
+         - `is_incremental()` makrosu ilə yalnız sonrakı icralarda işləyən filtr qoyulur.
+         - `{{ this }}` dəyişəni ilə anbardakı mövcud hədəf cədvəlin ən son tarixi tapılır: `(SELECT MAX(updated_at) FROM {{ this }})`.
+         - `unique_key='order_id'` təyin edilir ki, mövcud sətirlər yenilənsin (UPDATE), təzələr isə əlavə olunsun (INSERT).
+         - Cədvəli sıfırdan təmizləmək lazım gəldikdə: `dbt run --full-refresh`.
+quick_recap:
+  en: "Views cost no storage, Tables optimize read speed by rewriting fully, Ephemeral acts as inline CTEs, and Incremental processes only new/updated records to save compute."
+  az: "View disk tutmur, Table hər dəfə sıfırdan yazılaraq oxunuşu sürətləndirir, Ephemeral daxili CTE rolunu oynayır, İnkremental isə yalnız təzə sətirləri emal edir."
+what_it_does:
+  en: "Controls whether dbt builds models as physical tables, views, inline SQL CTEs, or highly-optimized incremental merge pipelines."
+  az: "dbt modellərinin fiziki cədvəl, view, daxili CTE və ya inkremental MERGE kimi qurulmasını idarə edir."
+real_world_use:
+  en: "Staging layers are built as views, dimension lookup tables as tables, and 500M+ row event/transaction marts strictly as incremental models."
+  az: "Staging layı view, ölçü cədvəlləri table, 100 milyonluq böyük hadisə və satış cədvəlləri isə inkremental qurulur."
+common_mistakes:
+  en: "Building multi-million row tables as `table` instead of `incremental`; forgetting the `unique_key` in incremental models, causing duplicate rows on each run."
+  az: "Milyonlarla sətirlik cədvəlləri `table` kimi qurub bulud xərcini partlatmaq; inkremental modeldə `unique_key` yazmağı unudub dublikatlar yaratmaq."
+code: |
+  -- =========================================================================
+  -- PRODUCTION INCREMENTAL MODEL: models/marts/fct_orders_incremental.sql
+  -- =========================================================================
+  {{
+      config(
+          materialized='incremental',
+          unique_key='order_id',
+          on_schema_change='sync_all_columns'
+      )
+  }}
+
+  SELECT 
+      order_id,
+      customer_id,
+      order_amount,
+      order_status,
+      updated_at
+  FROM {{ ref('stg_orders') }}
+
+  -- The critical incremental block!
+  -- Only executes during subsequent runs, NOT on the initial full build.
+  {% if is_incremental() %}
+      WHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})
+  {% endif %};
+code_explanation:
+  en: |
+    - **`materialized='incremental'`**: Instructs dbt to perform an incremental build instead of dropping the table.
+    - **`unique_key='order_id'`**: Triggers an atomic `MERGE INTO` in Snowflake/BigQuery so existing updated orders are updated rather than duplicated.
+    - **`{% if is_incremental() %}`**: dbt Jinja condition that evaluates to `TRUE` only when the table already exists in the warehouse.
+    - **`{{ this }}`**: Refers to the existing database table itself, extracting its current maximum `updated_at`.
+  az: |
+    - **`materialized='incremental'`**: dbt-yə cədvəli silmək əvəzinə inkremental yeniləmə aparmağı tapşırır.
+    - **`unique_key='order_id'`**: Snowflake/BigQuery-də atomik `MERGE` əmri icra edir ki, statusu dəyişən sifarişlər dublikat yaratmadan yenilənsin.
+    - **`{% if is_incremental() %}`**: Yalnız cədvəl artıq bazada mövcud olduqda aktivləşən Jinja şərti.
+    - **`{{ this }}`**: Birbaşa anbardakı mövcud cədvəlin özünə müraciət edir və oradakı ən son `updated_at` tarixini tapır.
+visual_output: |
+  ===================== INCREMENTAL RUN COMPARISON =====================
+
+  1. FIRST EXECUTION (Initial Table Build):
+     $ dbt run --select fct_orders_incremental
+     19:25:01  1 of 1 START sql incremental model marts.fct_orders_incremental [RUN]
+     19:25:12  1 of 1 OK created sql incremental model marts.fct_orders_incremental [SUCCESS 50,000,000 rows in 11.4s]
+
+  2. SUBSEQUENT EXECUTION (Processes ONLY 450 new/updated records!):
+     $ dbt run --select fct_orders_incremental
+     19:40:01  1 of 1 START sql incremental model marts.fct_orders_incremental [RUN]
+     19:40:03  1 of 1 OK merged 450 rows into marts.fct_orders_incremental [SUCCESS in 1.82s]
+     ✨ 1.82 seconds instead of 11+ seconds! Zero wasted compute!
+output_description:
+  en: "Shows how dbt builds 50M rows on the initial run, and then merges only 450 modified rows in 1.8s on the subsequent run."
+  az: "İlk icrada 50 milyon sətrin yaradıldığını, növbəti icrada isə cəmi 450 dəyişən sətrin 1.8 saniyəyə daxil edildiyini göstərir."
+interview_question:
+  question:
+    en: "What are the four main materializations in dbt? Deep-dive into how an incremental model works and explain the purpose of `is_incremental()` and `{{ this }}`."
+    az: "dbt-də 4 əsas materializasiya növü hansılardır? İnkremental modelin necə işlədiyini, `is_incremental()` və `{{ this }}`-in rolunu izah edin."
+  answer:
+    en: "The four primary materializations in dbt are `view`, `table`, `ephemeral`, and `incremental`. A `view` executes `CREATE VIEW`, taking zero storage but recomputing on every query. A `table` executes `CREATE TABLE AS`, pre-computing data for fast BI queries but rewriting the entire table on each run. An `ephemeral` model is not stored in the database at all; dbt interpolates it as a Common Table Expression (CTE) in downstream queries. An `incremental` model is designed for big data: on the first run, it builds the table from scratch; on subsequent runs, it inserts or merges only new or modified records. Inside an incremental model, the Jinja block `{% if is_incremental() %}` wraps the filter condition. It evaluates to TRUE only when the model has already been built as a relation in the database and `--full-refresh` is not supplied. Inside this block, `{{ this }}` represents the existing destination table in the database, allowing the query to dynamically find the maximum existing timestamp (e.g., `WHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})`). Combined with `unique_key`, dbt issues an atomic `MERGE` to prevent duplicate rows."
+    az: "dbt-də 4 əsas materializasiya var: `view`, `table`, `ephemeral` və `incremental`. `view` anbarda virtual görünüş yaradır, disk tutmur, lakin hər dəfə yenidən hesablanır. `table` məlumatı fiziki cədvələ yazır, oxunması sürətlidir, amma hər icrada cədvəli sıfırdan silib-yazır. `ephemeral` anbarda heç bir obyekt yaratmır, digər sorğuların daxilinə CTE kimi yapışdırılır. `incremental` isə böyük məlumatlar üçün ən vacib növdür: ilk dəfə cədvəli tam qurur, sonrakı icralarda isə yalnız təzə və ya dəyişmiş sətirləri əlavə (və ya MERGE) edir. İnkremental modeldə `{% if is_incremental() %}` şərti yalnız cədvəl artıq anbarda mövcud olduqda aktivləşir. `{{ this }}` isə hədəf cədvəlin özünə müraciət edərək bazadakı ən son tarixi tapır (`WHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})`). Modelə `unique_key` verildikdə isə dbt arxa planda MERGE əmri icra edərək dublikat yaranmasının qarşısını alır."
+  interviewer_tips:
+    en: "Mention the `--full-refresh` flag: explain that when column data types change or logic is refactored, running `dbt run --full-refresh` drops and rebuilds the incremental table."
+    az: "`--full-refresh` bayrağını mütləq qeyd edin: sütun tipləri və ya hesablama məntiqi dəyişdikdə `dbt run --full-refresh` ilə cədvəlin təmizlənib sıfırdan qurulduğunu izah edin."
+flashcards:
+  - front:
+      en: "What does the `materialized='view'` setting do in dbt?"
+      az: "dbt-də `materialized='view'` tənzimləməsi nə edir?"
+    back:
+      en: "Creates a database view that stores no physical data on disk and recomputes whenever queried."
+      az: "Diskdə yer tutmayan və hər sorğu verildikdə yenidən hesablanan virtual verilənlər bazası view-su yaradır."
+  - front:
+      en: "What is an `ephemeral` materialization in dbt?"
+      az: "dbt-də `ephemeral` materializasiyası nədir?"
+    back:
+      en: "A model that creates no database object; dbt injects it directly as an inline CTE into downstream models."
+      az: "Anbarda heç bir obyekt yaratmayan, dbt-nin birbaşa digər modellərin içinə daxili CTE kimi yeritdiyi model."
+  - front:
+      en: "Why are `incremental` models essential in enterprise data warehouses?"
+      az: "İstehsalat verilənlər anbarlarında inkremental modellər nə üçün zəruridir?"
+    back:
+      en: "They process only new or modified rows, eliminating the massive compute cost of rebuilding multi-million row tables."
+      az: "Yalnız yeni və ya dəyişmiş sətirləri emal edir və milyonlarla sətirlik cədvəlləri hər dəfə sıfırdan yazmaq xərcini aradan qaldırır."
+  - front:
+      en: "What is the purpose of `{{ this }}` in an incremental dbt model?"
+      az: "İnkremental dbt modelində `{{ this }}` nə məqsədlə istifadə olunur?"
+    back:
+      en: "It references the existing target table in the database, allowing you to find the current maximum timestamp."
+      az: "Anbardakı mövcud hədəf cədvəlin özünə istinad edərək ən sonuncu mövcud tarixi tapmağa imkan verir."
+  - front:
+      en: "What command forces dbt to rebuild an incremental table from scratch?"
+      az: "İnkremental cədvəli sıfırdan yenidən qurmağa dbt-ni hansı əmr məcbur edir?"
+    back:
+      en: "`dbt run --full-refresh` (or `--full-refresh --select model_name`)."
+      az: "`dbt run --full-refresh` (və ya `--full-refresh --select modelin_adı`)."

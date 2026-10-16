@@ -35,7 +35,8 @@ module_choices = {
     "kafka": t['modules']['kafka'],
     "airflow": t['modules']['airflow'],
     "devops": t['modules']['devops'],
-    "data_architecture": t['modules']['data_architecture']
+    "data_architecture": t['modules']['data_architecture'],
+    "dbt": t['modules']['dbt']
 }
 
 selected_module_key = st.sidebar.radio(
@@ -61,6 +62,8 @@ elif selected_module_key == "devops":
     import modules.devops as mod
 elif selected_module_key == "data_architecture":
     import modules.data_architecture as mod
+elif selected_module_key == "dbt":
+    import modules.dbt_module as mod
 
 mod.render_page(t)
 

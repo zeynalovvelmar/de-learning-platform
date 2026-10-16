@@ -1,0 +1,214 @@
+id: "02-models-ref-and-sources"
+order: 2
+level: "junior"
+title:
+  en: "Models and Dependencies: The Power of ref() and source()"
+  az: "Modellər və Asılılıqlar: ref() və source() Gücü"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │        HOW dbt BUILDS A DEPENDENCY DAG USING source() AND ref()        │
+    └────────────────────────────────────────────────────────────────────────┘
+    Raw Tables: declared in sources.yml
+    ┌───────────────────────────┐
+    │ source('raw_store', 'tx') │ ──► Postgres / Fivetran raw table
+    └─────────────┬─────────────┘
+                  │ {{ source('raw_store', 'tx') }}
+                  ▼
+    ┌───────────────────────────┐
+    │     stg_transactions      │ ──► Model 1 (Cleans types, filters nulls)
+    └─────────────┬─────────────┘
+                  │ {{ ref('stg_transactions') }}
+                  ▼
+    ┌───────────────────────────┐
+    │      fct_daily_sales      │ ──► Model 2 (Aggregates revenue for BI)
+    └───────────────────────────┘
+    ✨ dbt creates the execution DAG automatically!
+    ✨ Never hardcode database/schema names (`SELECT * FROM my_db.my_table`)!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │      dbt-NİN source() VƏ ref() İLƏ AVTOMATİK DAG QURMASI              │
+    └────────────────────────────────────────────────────────────────────────┘
+    Xam Cədvəllər: sources.yml faylında elan edilir
+    ┌───────────────────────────┐
+    │ source('raw_store', 'tx') │ ──► Fivetran/Postgres xam cədvəli
+    └─────────────┬─────────────┘
+                  │ {{ source('raw_store', 'tx') }}
+                  ▼
+    ┌───────────────────────────┐
+    │     stg_transactions      │ ──► Model 1 (Tipləri təmizləyir, null-ları atır)
+    └─────────────┬─────────────┘
+                  │ {{ ref('stg_transactions') }}
+                  ▼
+    ┌───────────────────────────┐
+    │      fct_daily_sales      │ ──► Model 2 (BI üçün gəliri aqreqasiya edir)
+    └───────────────────────────┘
+    ✨ dbt icra ardıcıllığını (DAG) avtomatik təyin edir!
+    ✨ Baza adlarını heç vaxt koda əllə yazmayın (`SELECT * FROM my_db.cadvəl`)!
+    ```
+explanation:
+  en: |
+    ### 1. What is a dbt Model?
+    In dbt, every `.sql` file inside the `models/` directory represents a single table or view in your data warehouse.
+    - If you create `models/staging/stg_customers.sql`, dbt compiles it into an object named `stg_customers`.
+
+    ### 2. The Golden Rule: NEVER Hardcode Table Names!
+    In traditional SQL, engineers wrote:
+    `SELECT * FROM prod_database.raw_schema.orders;`
+    - **Why this fails in production**:
+      - If you are testing in `dev`, you risk reading or overwriting live `prod` data.
+      - If the database name changes, you must manually edit 50 different SQL files.
+      - The database has no idea which table needs to run before which!
+
+    ### 3. The Magic of `{{ ref('model_name') }}`
+    Whenever model B depends on model A, you reference it using Jinja:
+    `SELECT * FROM {{ ref('stg_customers') }}`
+    - **What `ref()` does behind the scenes**:
+      1. **Builds the Dependency Graph (DAG)**: dbt inspects all `ref()` calls across your project to understand execution order. If Model B references Model A, dbt guarantees Model A finishes building before Model B starts.
+      2. **Environment Isolation**: In development, `ref('stg_customers')` compiles to `my_dev_db.dbt_elmar.stg_customers`. In production, it compiles to `analytics_prod.public.stg_customers`. Zero code changes required!
+      3. **Parallel Execution**: Models on independent branches of the DAG are executed concurrently across multiple threads (`--threads 4`).
+
+    ### 4. What is `{{ source('source_name', 'table_name') }}`?
+    Models transform data, but where does the original raw data come from? That is a **Source**.
+    - You declare raw landing tables in a YAML file (`models/sources.yml`).
+    - Inside your staging model, you write: `FROM {{ source('stripe', 'charges') }}`.
+    - If Stripe changes their raw schema name tomorrow, you change exactly **1 line in YAML**, and all downstream models automatically adapt.
+  az: |
+    ### 1. dbt Modeli Nədir?
+    dbt layihəsində `models/` qovluğunda olan hər bir `.sql` faylı verilənlər anbarındakı müstəqil bir cədvəl və ya view-dur.
+    - Əgər `models/staging/stg_customers.sql` faylı yaratsanız, dbt onu anbarda `stg_customers` adında obyektə çevirəcək.
+
+    ### 2. Qızıl Qayda: Cədvəl Adlarını Heç Vaxt Hardcode Yazmayın!
+    Ənənəvi SQL-də mühəndislər birbaşa yazırdı:
+    `SELECT * FROM prod_baza.public.orders;`
+    - **Bu niyə istehsalatda böyük səhvdir**:
+      - Test mühitində (`dev`) işləyərkən təsadüfən canlı `prod` məlumatını oxuya və ya korlaya bilərsiniz.
+      - Şirkət baza adını dəyişəndə 50 fərqli SQL faylını tək-tək açıb dəyişmək lazım gəlir.
+      - Ən əsası, hansı cədvəlin hansından əvvəl hesablanmalı olduğunu heç kim bilmir.
+
+    ### 3. `{{ ref('model_name') }}` Funksiyasının Möcüzəsi
+    Bir model başqa bir modelə istinad edəndə Jinja sintaksisindən istifadə edirik:
+    `SELECT * FROM {{ ref('stg_customers') }}`
+    - **`ref()` arxa planda nə edir?**:
+      1. **Asılılıq Qrafını (DAG) qurur**: dbt bütün fayllardakı `ref()` çağırışlarını oxuyur və icra xəritəsi çəkir. Əgər Model B Model A-dan asılıdırsa, dbt zəmanət verir ki, Model A tam hazır olmadan Model B başlamayacaq.
+      2. **Mühit Ayrılığı (Environment Isolation)**: Siz test edəndə `ref()` avtomatik olaraq `dev_baza.dbt_elmar.stg_customers` cədvəlini oxuyur. Canlı `prod` mühitində isə heç bir kod dəyişmədən `prod_baza.marts.stg_customers` oxunur!
+      3. **Paralel İcra**: Bir-birindən asılı olmayan müstəqil cədvəllər bir neçə axında (thread) eyni vaxtda paralel hesablanır.
+
+    ### 4. `{{ source('mənbə', 'cədvəl') }}` Nədir?
+    Bəs bünövrədəki ilk xam məlumat haradan oxunmalıdır? Məhz burada **Source (Mənbə)** köməyə çatır.
+    - Xam cədvəllər `models/sources.yml` faylında elan edilir.
+    - Modelin içində `FROM {{ source('stripe', 'payments') }}` yazılır.
+    - Sabah Stripe xam bazasının adı dəyişsə, layihədəki 30 SQL faylını deyil, sadəcə **sources.yml faylında 1 sətri** dəyişmək kifayətdir.
+quick_recap:
+  en: "Never hardcode table names. Use source() for raw ingested tables and ref() for downstream models to automatically construct the execution DAG and isolate environments."
+  az: "Baza adlarını heç vaxt koda əllə yazmayın. Xam cədvəllər üçün source(), digər modellər üçün isə ref() istifadə edərək DAG-ı və mühit ayrılığını avtomatlaşdırın."
+what_it_does:
+  en: "Builds a Directed Acyclic Graph (DAG) that dictates the precise execution order and environment-specific schema paths for every model."
+  az: "Bütün modellərin dəqiq icra ardıcıllığını və mühitə uyğun ünvanlarını təyin edən asılılıq qrafı (DAG) qurur."
+real_world_use:
+  en: "Enterprise data teams reference raw Kafka/Fivetran tables with source() and build layered DAGs (Staging -> Marts) with ref()."
+  az: "Böyük şirkətlərdə xam Fivetran məlumatları source() ilə qəbul edilir və laylı modellər (Staging -> Marts) ref() ilə bir-birinə bağlanır."
+common_mistakes:
+  en: "Writing `SELECT * FROM schema.table` instead of `ref()`, which completely breaks dbt's dependency DAG and parallelism."
+  az: "ref() yerinə `SELECT * FROM cadvəl` yazaraq dbt-nin asılılıq xəritəsini (DAG) və paralel icra imkanını qırmaq."
+code: |
+  -- =========================================================================
+  -- STEP 1: DECLARE RAW SOURCE IN models/sources.yml
+  -- =========================================================================
+  version: 2
+  sources:
+    - name: postgres_raw
+      database: raw_ingestion_db
+      schema: public
+      tables:
+        - name: raw_orders
+        - name: raw_customers
+
+  -- =========================================================================
+  -- STEP 2: STAGING MODEL USING source() (models/staging/stg_orders.sql)
+  -- =========================================================================
+  SELECT 
+      id AS order_id,
+      customer_id,
+      amount,
+      status
+  FROM {{ source('postgres_raw', 'raw_orders') }};
+
+  -- =========================================================================
+  -- STEP 3: DOWNSTREAM MART MODEL USING ref() (models/marts/fct_orders.sql)
+  -- =========================================================================
+  SELECT 
+      order_id,
+      customer_id,
+      amount
+  FROM {{ ref('stg_orders') }}
+  WHERE status = 'COMPLETED';
+code_explanation:
+  en: |
+    - **Step 1 (`sources.yml`)**: Binds the logical name `postgres_raw.raw_orders` to physical database `raw_ingestion_db.public.raw_orders`.
+    - **Step 2 (`stg_orders.sql`)**: Reads raw data cleanly via `{{ source() }}` without locking into static paths.
+    - **Step 3 (`fct_orders.sql`)**: Reads from `stg_orders` using `{{ ref() }}`. dbt automatically guarantees `stg_orders` runs before `fct_orders`.
+  az: |
+    - **1-ci Addım (`sources.yml`)**: `postgres_raw.raw_orders` məntiqi adını fiziki `raw_ingestion_db.public.raw_orders` cədvəlinə bağlayır.
+    - **2-ci Addım (`stg_orders.sql`)**: `{{ source() }}` vasitəsilə xam məlumatı statik yollardan asılı olmadan oxuyur.
+    - **3-cü Addım (`fct_orders.sql`)**: `{{ ref() }}` ilə `stg_orders`-ə istinad edir. dbt avtomatik olaraq `stg_orders`-in `fct_orders`-dən əvvəl bitməsini təmin edir.
+visual_output: |
+  $ dbt run
+
+  19:20:00  Found 2 models, 2 sources
+  19:20:00  Concurrency: 2 threads (target='dev')
+  19:20:00  
+  19:20:00  1 of 2 START sql view model staging.stg_orders .................... [RUN]
+  19:20:01  1 of 2 OK created sql view model staging.stg_orders .............. [SUCCESS 1 in 0.85s]
+  19:20:01  2 of 2 START sql table model marts.fct_orders ..................... [RUN]
+  19:20:02  2 of 2 OK created sql table model marts.fct_orders ................ [SUCCESS 1 in 1.20s]
+  19:20:02  
+  19:20:02  Finished running 1 view model, 1 table model in 2.15 seconds.
+  19:20:02  Done. PASS=2 WARN=0 ERROR=0 SKIP=0 TOTAL=2
+output_description:
+  en: "Demonstrates dbt respecting the dependency DAG: `stg_orders` is executed and committed first, followed immediately by `fct_orders`."
+  az: "dbt-nin asılılıq xəritəsinə (DAG) riayət etməsini göstərir: əvvəlcə `stg_orders` icra olunur, yalnız o bitdikdən sonra `fct_orders` başlayır."
+interview_question:
+  question:
+    en: "What is the difference between ref() and source() in dbt, and what happens if an engineer writes hardcoded table names in SQL queries instead?"
+    az: "dbt-də ref() və source() arasındakı fərq nədir və əgər mühəndis SQL sorğusunda cədvəl adını əllə (hardcoded) yazarsa nə baş verər?"
+  answer:
+    en: "In dbt, `source()` is used to reference raw, unmanaged tables loaded into the warehouse by external tools (e.g. Fivetran, Airbyte), declared centrally in a YAML file. In contrast, `ref()` is used to reference other dbt models created within the project. The `ref()` function is the backbone of dbt: it automatically builds the Directed Acyclic Graph (DAG) that dictates model execution order, enables concurrent execution across threads, and dynamically interpolates the correct database and schema depending on environment (dev vs prod). If an engineer hardcodes table names (e.g. `SELECT * FROM prod_db.raw_orders`), three critical failures occur: (1) dbt cannot detect the dependency, causing downstream models to run prematurely and fail; (2) testing in development will query or accidentally overwrite production data; and (3) environment migration becomes impossible without manually editing every SQL file."
+    az: "dbt-də `source()` kənar alətlər (Fivetran, Airbyte) tərəfindən anbara yüklənən və YAML faylında elan olunan xam cədvəllərə istinad etmək üçündür. `ref()` isə dbt layihəsi daxilində yaradılmış digər modellərə istinad edir. `ref()` funksiyası dbt-nin onurğa sütunudur: o, layihənin asılılıq xəritəsini (DAG) avtomatik qurur, icra ardıcıllığını təmin edir, paralel işləməyə imkan verir və işlədiyiniz mühitə (`dev` və ya `prod`) uyğun düzgün baza ünvanını dinamik təyin edir. Əgər mühəndis cədvəl adını koda birbaşa əllə yazarsa (`SELECT * FROM prod_db.orders`), 3 ciddi problem yaranır: (1) dbt cədvəllər arasındakı əlaqəni görə bilmir və asılı model əvvəlki bitməmiş işə düşüb xəta verir; (2) mühəndis dev mühitində test edərkən səhvən canlı prod məlumatını oxuyur və ya dəyişir; (3) layihəni başqa mühitə köçürəndə hər faylı əllə dəyişmək məcburiyyəti yaranır."
+  interviewer_tips:
+    en: "Emphasize DAG construction and environment isolation. Mention that without ref(), parallel thread execution (`--threads`) cannot know which models are safe to run concurrently."
+    az: "DAG qurulmasını və mühit təcridini (dev vs prod) mütləq vurğulayın. ref() olmasa dbt-nin hansı modellərin paralel işləyə biləcəyini təyin edə bilməyəcəyini qeyd edin."
+flashcards:
+  - front:
+      en: "What is the primary purpose of the `{{ ref('model_name') }}` function in dbt?"
+      az: "dbt-də `{{ ref('model_name') }}` funksiyasının əsas məqsədi nədir?"
+    back:
+      en: "To dynamically reference other dbt models and automatically build the project dependency DAG."
+      az: "Digər dbt modellərinə dinamik istinad etmək və layihənin asılılıq qrafını (DAG) avtomatik qurmaq."
+  - front:
+      en: "How does `{{ source('source_name', 'table_name') }}` differ from `ref()`?"
+      az: "`{{ source('source_name', 'table_name') }}` funksiyası `ref()`-dən nə ilə fərqlənir?"
+    back:
+      en: "source() points to raw ingested external tables defined in YAML; ref() points to models built by dbt."
+      az: "source() YAML-da təyin edilmiş xam xarici cədvəllərə, ref() isə dbt-nin öz qurduğu modellərə istinad edir."
+  - front:
+      en: "Why is hardcoding schema and table names strictly forbidden in dbt?"
+      az: "dbt-də sxem və cədvəl adlarını birbaşa (hardcoded) yazmaq nə üçün qadağandır?"
+    back:
+      en: "It breaks the dependency DAG, prevents parallel model runs, and risks corrupting production data in dev."
+      az: "Asılılıq xəritəsini qırır, paralel icranı əngəlləyir və dev mühitində canlı prod məlumatını korlamaq riski yaradır."
+  - front:
+      en: "How does `ref()` support multi-environment deployment (dev vs prod)?"
+      az: "`ref()` funksiyası çoxmühitli (dev və prod) tətbiqi necə təmin edir?"
+    back:
+      en: "It automatically interpolates the developer's sandbox schema in dev, and production schema in prod, with zero code changes."
+      az: "Koda heç bir əl vurmadan dev mühitində şəxsi test sxemini, prod-da isə əsas canlı sxemi avtomatik təyin edir."
+  - front:
+      en: "What data structure does dbt generate to manage model execution order?"
+      az: "dbt model icra ardıcıllığını idarə etmək üçün hansı məlumat strukturunu qurur?"
+    back:
+      en: "A Directed Acyclic Graph (DAG)."
+      az: "İstiqamətləndirilmiş Dövrəsiz Qraf (DAG - Directed Acyclic Graph)."

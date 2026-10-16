@@ -1,0 +1,217 @@
+id: "04-testing-and-data-quality"
+order: 4
+level: "junior"
+title:
+  en: "Data Quality & Testing: Generic and Singular Tests"
+  az: "Data Keyfiyyəti və Testlər: Generic və Singular Testlər"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                     dbt DATA QUALITY TEST TYPES                        │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. GENERIC TESTS (Declared in schema.yml - 4 Golden Rules):
+       columns:
+         - name: order_id
+           tests:
+             - unique       ──► 0 duplicates allowed!
+             - not_null     ──► 0 NULL values allowed!
+         - name: status
+           tests:
+             - accepted_values: {values: ['PLACED', 'SHIPPED', 'CANCELLED']}
+         - name: customer_id
+           tests:
+             - relationships: {to: ref('dim_customers'), field: customer_id}
+
+    2. SINGULAR TESTS (Custom SQL in `tests/` folder):
+       SELECT * FROM {{ ref('fct_orders') }} WHERE order_amount < 0;
+       • Rule: If query returns 0 rows ────► ✅ TEST PASSED!
+       • Rule: If query returns 1+ rows ───► ❌ TEST FAILED (Dirty data found)!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                      dbt DATA KEYFİYYƏT TESTLƏRİ                       │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. GENERIC TESTLƏR (schema.yml faylında elan edilir - 4 Qızıl Qayda):
+       columns:
+         - name: order_id
+           tests:
+             - unique       ──► Dublikat sətir ola bilməz (0 dublikat)!
+             - not_null     ──► Boş dəyər ola bilməz (0 NULL)!
+         - name: status
+           tests:
+             - accepted_values: {values: ['PLACED', 'SHIPPED', 'CANCELLED']}
+         - name: customer_id
+           tests:
+             - relationships: {to: ref('dim_customers'), field: customer_id}
+
+    2. SINGULAR TESTLƏR (`tests/` qovluğunda yazılan xüsusi SQL sorğuları):
+       SELECT * FROM {{ ref('fct_orders') }} WHERE order_amount < 0;
+       • Qayda: Sorğu 0 sətir qaytarsa ─────► ✅ TEST KEÇDİ!
+       • Qayda: Sorğu 1+ sətir qaytarsa ────► ❌ TEST UĞURSUZ OLDU (Xətalı data tapıldı)!
+    ```
+explanation:
+  en: |
+    ### Why Testing in dbt is a Game-Changer
+    In old-school data pipelines, bad data silently flowed into BI dashboards. Data teams only learned of errors when the CFO or VP noticed broken revenue numbers on Monday morning.
+    - dbt prevents this by making testing a native, first-class citizen in the transformation pipeline.
+    - You run `dbt test` to validate all assumptions before promoting data to dashboards.
+
+    ### 1. Generic Tests (The 4 Out-of-the-Box Rules)
+    Generic tests are declared in a YAML file (`models/staging/schema.yml`) alongside your models without writing a single line of SQL:
+    1. **`unique`**: Verifies that every value in a primary key column is unique (zero duplicates).
+    2. **`not_null`**: Verifies that a required column contains zero missing or `NULL` values.
+    3. **`accepted_values`**: Verifies that column values belong strictly to a predefined list (e.g. `['PENDING', 'SUCCESS', 'FAILED']`).
+    4. **`relationships`**: Enforces foreign key referential integrity (e.g. every `customer_id` in `fct_orders` must exist in `dim_customers`).
+
+    ### 2. Singular Tests (Custom Business Logic Assertions)
+    What if you have custom business rules that YAML can't describe (e.g., "discount cannot be greater than the total price" or "end date must be after start date")?
+    - You write a pure SQL query in the `tests/` directory (e.g. `tests/assert_positive_revenue.sql`).
+    - **The Golden Singular Rule**:
+      - If your query returns **0 rows**, dbt marks the test as **PASS**.
+      - If your query returns **1 or more rows**, dbt treats those rows as failing records and flags the test as **FAIL**.
+
+    ### 3. Execution Commands
+    - `$ dbt test`: Runs all tests across the entire project.
+    - `$ dbt test --select stg_orders`: Runs only tests on `stg_orders`.
+    - `$ dbt build`: **The modern best practice!** Runs models AND their tests sequentially in DAG order. If an upstream staging model fails its `unique` test, dbt immediately halts and skips building downstream marts!
+  az: |
+    ### dbt Testlərinin İnqilabi Əhəmiyyəti
+    Köhnə data boru kəmərlərində xətalı məlumatlar səssizcə hesabatlara sızırdı və data komandası problemi yalnız şirkət rəhbəri səhər səhv rəqəmləri görüb şikayət edəndə öyrənirdi.
+    - dbt testləri transformasiya prosesinin ayrılmaz hissəsinə çevirir.
+    - Məlumatın hesabatlara çatmasına icazə verməzdən əvvəl `dbt test` ilə bütün biznes qaydaları yoxlanılır.
+
+    ### 1. Generic Testlər (Kod Yazmadan 4 Qızıl Qayda)
+    Bu testlər heç bir SQL kodu yazılmadan, birbaşa `schema.yml` faylında qeyd olunur:
+    1. **`unique`**: Sütunda (xüsusilə Primary Key-də) təkrar dəyərlərin olmadığını yoxlayır.
+    2. **`not_null`**: Vacib sütunlarda boş (`NULL`) dəyərlərin olmamasını tələb edir.
+    3. **`accepted_values`**: Sütundakı dəyərlərin yalnız icazə verilən siyahıda olduğunu yoxlayır (məsələn: `['ÖDƏNİLDİ', 'LƏĞV_EDİLDİ']`).
+    4. **`relationships`**: Xarici açar (Foreign Key) bütövlüyünü təmin edir (məsələn: `fct_orders`-dəki hər bir `customer_id` mütləq `dim_customers` cədvəlində mövcud olmalıdır).
+
+    ### 2. Singular Testlər (Xüsusi Biznes Testləri)
+    Bəs əgər xüsusi bir biznes qaydasını yoxlamaq lazımdırsa (məsələn: "tətbiq edilən endirim ümumi məbləğdən böyük ola bilməz" və ya "bitmə tarixi başlama tarixindən əvvəl ola bilməz")?
+    - `tests/` qovluğunda sərbəst SQL faylı yaradırsınız (`tests/assert_valid_discounts.sql`).
+    - **Qızıl Qayda**:
+      - Sorğu **0 sətir** qaytarsa, test **UĞURLU (PASS)** sayılır.
+      - Sorğu **1 və ya daha çox sətir** qaytarsa, həmin sətirlər xətalı məlumat hesab olunur və test **UĞURSUZ (FAIL)** olur.
+
+    ### 3. İcra Komandaları
+    - `$ dbt test`: Layihədəki bütün testləri işə salır.
+    - `$ dbt test --select stg_orders`: Yalnız `stg_orders` modelinin testlərini yoxlayır.
+    - `$ dbt build`: **Müasir sənaye standartı!** Modelləri və onların testlərini DAG ardıcıllığı ilə birgə icra edir. Əgər ilkin cədvəldə `unique` testi uğursuz olarsa, dbt prosesi dayandırır və korlanmış məlumatın hesabatlara keçməsinin qarşısını alır!
+quick_recap:
+  en: "dbt provides 4 out-of-the-box generic tests (unique, not_null, accepted_values, relationships) in YAML and custom singular SQL tests that fail if any failing rows are returned."
+  az: "dbt YAML-da 4 hazır generic test (unique, not_null, accepted_values, relationships) və xətalı sətir tapıldıqda fail olan fərdi singular SQL testləri təqdim edir."
+what_it_does:
+  en: "Validates schema integrity and business rule assertions, catching corrupted or duplicate data before it reaches analytics consumers."
+  az: "Sxem bütövlüyünü və biznes qaydalarını yoxlayaraq, səhv və ya dublikat məlumatların analitiklərə çatmasının qarşısını alır."
+real_world_use:
+  en: "Automated dbt build jobs run tests in CI/CD pull requests to block buggy SQL code, and run daily in Airflow pipelines to halt on data anomalies."
+  az: "GitHub Actions CI/CD-də PR-lar açılarkən dbt testləri ilə kod yoxlanılır, Airflow-da isə anomaliya baş verəndə pipeline avtomatik saxlanılır."
+common_mistakes:
+  en: "Writing a singular test that returns `SELECT 'success'` instead of returning failing rows (returning rows fails the test in dbt!)."
+  az: "Singular testdə xətalı sətirləri tapmaq əvəzinə 'success' mətni qaytarmaq (dbt-də sorğu hər hansı sətir qaytararsa, test uğursuz sayılır!)."
+code: |
+  -- =========================================================================
+  -- 1. GENERIC TESTS IN models/staging/schema.yml
+  -- =========================================================================
+  version: 2
+  models:
+    - name: stg_orders
+      description: "Cleaned e-commerce transactions"
+      columns:
+        - name: order_id
+          tests:
+            - unique
+            - not_null
+        - name: order_status
+          tests:
+            - accepted_values:
+                values: ['PLACED', 'SHIPPED', 'COMPLETED', 'CANCELLED']
+        - name: customer_id
+          tests:
+            - relationships:
+                to: ref('stg_customers')
+                field: customer_id
+
+  -- =========================================================================
+  -- 2. SINGULAR TEST IN tests/assert_order_amount_is_positive.sql
+  -- RULE: This query must return ZERO rows for the test to PASS.
+  -- =========================================================================
+  SELECT 
+      order_id,
+      order_amount
+  FROM {{ ref('stg_orders') }}
+  WHERE order_amount <= 0;
+code_explanation:
+  en: |
+    - **`schema.yml`**: Configures the 4 core generic tests on `stg_orders` declaratively without procedural code.
+    - **`assert_order_amount_is_positive.sql`**: Queries `stg_orders` for any rows with negative or zero amounts. If any rows are returned, `dbt test` fails and displays the row IDs.
+  az: |
+    - **`schema.yml`**: `stg_orders` üzərində 4 təməl generic testi heç bir mürəkkəb kod yazmadan deklarativ şəkildə elan edir.
+    - **`assert_order_amount_is_positive.sql`**: Sıfır və ya mənfi məbləğli sifarişləri axtarır. Əgər belə sətir tapılarsa, `dbt test` dərhal xəta verir və problemli order_id-ləri terminalda göstərir.
+visual_output: |
+  $ dbt test
+
+  19:30:00  Found 1 model, 5 data tests
+  19:30:00  Concurrency: 2 threads (target='dev')
+  19:30:00  
+  19:30:00  1 of 5 START test not_null_stg_orders_order_id .................... [RUN]
+  19:30:01  1 of 5 PASS not_null_stg_orders_order_id .......................... [PASS in 0.42s]
+  19:30:01  2 of 5 START test unique_stg_orders_order_id ...................... [RUN]
+  19:30:01  2 of 5 PASS unique_stg_orders_order_id ............................ [PASS in 0.38s]
+  19:30:01  3 of 5 START test accepted_values_stg_orders_order_status ......... [RUN]
+  19:30:02  3 of 5 PASS accepted_values_stg_orders_order_status ............... [PASS in 0.45s]
+  19:30:02  4 of 5 START test relationships_stg_orders_customer_id ............ [RUN]
+  19:30:02  4 of 5 PASS relationships_stg_orders_customer_id .................. [PASS in 0.51s]
+  19:30:02  5 of 5 START test assert_order_amount_is_positive ................. [RUN]
+  19:30:03  5 of 5 PASS assert_order_amount_is_positive ....................... [PASS in 0.39s]
+  19:30:03  
+  19:30:03  Finished running 5 data tests in 2.15 seconds.
+  19:30:03  Completed successfully
+  19:30:03  Done. PASS=5 WARN=0 ERROR=0 SKIP=0 TOTAL=5
+output_description:
+  en: "Shows the terminal execution of `dbt test`, confirming all 4 generic tests and 1 singular test passed with 0 errors."
+  az: "`dbt test` komandasının terminal çıxışı; 4 generic və 1 singular testin 0 xəta ilə uğurla keçdiyini göstərir."
+interview_question:
+  question:
+    en: "What are the differences between Generic tests and Singular tests in dbt? How does dbt determine if a Singular SQL test passes or fails?"
+    az: "dbt-də Generic testlərlə Singular testlərin fərqi nədir? dbt fərdi (Singular) bir SQL testinin uğurla keçdiyini və ya xəta verdiyini necə müəyyən edir?"
+  answer:
+    en: "In dbt, tests are divided into Generic tests and Singular tests. **Generic tests** are reusable assertions declared in YAML files (`schema.yml`) under column definitions. dbt comes with four out-of-the-box generic tests: `unique` (no duplicate values), `not_null` (no null values), `accepted_values` (values must belong to an approved list), and `relationships` (foreign key integrity checks). **Singular tests** are custom SQL queries stored as `.sql` files inside the `tests/` directory to validate domain-specific business logic (e.g. validating that a discount never exceeds the total order value). dbt determines pass or fail for Singular tests using a simple, inverted assertion logic: the SQL query is written to **select failing records**. If the query returns **0 rows**, the test **PASSES** (no corrupt data was found). If the query returns **1 or more rows**, the test **FAILS**, and dbt reports the number of offending rows and logs their details for debugging."
+    az: "dbt-də testlər Generic və Singular olaraq iki yerə bölünür. **Generic testlər** YAML faylında (`schema.yml`) sütun parametrləri kimi bəyan edilən təkrar istifadəyə yararlı testlərdir. dbt 4 standart generic test təqdim edir: `unique` (təkrar sətirlərin olmaması), `not_null` (boş dəyərlərin olmaması), `accepted_values` (dəyərlərin yalnız icazə verilən siyahıda olması) və `relationships` (xarici açar / referential integrity yoxlanışı). **Singular testlər** isə `tests/` qovluğunda yazılan xüsusi SQL sorğularıdır və unikal biznes qaydalarını yoxlayır (məsələn, müştərinin endirimi ümumi qiymətdən böyük ola bilməz). dbt-nin Singular testin keçib-keçmədiyini təyin etmə qaydası çox sadədir: SQL sorğusu **xətalı sətirləri tapmaq üçün** yazılır. Əgər sorğu **0 sətir** qaytararsa, test **UĞURLU (PASS)** sayılır. Əgər sorğu **1 və ya daha çox sətir** qaytararsa, dbt bunu xəta (**FAIL**) kimi qəbul edir və terminalda həmin sətirlərin sayını göstərir."
+  interviewer_tips:
+    en: "Mention `dbt build`: senior engineers use `dbt build` instead of running `dbt run` and `dbt test` separately, because `dbt build` tests models immediately and halts if an upstream model fails."
+    az: "`dbt build` komandasını xüsusi vurğulayın: peşəkar mühəndislər `dbt run` və `dbt test`-i ayrı işlətmir, `dbt build` istifadə edir ki, ilkin modeldə test uğursuz olanda sonrakı modellər boş yerə hesablanmasın."
+flashcards:
+  - front:
+      en: "What are the 4 built-in generic tests provided by dbt?"
+      az: "dbt tərəfindən təqdim edilən 4 daxili generic test hansılardır?"
+    back:
+      en: "`unique`, `not_null`, `accepted_values`, and `relationships`."
+      az: "`unique`, `not_null`, `accepted_values` və `relationships`."
+  - front:
+      en: "Where are generic tests configured in a dbt project?"
+      az: "Generic testlər dbt layihəsində harada konfiqurasiya olunur?"
+    back:
+      en: "In YAML files (e.g. `schema.yml`) located inside the `models/` directory."
+      az: "`models/` qovluğundakı YAML fayllarında (məsələn: `schema.yml`)."
+  - front:
+      en: "How does dbt evaluate whether a Singular SQL test passes or fails?"
+      az: "dbt Singular SQL testinin keçib-keçmədiyini necə qiymətləndirir?"
+    back:
+      en: "0 rows returned = PASS. 1 or more rows returned = FAIL."
+      az: "0 sətir qaytarılarsa = PASS (Uğurlu). 1 və ya daha çox sətir qaytarılarsa = FAIL (Xəta)."
+  - front:
+      en: "What does the `relationships` test verify in dbt?"
+      az: "dbt-də `relationships` testi nəyi yoxlayır?"
+    back:
+      en: "Referential integrity (foreign keys): ensures values in one table exist in a referenced column of another table."
+      az: "Xarici açar (Foreign Key) bütövlüyünü: bir cədvəldəki dəyərin digər cədvəldə mövcud olduğunu yoxlayır."
+  - front:
+      en: "What is the advantage of using `dbt build` over running `dbt run` and `dbt test` separately?"
+      az: "`dbt run` və `dbt test`-i ayrı işlətməkdənsə `dbt build` istifadə etməyin üstünlüyü nədir?"
+    back:
+      en: "It executes models and tests in DAG dependency order, instantly halting downstream runs if an upstream test fails."
+      az: "Modelləri və testləri DAG ardıcıllığı ilə icra edir və ilkin test xəta verdikdə sonrakı işləri dərhal dayandırır."

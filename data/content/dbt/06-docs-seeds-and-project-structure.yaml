@@ -1,0 +1,233 @@
+id: "06-docs-seeds-and-project-structure"
+order: 6
+level: "junior"
+title:
+  en: "dbt Seeds, Project Layers (Staging vs Marts) & Auto-Documentation"
+  az: "dbt Seeds, Layihə Layları (Staging vs Marts) və Avtomatik Sənədləşdirmə"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          OFFICIAL dbt PROJECT LAYERING & DOCUMENTATION DAG             │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. SEEDS (`seeds/*.csv`) ──────────► Small static CSVs (country codes, zip codes)
+                                         Command: $ dbt seed
+                                                │
+                                                ▼ {{ ref('country_codes') }}
+    2. STAGING (`models/staging/`) ────► 1-to-1 with raw sources. Renaming & type casting.
+                                         Materialization: VIEW (Zero storage).
+                                                │
+                                                ▼ {{ ref('stg_orders') }}
+    3. MARTS (`models/marts/`) ────────► Business Fact & Dimension tables for BI.
+                                         Materialization: TABLE or INCREMENTAL.
+                                                │
+                                                ▼
+    4. DOCUMENTATION ($ dbt docs serve)► Searchable web catalog + interactive visual DAG!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │       RƏSMİ dbt LAYİHƏ LAYLARI VƏ SƏNƏDLƏŞDİRMƏ XƏRİTƏSİ              │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. SEEDS (`seeds/*.csv`) ──────────► Kiçik statik CSV-lər (ölkə kodları, tariflər)
+                                         İcra komandası: $ dbt seed
+                                                │
+                                                ▼ {{ ref('country_codes') }}
+    2. STAGING (`models/staging/`) ────► Xam mənbələrlə 1-ə 1. Tiplər və adlar təmizlənir.
+                                         Materializasiya: VIEW (Sıfır yaddaş).
+                                                │
+                                                ▼ {{ ref('stg_orders') }}
+    3. MARTS (`models/marts/`) ────────► BI və rəhbərlik üçün Fakt və Ölçü cədvəlləri.
+                                         Materializasiya: TABLE və ya İNKREMENTAL.
+                                                │
+                                                ▼
+    4. SƏNƏDLƏŞDİRMƏ ($ dbt docs serve)► Axtarışlı veb portal + canlı interaktiv DAG qrafı!
+    ```
+explanation:
+  en: |
+    ### 1. What are dbt Seeds?
+    Seeds are CSV files located in your project's `seeds/` directory (e.g. `seeds/country_codes.csv`).
+    - Running **`dbt seed`** loads the CSV into your data warehouse as a physical table.
+    - Other models can immediately query it using **`{{ ref('country_codes') }}`**.
+    - **The Golden Rule**: Seeds are for **small, rarely changing lookup data** (under a few thousand rows) like country code mappings, currency symbols, or tax rates.
+    - **CRITICAL PITFALL**: Never use seeds for raw event logs or large datasets! Seeds are tracked in Git, and Git repositories should never contain large, high-frequency data files.
+
+    ### 2. The Official 3-Tier Layering Standard
+    In production, dumping all SQL models into a single flat directory is a recipe for chaos. The dbt community strictly enforces a 3-tier architectural standard:
+    1. **`models/staging/` (Prefix: `stg_`)**:
+       - 1-to-1 relationship with source tables.
+       - Clean column names (`id` -> `order_id`), cast data types, handle nulls, and filter deleted records.
+       - **Never join multiple sources in staging.**
+       - Materialized as **`view`**.
+    2. **`models/intermediate/` (Prefix: `int_`)**:
+       - Contains intermediate joins and complex business logic shared across multiple marts.
+       - Materialized as **`view`** or **`ephemeral`**.
+    3. **`models/marts/` (Prefix: `fct_` for facts, `dim_` for dimensions)**:
+       - The analytical layer consumed by BI tools (Power BI, Tableau) and analysts.
+       - Modeled according to Kimball dimensional modeling principles.
+       - Materialized as **`table`** or **`incremental`**.
+
+    ### 3. Automated Documentation & Visual Lineage (`dbt docs`)
+    Maintaining data dictionaries in stale Confluence pages or Excel sheets always fails. dbt automates documentation:
+    - You write descriptions inside your `schema.yml` files.
+    - Run **`$ dbt docs generate`**: dbt inspects your project, connects to the warehouse to fetch column metadata, and builds a static documentation package.
+    - Run **`$ dbt docs serve`**: Launches a local web server hosting a searchable data catalog with an **interactive visual Lineage Graph (DAG)** showing every upstream and downstream dependency!
+  az: |
+    ### 1. dbt Seeds Nədir?
+    Seeds layihənin `seeds/` qovluğunda saxlanılan kiçik CSV fayllarıdır (məsələn: `seeds/country_codes.csv`).
+    - **`dbt seed`** komandasını verdikdə, dbt həmin CSV faylını verilənlər anbarında fiziki cədvələ çevirir.
+    - Digər dbt modellərində onu adi model kimi **`{{ ref('country_codes') }}`** ilə çağırmaq mümkündür.
+    - **Qızıl Qayda**: Seeds yalnız **kiçik və nadir hallarda dəyişən statik məlumatlar** üçündür (ölkə kodları, valyuta simvolları, filial nömrələri).
+    - **TƏHLÜKƏLİ SƏHV**: Heç vaxt böyük tranzaksiya fayllarını seeds qovluğuna qoymayın! Seeds Git-də saxlanılır, Git isə böyük data fayllarını saxlamaq üçün deyil.
+
+    ### 2. Rəsmi 3 Laylı Qovluq Standartı
+    İstehsalatda bütün SQL fayllarını qarışıq şəkildə eyni qovluğa atmaq xaos yaradır. dbt cəmiyyəti rəsmi olaraq 3 mərhələli lay standartını tətbiq edir:
+    1. **`models/staging/` (`stg_` prefiksi ilə)**:
+       - Xam cədvəllərlə 1-ə 1 əlaqədə olur.
+       - Sütun adlarını təmizləyir (`id` əvəzinə `customer_id`), tipləri düzəldir, kiçik filtrlər tətbiq edir.
+       - **Staging layında heç vaxt başqa cədvəllərlə ağır JOIN edilmir.**
+       - Materializasiyası: **`view`**.
+    2. **`models/intermediate/` (`int_` prefiksi ilə)**:
+       - Bir neçə fərqli staging cədvəlinin birləşdirilməsi və təkrar istifadə olunan mürəkkəb biznes məntiqi burada saxlanılır.
+       - Materializasiyası: **`view`** və ya **`ephemeral`**.
+    3. **`models/marts/` (`fct_` faktlar və `dim_` ölçülər üçün)**:
+       - BI panellərinin (Power BI, Tableau) və biznes analitiklərin birbaşa qoşulduğu son lay.
+       - Kimball Ulduz Sxemi (Star Schema) prinsipləri ilə qurulur.
+       - Materializasiyası: **`table`** və ya **`incremental`**.
+
+    ### 3. Avtomatlaşdırılmış Sənədləşdirmə və Data Lineage (`dbt docs`)
+    Excel və ya Word fayllarında cədvəl lüğəti saxlamaq həmişə köhnəlir və unudulur. dbt bunu tam avtomatlaşdırır:
+    - Siz `schema.yml` faylında sütun və cədvəllərə `description` (izah) yazırsınız.
+    - **`$ dbt docs generate`**: dbt anbara qoşulub bütün metadata məlumatlarını toplayır və sənədləşdirmə paketini yaradır.
+    - **`$ dbt docs serve`**: Kompyuterdə lokal veb server açır. Burada axtarış paneli, bütün sütunların izahı və ən əsası məlumatın haradan gəlib hara getdiyini göstərən **canlı interaktiv Data Lineage (DAG) qrafikası** təqdim olunur!
+quick_recap:
+  en: "Seeds load static CSVs via `dbt seed`. Projects follow a 3-tier structure (staging -> intermediate -> marts), and `dbt docs serve` hosts an interactive lineage and data catalog."
+  az: "Seeds `dbt seed` ilə kiçik statik CSV-ləri anbara yükləyir. Layihələr 3 laylı struktur izləyir (staging -> intermediate -> marts) və `dbt docs` canlı lineage qrafı təqdim edir."
+what_it_does:
+  en: "Organizes modular SQL codebases into standardized architectural tiers and automatically generates searchable data catalogs and visual lineage graphs."
+  az: "Modulyar SQL layihələrini standart memarlıq laylarına bölür və avtomatik axtarışlı data kataloqu və vizual əlaqə xəritəsi (DAG) yaradır."
+real_world_use:
+  en: "Used by analytics engineering teams to onboard new analysts via self-serve dbt docs catalogs and maintain clean staging-to-mart pipelines."
+  az: "Data komandaları yeni qoşulan mühəndislərə sistemləri dbt docs ilə tanıdır və nizamlı staging-marts kəmərlərini idarə edir."
+common_mistakes:
+  en: "Committing multi-megabyte CSV files into seeds; performing complex multi-table joins inside staging models instead of marts."
+  az: "Böyük meqabaytlıq məlumat fayllarını seeds-ə yükləmək; staging cədvəllərinin içində ağır çoxcədvəlli JOIN-lər etmək."
+code: |
+  -- =========================================================================
+  -- 1. SEED FILE: seeds/country_mappings.csv
+  -- =========================================================================
+  /*
+  country_code,country_name,region
+  AZ,Azerbaijan,EMEA
+  TR,Turkey,EMEA
+  US,United States,AMER
+  GB,United Kingdom,EMEA
+  */
+
+  -- Run command: $ dbt seed
+
+  -- =========================================================================
+  -- 2. USING SEED IN A MART MODEL: models/marts/dim_customers.sql
+  -- =========================================================================
+  WITH customers AS (
+      SELECT * FROM {{ ref('stg_customers') }}
+  ),
+  country_lookup AS (
+      -- Seeds are referenced just like normal models using ref()!
+      SELECT * FROM {{ ref('country_mappings') }}
+  )
+  SELECT 
+      c.customer_id,
+      c.customer_name,
+      c.country_code,
+      COALESCE(l.country_name, 'Unknown') AS country_name,
+      COALESCE(l.region, 'Unknown') AS sales_region
+  FROM customers c
+  LEFT JOIN country_lookup l ON c.country_code = l.country_code;
+
+  -- =========================================================================
+  -- 3. DOCUMENTING IN models/marts/schema.yml
+  -- =========================================================================
+  /*
+  version: 2
+  models:
+    - name: dim_customers
+      description: "Conformed customer dimension enriched with ISO country regions."
+      columns:
+        - name: customer_id
+          description: "Primary key for customer entity."
+          tests: [unique, not_null]
+        - name: sales_region
+          description: "Geographic region (EMEA, AMER, APAC) mapped from seed."
+  */
+code_explanation:
+  en: |
+    - **Seed Reference**: `{{ ref('country_mappings') }}` queries the seed table seamlessly just like any regular SQL model.
+    - **Clean Separation**: `stg_customers` cleans raw columns, while `dim_customers` handles the enrichment join with the country seed.
+    - **Documentation Metadata**: Descriptions in `schema.yml` populate the auto-generated web catalog when running `dbt docs generate`.
+  az: |
+    - **Seed İstinadı**: `{{ ref('country_mappings') }}` funksiyası seed cədvəlini adi SQL modeli kimi rahatlıqla sorğulayır.
+    - **Təmiz Ayrılıq**: `stg_customers` xam sütunları təmizləyir, `dim_customers` isə ölkə seed-i ilə zənginləşdirmə JOIN-ini icra edir.
+    - **Sənədləşdirmə**: `schema.yml`-də yazılan izahlar `dbt docs generate` veriləndə avtomatik veb portala ötürülür.
+visual_output: |
+  $ dbt seed
+  19:40:01  Found 1 seed
+  19:40:02  1 of 1 START seed file country_mappings ........................... [RUN]
+  19:40:03  1 of 1 OK loaded seed file country_mappings ....................... [INSERT 4 rows in 0.72s]
+
+  $ dbt docs generate
+  19:40:04  Building catalog [OK]
+  19:40:05  Catalog written to target/catalog.json
+
+  $ dbt docs serve
+  19:40:06  Serving docs at http://localhost:8080
+  19:40:06  Press Ctrl+C to exit.
+
+  [INTERACTIVE WEB UI ACCESSIBLE]:
+  • Searchable catalog of 5 models, 1 seed, 8 tests
+  • Interactive Lineage DAG: postgres_raw ──► stg_customers ──► dim_customers
+  • Column documentation, data types, and primary key constraints fully rendered.
+output_description:
+  en: "Shows the terminal lifecycle: loading the seed CSV, generating the project catalog, and launching the dbt docs web server."
+  az: "Terminal addımlarını nümayiş etdirir: seed faylının yüklənməsi, layihə kataloqunun yaradılması və dbt docs veb serverinin işə salınması."
+interview_question:
+  question:
+    en: "What are dbt Seeds and when should you use them? Explain the recommended directory layering structure (staging, intermediate, marts) in a production dbt project."
+    az: "dbt Seeds nədir və nə vaxt istifadə olunmalıdır? İstehsalat dbt layihəsində tövsiyə olunan qovluq lay strukturu (staging, intermediate, marts) haqqında məlumat verin."
+  answer:
+    en: "dbt Seeds are static CSV files stored in the `seeds/` directory that dbt compiles into physical database tables using the `dbt seed` command. They can be referenced downstream using `ref('seed_name')`. Seeds should strictly be used for small, static lookup data that changes rarely (e.g. country codes, country ISO mappings, marketing channel taxonomy). They should never be used for large, high-volume, or dynamic transactional data because CSVs in seeds are checked into Git version control. In a production dbt project, models are structured into three distinct layers: (1) **`staging/` (prefix `stg_`)**: 1-to-1 with raw source tables, responsible for basic column renaming, type casting, and filtering deleted records. Staging models should never join other sources and are almost always materialized as `view`. (2) **`intermediate/` (prefix `int_`)**: Holds complex intermediate joins, window functions, and business logic that are shared across multiple downstream tables, materialized as `view` or `ephemeral`. (3) **`marts/` (prefix `fct_` or `dim_`)**: Business-facing Kimball fact and dimension tables optimized for BI tools and executive reporting, materialized as `table` or `incremental`."
+    az: "dbt Seeds layihənin `seeds/` qovluğunda saxlanılan və `dbt seed` komandası ilə verilənlər anbarında cədvələ çevrilən statik CSV fayllarıdır. Digər modellərdə `ref('seed_adı')` ilə çağırıla bilər. Seeds yalnız nadir hallarda dəyişən kiçik arayış məlumatları üçün (məsələn: ölkə kodları, valyutalar, vergi dərəcələri) istifadə olunmalıdır. Seeds heç vaxt böyük və ya tez-tez yenilənən tranzaksiyalar üçün istifadə edilməməlidir, çünki bu CSV-lər Git repozitoriyasında saxlanılır. İstehsalat dbt layihələrində 3 laylı qovluq standartı tətbiq olunur: (1) **`staging/` (`stg_` prefiksi)**: Xam cədvəllərlə 1-ə 1 münasibətdədir; sütun adlarını təmizləyir, tipləri çevirir və yüngül filtrlər qoyur. Başqa cədvəllərlə JOIN edilmir və adətən `view` kimi qurulur. (2) **`intermediate/` (`int_` prefiksi)**: Bir neçə staging cədvəlinin birləşdirilməsi və ümumi köməkçi biznes hesablamaları üçün istifadə olunur; adətən `view` və ya `ephemeral` kimi qurulur. (3) **`marts/` (`fct_` və `dim_` prefiksləri)**: Kimball Ulduz Sxemi əsasında qurulan, Power BI və hesabat sistemlərinin oxuduğu son biznes cədvəlləridir; `table` və ya `incremental` kimi materializasiya olunur."
+  interviewer_tips:
+    en: "Mention the '1-to-1 rule' for staging: each raw source table should have exactly one staging model. Multi-source joins belong in intermediate or marts."
+    az: "Staging üçün '1-ə 1 qaydası'nı mütləq qeyd edin: hər xam mənbə cədvəli üçün layihədə yalnız 1 ədəd staging modeli olmalıdır. Cədvəllərin birləşdirilməsi intermediate və ya marts layına aiddir."
+flashcards:
+  - front:
+      en: "What command compiles and loads CSV files in the `seeds/` folder into the database?"
+      az: "`seeds/` qovluğundakı CSV fayllarını bazaya cədvəl kimi yükləmək üçün hansı komanda icra olunur?"
+    back:
+      en: "`dbt seed`."
+      az: "`dbt seed`."
+  - front:
+      en: "Why should you NOT use dbt Seeds for large transactional datasets?"
+      az: "Böyük tranzaksiya məlumatları üçün nə üçün dbt Seeds istifadə etmək OLMAZ?"
+    back:
+      en: "Seeds are committed directly into Git, making version control sluggish and blowing up repository storage."
+      az: "Seed faylları birbaşa Git-də saxlanılır; böyük data Git repozitoriyasını həddindən artıq şişirdir və ləngidir."
+  - front:
+      en: "What is the primary role of the `staging/` layer in a dbt project?"
+      az: "dbt layihəsində `staging/` layının əsas rolu nədir?"
+    back:
+      en: "To create a clean 1-to-1 representation of raw sources by standardizing column names and casting data types."
+      az: "Sütun adlarını standartlaşdırmaq və tipləri çevirməklə xam mənbənin 1-ə 1 təmizlənmiş versiyasını yaratmaq."
+  - front:
+      en: "Should multiple tables be joined together inside a staging model?"
+      az: "Staging modelinin daxilində bir neçə fərqli cədvəl bir-birinə JOIN edilməlidirmi?"
+    back:
+      en: "No. Staging models maintain strict 1-to-1 fidelity with raw sources; joins belong in intermediate or marts."
+      az: "Xeyr. Staging xam mənbə ilə 1-ə 1 qalmalıdır; cədvəllərin birləşdirilməsi intermediate və ya marts layına aiddir."
+  - front:
+      en: "What command hosts the auto-generated dbt documentation and interactive Lineage DAG locally?"
+      az: "Avtomatik yaradılmış dbt sənədləşdirməsini və interaktiv Lineage DAG qrafını lokalda açan komanda hansıdır?"
+    back:
+      en: "`dbt docs serve` (after running `dbt docs generate`)."
+      az: "`dbt docs serve` (`dbt docs generate` icra edildikdən sonra)."

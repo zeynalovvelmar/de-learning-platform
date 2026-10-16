@@ -1,0 +1,195 @@
+id: "01-what-is-dbt-elt-philosophy"
+order: 1
+level: "junior"
+title:
+  en: "What is dbt? The ELT Philosophy & Project Foundations"
+  az: "dbt Nədir? ELT Fəlsəfəsi və Layihənin Təməlləri"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          HOW dbt FITS INTO THE MODERN CLOUD DATA STACK (ELT)           │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. EXTRACT & LOAD (Fivetran, Airbyte, Kafka, CDC)
+       Postgres / APIs ────────► [CLOUD WAREHOUSE (Snowflake / BigQuery)]
+                                  Raw Landing Tables (e.g. raw_orders)
+                                                 │
+                                                 ▼
+    2. TRANSFORM WITH dbt (Data Build Tool)
+       ┌─────────────────────────────────────────────────────────────────┐
+       │  YOU WRITE:                                                     │
+       │    SELECT order_id, user_id, amount * 0.9 AS discounted_amount  │
+       │    FROM raw_orders;                                             │
+       │                                                                 │
+       │  dbt COMPILES & EXECUTES:                                       │
+       │    CREATE OR REPLACE TABLE analytics.orders AS                  │
+       │    SELECT order_id, user_id, amount * 0.9 AS discounted_amount  │
+       │    FROM raw_orders;                                             │
+       └─────────────────────────────────────────────────────────────────┘
+       ✨ No boilerplate DDL/DML! Pure SQL with Git, Testing & CI/CD!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │       dbt MÜASİR BULUD DATA YIĞININDA (ELT) HARADA DAYANIR?            │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. ÇIXAR VƏ YÜKLƏ (Fivetran, Airbyte, Kafka, CDC)
+       Mənbə Bazalar ──────────► [BULUD ANBARI (Snowflake / BigQuery)]
+                                  Xam Cədvəllər (məsələn: raw_orders)
+                                                 │
+                                                 ▼
+    2. dbt İLƏ ÇEVİR VƏ MODELLƏŞDİR (Transform)
+       ┌─────────────────────────────────────────────────────────────────┐
+       │  SİZİN YAZDIĞINIZ:                                              │
+       │    SELECT order_id, user_id, amount * 0.9 AS discounted_amount  │
+       │    FROM raw_orders;                                             │
+       │                                                                 │
+       │  dbt-NİN KOMPİLYASİYA EDİB İCRA ETDİYİ:                         │
+       │    CREATE OR REPLACE TABLE analytics.orders AS                  │
+       │    SELECT order_id, user_id, amount * 0.9 AS discounted_amount  │
+       │    FROM raw_orders;                                             │
+       └─────────────────────────────────────────────────────────────────┘
+       ✨ Əllə DDL/DML yazmaq yoxdur! Saf SQL, Git, Testlər və Versiya Nəzarəti!
+    ```
+explanation:
+  en: |
+    ### What is dbt (data build tool)?
+    dbt is the industry-standard transformation framework for the modern data stack.
+    - **It handles ONLY the "T" in ELT**: dbt does NOT extract data from databases or load files from APIs. Tools like Fivetran, Airbyte, or Kafka load raw data into the warehouse first. dbt transforms that data *in-place* using the warehouse's own distributed SQL engine.
+    - **You Write Only `SELECT` Queries**: In traditional SQL workflows, engineers spent 40% of their time writing tedious, repetitive boilerplate: `CREATE TABLE IF NOT EXISTS`, `DROP TABLE`, `INSERT INTO`, and grant statements. In dbt, you write a clean `SELECT` statement in a `.sql` file, and dbt wraps it in the correct DDL/DML for your warehouse (Snowflake, BigQuery, Databricks, Redshift, Postgres).
+    - **Software Engineering Best Practices for SQL**: dbt brings version control (Git), automated testing, modular dependencies, environment isolation (dev vs prod), and CI/CD pipelines to data analysts and engineers.
+
+    ### The Two Essential Files Every Junior Must Know
+    1. **`dbt_project.yml` (Project Configuration)**:
+       - Lives in the project root directory.
+       - Tells dbt project name, version, which folders contain models, and default materializations (e.g. build everything in `models/staging/` as views, and `models/marts/` as tables).
+    2. **`profiles.yml` (Connection & Credentials)**:
+       - Lives OUTSIDE the git repository in your user home directory (`~/.dbt/profiles.yml`).
+       - Contains warehouse connection credentials (host, user, password, role, database, schema).
+       - Prevents database passwords from ever being accidentally committed to public Git repositories!
+  az: |
+    ### dbt (data build tool) Nədir?
+    dbt müasir data mühəndisliyində analitik transformasiyaları idarə edən qlobal sənaye standartıdır.
+    - **Yalnız ELT-dəki "T" (Transform) hərfinə cavabdehdir**: dbt məlumatı kənardan çıxarmır (Extract) və yükləmir (Load). Məlumatı anbara Airbyte, Fivetran və ya Kafka atır. dbt isə anbarın (Snowflake, BigQuery) daxilindəki həmin xam məlumatı SQL ilə biznes cədvəllərinə çevirir.
+    - **Siz Yalnız `SELECT` Yazırsınız**: Ənənəvi SQL-də vaxtın çoxu `CREATE TABLE IF NOT EXISTS`, `DROP TABLE`, `INSERT INTO` kimi bezdirici şablon kodlara gedirdi. dbt-də mühəndis yalnız təmiz biznes məntiqini (`SELECT ...`) yazır; cədvəli və ya View-nu dbt arxa planda özü yaradır.
+    - **SQL üçün Proqram Mühəndisliyi Standartları**: dbt SQL dünyasına Git ilə versiya nəzarəti, avtomatlaşdırılmış testlər, mühit ayrılığı (test mühiti `dev`, canlı mühit `prod`) və CI/CD gətirir.
+
+    ### Hər Junior-un Mütləq Bilməli Olduğu 2 Konfiqurasiya Faylı
+    1. **`dbt_project.yml` (Layihə Konfiqurasiyası)**:
+       - Layihənin ana qovluğunda yerləşir.
+       - Layihənin adını, model qovluqlarını və ilkin materializasiya qaydalarını (məsələn: `staging` qovluğundakıları View kimi, `marts` qovluğundakıları Table kimi qur) təyin edir.
+    2. **`profiles.yml` (Qoşulma və Giriş Məlumatları)**:
+       - Git repozitoriyasından kənarda, istifadəçinin şəxsi qovluğunda (`~/.dbt/profiles.yml`) saxlanılır.
+       - Verilənlər bazasına qoşulma parollarını və rollarını saxlayır.
+       - Bu ayrılıq sayəsində şirkətin baza şifrələri heç vaxt səhvən Git-ə (GitHub/GitLab) düşmür!
+quick_recap:
+  en: "dbt transforms raw data inside cloud warehouses using modular SELECT statements, automating table creation, testing, and Git version control."
+  az: "dbt xam məlumatı anbarın daxilində modulyar SELECT sorğuları ilə çevirir, cədvəl yaradılmasını, testləri və Git versiya nəzarətini avtomatlaşdırır."
+what_it_does:
+  en: "Eliminates DDL/DML boilerplate by compiling SQL SELECT models into production warehouse tables or views."
+  az: "DDL və DML şablonlarını aradan qaldırır, SQL SELECT modellərini anbar daxilində avtomatik cədvəl və ya view-lara çevirir."
+real_world_use:
+  en: "Data teams at thousands of companies write models in dbt to turn raw Stripe, Salesforce, and Postgres tables into clean executive reporting marts."
+  az: "Şirkətlər Stripe və Postgres-dən gələn xam cədvəlləri dbt modelləri ilə təmizləyərək rəhbərlik üçün hesabat vitrinlərinə çevirir."
+common_mistakes:
+  en: "Attempting to use dbt to extract data from APIs; committing database credentials in `profiles.yml` directly into Git."
+  az: "dbt-ni API-dən data çəkmək (Extract) üçün istifadə etməyə çalışmaq; baza şifrələri olan `profiles.yml` faylını Git repozitoriyasına yükləmək."
+code: |
+  -- =========================================================================
+  -- YOUR MODEL FILE: models/staging/stg_ecommerce_orders.sql
+  -- Notice: NO "CREATE TABLE", NO "INSERT INTO", NO boilerplate!
+  -- =========================================================================
+  SELECT 
+      order_id,
+      customer_id,
+      ROUND(order_amount, 2) AS order_amount_usd,
+      UPPER(order_status) AS order_status,
+      order_timestamp
+  FROM raw_data.orders
+  WHERE order_amount > 0;
+
+  -- =========================================================================
+  -- WHAT dbt COMPILES & RUNS IN YOUR WAREHOUSE (e.g. SNOWFLAKE / BIGQUERY):
+  -- Run command: $ dbt run --select stg_ecommerce_orders
+  -- =========================================================================
+  /*
+  CREATE OR REPLACE VIEW analytics_dev.staging.stg_ecommerce_orders AS (
+      SELECT 
+          order_id,
+          customer_id,
+          ROUND(order_amount, 2) AS order_amount_usd,
+          UPPER(order_status) AS order_status,
+          order_timestamp
+      FROM raw_data.orders
+      WHERE order_amount > 0
+  );
+  */
+code_explanation:
+  en: |
+    - **Developer Experience**: You write pure business logic (`SELECT`). You don't have to manage schema creation or table replacements.
+    - **Compilation (`dbt compile`)**: dbt dynamically injects your target environment schema (`analytics_dev.staging`) and wraps your query in the appropriate DDL.
+    - **Execution (`dbt run`)**: Sends the compiled SQL command to Snowflake/BigQuery for instant execution.
+  az: |
+    - **Mühəndis Rahatlığı**: Yalnız təmiz biznes məntiqi (`SELECT`) yazırsınız. Cədvəlin yaradılmasını və ya əvəzlənməsini idarə etməyə ehtiyac qalmır.
+    - **Kompilyasiya (`dbt compile`)**: dbt hədəf mühit sxemini (`analytics_dev.staging`) avtomatik təyin edir və sorğunu uyğun DDL daxilinə salır.
+    - **İcra (`dbt run`)**: Hazır SQL əmrini anbara (Snowflake/BigQuery) göndərərək dərhal icra edir.
+visual_output: |
+  $ dbt run --select stg_ecommerce_orders
+
+  19:15:02  Running with dbt=1.8.0
+  19:15:02  Registered adapter: snowflake=1.8.0
+  19:15:03  Found 1 model, 4 data tests, 1 seed
+  19:15:03  
+  19:15:03  Concurrency: 4 threads (target='dev')
+  19:15:03  
+  19:15:03  1 of 1 START sql view model staging.stg_ecommerce_orders ................ [RUN]
+  19:15:04  1 of 1 OK created sql view model staging.stg_ecommerce_orders ........... [SUCCESS 1 in 1.12s]
+  19:15:04  
+  19:15:04  Finished running 1 view model in 0 hours 0 minutes and 1.48 seconds.
+  19:15:04  
+  19:15:04  Completed successfully
+  19:15:04  Done. PASS=1 WARN=0 ERROR=0 SKIP=0 TOTAL=1
+output_description:
+  en: "Shows the terminal output of `dbt run`, confirming successful compilation and execution of the model as a view in Snowflake."
+  az: "`dbt run` komandasının terminal çıxışı; modelin Snowflake daxilində View kimi 1.12 saniyəyə uğurla yaradıldığını təsdiqləyir."
+interview_question:
+  question:
+    en: "What is dbt (data build tool), what stage of the ELT pipeline does it handle, and why do engineers write only SELECT queries in dbt?"
+    az: "dbt (data build tool) nədir, ELT boru kəmərinin hansı mərhələsinə cavabdehdir və mühəndislər dbt-də nə üçün yalnız SELECT sorğuları yazırlar?"
+  answer:
+    en: "dbt is an open-source transformation framework that enables data engineers and analysts to transform, test, and document data directly inside cloud data warehouses using SQL and software engineering best practices. It strictly handles the 'T' (Transform) in ELT; it does not extract or load raw data. Engineers write only `SELECT` queries because dbt automatically handles the DDL (Data Definition Language) and DML boilerplate behind the scenes. When you execute `dbt run`, dbt wraps your `SELECT` query in `CREATE TABLE AS SELECT` or `CREATE VIEW AS SELECT` statements tailored to your specific database adapter (Snowflake, BigQuery, Postgres). This decouples pure business transformation logic from database administrative boilerplate, guarantees idempotent execution, and enforces Git version control."
+    az: "dbt data mühəndislərinə və analitiklərə bulud anbarlarının daxilindəki məlumatları SQL və proqram mühəndisliyi prinsipləri (Git, testlər) ilə çevirməyə, test etməyə və sənədləşdirməyə imkan verən transformasiya alətidir. O, ELT kəmərinin sırf 'T' (Transform) mərhələsinə cavabdehdir; xam məlumatı bazadan çıxarmır və ya yükləmir. Mühəndislərin yalnız `SELECT` yazmasının səbəbi dbt-nin bütün DDL və DML şablonlarını arxa planda avtomatlaşdırmasıdır. `dbt run` verdikdə, dbt sizin `SELECT` sorğunuzu hədəf bazanın (Snowflake, BigQuery) dialektinə uyğun `CREATE TABLE AS SELECT` və ya `CREATE VIEW` əmrlərinə bürüyür. Bu, biznes məntiqini inzibati cədvəl idarəetməsindən ayırır və prosesi idempotent (təkrar icra edilə bilən) edir."
+  interviewer_tips:
+    en: "Make sure to emphasize that dbt does NOT move data over the network—it pushes down SQL execution directly into the cloud warehouse's compute engine."
+    az: "dbt-nin məlumatı şəbəkə üzərindən özünə çəkmədiyini, hesablama yükünü birbaşa bulud anbarının (Snowflake/BigQuery) öz mühərrikinə yönləndirdiyini (Pushdown Execution) mütləq qeyd edin."
+flashcards:
+  - front:
+      en: "What part of the ELT pipeline does dbt handle?"
+      az: "dbt ELT boru kəmərinin hansı hissəsinə cavabdehdir?"
+    back:
+      en: "Exclusively the 'T' (Transform) stage inside the cloud data warehouse."
+      az: "Yalnız bulud verilənlər anbarının daxilindəki 'T' (Transformasiya) mərhələsinə."
+  - front:
+      en: "Why do engineers only write SELECT statements in dbt model files?"
+      az: "Mühəndislər dbt model fayllarında nə üçün yalnız SELECT sorğuları yazırlar?"
+    back:
+      en: "dbt automatically wraps the SELECT query in the appropriate DDL (CREATE VIEW or CREATE TABLE AS)."
+      az: "dbt həmin SELECT sorğusunu arxa planda avtomatik olaraq CREATE VIEW və ya CREATE TABLE DDL əmrinə çevirir."
+  - front:
+      en: "What is the purpose of the `dbt_project.yml` file?"
+      az: "`dbt_project.yml` faylının əsas məqsədi nədir?"
+    back:
+      en: "It defines project configurations, model paths, variable scopes, and default materializations."
+      az: "Layihə parametrlərini, model qovluqlarını, dəyişənləri və ilkin materializasiya qaydalarını təyin edir."
+  - front:
+      en: "Where does `profiles.yml` live, and why is it kept out of Git?"
+      az: "`profiles.yml` harada saxlanılır və nə üçün Git repozitoriyasından kənarda tutulur?"
+    back:
+      en: "In `~/.dbt/profiles.yml`; it contains sensitive database passwords and credentials that must never be exposed."
+      az: "`~/.dbt/profiles.yml` qovluğunda; heç vaxt aşkar edilməməli olan məxfi baza parollarını saxladığı üçün."
+  - front:
+      en: "Does dbt move data across external servers to transform it?"
+      az: "dbt məlumatı çevirmək üçün kənar serverlərə köçürürmü?"
+    back:
+      en: "No. It pushes all transformations down into the warehouse's distributed SQL engine in-place."
+      az: "Xeyr. Bütün transformasiyaları anbarın öz daxili paylanmış SQL mühərrikində yerində icra edir."

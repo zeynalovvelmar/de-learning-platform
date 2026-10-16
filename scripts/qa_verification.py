@@ -493,8 +493,61 @@ WHERE p.product_id IS NULL;
     assert not at_arch.exception
     print(" [PASS] Data Architecture Master Deck flashcard navigation cycled successfully.")
 
+    # 36. Switch to dbt Module
+    print("\n--- TEST CASE 36: Switch to dbt Module ---")
+    at_dbt = AppTest.from_file("app.py", default_timeout=30)
+    at_dbt.run()
+    # Switch to AZ
+    at_dbt.sidebar.button[0].click().run()
+    assert at_dbt.session_state['lang'] == 'az'
+    # Select dbt
+    at_dbt.sidebar.radio[0].set_value("dbt").run()
+    assert not at_dbt.exception
+    print(" [PASS] Switched sidebar module to 'dbt (Data Build Tool)'.")
+
+    # 37. Verify dbt Lesson Selector (6 Lessons)
+    print("\n--- TEST CASE 37: dbt Lesson Selector & 6 Lessons Discovery ---")
+    dbt_selector = at_dbt.selectbox[0]
+    print(f" [PASS] dbt Lesson options count: {len(dbt_selector.options)}")
+    for i, opt in enumerate(dbt_selector.options, 1):
+        print(f"   dbt Lesson {i}: {opt}")
+    assert len(dbt_selector.options) == 6, f"Expected 6 dbt lessons, got {len(dbt_selector.options)}"
+
+    # 38. Verify dbt Lesson 01 Content, Infographic & Visual Output
+    print("\n--- TEST CASE 38: dbt Lesson 01 Theory, Infographic & Visual Output QA ---")
+    at_dbt.selectbox[0].select("01-what-is-dbt-elt-philosophy").run()
+    assert not at_dbt.exception
+    dbt_tabs = [t.label for t in at_dbt.tabs]
+    print(f" [PASS] dbt Tabs: {dbt_tabs}")
+    assert "Nəzəriyyə" in dbt_tabs
+    assert "dbt Kodu və Nəticəsi" in dbt_tabs
+    assert "Müsahibə Kartları" in dbt_tabs
+    assert "Fleşkartlar" in dbt_tabs
+    print(" [PASS] Verified Lesson 01 loaded cleanly with Infographic, Code, and Visual Output.")
+
+    # 39. Verify dbt Flashcards & 30-Card Master Deck
+    print("\n--- TEST CASE 39: dbt Flashcards & 30-Card Master Deck QA ---")
+    at_dbt.selectbox[0].select("06-docs-seeds-and-project-structure").run()
+    assert not at_dbt.exception
+    dbt_deck_radio = at_dbt.radio(key="dbt_deck_mode_06-docs-seeds-and-project-structure")
+    assert dbt_deck_radio is not None
+    dbt_deck_radio.set_value("master").run()
+    assert not at_dbt.exception
+
+    # Verify 30 flashcards in caption
+    dbt_captions = [c.value for c in at_dbt.caption]
+    assert any("30" in c for c in dbt_captions), f"Master deck should show 30 cards, got captions: {dbt_captions}"
+    print(" [PASS] dbt Master Deck loaded all 30 flashcards across 6 lessons.")
+
+    # Cycle flashcard with next button
+    dbt_next_btn = at_dbt.button(key="dbt_btn_next_06-docs-seeds-and-project-structure_master")
+    assert dbt_next_btn is not None
+    dbt_next_btn.click().run()
+    assert not at_dbt.exception
+    print(" [PASS] dbt Master Deck flashcard navigation cycled successfully.")
+
     print("\n=====================================================================")
-    print("🎉 ALL 35 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
+    print("🎉 ALL 39 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
     print("=====================================================================")
 
 if __name__ == "__main__":
