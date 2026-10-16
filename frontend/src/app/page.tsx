@@ -98,7 +98,10 @@ export default function Home() {
     }
   };
 
-  // 3. Open Flashcards for Current Lesson
+  // Expose select lesson helper for automated testing / live auditing
+  useEffect(() => {
+    (window as any).__selectLesson = handleSelectLesson;
+  }, [modules, activeModuleId, activeLessonId, lessonDetail]);
   const handleOpenLessonFlashcards = () => {
     if (lessonDetail?.flashcards && lessonDetail.flashcards.length > 0) {
       setModalCards(lessonDetail.flashcards);

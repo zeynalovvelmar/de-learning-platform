@@ -36,11 +36,11 @@ export interface FlowSpec {
 
 function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
   const { lt } = useViz();
-  const dense = row.stages.length >= 5;
+  const dense = row.stages.length >= 4;
   let idx = rowIndex * 12;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className={cn('flex flex-col items-center gap-3 w-fit min-w-full mx-auto', dense && 'vz-dense')}>
       {row.label && (
         <span
           className={cn(
@@ -54,8 +54,7 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
       )}
       <div
         className={cn(
-          'flex w-full flex-col items-center gap-2.5 md:flex-row md:items-center md:justify-center md:gap-2.5',
-          dense && '[&_.vz-card]:min-w-[8rem] [&_.vz-card]:px-2.5 [&_.vz-line]:md:w-7',
+          'flex flex-col items-center gap-2.5 md:flex-row md:items-center md:justify-center md:gap-1.5 w-fit mx-auto px-1',
         )}
       >
         {row.stages.map((stage, sIdx) => {
@@ -91,11 +90,11 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
                     >
                       {node.badge && <span className="vz-badge">{lt(node.badge)}</span>}
                       <span className="vz-icon">
-                        <Icon className="h-[1.05rem] w-[1.05rem]" strokeWidth={2} />
+                        <Icon className="h-[0.95rem] w-[0.95rem]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0">
-                        <span className="vz-label block">{lt(node.label)}</span>
-                        {node.sub && <span className="vz-sub block">{lt(node.sub)}</span>}
+                        <span className="vz-label block truncate">{lt(node.label)}</span>
+                        {node.sub && <span className="vz-sub block truncate">{lt(node.sub)}</span>}
                       </span>
                     </div>
                   );
@@ -110,24 +109,24 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
 }
 
 function FlowRows({ spec }: { spec: FlowSpec }) {
-  const { lt } = useViz();
-  void lt;
   return (
-    <div className="flex flex-col gap-4 overflow-x-auto">
-      {spec.rows.map((row, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && (
-            <div className="flex items-center gap-3 px-2" aria-hidden>
-              <span className="h-px flex-1 bg-line" />
-              <span className="rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[0.625rem] font-extrabold tracking-[0.18em] text-muted">
-                VS
-              </span>
-              <span className="h-px flex-1 bg-line" />
-            </div>
-          )}
-          <FlowRow row={row} rowIndex={i} />
-        </React.Fragment>
-      ))}
+    <div className="w-full overflow-x-auto pb-4 pt-1">
+      <div className="flex flex-col gap-5 w-fit min-w-full mx-auto px-1">
+        {spec.rows.map((row, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && (
+              <div className="flex items-center gap-3 px-2 w-full max-w-xl mx-auto" aria-hidden>
+                <span className="h-px flex-1 bg-line" />
+                <span className="rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[0.625rem] font-extrabold tracking-[0.18em] text-muted">
+                  VS
+                </span>
+                <span className="h-px flex-1 bg-line" />
+              </div>
+            )}
+            <FlowRow row={row} rowIndex={i} />
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }

@@ -195,60 +195,63 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  min-width: 9.75rem;
-  padding: 0.6rem 0.85rem 0.6rem 0.6rem;
-  border-radius: 0.9rem;
+  gap: 0.55rem;
+  min-width: 7.75rem;
+  max-width: 11rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.55rem;
+  border-radius: 0.85rem;
   background: linear-gradient(135deg, rgb(var(--tone) / 0.16), rgb(var(--tone) / 0.05));
   border: 1px solid rgb(var(--tone) / 0.38);
-  box-shadow: 0 8px 22px -14px rgb(var(--tone) / 0.7);
+  box-shadow: 0 4px 16px -8px rgb(var(--tone) / 0.6);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.vz-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -10px rgb(var(--tone) / 0.7);
 }
 .vz-icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 2.15rem;
-  height: 2.15rem;
-  border-radius: 0.65rem;
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: 0.6rem;
   color: #fff;
   background: linear-gradient(135deg, rgb(var(--tone)), rgb(var(--tone) / 0.72));
-  box-shadow: 0 6px 14px -6px rgb(var(--tone) / 0.8);
+  box-shadow: 0 4px 12px -5px rgb(var(--tone) / 0.8);
 }
-.vz-label { font-size: 0.8125rem; font-weight: 650; line-height: 1.2; color: var(--ink); }
-.vz-sub { margin-top: 0.12rem; font-size: 0.6875rem; line-height: 1.25; color: var(--muted); }
+.vz-label { font-size: 0.785rem; font-weight: 700; line-height: 1.2; color: var(--ink); }
+.vz-sub { margin-top: 0.1rem; font-size: 0.625rem; line-height: 1.25; color: var(--muted); }
 .vz-badge {
   position: absolute;
-  top: -0.5rem;
-  right: 0.6rem;
-  padding: 0.05rem 0.45rem;
+  top: -0.45rem;
+  right: 0.5rem;
+  padding: 0.05rem 0.4rem;
   border-radius: 99px;
-  font-size: 0.625rem;
+  font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: #fff;
   background: rgb(var(--tone));
+  box-shadow: 0 2px 6px -2px rgb(var(--tone) / 0.8);
 }
 
 @keyframes vz-pop {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: none; }
 }
 .vz-reveal .vz-card,
 .vz-reveal .vz-connector,
 .vz-reveal .vz-stage-title {
-  opacity: 0;
-}
-.vz-reveal[data-inview="true"] .vz-card,
-.vz-reveal[data-inview="true"] .vz-connector,
-.vz-reveal[data-inview="true"] .vz-stage-title {
-  animation: vz-pop 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  animation-delay: calc(var(--i, 0) * 110ms);
+  opacity: 1;
+  animation: vz-pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
 
 .vz-stage-title {
-  font-size: 0.625rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
   text-align: center;
@@ -310,7 +313,24 @@ body {
   to { transform: translateX(100%); }
 }
 @media (min-width: 768px) {
-  .vz-line { width: 3.4rem; height: 2px; }
+  .vz-line { width: 2.25rem; height: 2px; }
+  .vz-dense .vz-line { width: 1.1rem; }
+  .vz-dense .vz-card {
+    min-width: 6.25rem;
+    max-width: 8.5rem;
+    padding: 0.35rem 0.55rem 0.35rem 0.45rem;
+    gap: 0.35rem;
+  }
+  .vz-dense .vz-icon {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+  .vz-dense .vz-label {
+    font-size: 0.72rem;
+  }
+  .vz-dense .vz-sub {
+    font-size: 0.58rem;
+  }
   .vz-line::after {
     left: auto;
     right: -1px;
