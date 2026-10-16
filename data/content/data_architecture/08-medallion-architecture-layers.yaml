@@ -1,0 +1,273 @@
+id: "08-medallion-architecture-layers"
+order: 8
+level: "intermediate"
+title:
+  en: "Medallion Architecture: Bronze, Silver & Gold Layers"
+  az: "Medallion Arxitekturası: Bronze, Silver və Gold Təbəqələri"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          THE MEDALLION ARCHITECTURE (MULTI-HOP DATA PIPELINE)          │
+    └────────────────────────────────────────────────────────────────────────┘
+     Sources: Kafka, APIs, DB CDC, Log Files
+        │
+        ▼
+    ┌──────────────────────┐  APPEND-ONLY / RAW INGESTION
+    │ 🥉 BRONZE (RAW)      │  • Preserves 100% raw source history (JSON/Avro)
+    │ Storage: S3 / ADLS   │  • Fast, unvalidated, zero data loss
+    └──────────┬───────────┘
+               │ Deduplication, Type Casting, Data Cleaning, Null Handling
+               ▼
+    ┌──────────────────────┐  CLEANSED & CONFORMED
+    │ 🥈 SILVER (CLEANSED) │  • Single source of truth, schema-enforced
+    │ Storage: Delta/Parquet│ • Queryable by analysts, enterprise view
+    └──────────┬───────────┘
+               │ Aggregations, Business Metrics, Star Schema Modeling
+               ▼
+    ┌──────────────────────┐  BUSINESS & REPORTING READY
+    │ 🥇 GOLD (ANALYTICS)  │  • Dimension & Fact tables, aggregated KPIs
+    │ Serving: BI & ML     │  • Lightning fast queries for PowerBI, Tableau, ML
+    └──────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          MEDALLION ARXİTEKTURASI (MULTI-HOP DATA BORU KƏMƏRİ)          │
+    └────────────────────────────────────────────────────────────────────────┘
+     Mənbələr: Kafka axınları, REST API-lər, DB CDC, Loq faylları
+        │
+        ▼
+    ┌──────────────────────┐  APPEND-ONLY / XAM MƏLUMAT (RAW)
+    │ 🥉 BRONZE (XAM)      │  • Mənbədən gələn ilkin JSON/Avro olduğu kimi saxlanılır
+    │ Saxlanc: S3 / ADLS   │  • Sürətli qəbul, dəyişdirilməz tarixçə, itki yoxdur
+    └──────────┬───────────┘
+               │ Təkrar sətirlərin silinməsi (Dedup), Tip çevrilmələri, Təmizləmə
+               ▼
+    ┌──────────────────────┐  TƏMİZLƏNMİŞ VƏ STRUKTURLAŞDIRILMIŞ
+    │ 🥈 SILVER (TƏMİZ)    │  • Vahid həqiqət mənbəyi, sxem standartları təmin edilir
+    │ Saxlanc: Delta/Parquet│ • Analitiklər üçün sorğulana bilən korporativ qat
+    └──────────┬───────────┘
+               │ Aqreqasiyalar, Biznes göstəriciləri, Ulduz Sxemi (Star Schema)
+               ▼
+    ┌──────────────────────┐  BİZNES VƏ HESABAT ÜÇÜN HAZIR
+    │ 🥇 GOLD (ANALİTİKA)  │  • Fakt və Ölçü cədvəlləri, KPI-lar, vitrinlər
+    │ İstehlak: BI & ML    │  • PowerBI, Tableau və ML modelləri üçün yüksək sürət
+    └──────────────────────┘
+    ```
+explanation:
+  en: |
+    ### What is Medallion Architecture?
+    Medallion Architecture (popularized by Databricks) is a multi-hop data design pattern that logically organizes data inside a Lakehouse into three sequential layers of increasing quality: **Bronze (Raw)**, **Silver (Cleansed)**, and **Gold (Curated / Business)**.
+    - It resolves the classic **"Data Swamp"** issue where uncurated files in S3 become impossible to govern, debug, or query efficiently.
+
+    ### 1. Bronze Layer (Raw / Ingestion Layer)
+    - **Purpose**: Fast, high-throughput landing zone that captures raw records directly from sources (IoT streams, Kafka, Postgres CDC, third-party APIs).
+    - **Characteristics**:
+      - **Append-only & Immutable**: Existing files are never updated or deleted in Bronze.
+      - **Schema-on-Read**: Stores data in its original format (raw JSON payload, strings, or source timestamps).
+      - **Metadata Tracking**: Adds columns like `_ingested_at`, `_source_file`, or `_kafka_offset`.
+      - **Why it matters**: If downstream logic contains bugs, you can always replay and rebuild the entire data pipeline from the Bronze raw truth without re-querying production databases.
+
+    ### 2. Silver Layer (Cleaned & Conformed Layer)
+    - **Purpose**: Provides a unified, validated, query-ready enterprise view.
+    - **Transformations applied from Bronze**:
+      - **Deduplication**: Removes duplicate records caused by at-least-once message delivery or retried webhooks.
+      - **Type Casting & Normalization**: Converts raw JSON strings into structured schemas (e.g. `CAST(order_date AS TIMESTAMP)`).
+      - **Data Cleansing**: Drops or quarantines corrupt rows, trims whitespace, standardizes casing (e.g. `UPPER(country_code)`).
+      - **Enrichment**: Joins reference lookup tables (e.g. joining zip code to city/region).
+    - **Primary Consumers**: Data Analysts, Data Scientists for exploratory ad-hoc queries, and internal automated auditing scripts.
+
+    ### 3. Gold Layer (Curated / Aggregated Layer)
+    - **Purpose**: High-performance, business-facing analytical layer modeled for decision-makers and automated dashboards.
+    - **Characteristics**:
+      - **Dimensional Modeling**: Organized into Kimball **Star Schemas** (`dim_customer`, `dim_product`, `fact_sales`) or denormalized analytical reporting tables.
+      - **Pre-Aggregated Metrics**: Daily revenue, churn rates, rolling 30-day customer lifetime value (LTV).
+      - **Optimized for Reading**: Heavy compression, partitioned by date, indexed with Z-Order curves for sub-second BI query latency.
+      - **Primary Consumers**: BI Dashboards (Power BI, Tableau, Superset), executive reporting, and feature stores for production ML models.
+  az: |
+    ### Medallion Arxitekturası Nədir?
+    Medallion Arxitekturası (Databricks tərəfindən populyarlaşdırılan) Lakehouse daxilindəki məlumatları mərhələli şəkildə saflaşdıran və keyfiyyətini artıran 3 qatdan ibarət dizayn modelidir: **Bronze (Xam)**, **Silver (Təmizlənmiş)** və **Gold (Biznes/Hesabat)**.
+    - Bu model ənənəvi Data Lake-lərin idarəolunmaz zibilliyə (**Data Swamp**) çevrilməsinin qarşısını alır.
+
+    ### 1. Bronze Təbəqəsi (Xam / Qəbul Qatı)
+    - **Məqsəd**: Mənbələrdən (Kafka, CDC axınları, REST API-lər, loglar) gələn məlumatların heç bir dəyişiklik edilmədən, ən sürətli şəkildə qəbul edilməsi.
+    - **Xüsusiyyətləri**:
+      - **Append-only və Dəyişdirilməz**: Bronze qatına yalnız yeni sətir əlavə olunur, mövcud fayllar silinmir və ya redaktə edilmir.
+      - **Orijinal Format**: Məlumat ilkin JSON və ya string formatında saxlanılır.
+      - **Metadata Əlavəsi**: Hər sətirə `_ingested_at` (qəbul tarixi), `_source_file` kimi sistem sütunları əlavə edilir.
+      - **Əhəmiyyəti**: Əgər gələcəkdə pipeline-da kod səhvi aşkar olunsa və ya biznes məntiqi dəyişsə, istehsalat bazasını (Postgres/MySQL) narahat etmədən bütün tarixi məlumatı Bronze qatından yenidən emal etmək mümkündür.
+
+    ### 2. Silver Təbəqəsi (Təmizlənmiş və Standartlaşdırılmış Qat)
+    - **Məqsəd**: Təmizlənmiş, vahid həqiqət mənbəyi (Single Source of Truth) rolunu oynayan korporativ məlumat bazası təqdim etmək.
+    - **Bronze-dan Silver-ə keçid transformasiyaları**:
+      - **Təkrarların təmizlənməsi (Deduplication)**: Eyni tranzaksiyanın şəbəkə xətası səbəbindən iki dəfə göndərilməsini aradan qaldırır.
+      - **Tiplərin çevrilməsi**: Xam JSON mətnlərini dəqiq sütun tiplərinə çevirir (`TIMESTAMP`, `DECIMAL`, `INTEGER`).
+      - **Keyfiyyət yoxlamaları**: Boş (NULL) ID-ləri və ya yararsız sətirləri kənarlaşdırır (quarantine table).
+      - **Zənginləşdirmə**: Köməkçi cədvəllərlə JOIN edilərək məlumat tamamlanır.
+    - **İstehlakçılar**: Data analitiklər və tədqiqat aparan data scientist-lər.
+
+    ### 3. Gold Təbəqəsi (Aqreqasiya və Biznes Vitrini)
+    - **Məqsəd**: İdarə heyəti, hesabat sistemləri və maşın öyrənməsi modelləri üçün son dərəcə sürətli və hazır biznes göstəriciləri təqdim etmək.
+    - **Xüsusiyyətləri**:
+      - **Ölçülü Modelləşdirmə (Dimensional Modeling)**: Kimball Ulduz Sxemi (Star Schema) üzrə Fact və Dimension cədvəlləri qurulur.
+      - **Əvvəlcədən Hesablanmış Aqreqasiyalar**: Gündəlik gəlir, müştəri aktivliyi (DAU/MAU), filial dövriyyəsi.
+      - **Oxumaq üçün optimallaşdırılmış**: Parquet/Delta formatında sıxılmış, Z-Order və partisiya ilə indekslənmiş.
+      - **İstehlakçılar**: Power BI, Tableau, Looker, avtomatlaşdırılmış idarə panelləri və ML Feature Store-lar.
+quick_recap:
+  en: "Bronze stores raw immutable data with metadata; Silver cleans, deduplicates, and validates schemas; Gold builds business-ready Star schemas and aggregations for BI."
+  az: "Bronze xam dəyişməz məlumatı saxlayır; Silver təmizləyir, təkrarları silir və sxemi təmin edir; Gold isə BI üçün ulduz sxemi və aqreqasiya cədvəlləri yaradır."
+what_it_does:
+  en: "Creates a structured multi-hop pipeline that guarantees auditability in Bronze, data cleanliness in Silver, and blazing-fast analytics in Gold."
+  az: "Bronze-da audit imkanını, Silver-də məlumat təmizliyini və Gold-da yüksək sürətli analitikanı təmin edən pilləli data emalı xətti yaradır."
+real_world_use:
+  en: "Modern enterprise Lakehouses on Databricks, AWS EMR, Snowflake, and GCP Fabric implement Bronze (raw events), Silver (orders & users), and Gold (daily sales KPIs)."
+  az: "Müasir Databricks, Snowflake və AWS Lakehouse sistemlərində xam hadisələr Bronze-a, təmizlənmiş cədvəllər Silver-ə, maliyyə və satış KPI-ları Gold-a yazılır."
+common_mistakes:
+  en: "Allowing BI dashboards to query Bronze or Silver tables directly; mutating or cleaning data directly inside the Bronze landing zone."
+  az: "BI hesabatlarının birbaşa Bronze və ya Silver qatlarına qoşulmasına icazə vermək; Bronze qatında xam məlumatı təmizləyərək ilkin halını itirmək."
+code: |
+  -- =========================================================================
+  -- PRODUCTION LAKEHOUSE MEDALLION PIPELINE (SQL & DELTA LAKE DDL)
+  -- Demonstrating Bronze (Raw) -> Silver (Deduplicated) -> Gold (Aggregated)
+  -- =========================================================================
+
+  -- STEP 1: BRONZE LAYER (Raw Append-Only Kafka / Webhook Ingestion)
+  CREATE TABLE IF NOT EXISTS lakehouse_bronze.raw_transactions (
+      raw_payload STRING,           -- Raw unparsed JSON from API/Kafka
+      source_system STRING,         -- e.g. 'checkout_service_v2'
+      ingested_at TIMESTAMP         -- Ingestion timestamp metadata
+  ) USING DELTA
+  LOCATION 's3://company-lakehouse/bronze/raw_transactions';
+
+  -- Simulate landing raw JSON records
+  INSERT INTO lakehouse_bronze.raw_transactions VALUES
+  ('{"tx_id": "TX-101", "cust_id": 501, "amount": "149.99", "status": "COMPLETED", "tx_time": "2026-10-16 10:00:00"}', 'pos_terminal', CURRENT_TIMESTAMP()),
+  ('{"tx_id": "TX-101", "cust_id": 501, "amount": "149.99", "status": "COMPLETED", "tx_time": "2026-10-16 10:00:00"}', 'pos_terminal', CURRENT_TIMESTAMP()), -- Duplicate!
+  ('{"tx_id": "TX-102", "cust_id": 502, "amount": "299.50", "status": "COMPLETED", "tx_time": "2026-10-16 10:05:00"}', 'mobile_app',   CURRENT_TIMESTAMP());
+
+  -- STEP 2: SILVER LAYER (Cleaned, Typed, Deduplicated via Window Function)
+  CREATE TABLE IF NOT EXISTS lakehouse_silver.cleaned_transactions (
+      transaction_id STRING,
+      customer_id INT,
+      amount DECIMAL(10, 2),
+      status STRING,
+      transaction_time TIMESTAMP,
+      silver_processed_at TIMESTAMP
+  ) USING DELTA
+  LOCATION 's3://company-lakehouse/silver/cleaned_transactions';
+
+  -- Silver ETL: Parse JSON, cast types, eliminate duplicates
+  WITH parsed_bronze AS (
+      SELECT 
+          get_json_object(raw_payload, '$.tx_id') AS transaction_id,
+          CAST(get_json_object(raw_payload, '$.cust_id') AS INT) AS customer_id,
+          CAST(get_json_object(raw_payload, '$.amount') AS DECIMAL(10, 2)) AS amount,
+          get_json_object(raw_payload, '$.status') AS status,
+          CAST(get_json_object(raw_payload, '$.tx_time') AS TIMESTAMP) AS transaction_time,
+          ROW_NUMBER() OVER(
+              PARTITION BY get_json_object(raw_payload, '$.tx_id') 
+              ORDER BY ingested_at DESC
+          ) AS row_num
+      FROM lakehouse_bronze.raw_transactions
+  )
+  INSERT OVERWRITE lakehouse_silver.cleaned_transactions
+  SELECT 
+      transaction_id, customer_id, amount, status, transaction_time, CURRENT_TIMESTAMP()
+  FROM parsed_bronze
+  WHERE row_num = 1; -- Duplicate TX-101 successfully discarded!
+
+  -- STEP 3: GOLD LAYER (Business Metrics & BI Serving)
+  CREATE TABLE IF NOT EXISTS lakehouse_gold.daily_sales_summary (
+      sale_date DATE,
+      total_transactions INT,
+      total_revenue DECIMAL(12, 2),
+      avg_order_value DECIMAL(10, 2)
+  ) USING DELTA
+  LOCATION 's3://company-lakehouse/gold/daily_sales_summary';
+
+  -- Gold ETL: Aggregate metrics for executive reporting
+  INSERT OVERWRITE lakehouse_gold.daily_sales_summary
+  SELECT 
+      DATE(transaction_time) AS sale_date,
+      COUNT(transaction_id) AS total_transactions,
+      SUM(amount) AS total_revenue,
+      ROUND(AVG(amount), 2) AS avg_order_value
+  FROM lakehouse_silver.cleaned_transactions
+  WHERE status = 'COMPLETED'
+  GROUP BY DATE(transaction_time);
+code_explanation:
+  en: |
+    - **Bronze**: Captures raw JSON strings with an `ingested_at` audit timestamp without schema parsing to prevent data drops.
+    - **Silver**: Uses `get_json_object` to parse fields, casts to strict types (`DECIMAL`, `TIMESTAMP`), and filters duplicates via `ROW_NUMBER() = 1`.
+    - **Gold**: Pre-computes key enterprise metrics (`total_revenue`, `avg_order_value`) grouped by day for instant BI dashboard rendering.
+  az: |
+    - **Bronze**: Məlumat itkisinin qarşısını almaq üçün xam JSON mətnlərini audit zaman damğası (`ingested_at`) ilə qəbul edir.
+    - **Silver**: Sahələri oxuyur, dəqiq tiplərə çevirir (`DECIMAL`, `TIMESTAMP`) və `ROW_NUMBER() = 1` ilə təkrar sətirləri ləğv edir.
+    - **Gold**: BI panellərinin dərhal açılması üçün açar biznes göstəricilərini (`total_revenue`, `avg_order_value`) günlər üzrə əvvəlcədən hesablayır.
+visual_output: |
+  ===================== PIPELINE EXECUTION VERIFICATION =====================
+
+  1. BRONZE ROW COUNT (Includes duplicate webhook delivery):
+     Total Raw Records: 3
+
+  2. SILVER CLEANSED TABLE (lakehouse_silver.cleaned_transactions):
+     ┌────────────────┬─────────────┬────────┬───────────┬─────────────────────┐
+     │ transaction_id │ customer_id │ amount │ status    │ transaction_time    │
+     ├────────────────┼─────────────┼────────┼───────────┼─────────────────────┤
+     │ TX-101         │ 501         │ 149.99 │ COMPLETED │ 2026-10-16 10:00:00 │
+     │ TX-102         │ 502         │ 299.50 │ COMPLETED │ 2026-10-16 10:05:00 │
+     └────────────────┴─────────────┴────────┴───────────┴─────────────────────┘
+     Status: Deduplication PASSED (TX-101 duplicate eliminated).
+
+  3. GOLD BUSINESS REPORTING TABLE (lakehouse_gold.daily_sales_summary):
+     ┌────────────┬────────────────────┬───────────────┬─────────────────┐
+     │ sale_date  │ total_transactions │ total_revenue │ avg_order_value │
+     ├────────────┼────────────────────┼───────────────┼─────────────────┤
+     │ 2026-10-16 │ 2                  │ 449.49        │ 224.75          │
+     └────────────┴────────────────────┴───────────────┴─────────────────┘
+     Result: BI-Ready Data Store Ready for Tableau / PowerBI / Executive Query.
+output_description:
+  en: "Shows the data transformation lifecycle: 3 raw records in Bronze filtered to 2 unique records in Silver and summarized in 1 daily KPI row in Gold."
+  az: "Məlumatın həyat dövrünü göstərir: Bronze-dakı 3 xam sətir Silver-də 2 təmizlənmiş sətirə çevrilir və Gold-da 1 gündəlik KPI sətrində xülasələnir."
+interview_question:
+  question:
+    en: "Explain the Medallion Architecture (Bronze, Silver, Gold). Why do we need the Silver layer instead of jumping straight from Bronze to Gold?"
+    az: "Medallion Arxitekturasını (Bronze, Silver, Gold) izah edin. Niyə Bronze-dan birbaşa Gold-a keçmək əvəzinə Silver qatına ehtiyacımız var?"
+  answer:
+    en: "Medallion Architecture organizes Lakehouse data into 3 logical tiers: Bronze (raw, append-only, immutable landing zone), Silver (cleansed, conformed, deduplicated enterprise single-source-of-truth), and Gold (aggregated, dimensional Star schema optimized for BI and ML). We cannot jump directly from Bronze to Gold for three critical engineering reasons: (1) **Code Reusability & Consistency**: Multiple downstream Gold marts (e.g., Marketing Mart, Finance Mart, Fraud Detection ML) require the same cleaned, deduplicated user and transaction tables. If each mart queried Bronze directly, business logic and cleaning rules would be duplicated across pipelines, leading to inconsistent numbers. (2) **Cost & Performance Efficiency**: Complex deduplication and JSON parsing is executed once during the Bronze->Silver hop rather than recomputed across dozens of separate Gold pipelines. (3) **Ad-Hoc Analysis & Exploration**: Data Analysts and Data Scientists need granular, row-level cleansed data for hypothesis testing; Gold tables are aggregated summaries that lack atomic row-level detail."
+    az: "Medallion Arxitekturası Lakehouse məlumatlarını 3 məntiqi qata ayırır: Bronze (xam, append-only, dəyişməz qəbul qatı), Silver (təmizlənmiş, unifikasiya edilmiş, vahid həqiqət mənbəyi) və Gold (BI və ML üçün aqreqasiya edilmiş, ulduz sxemli biznes vitrini). Bronze-dan birbaşa Gold-a keçməməyimizin 3 əsas mühəndislik səbəbi var: (1) **Təkrar İstifadə və Uyğunluq**: Müxtəlif Gold vitrinləri (Marketinq, Maliyyə, Fırıldaqçılıq ML modeli) eyni təmizlənmiş tranzaksiya məlumatlarına ehtiyac duyur. Əgər hər kəs birbaşa Bronze-dan oxusa, təmizləmə və dedup məntiqləri hər pipeline-da təkrar yazılacaq və şöbələr arasında rəqəmlər fərqli çıxacaq. (2) **Hesablama Xərcləri və Performans**: Ağır JSON oxuma və dedup əməliyyatı Bronze->Silver keçidində cəmi bir dəfə icra olunur, onlarla Gold pipeline-da təkrar hesablanmır. (3) **Tədqiqat və Ad-hoc Sorğular**: Analitiklər və Data Scientist-lər dənəvər (row-level) təmiz məlumata baxmaq istəyirlər; Gold qatı isə yüksək aqreqasiyalı olduğu üçün atomik detalları gizlədir."
+  interviewer_tips:
+    en: "Emphasize that Bronze serves as the 'time-travel disaster recovery replay log', while Silver is the 'enterprise canonical model', and Gold is 'purpose-built marts'."
+    az: "Bronze-un fəlakətlər zamanı bütün boru kəmərini yenidən qurmaq üçün 'tarixi bərpa arxivi', Silver-in 'şirkətin vahid standart modeli', Gold-un isə 'spesifik biznes vitrini' olduğunu vurğulayın."
+flashcards:
+  - front:
+      en: "What is the primary role of the Bronze layer in Medallion Architecture?"
+      az: "Medallion Arxitekturasında Bronze təbəqəsinin əsas rolu nədir?"
+    back:
+      en: "To store raw, append-only, immutable data directly from source systems with metadata."
+      az: "Mənbə sistemlərindən gələn xam məlumatı dəyişdirmədən, append-only və metadata ilə saxlamaq."
+  - front:
+      en: "What transformations occur when promoting data from Bronze to Silver?"
+      az: "Məlumatı Bronze-dan Silver-ə keçirərkən hansı transformasiyalar icra olunur?"
+    back:
+      en: "Deduplication, type casting, schema validation, data cleansing, and entity resolution."
+      az: "Təkrar sətirlərin silinməsi, tip çevrilmələri, sxem yoxlanışı və məlumatların təmizlənməsi."
+  - front:
+      en: "What data structures and schemas characterize the Gold layer?"
+      az: "Gold təbəqəsini hansı məlumat strukturları və sxemlər xarakterizə edir?"
+    back:
+      en: "Kimball Star Schemas (Fact/Dim tables) and pre-aggregated business KPIs ready for BI dashboards."
+      az: "BI hesabatları üçün hazır olan Kimball Ulduz Sxemləri (Fact/Dim cədvəlləri) və aqreqasiya edilmiş KPI-lar."
+  - front:
+      en: "Why is Bronze kept immutable and append-only?"
+      az: "Bronze təbəqəsi nə üçün dəyişdirilməz (immutable) və yalnız əlavə olunan (append-only) saxlanılır?"
+    back:
+      en: "To allow full pipeline replays and recalculations whenever downstream transformation logic changes or bugs are found."
+      az: "Aşağı axın transformasiya məntiqi dəyişdikdə və ya xəta aşkarlandıqda bütün pipeline-ı sıfırdan bərpa etmək üçün."
+  - front:
+      en: "Who are the primary consumers of the Silver vs Gold layers?"
+      az: "Silver və Gold təbəqələrinin əsas istifadəçiləri kimlərdir?"
+    back:
+      en: "Silver is queried by data scientists and engineers; Gold is queried by BI dashboards, analysts, and business users."
+      az: "Silver qatını data scientist-lər və mühəndislər, Gold qatını isə BI panelləri, analitiklər və biznes rəhbərləri sorğulayır."

@@ -440,8 +440,61 @@ WHERE p.product_id IS NULL;
     assert not at_devops.exception
     print(" [PASS] DevOps Master Deck flashcard navigation cycled successfully.")
 
+    # 32. Switch to Data Architecture Module
+    print("\n--- TEST CASE 32: Switch to Data Architecture Module ---")
+    at_arch = AppTest.from_file("app.py", default_timeout=30)
+    at_arch.run()
+    # Switch to AZ
+    at_arch.sidebar.button[0].click().run()
+    assert at_arch.session_state['lang'] == 'az'
+    # Select Data Architecture
+    at_arch.sidebar.radio[0].set_value("data_architecture").run()
+    assert not at_arch.exception
+    print(" [PASS] Switched sidebar module to 'Data Architecture'.")
+
+    # 33. Verify Data Architecture Lesson Selector (12 Lessons)
+    print("\n--- TEST CASE 33: Data Architecture Lesson Selector & 12 Lessons Discovery ---")
+    arch_selector = at_arch.selectbox[0]
+    print(f" [PASS] Data Architecture Lesson options count: {len(arch_selector.options)}")
+    for i, opt in enumerate(arch_selector.options, 1):
+        print(f"   Data Architecture Lesson {i}: {opt}")
+    assert len(arch_selector.options) == 12, f"Expected 12 Data Architecture lessons, got {len(arch_selector.options)}"
+
+    # 34. Verify Data Architecture Lesson 01 Content, Infographic & Visual Output
+    print("\n--- TEST CASE 34: Data Architecture Lesson 01 Theory, Infographic & Visual Output QA ---")
+    at_arch.selectbox[0].select("01-oltp-vs-olap-columnar").run()
+    assert not at_arch.exception
+    arch_tabs = [t.label for t in at_arch.tabs]
+    print(f" [PASS] Data Architecture Tabs: {arch_tabs}")
+    assert "Nəzəriyyə" in arch_tabs
+    assert "DDL Kodu və Nəticəsi" in arch_tabs
+    assert "Müsahibə Kartları" in arch_tabs
+    assert "Fleşkartlar" in arch_tabs
+    print(" [PASS] Verified Lesson 01 loaded cleanly with Infographic, Code, and Visual Output.")
+
+    # 35. Verify Data Architecture Flashcards & 60-Card Master Deck
+    print("\n--- TEST CASE 35: Data Architecture Flashcards & 60-Card Master Deck QA ---")
+    at_arch.selectbox[0].select("12-data-quality-lineage-governance").run()
+    assert not at_arch.exception
+    arch_deck_radio = at_arch.radio(key="data_architecture_deck_mode_12-data-quality-lineage-governance")
+    assert arch_deck_radio is not None
+    arch_deck_radio.set_value("master").run()
+    assert not at_arch.exception
+
+    # Verify 60 flashcards in caption
+    arch_captions = [c.value for c in at_arch.caption]
+    assert any("60" in c for c in arch_captions), f"Master deck should show 60 cards, got captions: {arch_captions}"
+    print(" [PASS] Data Architecture Master Deck loaded all 60 flashcards across 12 lessons.")
+
+    # Cycle flashcard with next button
+    arch_next_btn = at_arch.button(key="data_arch_btn_next_12-data-quality-lineage-governance_master")
+    assert arch_next_btn is not None
+    arch_next_btn.click().run()
+    assert not at_arch.exception
+    print(" [PASS] Data Architecture Master Deck flashcard navigation cycled successfully.")
+
     print("\n=====================================================================")
-    print("🎉 ALL 31 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
+    print("🎉 ALL 35 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
     print("=====================================================================")
 
 if __name__ == "__main__":

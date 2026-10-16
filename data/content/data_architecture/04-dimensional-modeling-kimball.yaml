@@ -1,0 +1,208 @@
+id: "04-dimensional-modeling-kimball"
+order: 4
+level: "junior"
+title:
+  en: "Dimensional Modeling & Ralph Kimball's 4-Step Design"
+  az: "Ölçülü Modelləşdirmə (Dimensional Modeling) və Kimball Metodu"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KIMBALL'S 4-STEP DIMENSIONAL DESIGN PROCESS                           │
+    └────────────────────────────────────────────────────────────────────────┘
+    STEP 1: SELECT THE BUSINESS PROCESS
+            "Retail Point of Sale (POS) Checkout Transactions"
+                                │
+                                ▼
+    STEP 2: DECLARE THE GRAIN (The Holy Grail!)
+            "Exactly ONE line-item of a product on a customer receipt"
+                                │
+                                ▼
+    STEP 3: IDENTIFY THE DIMENSIONS (The Context / "Who, What, Where, When")
+            [dim_date]  [dim_customer]  [dim_product]  [dim_store]  [dim_promotion]
+                                │
+                                ▼
+    STEP 4: IDENTIFY THE FACTS (The Numeric Metrics / Measurements)
+            quantity_sold, unit_price, discount_amount, tax_amount, net_sales_amount
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KİMBALL-UN 4 ADDIMLI ÖLÇÜLÜ DİZAYN METODOLOGİYASI                     │
+    └────────────────────────────────────────────────────────────────────────┘
+    1-Cİ ADDIM: BİZNES PROSESİNİ SEÇİN
+            "Kassada məhsul satışı tranzaksiyaları"
+                                │
+                                ▼
+    2-Cİ ADDIM: DƏNƏVƏRLİYİ (GRAIN) TƏYİN EDİN (Ən Vacib Qərar!)
+            "Müştəri qəbzindəki DƏQİQ BİR sətir məhsul satışı"
+                                │
+                                ▼
+    3-CÜ ADDIM: ÖLÇÜLƏRİ (DIMENSIONS) SEÇİN (Kontekst: "Kim, Nə, Harada, Nə vaxt")
+            [dim_tarix]  [dim_müştəri]  [dim_məhsul]  [dim_mağaza]  [dim_endirimlər]
+                                │
+                                ▼
+    4-CÜ ADDIM: FAKTLARI (FACTS) SEÇİN (Ədədi Metrikalar / Hesablanan Rəqəmlər)
+            satış_sayı, vahid_qiymət, endirim_məbləği, vergi, yekun_məbləğ
+    ```
+explanation:
+  en: |
+    ### Why 3rd Normal Form (3NF) Fails in Analytics
+    In software engineering, you are taught relational database normalization (3NF) to eliminate data redundancy.
+    - However, a normalized 3NF database splits data into dozens of tiny tables: `users` joins `addresses`, joins `cities`, joins `regions`, joins `countries`, joins `postal_codes`.
+    - If a BI analyst wants to answer *"What was our total revenue by city?"*, the database must execute an expensive 15-table JOIN. The dashboard buffers endlessly.
+
+    ### The Dimensional Modeling Revolution (Ralph Kimball)
+    In 1996, Ralph Kimball introduced **Dimensional Modeling**: designing databases specifically for fast, intuitive human query access.
+    Instead of dozens of normalized tables, Kimball groups data into:
+    - **Facts**: Numbers, metrics, and quantitative measurements of a business event.
+    - **Dimensions**: Descriptive attributes providing context (*Who* bought it? *Where* did they buy it? *When* did it happen?).
+
+    ### The 4-Step Design Process (Memorize This for Interviews!)
+    1. **Select the Business Process**: Identify the operational activity you want to analyze (e.g. customer orders, hospital bed admissions, credit card swipes).
+    2. **Declare the Grain**: The single most critical step! What does **one single row** in your fact table represent? (e.g. *"One individual item scanned at the cash register"*). If your grain is inconsistent, your numbers will be mathematically wrong!
+    3. **Identify Dimensions**: Surrounding context (Date, Customer, Store, Product, Cashier).
+    4. **Identify Facts**: Numeric values (Quantity, Unit Price, Margin, Extended Sales Amount).
+  az: |
+    ### Niyə 3-cü Normal Forma (3NF) Analitikada İflas Edir?
+    Universitetdə və veb proqramlaşdırmada sizə cədvəlləri normallaşdırmaq (3NF) öyrədilir ki, təkrarlanma olmasın.
+    - Lakin 3NF analitika üçün fəlakətdir! Məlumat onlarla kiçik cədvələ bölünür: `müştəri` cədvəli `ünvan`-a, ünvan `küçə`-yə, küçə `şəhər`-ə, şəhər `ölkə`-yə bağlanır.
+    - Rəhbərlik sadəcə *"Şəhərlər üzrə satış nə qədərdir?"* soruşanda baza 15 cədvəli bir-birinə JOIN etməli olur və hesabat dəqiqələrlə donub qalır.
+
+    ### Ölçülü Modelləşdirmə (Ralph Kimball) İnqilabı
+    Ralph Kimball analitika üçün xüsusi olan **Dimensional Modeling** yanaşmasını yaratdı. Burada məqsəd təkrarı qırmaq deyil, **sorğuların maksimum sürətli və sadə olmasıdır**.
+    Bütün məlumat cəmi 2 anlayışa bölünür:
+    - **Faktlar (Facts)**: Biznes hadisəsinin ədədi ölçüləri, rəqəmləri (məbləğ, say, faiz).
+    - **Ölçülər (Dimensions)**: Həmin rəqəmlərə kontekst verən keyfiyyət göstəriciləri (*Kim* aldı? *Harada* aldı? *Nə vaxt* aldı?).
+
+    ### Kimball-un 4 Addımlı Dizayn Qaydası (Müsahibələrin Qızıl Qaydası)
+    1. **Biznes Prosesini Seçin**: Nəyi analiz edirik? (Məsələn: Kassada məhsul satışı).
+    2. **Dənəvərliyi (Grain) Təyin Edin**: Ən vacib addım! Fakt cədvəlində **tək bir sətir** nəyi təmsil edir? (Məsələn: *"Müştəri çekində skan edilən dəqiq bir məhsul"*). Əgər Grain qarışıq olsa, hesablamalarınız riyazi olaraq səhv çıxacaq!
+    3. **Ölçüləri Müəyyən Edin**: Kontekst verən cədvəllər (Tarix, Müştəri, Məhsul, Mağaza).
+    4. **Faktları Müəyyən Edin**: Hesablanan rəqəmlər (Satış miqdarı, Vahid qiymət, Endirim məbləği, Cəm).
+quick_recap:
+  en: "Dimensional modeling optimizes for query speed and simplicity. Follow Kimball's 4 steps: 1) Business Process, 2) Grain, 3) Dimensions, and 4) Facts."
+  az: "Ölçülü modelləşdirmə sorğu sürəti və sadəliyi üçün nəzərdə tutulub. Kimball-un 4 addımını izləyin: 1) Biznes prosesi, 2) Dənəvərlik (Grain), 3) Ölçülər, 4) Faktlar."
+what_it_does:
+  en: "Transforms complex normalized database structures into intuitive analytical data models centered around business events and descriptive dimensions."
+  az: "Mürəkkəb normallaşdırılmış bazaları analitiklər üçün rahat olan fakt və ölçü cədvəllərinə çevirir."
+real_world_use:
+  en: "Designing the core Enterprise Data Warehouse schema for an airline booking platform, tracking seat reservations across flights, dates, and passengers."
+  az: "Aviaşirkət üçün bilet sifarişi kəmərində uçuşlar, tarixlər və sərnişinlər üzrə fakt və ölçü cədvəllərini dizayn etmək."
+common_mistakes:
+  en: "Failing to declare an explicit Grain in Step 2, mixing transaction-level line-items with daily store totals in the same fact table, causing double-counting errors."
+  az: "Grain (dənəvərlik) səviyyəsini dəqiq təyin etməmək, tək bir qəbzin sətirləri ilə aylıq yekunları eyni fakt cədvəlinə yığaraq rəqəmləri ikiqat artırmaq."
+code: |
+  -- ==============================================================================
+  -- KIMBALL DIMENSIONAL SCHEMA IMPLEMENTATION
+  -- Business Process: E-Commerce Orders  |  Grain: One line-item per order
+  -- ==============================================================================
+
+  -- Step 3: Dimension Tables (Context)
+  CREATE TABLE analytics_dwh.dim_customer (
+      customer_key       INT PRIMARY KEY,       -- Surrogate Key (DWH generated)
+      natural_user_id    INT NOT NULL,          -- Source DB ID
+      full_name          VARCHAR(100),
+      city               VARCHAR(50),
+      country            VARCHAR(50),
+      customer_tier      VARCHAR(20)
+  );
+
+  CREATE TABLE analytics_dwh.dim_product (
+      product_key        INT PRIMARY KEY,       -- Surrogate Key
+      sku                VARCHAR(50) NOT NULL,
+      product_name       VARCHAR(150),
+      category_name      VARCHAR(50),
+      unit_cost_usd      NUMERIC(10, 2)
+  );
+
+  -- Step 4: Fact Table (Grain: 1 row = 1 product line-item in an order)
+  CREATE TABLE analytics_dwh.fact_order_line_items (
+      order_item_key     BIGINT PRIMARY KEY,
+      order_id           INT NOT NULL,
+      
+      -- Foreign Keys connecting to Dimensions
+      customer_key       INT REFERENCES analytics_dwh.dim_customer(customer_key),
+      product_key        INT REFERENCES analytics_dwh.dim_product(product_key),
+      order_date_key     INT NOT NULL,          -- e.g. 20261016 (FK to dim_date)
+      
+      -- Numeric Facts (Measurements)
+      quantity_ordered   INT NOT NULL,
+      unit_price_usd     NUMERIC(10, 2) NOT NULL,
+      discount_usd       NUMERIC(10, 2) DEFAULT 0.0,
+      tax_amount_usd     NUMERIC(10, 2) NOT NULL,
+      net_revenue_usd    NUMERIC(10, 2) NOT NULL
+  );
+code_explanation:
+  en: |
+    - Demonstrates Kimball's Grain: each record in `fact_order_line_items` represents exactly 1 product inside an order (`order_id` + `product_key`).
+    - Uses **Surrogate Keys** (`customer_key`, `product_key`) rather than relying on unstable production natural IDs.
+    - Notice how all foreign keys point to dimension tables, while facts (`quantity`, `net_revenue_usd`) are purely additive numbers ready for fast aggregation.
+  az: |
+    - Kimball-un Grain prinsipini göstərir: `fact_order_line_items` cədvəlində hər sətir sifarişdəki dəqiq 1 məhsulu təmsil edir.
+    - Canlı bazanın dəyişkən ID-ləri əvəzinə DWH-ın özünün təyin etdiyi **Surroqat Açarlardan (Surrogate Keys)** istifadə olunur.
+    - Bütün xarici açarlar (FK) ölçü cədvəllərinə bağlanır, faktlar isə (`quantity`, `net_revenue_usd`) birbaşa cəmlənməyə hazır təmiz ədədlərdir.
+visual_output: |
+  ================== DIMENSIONAL QUERY: CATEGORY REVENUE REPORT ==================
+  Query:
+  SELECT 
+      p.category_name,
+      SUM(f.quantity_ordered)  AS total_units_sold,
+      SUM(f.net_revenue_usd)   AS total_revenue
+  FROM analytics_dwh.fact_order_line_items f
+  JOIN analytics_dwh.dim_product p ON f.product_key = p.product_key
+  GROUP BY p.category_name
+  ORDER BY total_revenue DESC;
+
+  ┌──────────────────┬──────────────────┬─────────────────┐
+  │ category_name    │ total_units_sold │ total_revenue   │
+  ├──────────────────┼──────────────────┼─────────────────┤
+  │ Electronics      │ 14,200           │ $1,420,500.00   │
+  │ Home & Kitchen   │ 38,950           │ $779,000.00     │
+  │ Books            │ 5,100            │ $76,500.00      │
+  └──────────────────┴──────────────────┴─────────────────┘
+  [SINGLE JOIN QUERY EXECUTED IN 0.12s - NO 15-TABLE 3NF COMPLEXITY]
+output_description:
+  en: "Demonstrates an intuitive 1-JOIN query aggregating millions of line-items across a product dimension table with sub-second execution."
+  az: "Cəmi tək bir JOIN vasitəsilə məhsul kateqoriyaları üzrə milyonlarla sətirlik faktın saniyənin onda birində cəmlənməsini göstərir."
+interview_question:
+  question:
+    en: "What are the 4 steps of Ralph Kimball's Dimensional Design Process? What is 'The Grain' and why is it considered the most crucial step?"
+    az: "Ralph Kimball-un Ölçülü Dizayn Metodologiyasının 4 addımı hansılardır? 'Grain' (Dənəvərlik) nədir və niyə ən vacib addım hesab olunur?"
+  answer:
+    en: "Ralph Kimball's 4 steps are: (1) Select the Business Process (e.g. Sales, Claims); (2) Declare the Grain; (3) Identify the Dimensions; and (4) Identify the Facts. 'The Grain' defines what a single individual row in the fact table represents in the physical world (e.g., 'one line-item of a purchase receipt' vs 'daily store aggregate'). It is considered the most crucial step because: (1) All subsequent decisions depend on it—you cannot determine which dimensions apply or which facts are valid until the grain is locked; (2) Mixing grains within the same fact table causes catastrophic double-counting bugs (e.g. adding individual receipts to daily sums); and (3) Kimball's golden rule is to always design at the lowest, most atomic grain possible to give business users maximum drill-down capability."
+    az: "Ralph Kimball-un 4 addımı bunlardır: (1) Biznes prosesini seçmək; (2) Dənəvərliyi (Grain) elan etmək; (3) Ölçüləri (Dimensions) müəyyən etmək; (4) Faktları (Facts) müəyyən etmək. 'Grain' fakt cədvəlindəki tək bir sətirin real dünyada nəyi təmsil etdiyini dəqiq müəyyən edir (məsələn: 'kassa qəbzindəki bircə sətir məhsul' və ya 'mağazanın gündəlik yekun satışı'). Bu ən vacib addımdır çünki: (1) Bütün digər addımlar buna bağlıdır — Grain bilinmədən hansı ölçülərin və faktların uyğun olduğunu seçmək olmaz; (2) Eyni fakt cədvəlində fərqli grain-ləri qarışdırmaq hesabatlarda ikiqat cəmlənmə (double-counting) səhvlərinə səbəb olur; (3) Kimball-un qızıl qaydası həmişə mümkün olan ən kiçik, atomik dənəvərlikdə cədvəl qurmaqdır ki, analitiklər istənilən xırdalığa qədər (drill-down) enə bilsinlər."
+  interviewer_tips:
+    en: "Quote Kimball's core axiom: 'Always aim for the most atomic grain.' Emphasize that atomic grain provides maximum flexibility for business queries."
+    az: "Kimball-un əsas prinsipini vurğulayın: 'Həmişə ən atomik grain-dən başlayın.' Bu analitiklərə ən xırda detala qədər getmək imkanı verir."
+flashcards:
+  - front:
+      en: "What are the 4 steps in Ralph Kimball's dimensional design methodology?"
+      az: "Ralph Kimball-un ölçülü dizayn metodologiyasındakı 4 addım hansıdır?"
+    back:
+      en: "1) Select Business Process, 2) Declare the Grain, 3) Identify Dimensions, 4) Identify Facts."
+      az: "1) Biznes prosesini seç, 2) Grain (Dənəvərlik) elan et, 3) Ölçüləri tap, 4) Faktları tap."
+  - front:
+      en: "What does 'The Grain' represent in a Fact table?"
+      az: "Fakt cədvəlində 'The Grain' (Dənəvərlik) nəyi təmsil edir?"
+    back:
+      en: "The exact definition of what a single row represents in the real world."
+      az: "Tək bir sətirin real dünyada tam olaraq nəyi təmsil etdiyinin dəqiq tərifi."
+  - front:
+      en: "Why does 3rd Normal Form (3NF) struggle with analytical reporting workloads?"
+      az: "3-cü Normal Forma (3NF) analitik hesabat işlərində niyə çətinlik çəkir?"
+    back:
+      en: "High normalization splits data across dozens of tables, requiring expensive multi-table JOINs that degrade query performance."
+      az: "Məlumatı onlarla cədvələ böldüyü üçün analitikada həddindən artıq ağır və çoxsaylı JOIN-lər tələb edir."
+  - front:
+      en: "What is a 'Surrogate Key' in a dimensional model?"
+      az: "Ölçülü modeldə 'Surroqat Açar' (Surrogate Key) nədir?"
+    back:
+      en: "A synthetic, DWH-generated integer primary key (e.g. 1, 2, 3) decoupled from the source system's natural ID."
+      az: "Mənbə sistemin ID-sindən asılı olmayan və DWH tərəfindən ardıcıl yaradılan süni unikal açardır."
+  - front:
+      en: "Why does Kimball advocate for designing at the most 'atomic grain' possible?"
+      az: "Kimball niyə həmişə mümkün olan ən 'atomik grain' səviyyəsində cədvəl qurmağı tövsiyə edir?"
+    back:
+      en: "Atomic data retains maximum detail, allowing analysts to roll up, slice, and dice data in any unanticipated dimension."
+      az: "Atomik məlumat maksimum detalı qoruyur və analitiklərə datanı istənilən bucaqdan qruplaşdırmağa imkan verir."

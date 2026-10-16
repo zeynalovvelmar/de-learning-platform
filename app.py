@@ -34,7 +34,8 @@ module_choices = {
     "spark": t['modules']['spark'],
     "kafka": t['modules']['kafka'],
     "airflow": t['modules']['airflow'],
-    "devops": t['modules']['devops']
+    "devops": t['modules']['devops'],
+    "data_architecture": t['modules']['data_architecture']
 }
 
 selected_module_key = st.sidebar.radio(
@@ -58,5 +59,8 @@ elif selected_module_key == "airflow":
     import modules.airflow as mod
 elif selected_module_key == "devops":
     import modules.devops as mod
+elif selected_module_key == "data_architecture":
+    import modules.data_architecture as mod
 
 mod.render_page(t)
+

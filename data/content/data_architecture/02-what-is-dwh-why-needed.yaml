@@ -1,0 +1,202 @@
+id: "02-what-is-dwh-why-needed"
+order: 2
+level: "junior"
+title:
+  en: "What is a Data Warehouse (DWH) & Why is it Mandatory?"
+  az: "Data Warehouse (DWH) Nədir və Niyə Mütləq Lazımdır?"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE CORE PROBLEM: SCATTERED DATA SILOS & RUNAWAY PRODUCTION QUERIES   │
+    └────────────────────────────────────────────────────────────────────────┘
+    [PostgreSQL Orders]  [Salesforce CRM]  [Stripe Billing]  [Google Analytics]
+            │                   │                 │                  │
+            └───────────────────┴────────┬────────┴──────────────────┘
+                                         ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE CENTRAL DATA WAREHOUSE (DWH)                                      │
+    │  • Subject-Oriented : Organized by business entity (Sales, Marketing)  │
+    │  • Integrated       : Unified formats (Dates: YYYY-MM-DD, Currencies)  │
+    │  • Non-Volatile     : History is NEVER deleted; records are appended   │
+    │  • Time-Variant     : Every row is timestamped for historical trends   │
+    └────────────────────────────────────────────────────────────────────────┘
+                                         │
+             ┌───────────────────────────┴───────────────────────────┐
+             ▼                                                       ▼
+      [Executive BI Dashboards]                               [Data Science / ML]
+      (Zero impact on live website!)                          (Safe analytics on clean data)
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  ƏSAS PROBLEM: PƏRAKƏNDƏ MƏLUMAT VƏ ÇÖKƏN İSTEHSALAT BAZALARI          │
+    └────────────────────────────────────────────────────────────────────────┘
+    [PostgreSQL Sifariş]  [Salesforce CRM]  [Stripe Ödəniş]  [Google Analytics]
+            │                   │                 │                  │
+            └───────────────────┴────────┬────────┴──────────────────┘
+                                         ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MƏRKƏZİ VERİLƏNLƏR ANBARI (DATA WAREHOUSE - DWH)                      │
+    │  • Mövzu Yönümlü   : Biznes sahələrinə görə bölünür (Satış, Marketinq) │
+    │  • İnteqrasiyalı   : Vahid format (Tarixlər: YYYY-MM-DD, Valyutalar)   │
+    │  • Dəyişməz (Tarix): Köhnə data silinmir; keçmiş tarix saxlanılır      │
+    │  • Zamana Bağlı    : Hər sətir dəqiq zaman damğası ilə qeyd olunur     │
+    └────────────────────────────────────────────────────────────────────────┘
+                                         │
+             ┌───────────────────────────┴───────────────────────────┐
+             ▼                                                       ▼
+       [Rəhbərlik üçün BI Panellər]                           [Data Elmi və ML]
+       (Canlı sayta heç bir ziyanı yoxdur!)                   (Təmiz və vahid data analizi)
+    ```
+explanation:
+  en: |
+    ### Why Not Just Query Operational Databases Directly?
+    Every junior engineer asks: *"We already have PostgreSQL and MongoDB. Why spend money building an expensive Data Warehouse?"*
+    
+    There are three fatal reasons:
+    1. **Operational Disaster (Locks & Latency)**: If an analyst writes a query joining 10 million transactions with 2 million customers on your production PostgreSQL, the database CPU spikes to 100%, writes are locked, and real customers trying to purchase items on your website see "504 Gateway Timeout".
+    2. **Data Fragmentation (Silos)**: Operational systems do not talk to each other. Order data is in PostgreSQL, customer support tickets are in Zendesk, marketing ad clicks are in Facebook Ads, and subscription billing is in Stripe. You cannot answer *"What is the ROI of our last campaign?"* without joining all four sources into one unified place.
+    3. **No Historical Snapshot**: Operational databases only reflect the *current state*. If a customer changes their city from Baku to London today, an OLTP database simply overwrites the record. You lose the ability to analyze where that customer lived when they placed orders in 2024!
+
+    ### Bill Inmon's 4 Tenets of a Data Warehouse
+    Father of Data Warehousing Bill Inmon defined a DWH by 4 immutable characteristics:
+    - **Subject-Oriented**: Built around core business subjects (Sales, Inventory, Customers) rather than applications.
+    - **Integrated**: Harmonizes conflicting data definitions (e.g. system A has `gender: 1/2`, system B has `gender: M/F`; DWH unifies to `'Male'/'Female'`).
+    - **Non-Volatile**: Historical data is permanent. Updates append new state rather than overwriting historical transactions.
+    - **Time-Variant**: Every record explicitly stores a time horizon (`effective_date`, `created_at`) allowing backward trend analysis over 5-10 years.
+  az: |
+    ### Niyə Hesabatları Birbaşa Canlı Bazalardan Çıxarmırıq?
+    Hər bir yeni başlayan mühəndis soruşur: *"Bizim onsuz da PostgreSQL və MongoDB bazamız var. Niyə əlavə pul xərcləyib Data Warehouse (DWH) qurmalıyıq?"*
+
+    Bunun 3 ölümcül səbəbi var:
+    1. **İstehsalat Qəzası (Kilitlər və Gecikmə)**: Əgər analitik canlı PostgreSQL bazasında 10 milyonluq sifarişi 2 milyonluq müştəri ilə JOIN etsə, serverin CPU-su 100% donur, cədvəllər kilitlənir və saytdan alış-veriş edən real müştərilər "504 Gateway Timeout" xətası görür.
+    2. **Məlumat Pərakəndəliyi (Silos)**: Şirkətin məlumatları tək bir yerdə deyil. Sifarişlər PostgreSQL-də, müştəri zəngləri Zendesk-də, reklam xərcləri Facebook Ads-də, abunəliklər isə Stripe-da saxlanılır. Bütün bu mənbələri mərkəzi anbara yığmadan *"Reklam kampaniyası bizə nə qədər xalis qazanc gətirdi?"* sualına cavab vermək mümkünsüzdür.
+    3. **Tarixçənin İtirilməsi**: Canlı bazalar yalnız *cari vəziyyəti* saxlayır. Əgər müştəri bu gün ünvanını Bakıdan Londona dəyişərsə, OLTP bazası köhnə ünvanın üzərinə yazır. Nəticədə 2024-cü ildə Bakıda edilən sifarişlər səhvən Londonun adına yazılır və bütün tarixi statistika korlanır!
+
+    ### Bill İnmonun DWH Üçün 4 Qızıl Xüsusiyyəti
+    Verilənlər Anbarının atası sayılan Bill İnmon DWH-ı belə xarakterizə edir:
+    - **Mövzu Yönümlü (Subject-Oriented)**: Proqram koduna deyil, biznesin təməl sahələrinə görə qurulur (Satış, Anbar, Müştəri).
+    - **İnteqrasiyalı (Integrated)**: Müxtəlif sistemlərin fərqli formatlarını tək bir standarta gətirir (məsələn: bir sistemdə cins `1/2`, digərində `M/F` yazılıbsa, DWH-da vahid `'Kişi'/'Qadın'` kimi saxlanılır).
+    - **Dəyişməz (Non-Volatile)**: DWH-a daxil olan data heç vaxt silinmir və ya kor-koranə dəyişdirilmir; hər şey tarix kimi ardıcıl əlavə olunur.
+    - **Zamana Bağlı (Time-Variant)**: Hər bir sətir zaman damğası ilə qeyd olunur ki, şirkətin 5 illik inkişaf dinamikasını dəqiq izləmək mümkün olsun.
+quick_recap:
+  en: "A DWH unifies scattered operational silos into a single integrated, historical, read-optimized repository without endangering production transactional databases."
+  az: "DWH pərakəndə sistemlərdəki məlumatları canlı istehsalat bazalarını təhlükəyə atmadan vahid, dəyişməz və analitikaya uyğun mərkəzdə toplayır."
+what_it_does:
+  en: "Centralizes structured data across enterprise systems to provide a Single Source of Truth for business intelligence, reporting, and predictive analytics."
+  az: "Şirkətin bütün sistemlərindəki datanı mərkəzləşdirərək biznes analitikası və hesabatlar üçün vahid və dəqiq həqiqət mənbəyi (Single Source of Truth) yaradır."
+real_world_use:
+  en: "Extracting sales transactions from Shopify, user engagement from Mixpanel, and costs from Stripe into Snowflake to calculate Customer Lifetime Value (CLV)."
+  az: "Shopify satışlarını, Stripe ödənişlərini və tətbiq loqlarını Snowflake DWH-ına toplayaraq hər bir müştərinin şirkətə ümumi gəlirini (CLV) hesablamaq."
+common_mistakes:
+  en: "Treating a Data Warehouse like an operational database and attempting to perform sub-second real-time single-row record updates."
+  az: "DWH-a canlı tranzaksiya bazası kimi baxmaq və orada hər millisaniyədən bir tək-tək sətirləri dəyişməyə (UPDATE) cəhd edərək sistemi dondurmaq."
+code: |
+  -- ==============================================================================
+  -- DATA WAREHOUSE INTEGRATION EXAMPLE: UNIFYING HETEROGENEOUS SOURCE SILOS
+  -- Standardizing disparate CRM and Billing formats into unified Enterprise DWH
+  -- ==============================================================================
+
+  -- Step 1: Clean and standardize raw CRM feed (Source A: Zendesk / Salesforce)
+  WITH cleaned_crm AS (
+      SELECT 
+          customer_id::INT                   AS raw_cust_id,
+          TRIM(LOWER(email_address))         AS standardized_email,
+          CASE 
+              WHEN gender IN ('M', '1', 'Male')   THEN 'Male'
+              WHEN gender IN ('F', '2', 'Female') THEN 'Female'
+              ELSE 'Unknown'
+          END AS unified_gender,
+          signup_date::DATE                  AS registration_date
+      FROM staging.crm_customers
+  ),
+
+  -- Step 2: Clean Billing feed (Source B: Stripe / Core Banking)
+  aggregated_billing AS (
+      SELECT 
+          customer_id::INT                   AS raw_cust_id,
+          COUNT(invoice_id)                  AS total_transactions,
+          SUM(amount_cents) / 100.0          AS lifetime_spend_usd
+      FROM staging.stripe_invoices
+      WHERE status = 'PAID'
+      GROUP BY 1
+  )
+
+  -- Step 3: Load into unified Enterprise Dimension Table (Single Source of Truth)
+  SELECT 
+      c.raw_cust_id                          AS customer_key,
+      c.standardized_email                   AS email,
+      c.unified_gender                       AS gender,
+      c.registration_date,
+      COALESCE(b.total_transactions, 0)      AS total_orders,
+      COALESCE(b.lifetime_spend_usd, 0.0)    AS total_spend_usd,
+      CURRENT_DATE                           AS dw_load_date
+  FROM cleaned_crm c
+  LEFT JOIN aggregated_billing b 
+      ON c.raw_cust_id = b.raw_cust_id;
+code_explanation:
+  en: |
+    - Demonstrates Bill Inmon's **Integration** principle: Disparate gender encodings (`1`, `2`, `M`, `F`) from Source A are harmonized into clean standard values (`Male`, `Female`).
+    - Merges operational CRM data with Stripe invoice aggregates to provide a single, complete customer dimension table for BI reporting.
+    - `dw_load_date`: Time-variant metadata tracking when the record entered the warehouse.
+  az: |
+    - Bill İnmonun **İnteqrasiya** prinsipini nümayiş etdirir: Fərqli sistemlərdən gələn cins kodları (`1`, `2`, `M`, `F`) tək bir təmiz standarta (`Male`, `Female`) gətirilir.
+    - Müştəri profilini Stripe ödənişləri ilə birləşdirərək BI hesabatları üçün tam müştəri cədvəli formalaşdırır.
+    - `dw_load_date`: Məlumatın anbara nə vaxt daxil olduğunu göstərən zamana bağlı izləmə sütunudur.
+visual_output: |
+  ===================== ENTERPRISE DWH INTEGRATED CUSTOMER DIM =====================
+  Query Output: SELECT customer_key, email, gender, total_orders, total_spend_usd FROM dim_customer;
+
+  ┌──────────────┬──────────────────────┬─────────┬──────────────┬─────────────────┐
+  │ customer_key │ email                │ gender  │ total_orders │ total_spend_usd │
+  ├──────────────┼──────────────────────┼─────────┼──────────────┼─────────────────┤
+  │ 10482        │ aysel.m@company.az   │ Female  │ 14           │ 1840.50         │
+  │ 10483        │ rashad.k@gmail.com   │ Male    │ 2            │ 120.00          │
+  │ 10484        │ info@agency.org      │ Unknown │ 0            │ 0.00            │
+  └──────────────┴──────────────────────┴─────────┴──────────────┴─────────────────┘
+  Status: SINGLE SOURCE OF TRUTH CREATED (Clean, unified, non-volatile)
+output_description:
+  en: "Displays unified customer records combining disparate CRM and Stripe financial data into a clean, standard data warehouse dimension."
+  az: "Müxtəlif CRM və Stripe ödəniş sistemlərindən gələn pərakəndə məlumatların vahid DWH cədvəlində birləşdirilmiş nümunəsini göstərir."
+interview_question:
+  question:
+    en: "Why does a modern enterprise need a Data Warehouse instead of simply running reporting queries on replica PostgreSQL databases?"
+    az: "Müasir bir şirkət hesabatları PostgreSQL replika bazalarından oxumaq əvəzinə niyə mütləq Data Warehouse qurmalıdır?"
+  answer:
+    en: "While read replicas solve the problem of database CPU locking on production, they fail to solve the primary challenges of enterprise analytics: (1) Cross-System Integration: an enterprise has data scattered across dozens of disparate operational systems (Salesforce, Stripe, Google Ads, Zendesk, PostgreSQL); a replica only contains its own database's tables; (2) Data Modeling for Analytics: replicas maintain 3rd Normal Form (3NF) with dozens of normalized tables requiring complex multi-table JOINs, whereas a DWH uses Dimensional Modeling (Star Schema) optimized for fast analytical aggregations; (3) History Tracking: operational replicas only store the current state (updates overwrite old values), whereas a DWH tracks historical changes over time (SCD Type 2); and (4) Storage Optimization: replicas use row-oriented engines, whereas modern cloud DWHs (Snowflake, BigQuery) use columnar storage with heavy compression and column pruning."
+    az: "Read-replica (yalnız-oxunan nüsxə) canlı bazanın kilitlənmə problemini həll etsə də, analitikanın əsas problemlərini həll edə bilmir: (1) Sistemlərarası İnteqrasiya: Şirkətin məlumatları onlarla fərqli xidmətdədir (Salesforce, Stripe, Google Ads, Zendesk, Postgres). Replika yalnız öz bazasını saxlayır, digər sistemlərlə birləşdirə bilmir; (2) Analitik Modelləşdirmə: Replikalar 3-cü Normal Formada (3NF) olur və bir hesabat üçün 15 cədvəli JOIN etmək lazımdır; DWH isə analitika üçün sadələşdirilmiş Star Schema istifadə edir; (3) Tarixçə İzləməsi: Replika yalnız ən son vəziyyəti saxlayır (dəyişəndə köhnə silinir); DWH isə illərlə olan dəyişikliklərin tarixçəsini (SCD Type 2) qoruyur; (4) Yaddaş Texnologiyası: Replikalar sətirli bazadır, müasir DWH-lar (Snowflake, BigQuery) isə analitikada 100 dəfə sürətli olan sütunlu (columnar) mühərriklərdir."
+  interviewer_tips:
+    en: "Never just say 'DWH is faster'. Mention the 4 architectural pillars: Cross-system integration, Star schema vs 3NF, Historical tracking (SCD), and Columnar vs Row engines."
+    az: "Heç vaxt sadəcə 'DWH daha sürətlidir' deməyin. 4 əsas arxitektur arqumenti gətirin: Müxtəlif sistemlərin birləşməsi, Star Schema vs 3NF, Tarixçənin qorunması (SCD) və Sütunlu saxlanc."
+flashcards:
+  - front:
+      en: "What are the 4 defining characteristics of a Data Warehouse according to Bill Inmon?"
+      az: "Bill İnmona görə Data Warehouse-u müəyyən edən 4 əsas xüsusiyyət hansıdır?"
+    back:
+      en: "Subject-Oriented, Integrated, Non-Volatile, and Time-Variant."
+      az: "Mövzu Yönümlü (Subject-Oriented), İnteqrasiyalı (Integrated), Dəyişməz (Non-Volatile) və Zamana Bağlı (Time-Variant)."
+  - front:
+      en: "Why does running heavy analytical queries on an operational OLTP database cause production downtime?"
+      az: "Canlı OLTP bazasında ağır analitik sorğular işlətmək niyə istehsalatın dayanmasına səbəb olur?"
+    back:
+      en: "It exhausts CPU/memory and locks database tables, causing customer transactions and web requests to time out."
+      az: "Prosessor və yaddaşı doldurur, cədvəlləri kilitləyir və müştərilərin sorğularının vaxtının bitməsinə (timeout) səbəb olur."
+  - front:
+      en: "Why is a PostgreSQL read replica not a complete substitute for a Data Warehouse?"
+      az: "PostgreSQL read-replikası niyə Data Warehouse-u tam əvəz edə bilməz?"
+    back:
+      en: "It only stores data from one system, cannot integrate external SaaS sources (Salesforce/Stripe), lacks historical tracking, and is row-oriented."
+      az: "Yalnız bir bazanın məlumatını saxlayır, digər xarici sistemləri (Stripe, CRM) birləşdirə bilmir, tarixçə saxlamır və sətirlidir."
+  - front:
+      en: "What does 'Non-Volatile' mean in the context of a Data Warehouse?"
+      az: "Data Warehouse kontekstində 'Non-Volatile' (Dəyişməz) nə deməkdir?"
+    back:
+      en: "Data is never overwritten or deleted once loaded; new events and snapshots are appended to maintain history."
+      az: "Məlumat anbara yazıldıqdan sonra heç vaxt silinmir və ya üzərinə yazılmır; tarixçə üçün daimi əlavə olunur."
+  - front:
+      en: "What is a 'Data Silo' and how does a Data Warehouse eliminate it?"
+      az: "'Data Silo' (məlumat təcridi) nədir və DWH onu necə aradan qaldırır?"
+    back:
+      en: "Isolated data trapped inside independent applications. A DWH extracts and integrates them into a single centralized repository."
+      az: "Ayrı-ayrı tətbiqlərdə ilişib qalmış təcrid olunmuş datadır. DWH onları vahid mərkəzə toplayaraq vahid həqiqət mənbəyi yaradır."

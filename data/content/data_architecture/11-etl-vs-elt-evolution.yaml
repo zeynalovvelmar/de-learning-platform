@@ -1,0 +1,236 @@
+id: "11-etl-vs-elt-evolution"
+order: 11
+level: "junior"
+title:
+  en: "ETL vs. ELT: The Architectural Paradigm Shift"
+  az: "ETL və ELT: Arxitektur Paradigma Keçidi"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                TRADITIONAL ETL  vs  MODERN CLOUD ELT                   │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. TRADITIONAL ETL (1990s - 2010s On-Premises Architecture):
+       Sources ──► EXTRACT ──► [TRANSFORM SERVER] ──► LOAD ──► [ON-PREM DWH]
+                               (Informatica/Python)            (Oracle/Teradata)
+       ❌ Bottleneck: Transform server crashed on large batches.
+       ❌ Lost Raw Data: Only aggregated, pre-filtered data was loaded into DWH.
+       ❌ Slow Changes: Any business metric change required 3-month pipeline rewrites.
+
+    2. MODERN CLOUD ELT (2015+ Cloud Data Warehouse / Lakehouse):
+       Sources ──► EXTRACT & LOAD (Raw) ────────────────► [CLOUD STORAGE / DWH]
+                   (Fivetran / Airbyte / Kafka)           (Snowflake / BigQuery / Delta)
+                                                                 │
+                                                                 ▼ TRANSFORM IN-PLACE
+                                                          [dbt / SQL Engine]
+       ✅ Unlimited Scalability: Decoupled cloud compute scales to petabytes.
+       ✅ Raw Truth Preserved: 100% of raw events stored forever at cents per GB.
+       ✅ Rapid Agility: Analysts change SQL models in dbt and backfill instantly!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                ƏNƏNƏVİ ETL  və  MÜASİR BULUD ELT MÜQAYİSƏSİ            │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. ƏNƏNƏVİ ETL (1990 - 2010-cu illər Lokal Server Arxitekturası):
+       Mənbələr ──► ÇIXARIŞ (E) ──► [TRANSFORM SERVER] ──► YÜKLƏ (L) ──► [LOKAL DWH]
+                                    (Informatica/Python)                 (Teradata/Oracle)
+       ❌ Dar Boğaz: Transformasiya edən server böyük həcmdə çökürdü.
+       ❌ İtirilmiş Xam Məlumat: DWH-a yalnız əvvəlcədən aqreqasiya edilmiş data yüklənirdi.
+       ❌ Ləng Dəyişiklik: Metrika dəyişəndə aylarla bütün boru kəmərini yenidən yazırdılar.
+
+    2. MÜASİR BULUD ELT (2015-dən sonra Bulud DWH və Lakehouse):
+       Mənbələr ──► ÇIXARIŞ VƏ YÜKLƏ (E & L) ──────────► [BULUD SAXLANCI / DWH]
+                    (Fivetran / Airbyte / Kafka)          (Snowflake / BigQuery / Delta)
+                                                                 │
+                                                                 ▼ YERİNDƏ TRANSFORM (T)
+                                                          [dbt / SQL Mühərriki]
+       ✅ Limitsiz Miqyaslanma: Yaddaş və hesablama ayrılıb, petabaytlarla data asanlıqla emal olunur.
+       ✅ Xam Məlumat Qorunur: 100% xam loqlar sentlərlə qiymətə əbədi saxlanılır.
+       ✅ Çeviklik: Analitiklər dbt-də SQL modelini dəyişib tarixi dərhal yenidən hesablayır!
+    ```
+explanation:
+  en: |
+    ### The Historic Paradigm Shift: Why ELT Replaced ETL
+    For decades, data engineering was defined by **ETL (Extract, Transform, Load)**. Today, modern cloud data architectures are predominantly **ELT (Extract, Load, Transform)**.
+    Understanding the economic and technological drivers behind this change is essential for every data engineer.
+
+    ### 1. Traditional ETL (The Era of Expensive Storage & Compute)
+    - **How it worked**:
+      1. **Extract**: Data was pulled from OLTP databases.
+      2. **Transform**: Heavy data cleaning, joins, and aggregations took place in a dedicated, external processing server (e.g. Informatica, SSIS, or custom Python worker instances).
+      3. **Load**: Only the finalized, aggregated rows were loaded into the destination warehouse (Oracle, Teradata).
+    - **Why it was built this way**: In the 1990s and 2000s, hard drive storage and on-premises database licenses were brutally expensive. Companies could not afford to store billions of raw, unaggregated events inside the data warehouse.
+    - **Fatal Weaknesses**:
+      - If an executive requested a new metric that required a raw column that had been discarded during Transformation, the historical data was lost forever.
+      - External transform servers became massive bottlenecks and single points of failure.
+
+    ### 2. Modern Cloud ELT (The Cloud Revolution)
+    - **How it works**:
+      1. **Extract & Load**: Lightweight ingestion tools (Fivetran, Airbyte, Kafka Connect) replicate raw tables and API payloads directly into Cloud Object Storage (S3, GCS) or staging tables in Snowflake/BigQuery/Databricks with zero transformation.
+      2. **Transform**: Business transformations, SCD Type 2 modeling, and metric calculations happen **inside the target engine** using high-speed distributed SQL, orchestrated by tools like **dbt (data build tool)**.
+    - **Why ELT won**:
+      - **Decoupled Compute & Storage**: Cloud storage costs ~$0.02 per GB per month. You can store 10 years of raw JSON logs with minimal expense.
+      - **Massively Parallel Processing (MPP)**: Cloud warehouses (Snowflake, BigQuery, Databricks) can dynamically spin up hundreds of CPU cores to transform terabytes of data in minutes, far faster than any standalone Python transform server.
+      - **Agility & Backfills**: Because the raw data lives inside the warehouse/lakehouse, altering business logic merely requires re-running a SQL query or dbt job to backfill the entire history.
+
+    ### 3. The Modern Hybrid: "EtLT"
+    In real-world security-conscious environments, pure ELT is often adapted into **EtLT**:
+    - **Lightweight "t" (Before Load)**: Anonymizes Personal Identifiable Information (PII) like masking credit cards, stripping passwords, and hashing emails before raw ingestion to maintain GDPR/HIPAA compliance.
+    - **Heavy "T" (In-Warehouse)**: Complex business aggregations, dimensional modeling, and analytics happen inside the warehouse via SQL.
+  az: |
+    ### Tarixi Keçid: ELT Nə Üçün ETL-i Sıxışdırıb Çıxardı?
+    Onilliklər boyu data mühəndisliyi **ETL (Extract, Transform, Load)** üzərində qurulmuşdu. Lakin bu gün müasir bulud arxitekturalarının mütləq əksəriyyəti **ELT (Extract, Load, Transform)** modelinə əsaslanır.
+    Bu texnoloji və iqtisadi inqilabın səbəblərini dərindən anlamaq hər bir data mühəndisi üçün təməl şərtdir.
+
+    ### 1. Ənənəvi ETL (Baha Disk Saxlancı və Lisenziya Dövrü)
+    - **İş Prinsipi**:
+      1. **Extract (Çıxar)**: Məlumat istehsalat bazalarından (MySQL, PostgreSQL) oxunur.
+      2. **Transform (Dəyiş)**: Təmizləmə, birləşdirmə və hesablama hədəf bazadan kənarda, xüsusi serverlərdə (Informatica, SSIS və ya Python skriptləri) aparılır.
+      3. **Load (Yüklə)**: Yalnız hazır, aqreqasiya edilmiş son nəticə anbara (Oracle, Teradata) yüklənir.
+    - **Yaranma Səbəbi**: 2000-ci illərdə disk yaddaşı və on-premises verilənlər bazası lisenziyaları inanılmaz dərəcədə baha idi. Şirkətlər milyardlarla xam sətiri anbarda saxlaya bilmirdi.
+    - **Çatışmazlıqları**:
+      - Əgər biznes rəhbəri əvvəllər atılmış hər hansı xam detala əsaslanan yeni hesabat istəsəydi, həmin məlumat artıq əbədi itmiş olurdu.
+      - Məlumatı çevirən xarici ETL serverləri böyük məlumat axınlarında iflic olur və boru kəmərini dayandırırdı.
+
+    ### 2. Müasir Bulud ELT (Bulud İnqilabı)
+    - **İş Prinsipi**:
+      1. **Extract & Load (Çıxar və Yüklə)**: Məlumat heç bir dəyişiklik edilmədən, ən xam halında avtomatlaşdırılmış alətlərlə (Airbyte, Fivetran, Kafka) birbaşa bulud anbarına (S3, Snowflake, BigQuery) yüklənir.
+      2. **Transform (Yerində Dəyiş)**: Bütün biznes hesablamaları, ulduz sxemi modelləşdirməsi hədəf sistemin daxilində paylanmış SQL mühərriki vasitəsilə (məsələn, **dbt** aləti ilə) icra olunur.
+    - **ELT Niyə Qalib Gəldi?**:
+      - **Yaddaş və Hesablamanın Ayrılması**: Buludda 1 GB yaddaş cəmi 2 sentdir. İllərlə toplanan bütün xam JSON loqlarını saxlamaq şirkət üçün çox ucuzdur.
+      - **MPP Gücü (Massively Parallel Processing)**: Snowflake və ya BigQuery saniyələr içində yüzlərlə nüvə ayıraraq terabaytlarla məlumatı xarici ETL serverlərindən 50 dəfə sürətli çevirə bilir.
+      - **İstənilən Vaxt Tarixi Bərpa**: Bütün xam məlumat əlinizin altında olduğu üçün, hesablama düsturu dəyişəndə sadəcə SQL sorğusunu dəyişib keçmiş illəri dərhal yenidən hesablamaq mümkündür.
+
+    ### 3. Müasir Hibrid Model: "EtLT"
+    Təhlükəsizlik tələbləri sərt olan sənayelərdə təmiz ELT yerinə çox vaxt **EtLT** tətbiq olunur:
+    - **Kiçik "t" (Yükləmədən Əvvəl)**: Şəxsi məlumatları (PII - kart nömrələri, şifrələr) anonimləşdirir və heşləyir (GDPR uyğunluğu üçün).
+    - **Böyük "T" (Anbar Daxilində)**: Ağır analitik birləşdirmələr və biznes metrikaları dbt və SQL ilə anbarın daxilində icra edilir.
+quick_recap:
+  en: "ETL transforms data on an external server before loading; modern ELT loads raw data directly into the cloud warehouse and executes transformations using in-warehouse distributed SQL (e.g. dbt)."
+  az: "ETL məlumatı yükləməzdən əvvəl kənar serverdə çevirir; müasir ELT isə xam məlumatı birbaşa bulud anbarına yükləyir və çevrilməni daxili SQL mühərriki ilə (dbt) aparır."
+what_it_does:
+  en: "Shifts the computational burden of data transformations from brittle external servers to elastic, scalable cloud SQL data warehouses."
+  az: "Transformasiya yükünü zəif xarici ETL serverlərindən elastik və limitsiz miqyaslanan bulud SQL mühərriklərinə ötürür."
+real_world_use:
+  en: "Modern data teams use Fivetran/Airbyte to replicate Postgres tables into Snowflake (Extract & Load), and dbt to build clean dimensional models (Transform)."
+  az: "Müasir şirkətlər Airbyte/Fivetran ilə məlumatı Snowflake-ə yükləyir (E & L), dbt ilə isə analitik modelləri SQL ilə daxildə qurur (T)."
+common_mistakes:
+  en: "Applying heavy transformations on Kafka or ingestion workers instead of loading raw data; discarding raw source attributes before loading into the warehouse."
+  az: "Xam məlumatı bazaya yükləməzdən əvvəl xarici serverdə ağır hesablamalar aparmaq; gələcəkdə lazım ola biləcək xam sütunları anbardan kənarda silmək."
+code: |
+  -- =========================================================================
+  -- MODERN CLOUD ELT PATTERN (IN-WAREHOUSE TRANSFORMATION PIPELINE)
+  -- Step 1: Raw Untouched Landing (Staging)
+  -- Step 2: Cleaned & Business Conformed Dimensional Model via SQL / dbt
+  -- =========================================================================
+
+  -- STEP 1: RAW STAGING TABLE (EL - Extracted & Loaded as raw variant/JSON)
+  CREATE TABLE IF NOT EXISTS raw_landing.stg_ecommerce_orders (
+      order_id VARCHAR(50),
+      raw_payload VARIANT,            -- Native JSON support in Snowflake/BigQuery
+      ingested_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
+  );
+
+  -- Ingestion tool (e.g. Airbyte) dumps raw JSON payloads directly
+  INSERT INTO raw_landing.stg_ecommerce_orders (order_id, raw_payload) VALUES
+  ('ORD-901', PARSE_JSON('{"user_id": 1088, "items": [{"sku": "MACBOOK-M3", "qty": 1, "price": 1999.00}], "promo_code": "SUMMER10", "status": "DELIVERED", "created_at": "2026-10-15T14:30:00Z"}')),
+  ('ORD-902', PARSE_JSON('{"user_id": 1092, "items": [{"sku": "USB-C-CABLE", "qty": 2, "price": 19.50}], "promo_code": null, "status": "DELIVERED", "created_at": "2026-10-15T15:15:00Z"}'));
+
+  -- STEP 2: IN-WAREHOUSE TRANSFORMATION (T - Modeled with SQL / dbt)
+  -- Parses semi-structured JSON, calculates discount, and structures fact table
+  CREATE TABLE IF NOT EXISTS analytics_prod.fact_order_items AS
+  WITH flattened_orders AS (
+      SELECT 
+          order_id,
+          raw_payload:user_id::INT AS user_id,
+          raw_payload:status::STRING AS order_status,
+          raw_payload:promo_code::STRING AS promo_code,
+          raw_payload:created_at::TIMESTAMP AS order_timestamp,
+          f.value:sku::STRING AS product_sku,
+          f.value:qty::INT AS item_quantity,
+          f.value:price::DECIMAL(10, 2) AS unit_price
+      FROM raw_landing.stg_ecommerce_orders,
+      LATERAL FLATTEN(input => raw_payload:items) f
+  )
+  SELECT 
+      order_id,
+      user_id,
+      product_sku,
+      item_quantity,
+      unit_price,
+      (item_quantity * unit_price) AS gross_sales_amount,
+      -- Apply business discount logic directly in SQL
+      CASE 
+          WHEN promo_code = 'SUMMER10' THEN (item_quantity * unit_price) * 0.90
+          ELSE (item_quantity * unit_price)
+      END AS net_sales_amount,
+      order_status,
+      order_timestamp
+  FROM flattened_orders;
+code_explanation:
+  en: |
+    - **Raw Landing (E & L)**: Ingestion tools write raw payloads directly into `raw_payload VARIANT` without needing preprocessing.
+    - **In-Warehouse Transform (T)**: Snowflake/BigQuery distributed SQL uses `LATERAL FLATTEN` to explode the JSON array of items into relational rows.
+    - **Business Logic in SQL**: Computes `gross_sales_amount` and `net_sales_amount` dynamically. If discount logic changes, data engineers can adjust the SQL view without reloading from source.
+  az: |
+    - **Xam Qəbul (E & L)**: Qəbul alətləri heç bir ön emal etmədən xam JSON faylını birbaşa `VARIANT` sütununa yazır.
+    - **Anbardaxili Transformasiya (T)**: Bulud SQL mühərriki `LATERAL FLATTEN` ilə JSON daxilindəki massivi sətirlərə parçalayır.
+    - **Biznes Məntiqi**: `gross_sales_amount` və endirimli `net_sales_amount` birbaşa SQL ilə hesablanır. Əgər endirim qaydası dəyişsə, mənbə bazanı narahat etmədən təkcə bu SQL sorğusunu yeniləmək kifayətdir.
+visual_output: |
+  ================== MODERN ELT IN-WAREHOUSE PIPELINE RESULT ==================
+
+  TARGET FACT TABLE: analytics_prod.fact_order_items
+  ┌──────────┬─────────┬──────────────┬──────────┬────────────┬─────────────┬───────────┬───────────┐
+  │ order_id │ user_id │ product_sku  │ quantity │ unit_price │ gross_sales │ net_sales │ status    │
+  ├──────────┼─────────┼──────────────┼──────────┼────────────┼─────────────┼───────────┼───────────┤
+  │ ORD-901  │ 1088    │ MACBOOK-M3   │ 1        │ 1999.00    │ 1999.00     │ 1799.10   │ DELIVERED │
+  │ ORD-902  │ 1092    │ USB-C-CABLE  │ 2        │ 19.50      │ 39.00       │ 39.00     │ DELIVERED │
+  └──────────┴─────────┴──────────────┴──────────┴────────────┴─────────────┴───────────┴───────────┘
+  Verification: 
+  • Promo code 'SUMMER10' applied 10% discount on ORD-901 ($1999.00 -> $1799.10)
+  • Zero external compute servers required; 100% executed via cloud SQL engine!
+output_description:
+  en: "Displays the result of in-warehouse ELT transformation, where raw nested JSON payloads are flattened and enriched with business calculations using SQL."
+  az: "Xam iç-içə JSON məlumatının bulud SQL daxilində necə cədvələ çevrildiyini və biznes endirimlərinin yerində necə hesablandığını göstərir."
+interview_question:
+  question:
+    en: "Explain the fundamental differences between ETL and ELT. Why has ELT become the industry standard for modern data stacks, and what role does dbt play?"
+    az: "ETL və ELT arasındakı fundamental fərqləri izah edin. Nə üçün ELT müasir data sistemlərində sənaye standartına çevrildi və bu prosesdə dbt-nin rolu nədir?"
+  answer:
+    en: "The core difference lies in where and when data transformations take place. In **ETL (Extract, Transform, Load)**, data is extracted from sources, transformed on a dedicated middle-tier server (e.g. Informatica, Spark, Python worker), and only the finalized, aggregated data is loaded into the warehouse. In **ELT (Extract, Load, Transform)**, raw data is immediately extracted and loaded directly into the cloud data warehouse or lakehouse (e.g. Snowflake, BigQuery, Databricks), and transformations are executed inside the warehouse using its distributed SQL engine. ELT became the standard due to three major paradigm shifts: (1) **Storage Economics**: Cloud storage costs collapsed to cents per GB, making it economical to preserve complete raw histories forever. (2) **Decoupled Compute & MPP Power**: Modern cloud warehouses scale compute independently on demand, performing transformations 10-100x faster than standalone ETL servers. (3) **Agility & Non-destructive Pipelines**: In ETL, if transformation logic had a bug, historical data was lost; in ELT, raw data is permanently preserved, allowing teams to refactor transformations and backfill data in minutes. In this modern stack, **dbt (data build tool)** is the standard transformation framework: it enables data engineers and analysts to write modular, version-controlled SQL `SELECT` statements with automated testing, documentation, and lineage graphs directly inside the warehouse."
+    az: "Əsas fərq transformasiyanın harda və nə vaxt baş verməsindədir. **ETL-də** məlumat mənbədən çıxarılır, kənar bir serverdə (Informatica, Python) dəyişdirilir və yalnız yekun aqreqasiya olunmuş nəticə anbara yüklənir. **ELT-də** isə xam məlumat heç bir dəyişiklik edilmədən birbaşa bulud anbarına (Snowflake, BigQuery, Databricks) yüklənir və bütün transformasiyalar anbarın özünün güclü paylanmış SQL mühərriki ilə daxildə icra olunur. ELT-nin standart olmasının 3 səbəbi var: (1) **Saxlanc İqtisadiyyatı**: Bulud yaddaşı çox ucuzlaşdı, bütün tarixi xam məlumatı daimi saxlamaq sərfəli oldu. (2) **Ayrılmış Hesablama və MPP Gücü**: Müasir bulud anbarları tələb olunduqda yüzlərlə nüvə ayıraraq analitik transformasiyaları kənar serverlərdən qat-qat sürətli icra edir. (3) **Çeviklik və Geri Qayıtma**: ETL-də xəta olanda tarixi məlumat itirdi; ELT-də xam məlumat həmişə anbarda olduğu üçün düstur səhvini düzəldib keçmişi dəqiqələr içində yenidən hesablamaq mümkündür. Bu arxitekturada **dbt (data build tool)** transformasiya standartıdır: mühəndislərə anbar daxilində modulyar SQL modelləri qurmağa, testlər yazmağa və avtomatik data lineage yaratmağa imkan verir."
+  interviewer_tips:
+    en: "Mention the 'EtLT' hybrid (pre-masking PII before ELT ingestion) and how dbt transformed the data industry by turning SQL into software engineering (version control, CI/CD, tests)."
+    az: "Məlumat təhlükəsizliyi üçün 'EtLT' modelini (yükləməzdən öncə PII məlumatlarının heşlənməsi) və dbt-nin SQL-ə proqram təminatı mühəndisliyi prinsiplərini (Git, testlər, CI/CD) gətirdiyini qeyd edin."
+flashcards:
+  - front:
+      en: "What does the abbreviation ELT stand for?"
+      az: "ELT abreviaturasının açılışı nədir?"
+    back:
+      en: "Extract, Load, Transform."
+      az: "Extract (Çıxar), Load (Yüklə), Transform (Çevir)."
+  - front:
+      en: "Where do data transformations occur in an ELT architecture?"
+      az: "ELT arxitekturasında məlumat transformasiyaları harada baş verir?"
+    back:
+      en: "Directly inside the destination cloud data warehouse / lakehouse using its distributed SQL MPP engine."
+      az: "Birbaşa hədəf bulud anbarının və ya lakehouse-un daxilində, onun paylanmış SQL mühərriki ilə."
+  - front:
+      en: "Why was traditional ETL preferred over ELT in the 1990s and 2000s?"
+      az: "1990 və 2000-ci illərdə ənənəvi ETL nə üçün ELT-dən daha çox üstün tutulurdu?"
+    back:
+      en: "Disk storage and database compute licenses were extremely expensive, requiring data to be pre-aggregated before loading."
+      az: "Yaddaş diskləri və baza lisenziyaları çox baha idi, buna görə məlumatı bazaya yükləməzdən əvvəl kiçiltmək tələb olunurdu."
+  - front:
+      en: "What is the primary benefit of loading raw data into the warehouse before transforming it?"
+      az: "Məlumatı çevirməzdən əvvəl xam halda anbara yükləməyin əsas faydası nədir?"
+    back:
+      en: "Historical raw data is never lost, allowing easy backfills and model changes whenever business logic evolves."
+      az: "Xam tarixçə heç vaxt itmir, biznes məntiqi dəyişdikdə keçmişi asanlıqla yenidən hesablamaq mümkündür."
+  - front:
+      en: "What is the 'EtLT' hybrid pattern used for in enterprise environments?"
+      az: "Böyük şirkətlərdə 'EtLT' hibrid modelindən nə üçün istifadə olunur?"
+    back:
+      en: "To mask or hash sensitive PII (credit cards, passwords) before landing in the warehouse, followed by heavy SQL modeling inside."
+      az: "Məxfi məlumatları (kart nömrələri, şifrələr) anbara yükləməzdən əvvəl gizlətmək (masking), sonra daxildə SQL modelləşdirməsi aparmaq üçün."

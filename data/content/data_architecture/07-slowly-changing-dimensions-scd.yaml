@@ -1,0 +1,207 @@
+id: "07-slowly-changing-dimensions-scd"
+order: 7
+level: "intermediate"
+title:
+  en: "Slowly Changing Dimensions (SCD): Type 0, 1, 2 & 3"
+  az: "Yavaş Dəyişən Ölçülər (SCD): Type 0, 1, 2 və 3"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE BUSINESS PROBLEM: A CUSTOMER MOVES FROM BAKU TO LONDON            │
+    └────────────────────────────────────────────────────────────────────────┘
+    ❌ SCD TYPE 1: OVERWRITE (History is Lost!)
+       CustKey: 101 | Name: Alice | City: London (Baku was wiped out!)
+       💥 2024 orders placed in Baku now falsely show as London revenue!
+
+    ✅ SCD TYPE 2: ADD NEW ROW (The Industry Gold Standard!)
+       Row 1 (Old): CustKey: 101 | Alice | Baku   | 2024-01-01 to 2026-04-15 | is_current: FALSE
+       Row 2 (New): CustKey: 504 | Alice | London | 2026-04-15 to 9999-12-31 | is_current: TRUE
+       ✨ 2024 orders link to Key 101 (Baku). New 2026 orders link to Key 504 (London)!
+       Zero historical corruption! Full audit compliance!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BİZNES PROBLEMİ: MÜŞTƏRİ YAŞAYIŞ YERİNİ BAKIDAN LONDONA DƏYİŞDİ       │
+    └────────────────────────────────────────────────────────────────────────┘
+    ❌ SCD TYPE 1: ÜZƏRİNƏ YAZMAQ (Tarixçə İtir!)
+       Açar: 101 | Ad: Aysel | Şəhər: London (Bakı həmişəlik silindi!)
+       💥 2024-cü ildə Bakıda edilən sifarişlər indi Londonun adına çıxır!
+
+    ✅ SCD TYPE 2: YENİ SƏTİR ƏLAVƏ ETMƏK (Sənaye Qızıl Standartı!)
+       1-ci Sətir (Köhnə): Açar: 101 | Aysel | Bakı   | 2024-01-01 - 2026-04-15 | is_current: FALSE
+       2-ci Sətir (Təzə) : Açar: 504 | Aysel | London | 2026-04-15 - 9999-12-31 | is_current: TRUE
+       ✨ 2024 sifarişləri 101-ə (Bakı), təzə 2026 sifarişləri isə 504-ə (London) bağlanır!
+       Tarixçə 100% qorunur! Heç bir hesabat səhvi yaranmır!
+    ```
+explanation:
+  en: |
+    ### What is a Slowly Changing Dimension (SCD)?
+    In real life, dimension data is not static. Customers move to new cities, sales reps change territories, products change categories, and employees change job titles.
+    - Because these changes occur infrequently (not on every second like transactions), they are called **Slowly Changing Dimensions (SCD)**.
+    - How your Data Warehouse handles these updates is one of the most heavily tested interview subjects in data engineering.
+
+    ### The 4 Major SCD Types
+    1. **SCD Type 0 (Retain Original / Fixed)**:
+       - The attribute never changes once recorded.
+       - *Examples*: Date of Birth, Original Customer Registration Date.
+    2. **SCD Type 1 (Overwrite)**:
+       - The new value simply overwrites the old value in the existing row.
+       - **Pros**: Simple, zero extra storage.
+       - **Cons**: All historical context is permanently erased! If a customer changes address, all historical sales are misattributed to the new address.
+       - *Use Case*: Correcting spelling mistakes (e.g. fixing a typo in a customer's name).
+    3. **SCD Type 2 (Add New Row - The Golden Rule)**:
+       - Preserves full historical accuracy by inserting a new record whenever a tracked attribute changes.
+       - Each record contains validity tracking columns:
+         - `valid_from`: Timestamp when this version became active.
+         - `valid_to`: Timestamp when this version was superseded (open rows use `9999-12-31`).
+         - `is_current`: Boolean flag (`TRUE`/`FALSE`) to instantly filter the current record.
+       - **Surrogate Keys**: The old record and new record share the same `natural_customer_id`, but each row gets a **unique surrogate key** (`customer_key`). Fact tables link to the surrogate key corresponding to the exact date the purchase occurred!
+    4. **SCD Type 3 (Add Previous Column)**:
+       - Adds a column named `previous_city` next to `current_city`.
+       - Only preserves 1 previous state. Inflexible and rarely used in modern systems.
+  az: |
+    ### Yavaş Dəyişən Ölçü (SCD) Nədir?
+    Real həyatda ölçü məlumatları sabit deyil. Müştəri başqa şəhərə köçür, satıcı başqa filialın əməkdaşı olur, məhsulun kateqoriyası və ya qiymət dərəcəsi dəyişir.
+    - Bu dəyişikliklər hər saniyə deyil, aylar və ya illər ərzində baş verdiyi üçün bunlara **Yavaş Dəyişən Ölçülər (Slowly Changing Dimensions - SCD)** deyilir.
+    - Bu dəyişiklikləri necə idarə etməyiniz data mühəndisliyi müsahibələrinin ən məşhur suallarından biridir.
+
+    ### Əsas 4 SCD Növü
+    1. **SCD Type 0 (Sabit / Dəyişməz)**:
+       - Bir dəfə yazılır və heç vaxt dəyişdirilmir.
+       - *Nümunələr*: Doğum tarixi, Sistemdə ilkin qeydiyyat tarixi.
+    2. **SCD Type 1 (Üzərinə Yazmaq - Overwrite)**:
+       - Yeni məlumat köhnə məlumatın üzərinə yazılır.
+       - **Müsbət cəhəti**: Çox sadədir, əlavə yer tutmur.
+       - **Mənfi cəhəti**: Tarixçə həmişəlik itir! Əgər müştəri şəhərini dəyişsə, keçmiş bütün satışlar yeni şəhərin adına yazılır.
+       - *Harada istifadə olunur*: Orfoqrafik səhvləri düzəldərkən (məs: müştərinin adındakı hərf səhvi).
+    3. **SCD Type 2 (Yeni Sətir Əlavə Etmək - Qızıl Qayda)**:
+       - Bütün tarixi dəyişiklikləri 100% qoruyur. Dəyişiklik olanda köhnə sətir silinmir, yeni bir sətir əlavə olunur.
+       - Hər sətirdə 3 xüsusi izləmə sütunu olur:
+         - `valid_from`: Bu məlumatın qüvvəyə mindiyi tarix.
+         - `valid_to`: Bu məlumatın qüvvədən düşdüyü tarix (hələ aktiv olan sətirlər üçün `9999-12-31`).
+         - `is_current`: Cari vəziyyəti göstərən bayraq (`TRUE`/`FALSE`).
+       - **Surroqat Açarlar (Surrogate Keys)**: Köhnə və təzə sətirin eyni `müştəri_id`-si olsa da, hər birinə fərqli unikal surroqat açar (`customer_key`) verilir. Fakt cədvəlindəki köhnə sifarişlər köhnə açara (Bakı), yeni sifarişlər isə yeni açara (London) bağlanır!
+    4. **SCD Type 3 (Əvvəlki Dəyər Sütunu Əlavə Etmək)**:
+       - Cədvələ `cari_şəhər` və `əvvəlki_şəhər` adlı sütun əlavə edir.
+       - Yalnız bircə addım keçmişi saxlayır; çox məhduddur və müasir sistemlərdə az işlədilir.
+quick_recap:
+  en: "SCD Type 1 overwrites data (losing history). SCD Type 2 inserts a new row with `valid_from`, `valid_to`, and `is_current` flags, preserving 100% historical accuracy."
+  az: "SCD Type 1 məlumatın üzərinə yazır (tarixçə itir). SCD Type 2 isə `valid_from`, `valid_to` və `is_current` ilə yeni sətir əlavə edərək tarixi dəqiqliyi qoruyur."
+what_it_does:
+  en: "Tracks and manages changes to descriptive dimension attributes over time, enabling retroactive reporting and historical audit accuracy."
+  az: "Zaman keçdikcə ölçü məlumatlarında baş verən dəyişiklikləri izləyir və keçmiş tarixlər üçün dəqiq hesabat almağa imkan verir."
+real_world_use:
+  en: "Preserving historical sales attribution when customers move to different tax zones or states, ensuring past tax reporting remains legally accurate."
+  az: "Müştəri başqa vergi zonasına köçdükdə keçmiş vergi hesabatlarının qanuni və düzgün qalması üçün SCD Type 2 tətbiq etmək."
+common_mistakes:
+  en: "Using SCD Type 1 on geographic or pricing dimensions, inadvertently changing past historical performance numbers whenever an entity is updated."
+  az: "Şəhər və ya qiymət dəyişəndə SCD Type 1 tətbiq etmək və keçən ilin satış hesabatlarını səhvən yeni ünvanın adına çıxarmaq."
+code: |
+  -- ==============================================================================
+  -- SCD TYPE 2 IMPLEMENTATION: MERGE STATEMENT FOR HISTORICAL AUDITING
+  -- ==============================================================================
+
+  -- Step 1: Create Dimension Table with SCD Type 2 tracking columns
+  CREATE TABLE analytics_dwh.dim_customer_scd2 (
+      customer_key       SERIAL PRIMARY KEY,      -- Unique Surrogate Key per version!
+      customer_id        INT NOT NULL,            -- Natural Business ID
+      customer_name      VARCHAR(100),
+      city               VARCHAR(50),
+      
+      -- SCD Type 2 Metadata Columns:
+      valid_from         TIMESTAMP NOT NULL,
+      valid_to           TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59',
+      is_current         BOOLEAN NOT NULL DEFAULT TRUE
+  );
+
+  -- Step 2: SIMULATE INITIAL LOAD (Alice lives in Baku on Jan 1, 2024)
+  INSERT INTO analytics_dwh.dim_customer_scd2 
+      (customer_id, customer_name, city, valid_from, valid_to, is_current)
+  VALUES 
+      (401, 'Alice Aliyeva', 'Baku', '2024-01-01 00:00:00', '9999-12-31 23:59:59', TRUE);
+
+
+  -- Step 3: SIMULATE SCD TYPE 2 UPDATE (Alice moves to London on Oct 16, 2026)
+  -- Transaction A: Close the old record by expiring it
+  UPDATE analytics_dwh.dim_customer_scd2
+  SET 
+      valid_to = '2026-10-16 00:00:00',
+      is_current = FALSE
+  WHERE customer_id = 401 AND is_current = TRUE;
+
+  -- Transaction B: Insert the new active record with a new surrogate key
+  INSERT INTO analytics_dwh.dim_customer_scd2 
+      (customer_id, customer_name, city, valid_from, valid_to, is_current)
+  VALUES 
+      (401, 'Alice Aliyeva', 'London', '2026-10-16 00:00:00', '9999-12-31 23:59:59', TRUE);
+code_explanation:
+  en: |
+    - The table maintains two distinct rows for `customer_id = 401`.
+    - `customer_key = 1`: Represents Alice in Baku from 2024-01-01 to 2026-10-16 (`is_current = FALSE`).
+    - `customer_key = 2`: Represents Alice in London from 2026-10-16 onward (`is_current = TRUE`).
+    - To query current data: `SELECT * FROM dim_customer_scd2 WHERE is_current = TRUE`.
+    - To query historical point-in-time: `WHERE '2025-06-01' BETWEEN valid_from AND valid_to`.
+  az: |
+    - Cədvəldə `customer_id = 401` üçün iki fərqli sətir saxlanılır.
+    - `customer_key = 1`: Ayselin 2024-dən 2026-cı ilin 16 Oktyabrına qədər Bakıda yaşadığını təmsil edir (`is_current = FALSE`).
+    - `customer_key = 2`: Ayselin 16 Oktyabr 2026-dan sonra Londonda yaşadığını təmsil edir (`is_current = TRUE`).
+    - Cari müştərini oxumaq üçün: `WHERE is_current = TRUE`.
+    - Keçmiş tarixdəki vəziyyəti bilmək üçün: `WHERE '2025-06-01' BETWEEN valid_from AND valid_to`.
+visual_output: |
+  ================== SCD TYPE 2 HISTORICAL AUDIT LOG ==================
+  SELECT customer_key, customer_id, customer_name, city, valid_from, valid_to, is_current 
+  FROM analytics_dwh.dim_customer_scd2;
+
+  ┌──────────────┬─────────────┬───────────────┬────────┬─────────────────────┬─────────────────────┬────────────┐
+  │ customer_key │ customer_id │ customer_name │ city   │ valid_from          │ valid_to            │ is_current │
+  ├──────────────┼─────────────┼───────────────┼────────┼─────────────────────┼─────────────────────┼────────────┤
+  │ 1            │ 401         │ Alice Aliyeva │ Baku   │ 2024-01-01 00:00:00 │ 2026-10-16 00:00:00 │ false      │
+  │ 2            │ 401         │ Alice Aliyeva │ London │ 2026-10-16 00:00:00 │ 9999-12-31 23:59:59 │ true       │
+  └──────────────┴─────────────┴───────────────┴────────┴─────────────────────┴─────────────────────┴────────────┘
+  Result: 100% AUDIT COMPLIANCE (Baku history preserved; London active for future orders)
+output_description:
+  en: "Displays the SCD Type 2 dimension state where Alice's relocation to London creates a new active version while preserving Baku history."
+  az: "Ayselin Londona köçməsinin yeni aktiv versiya yaratdığını, eyni zamanda Bakı tarixçəsini qoruduğunu göstərən SCD Type 2 cədvəli."
+interview_question:
+  question:
+    en: "What is a Slowly Changing Dimension (SCD)? Compare Type 1 vs Type 2 with an example, and explain what columns are required to implement Type 2."
+    az: "Slowly Changing Dimension (SCD) nədir? Type 1 ilə Type 2-ni nümunə ilə müqayisə edin və Type 2 tətbiq etmək üçün hansı sütunların lazım olduğunu izah edin."
+  answer:
+    en: "A Slowly Changing Dimension (SCD) is a design pattern used in data warehousing to manage changes in descriptive dimension attributes over time (e.g., customer address, employee job title, product category). In SCD Type 1, the old value is simply overwritten with the new value in the existing row. No history is kept. While simple, it completely corrupts historical reporting because past transactions are retroactively reassigned to the new attribute value. In SCD Type 2, full historical lineage is preserved by inserting a brand new row whenever a tracked attribute changes, assigning it a new surrogate key. To implement SCD Type 2, three metadata columns are required: (1) `valid_from` (timestamp when this version became effective); (2) `valid_to` (timestamp when this version was superseded, using a high-water mark like '9999-12-31' for active rows); and (3) `is_current` (a boolean flag for fast filtering of current active records)."
+    az: "Slowly Changing Dimension (SCD) verilənlər anbarında zaman keçdikcə ölçü məlumatlarında (müştəri ünvanı, əməkdaşın vəzifəsi) baş verən dəyişiklikləri idarə etmək üçün dizayn şablonudur. SCD Type 1-də köhnə məlumatın üzərinə birbaşa yeni məlumat yazılır. Tarixçə saxlanılmır. Bu çox sadə olsa da, tarixi hesabatları korlayır, çünki keçmiş satışlar yeni ünvanın adına yazılır. SCD Type 2-də isə dəyişiklik baş verəndə köhnə sətir saxlanılır və yeni bir sətir əlavə olunur (yeni surroqat açarla). SCD Type 2 tətbiq etmək üçün 3 metadata sütunu tələb olunur: (1) `valid_from` (bu versiyanın başladığı tarix); (2) `valid_to` (bu versiyanın bitdiyi tarix; aktiv sətir üçün '9999-12-31' yazılır); (3) `is_current` (ən son aktiv sətiri dərhal tapmaq üçün `TRUE`/`FALSE` bayrağı)."
+  interviewer_tips:
+    en: "Mention the 'Surrogate Key' mechanism: a customer has ONE natural business ID, but MULTIPLE surrogate keys in SCD Type 2. This proves you know how Fact tables link to specific historical versions."
+    az: "Müştərinin 1 təbii ID-si, lakin SCD Type 2-də bir neçə Surroqat açarı olduğunu qeyd edin. Bu, fakt cədvəlinin həmin tarixdəki düzgün versiyaya necə bağlandığını bildiyinizi sübut edir."
+flashcards:
+  - front:
+      en: "What is an SCD (Slowly Changing Dimension)?"
+      az: "SCD (Slowly Changing Dimension) nədir?"
+    back:
+      en: "A design pattern used in data warehousing to manage and track changes to dimension attributes over time."
+      az: "Zaman keçdikcə ölçü məlumatlarında baş verən dəyişiklikləri izləmək və idarə etmək üçün dizayn şablonudur."
+  - front:
+      en: "How does SCD Type 1 handle an attribute update?"
+      az: "SCD Type 1 məlumat dəyişikliyini necə həll edir?"
+    back:
+      en: "It overwrites the existing value in place, keeping no historical record of the previous value."
+      az: "Köhnə dəyərin üzərinə birbaşa yenisini yazır və əvvəlki dəyərin tarixçəsini saxlamır."
+  - front:
+      en: "How does SCD Type 2 preserve historical changes?"
+      az: "SCD Type 2 tarixi dəyişiklikləri necə qoruyur?"
+    back:
+      en: "It closes the old record and inserts a brand new row with a new surrogate key and validity dates."
+      az: "Köhnə sətri bağlayır və yeni surroqat açar və etibarlılıq tarixləri ilə təzə bir sətir əlavə edir."
+  - front:
+      en: "What 3 metadata tracking columns are standard in an SCD Type 2 table?"
+      az: "SCD Type 2 cədvəlində hansı 3 standart metadata sütunu olur?"
+    back:
+      en: "`valid_from`, `valid_to`, and `is_current` (boolean flag)."
+      az: "`valid_from`, `valid_to` və `is_current` (boolean bayraq)."
+  - front:
+      en: "What value is traditionally set in `valid_to` for an actively current SCD Type 2 record?"
+      az: "Aktiv SCD Type 2 sətri üçün `valid_to` sütununa ənənəvi olaraq hansı dəyər yazılır?"
+    back:
+      en: "A future high-water mark timestamp, typically `'9999-12-31 23:59:59'` (or `NULL`)."
+      az: "Gələcək maksimum zaman damğası, adətən `'9999-12-31 23:59:59'` (və ya `NULL`)."

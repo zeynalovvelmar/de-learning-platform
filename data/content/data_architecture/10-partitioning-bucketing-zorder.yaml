@@ -1,0 +1,227 @@
+id: "10-partitioning-bucketing-zorder"
+order: 10
+level: "advanced"
+title:
+  en: "Data Skipping: Partitioning, Bucketing & Z-Order"
+  az: "Data Skipping: Partisiya, Bucketing və Z-Order"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │     DATA SKIPPING COMPARED: PARTITIONING vs BUCKETING vs Z-ORDER       │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. PARTITIONING (Physical Directories by Low-Cardinality Keys like Date)
+       s3://bucket/sales/year=2026/month=10/day=16/part-0.parquet
+       • Prunes entire folders: `WHERE date = '2026-10-16'` reads 1 folder.
+       ⚠️ Risk: High cardinality causes "Small Files Problem" (millions of tiny files).
+
+    2. BUCKETING / CLUSTERING (Hash-Distributed into Fixed Number of Files)
+       Hash(user_id) % 8  ──►  8 deterministic buckets (bucket_00 to bucket_07)
+       • Eliminates network Shuffle during JOINs (Bucket Join / Colocated Joins).
+
+    3. Z-ORDER CLUSTERING (Multi-Dimensional Space-Filling Curve)
+       ┌────────┬────────┬────────┬────────┐  Clusters multi-column data simultaneously!
+       │ (0,3)  │ (1,3)  │ (2,3)  │ (3,3)  │  Example: Z-ORDER BY (customer_id, event_type)
+       │    ┌───┴────┐   │    ┌───┴────┐   │
+       │ (0,2)  │ (1,2)  │ (2,2)  │ (3,2)  │  Parquet File 1: Cust 1-100 & Event 'Click'
+       ├────────┼────────┼────────┼────────┤  Parquet File 2: Cust 1-100 & Event 'Purchase'
+       │ (0,1)  │ (1,1)  │ (2,1)  │ (3,1)  │
+       │    ┌───┴────┐   │    ┌───┴────┐   │  Queries filtering on EITHER or BOTH columns
+       │ (0,0)  │ (1,0)  │ (2,0)  │ (3,0)  │  skip 90%+ of Parquet files via Min/Max stats!
+       └────────┴────────┴────────┴────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │     DATA SKIPPING MÜQAYİSƏSİ: PARTİSİYA vs BUCKETING vs Z-ORDER        │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. PARTİSİYA (Aşağı Kardinallıqlı Sütunlar üzrə Fiziki Qovluqlar)
+       s3://bucket/sales/year=2026/month=10/day=16/part-0.parquet
+       • Qovluqları kənarlaşdırır: `WHERE date = '2026-10-16'` yalnız 1 qovluğu oxuyur.
+       ⚠️ Təhlükə: Yüksək kardinallıqda "Xırda Fayllar Problemi" (Small Files Problem) yaradır.
+
+    2. BUCKETING (Sabit Sayda Heş Səbətlərinə Bölüşdürmə)
+       Hash(user_id) % 8  ──►  8 deterministik səbət (bucket_00 - bucket_07)
+       • JOIN zamanı şəbəkə üzərindən ağır Shuffle əməliyyatını aradan qaldırır.
+
+    3. Z-ORDER KLASTERLƏŞDİRMƏ (Çoxölçülü Fəzanı Dolduran Morton Əyrisi)
+       ┌────────┬────────┬────────┬────────┐  Eyni anda bir neçə sütunu birgə qruplaşdırır!
+       │ (0,3)  │ (1,3)  │ (2,3)  │ (3,3)  │  Məsələn: Z-ORDER BY (customer_id, event_type)
+       │    ┌───┴────┐   │    ┌───┴────┐   │
+       │ (0,2)  │ (1,2)  │ (2,2)  │ (3,2)  │  Parquet Fayl 1: Cust 1-100 & 'Click'
+       ├────────┼────────┼────────┼────────┤  Parquet Fayl 2: Cust 1-100 & 'Purchase'
+       │ (0,1)  │ (1,1)  │ (2,1)  │ (3,1)  │
+       │    ┌───┴────┐   │    ┌───┴────┐   │  Hər iki və ya təkcə bir sütun üzrə filtr verildikdə
+       │ (0,0)  │ (1,0)  │ (2,0)  │ (3,0)  │  Min/Max metadata sayəsində faylların 90%-i atılır!
+       └────────┴────────┴────────┴────────┘
+    ```
+explanation:
+  en: |
+    ### The Big Data Challenge: Eliminating Full Table Scans
+    In a petabyte-scale Data Warehouse or Lakehouse, reading every row from disk (Full Table Scan) destroys query latency and costs thousands of dollars in cloud compute.
+    - **Data Skipping** is the technique of inspecting lightweight table metadata to skip irrelevant data files before ever touching object storage.
+
+    ### 1. Table Partitioning (Physical Directory Hierarchy)
+    - **Mechanism**: Splits data into nested directory structures on storage (e.g. `.../year=2026/month=10/`).
+    - **Partition Pruning**: When a query contains `WHERE date >= '2026-10-01'`, the query engine reads only matching folders and skips the rest.
+    - **Best Practices & Cardinality**:
+      - Ideal for low-to-medium cardinality columns (e.g. `transaction_date`, `country_code`).
+      - **CRITICAL ANTI-PATTERN: Over-partitioning**: Never partition by high-cardinality columns like `customer_id`, `device_id`, or `timestamp_seconds`. This creates millions of tiny 5KB files ("Small Files Problem"), degrading S3 metadata performance and overwhelming the Spark driver.
+
+    ### 2. Bucketing (Clustering by Hash)
+    - **Mechanism**: Distributes rows into a predetermined, fixed number of files (buckets) based on `hash(bucket_key) % num_buckets`.
+    - **Why it matters**: If two massive tables (`orders` and `users`) are both bucketed by `user_id` with the same number of buckets, Spark/Trino can perform a **Bucket Join** (Map-side join) with **ZERO network shuffle** because matching user IDs are guaranteed to live in corresponding bucket files.
+
+    ### 3. Z-Order Multi-Dimensional Clustering (The Modern Solution)
+    - **The Limitation of Hierarchical Partitioning**: You cannot partition by 5 different columns because directory depth explodes. Furthermore, traditional partitioning favors the first column: if you partition by `date` then `country`, a query filtering solely on `country` must scan all date folders!
+    - **How Z-Order Works**:
+      - Z-Order uses a mathematical space-filling Morton curve to map multi-dimensional coordinates (e.g. `[user_id, product_category]`) into a 1-dimensional order while preserving spatial locality.
+      - Delta Lake and Iceberg rewrite Parquet files such that records with similar combinations of column values are packed into the same Parquet files.
+      - When a query filters on `user_id = 502` or `product_category = 'ELECTRONICS'`, the engine compares the query filter against file min/max metadata and skips 95%+ of the files.
+  az: |
+    ### Böyük Məlumat Problemi: Bütün Cədvəlin Oxunmasının (Full Scan) Qarşısını Almaq
+    Petabayt ölçülü verilənlər anbarında və ya Lakehouse-da hər sorğuda bütün cədvəli diskdən oxumaq (Full Table Scan) sorğunun dəqiqələrlə çəkməsinə və buludda minlərlə dollar artıq xərc yaranmasına səbəb olur.
+    - **Data Skipping (Məlumatın Atılması)**: Sorğu mühərrikinin faylları diskdən oxumamışdan əvvəl metadata vasitəsilə lazımsız faylları dərhal kənarlaşdırması texnikasıdır.
+
+    ### 1. Partisiya (Partitioning - Fiziki Qovluq Bölgüsü)
+    - **Mexanizm**: Məlumatı yaddaşda fiziki qovluqlara bölür (məsələn: `.../year=2026/month=10/`).
+    - **Partition Pruning (Partisiyanın Kəsilməsi)**: Sorğu `WHERE date = '2026-10-16'` filtrindən istifadə etdikdə, mühərrik digər illərin və ayların qovluqlarını tamamilə kənara qoyur və yalnız həmin günün qovluğunu oxuyur.
+    - **Kardinallıq Qaydası**:
+      - Yalnız dəyər çeşidi az (low-cardinality) olan sütunlar üçün uyğundur (məsələn: `tarix`, `region`).
+      - **BAŞLICA SƏHV: Aşırı Partisiya (Over-partitioning)**: Cədvəli heç vaxt `customer_id`, `ip_address` və ya `saniyə` üzrə partisiya etməyin! Bu, milyonlarla xırda 5-10 KB ölçülü fayl yaradır ("Small Files Problem"), S3-ü və Spark drayverini iflic edir.
+
+    ### 2. Bucketing (Sabit Sayda Heş Qutuları)
+    - **Mexanizm**: Sətirləri `hash(açar) % qutu_sayı` düsturu ilə əvvəlcədən təyin edilmiş sabit sayda Parquet faylına (məsələn, 32 səbət) paylayır.
+    - **Faydası**: Əgər iki böyük cədvəl (`orders` və `users`) hər ikisi `user_id` üzrə eyni sayda bucket-ə bölünübsə, Spark bunları JOIN edərkən şəbəkə üzərindən terabaytlarla məlumat köçürmür (**Zero Shuffle Join**). Hər işçi qovşaq yalnız özünə aid faylları birbaşa birləşdirir.
+
+    ### 3. Z-Order Çoxölçülü Klasterləşdirmə (Müasir Standart)
+    - **Partisiyanın Çatışmazlığı**: Cədvəli eyni vaxtda 4-5 sütun üzrə qovluqlara bölmək mümkün deyil. Həm də əgər cədvəl `tarix` üzrə bölünübsə, istifadəçi təkcə `müştəri` üzrə axtarış edəndə partisiya fayda vermir.
+    - **Z-Order Necə İşləyir?**:
+      - Riyazi Morton əyrisindən istifadə edərək bir neçə sütunun qiymətlərini çoxölçülü fəzada bir-birinə yaxın olan fayllara qruplaşdırır (klasterləşdirir).
+      - Məsələn, Delta Lake `OPTIMIZE table ZORDER BY (customer_id, product_type)` əmrini icra edəndə Parquet fayllarını elə nizamlayır ki, hər fayl üzrə sütunların minimum və maksimum diapazonu sıxlaşır.
+      - İstifadəçi istər tək `customer_id`, istər `product_type`, istərsə də hər ikisi üzrə filtr versin, mühərrik faylların 90-95%-ni oxumadan birbaşa hədəf faylı tapır.
+quick_recap:
+  en: "Partitioning splits data into physical folders for low-cardinality pruning; Bucketing hashes data to avoid shuffle joins; Z-Order clusters multiple columns simultaneously to maximize Parquet file skipping."
+  az: "Partisiya aşağı kardinallıq üçün fiziki qovluqlar yaradır; Bucketing shuffle-sız JOIN üçün heşləyir; Z-Order isə çoxlu sütun üzrə faylların atılmasını təmin edir."
+what_it_does:
+  en: "Dramatically accelerates query execution and reduces cloud storage read costs by pruning over 95% of unneeded files before reading table contents."
+  az: "Sorğu icrasını 10-100 dəfə sürətləndirir və lazım olmayan faylların 95%-dən çoxunu oxumadan ataraq bulud xərclərini minimuma endirir."
+real_world_use:
+  en: "High-volume data platforms partition event streams by date, while clustering analytical tables with Z-Order on user_id and device_type."
+  az: "Böyük həcmli data platformaları hadisə cədvəllərini tarix üzrə partisiya edir, analitika üçün isə user_id və cihaz üzrə Z-Order klasterləri yaradır."
+common_mistakes:
+  en: "Over-partitioning by high-cardinality keys creating millions of tiny files; choosing too many columns in Z-Order (diluting clustering effectiveness beyond 3-4 columns)."
+  az: "Yüksək kardinallıqlı sütunlar üzrə partisiya edib milyonlarla xırda fayl yaratmaq; Z-Order üçün 4-dən çox sütun seçərək klasterləşdirmənin effektivliyini zəiflətmək."
+code: |
+  -- =========================================================================
+  -- PRODUCTION OPTIMIZATION & DATA SKIPPING WORKFLOW (DELTA LAKE / SQL)
+  -- Demonstrating Partitioning, Compaction, and Z-Order Multi-Column Indexing
+  -- =========================================================================
+
+  -- STEP 1: CREATE PARTITIONED LAKEHOUSE TABLE (Partitioned by Date)
+  CREATE TABLE IF NOT EXISTS analytics_dw.clickstream_events (
+      event_id STRING,
+      user_id INT,
+      event_type STRING,
+      device_os STRING,
+      page_url STRING,
+      event_timestamp TIMESTAMP,
+      event_date DATE
+  ) USING DELTA
+  PARTITIONED BY (event_date)
+  LOCATION 's3://lakehouse-data/analytics/clickstream_events';
+
+  -- Simulate inserting streaming micro-batches across multiple days
+  -- Note: Over time, streaming inserts create many small 1MB files.
+
+  -- STEP 2: RUN TABLE OPTIMIZATION WITH MULTI-DIMENSIONAL Z-ORDER
+  -- Compacts small files into optimal 512MB-1GB Parquet files
+  -- AND reorders rows using Morton space-filling curves on (user_id, event_type)
+  OPTIMIZE analytics_dw.clickstream_events
+  ZORDER BY (user_id, event_type);
+
+  -- STEP 3: ANALYZE DATA SKIPPING METRICS
+  -- When this query runs:
+  -- 1. Partition Pruning skips all folders EXCEPT event_date = '2026-10-16'
+  -- 2. Z-Order Min/Max Pruning checks Parquet file metadata and skips 92% of the files in that partition!
+  SELECT 
+      user_id, 
+      COUNT(*) AS total_clicks,
+      MIN(event_timestamp) AS first_event,
+      MAX(event_timestamp) AS last_event
+  FROM analytics_dw.clickstream_events
+  WHERE event_date = '2026-10-16'
+    AND user_id BETWEEN 10000 AND 10500
+    AND event_type = 'CHECKOUT_CLICK'
+  GROUP BY user_id;
+code_explanation:
+  en: |
+    - **`PARTITIONED BY (event_date)`**: Establishes coarse-grained physical folder isolation; queries with date predicates prune all other partitions instantly.
+    - **`OPTIMIZE ... ZORDER BY (user_id, event_type)`**: Coalesces small files into optimal Parquet sizes and lays out records along a Z-order space curve for both `user_id` and `event_type`.
+    - **Query Execution**: Combines Partition Pruning (discarding dates) with Parquet metadata data-skipping (discarding files where `user_id` or `event_type` ranges do not overlap the query filters).
+  az: |
+    - **`PARTITIONED BY (event_date)`**: Qaba fiziki qovluq təcridini təmin edir; tarix filtri olan sorğular digər tarixlərin qovluqlarını anında kənara atır.
+    - **`OPTIMIZE ... ZORDER BY (user_id, event_type)`**: Xırda faylları optimal ölçüyə birləşdirir və sətirləri Morton əyrisi üzrə `user_id` və `event_type` sütunlarına görə klasterləşdirir.
+    - **Sorğunun İcrası**: Partisiya kəsilməsini (tarixlərin atılması) və Parquet metadata data-skipping mexanizmini birləşdirir (axtarılan istifadəçi və ya hadisə növü olmayan fayllar ümumiyyətlə oxunmur).
+visual_output: |
+  ===================== DELTA OPTIMIZE & QUERY EXECUTION PLAN =====================
+
+  1. BEFORE OPTIMIZATION & Z-ORDER:
+     • Partition: event_date=2026-10-16
+     • Total Parquet Files in Partition: 120 small files (avg size: 4.2 MB)
+     • Query Execution: Scanned 120 files | Data Read: 504 MB | Runtime: 14.8 seconds
+
+  2. RUNNING OPTIMIZATION:
+     Command: OPTIMIZE analytics_dw.clickstream_events ZORDER BY (user_id, event_type);
+     Status: SUCCESS (120 small files compacted into 4 dense, Z-ordered Parquet files)
+
+  3. AFTER OPTIMIZATION & Z-ORDER:
+     • Partition: event_date=2026-10-16
+     • Total Files Considered: 4 files
+     • Files Read via Data Skipping: 1 file (3 files skipped via Min/Max statistics)
+     • Data Read: 128 MB (75% I/O reduction!)
+     • Query Runtime: 0.62 seconds (24x FASTER!)
+output_description:
+  en: "Shows the dramatic performance difference: 120 small fragmented files compacted into 4 Z-ordered files, accelerating query speed from 14.8s to 0.62s."
+  az: "Dramatik performans fərqini nümayiş etdirir: 120 xırda fayl 4 Z-Order faylına çevrilir və sorğu müddəti 14.8 saniyədən 0.62 saniyəyə enir."
+interview_question:
+  question:
+    en: "Compare Partitioning, Bucketing, and Z-Ordering. When should you use each, and what is the 'Small Files Problem' caused by bad partitioning?"
+    az: "Partisiya, Bucketing və Z-Ordering texnikalarını müqayisə edin. Hansını nə vaxt istifadə etməliyik və yanlış partisiya nəticəsində yaranan 'Small Files Problem' nədir?"
+  answer:
+    en: "These three techniques optimize data layout and skipping in data lakes: (1) **Partitioning** creates physical filesystem directories based on column values. It is ideal for low-to-medium cardinality columns (like `date`, `region`, `status`) that appear in almost every query filter. (2) **Bucketing (Clustering)** deterministically distributes data into a fixed number of hash-based files. It is primarily used on high-cardinality join keys (like `user_id`) to eliminate expensive network shuffles during joins between two large tables. (3) **Z-Ordering** is a multi-dimensional clustering algorithm that organizes data along a Morton space-filling curve within files. Unlike partitioning, Z-Ordering allows efficient data skipping across multiple independent columns (e.g. `user_id`, `product_id`) simultaneously, without generating physical folder explosions. The **'Small Files Problem'** occurs when engineers over-partition a table by high-cardinality keys (like timestamps or user IDs). This results in millions of tiny (KB-sized) Parquet files. Each file requires metadata tracking, filesystem open/close handles, and S3 LIST API calls, overwhelming the Spark Driver, wasting network bandwidth, and drastically degrading query performance."
+    az: "Bu üç texnika data lake-lərdə məlumatın saxlanma nizamını və oxunma sürətini optimallaşdırır: (1) **Partisiya (Partitioning)** sütun dəyərlərinə görə fiziki qovluq strukturu yaradır. Demək olar hər sorğuda filtr kimi istifadə olunan və kardinallığı aşağı olan sütunlar üçün idealdır (`tarix`, `ölkə`). (2) **Bucketing** məlumatı heş alqoritmi ilə sabit sayda fayla paylayır. İki böyük cədvəli JOIN edərkən şəbəkə üzərindən Shuffle əməliyyatını aradan qaldırmaq üçün xüsusilə `user_id` kimi açar sütunlarda istifadə olunur. (3) **Z-Ordering** Morton əyrisi ilə məlumatı fayllar daxilində çoxölçülü nizamlayan müasir texnikadır. Fiziki qovluq iyerarxiyası yaratmadan eyni vaxtda bir neçə müstəqil sütun (`user_id` və `məhsul`) üzrə faylların 90%-dən çoxunun atılmasını (data skipping) təmin edir. **'Small Files Problem'** cədvəl yüksək kardinallıqlı sütunlar üzrə (məsələn, saniyəlik zaman damğası və ya müştəri ID-si) həddindən artıq partisiya edildikdə yaranır. Nəticədə milyonlarla xırda (bir neçə kilobaytlıq) Parquet faylı yaranır. Hər bir fayl üçün S3 LIST sorğuları və fayl deskriptorları tələb olunur ki, bu da Spark drayverinin yaddaşını tükəndirir və sistemin sürətini dəfələrlə azaldır."
+  interviewer_tips:
+    en: "Explain file size targets: modern Lakehouses target 512 MB to 1 GB Parquet file sizes. Mention the rule of thumb for Z-Order: keep the number of Z-Order columns between 2 and 4."
+    az: "İdeal Parquet fayl ölçüsünün 512 MB - 1 GB arasında olduğunu və Z-Order üçün tövsiyə olunan sütun sayının 2 ilə 4 arasında məhdudlaşdırılmalı olduğunu qeyd edin."
+flashcards:
+  - front:
+      en: "What is Partition Pruning?"
+      az: "Partition Pruning (Partisiyanın Kəsilməsi) nədir?"
+    back:
+      en: "The query optimization technique where the engine skips reading entire physical directories that do not match query filters."
+      az: "Sorğu filtrlərinə uyğun gəlməyən bütün fiziki qovluqların mühərrik tərəfindən heç oxunmadan kənara atılması texnikası."
+  - front:
+      en: "What is the 'Small Files Problem' in big data lakes?"
+      az: "Data lake sistemlərində 'Small Files Problem' (Xırda Fayllar Problemi) nədir?"
+    back:
+      en: "Over-partitioning generates millions of tiny files, overwhelming driver memory and creating massive S3 metadata listing overhead."
+      az: "Həddindən artıq partisiya nəticəsində yaranan milyonlarla kiçik fayl drayver yaddaşını doldurur və ləng S3 metadata sorğuları yaradır."
+  - front:
+      en: "How does Bucketing accelerate JOIN operations between two massive tables?"
+      az: "Bucketing iki böyük cədvəl arasındakı JOIN əməliyyatını necə sürətləndirir?"
+    back:
+      en: "It pre-sorts and co-locates matching keys into the same bucket IDs, enabling a Bucket/Map-side Join with zero network shuffle."
+      az: "Eyni açarları əvvəlcədən eyni nömrəli fayllara paylayır və şəbəkə üzərindən shuffle olmadan birbaşa Map-side JOIN etməyə imkan verir."
+  - front:
+      en: "What is Z-Ordering in Lakehouses (Delta Lake / Iceberg)?"
+      az: "Lakehouse-larda (Delta Lake / Iceberg) Z-Ordering nədir?"
+    back:
+      en: "A space-filling curve technique that clusters data along multiple columns simultaneously within Parquet files for optimal data skipping."
+      az: "Optimal data skipping üçün məlumatı Parquet faylları daxilində eyni vaxtda bir neçə sütun üzrə qruplaşdıran Morton əyrisi texnikası."
+  - front:
+      en: "What is the optimal Parquet target file size for Lakehouse query engines?"
+      az: "Lakehouse sorğu mühərrikləri üçün optimal Parquet fayl ölçüsü hədəfi nə qədərdir?"
+    back:
+      en: "Between 128 MB and 1 GB (typically compacted to ~512 MB to 1 GB)."
+      az: "128 MB ilə 1 GB arasında (adətən ~512 MB - 1 GB səviyyəsində birləşdirilir)."

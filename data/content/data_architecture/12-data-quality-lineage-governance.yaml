@@ -1,0 +1,272 @@
+id: "12-data-quality-lineage-governance"
+order: 12
+level: "intermediate"
+title:
+  en: "Data Governance: Quality, Lineage & Observability"
+  az: "Data Governance: Keyfiyyət, Lineage və Müşahidəolunma"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │       MODERN DATA GOVERNANCE: QUALITY, LINEAGE & CIRCUIT BREAKERS      │
+    └────────────────────────────────────────────────────────────────────────┘
+    Postgres / Kafka Sources
+       │
+       ▼
+    [ Bronze Raw Table ]
+       │
+       ├──► ⚡ DATA QUALITY CHECKPOINT (Great Expectations / Soda)
+       │    • Primary Key Uniqueness (0 duplicates)
+       │    • Freshness SLA (last record < 30 mins ago)
+       │    • Null Check on Mandatory Foreign Keys
+       │
+       ▼  [ PASS ] ──► Continue to Silver Cleaned
+       │
+       ▼  [ FAIL ] ──► 🚨 CIRCUIT BREAKER TRIPPED!
+                       • Alert PagerDuty / Slack: "15% Nulls in user_id!"
+                       • Quarantine corrupt rows to `quarantine_sales_err`
+                       • Prevent broken metrics from reaching PowerBI!
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ DATA LINEAGE GRAPH (OpenLineage / DataHub)                             │
+    │  postgres.orders ──► bronze_orders ──► silver_orders ──► gold_revenue  │
+    │                                                               │        │
+    │  Impact Analysis: "If `orders.tax` changes, who breaks?" ────►│        │
+    │  Answer: 2 dbt models, 1 ML pipeline, and the CFO's Dashboard!▼        │
+    │                                                      [Executive KPI]   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │       MÜASİR DATA GOVERNANCE: KEYFİYYƏT, LİNEAGE VƏ MÜŞAHİDƏOLUNMA     │
+    └────────────────────────────────────────────────────────────────────────┘
+    Postgres / Kafka Mənbələri
+       │
+       ▼
+    [ Bronze Xam Cədvəl ]
+       │
+       ├──► ⚡ DATA KEYFİYYƏT CHECKPOINT-İ (Great Expectations / dbt test)
+       │    • İlkin Açar Təkrarolunmazlığı (0 dublikat)
+       │    • Təzəlik SLA-sı (Son qeyd < 30 dəqiqə əvvəl)
+       │    • Məcburi xarici açarlarda NULL yoxlanışı
+       │
+       ▼  [ UĞURLU ] ──► Silver Cədvəlinə davam et
+       │
+       ▼  [ XƏTA ]   ──► 🚨 QORUYUCU DÖVRƏ AÇILDI (Circuit Breaker)!
+                         • Slack / PagerDuty xəbərdarlığı: "user_id-də 15% NULL!"
+                         • Yararsız sətirləri `quarantine_sales_err`-ə göndər
+                         • Səhv rəqəmlərin PowerBI-a çatmasının qarşısını al!
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ DATA LINEAGE (MƏLUMAT ƏLAQƏ XƏRİTƏSİ - DataHub / OpenLineage)         │
+    │  postgres.orders ──► bronze_orders ──► silver_orders ──► gold_revenue  │
+    │                                                               │        │
+    │  Təsir Analizi: "Əgər `orders.tax` dəyişsə, nə qırılacaq?" ──►│        │
+    │  Cavab: 2 dbt modeli, 1 ML boru kəməri və Baş Maliyyə Rəhbərinin Paneli!▼
+    │                                                      [Maliyyə Hesabatı]
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Fundamental Law: "Garbage In, Garbage Out"
+    Building scalable data pipelines is useless if the underlying data cannot be trusted. If bad data silently flows into executive dashboards or machine learning models, companies lose millions in flawed business decisions.
+    - **Data Governance** is the organizational and technical framework that ensures data accuracy, traceability, security, and compliance across the entire data lifecycle.
+
+    ### 1. Data Quality (DQ) Testing & Circuit Breakers
+    Data Quality tests assert business rules before allowing data to progress to downstream layers:
+    - **Completeness**: Critical columns (`customer_id`, `amount`) must never be `NULL`.
+    - **Uniqueness**: Primary keys and surrogate keys must have zero duplicates.
+    - **Validity**: Values must conform to accepted ranges or enums (e.g. `status IN ('PENDING', 'PAID', 'REFUNDED')`).
+    - **Freshness**: Ensures data pipelines are not stalled (e.g. max transaction timestamp is within 1 hour of `CURRENT_TIMESTAMP()`).
+    - **Circuit Breaker Pattern**: If a data quality test fails, the pipeline automatically halts or redirects dirty records into a **Quarantine Table** instead of poisoning the Gold layer and alerting downstream stakeholders.
+
+    ### 2. Data Lineage (Traceability & Root Cause Analysis)
+    Data Lineage tracks the full ancestry and flow of data: where it originated, how it was transformed, and which applications consume it.
+    - **Table-Level Lineage**: Shows table dependencies (`source_orders` -> `stg_orders` -> `dim_customers` -> `mart_revenue`).
+    - **Column-Level Lineage**: Pinpoints the exact origin of a single column (e.g. tracing `net_profit` through 4 SQL transformations back to `gross_price - discount - tax` in Postgres).
+    - **Impact Analysis**: Enables engineers to see the exact blast radius of a proposed schema change before pushing code to production.
+
+    ### 3. The 5 Pillars of Data Observability
+    While software observability monitors CPUs and HTTP latency, **Data Observability** monitors health of the data itself:
+    1. **Freshness**: Is the data updated on time according to SLAs?
+    2. **Distribution**: Are column distributions normal (e.g. sudden drop in average order value)?
+    3. **Volume**: Did a pipeline output 10,000 rows instead of the expected 1,000,000?
+    4. **Schema**: Did an upstream team add, drop, or rename a column without notice (Schema Drift)?
+    5. **Lineage**: When an incident occurs, what broke and who is impacted?
+  az: |
+    ### Fundamental Qanun: "Garbage In, Garbage Out" (Zibil Daxil Oldusa, Zibil Çıxacaq)
+    Məlumatın düzgünlüyünə və dürüstlüyünə zəmanət verilmirsə, ən sürətli və ən böyük data boru kəmərlərini qurmağın heç bir mənası yoxdur. Səhv məlumat rəhbərliyin qərar panellərinə və ya süni intellekt modellərinə sızarsa, bu şirkətə milyonlarla ziyan vura bilər.
+    - **Data Governance (Məlumat İdarəetməsi)**: Məlumatın bütün həyat dövrü boyu dəqiqliyini, izlənilməsini, təhlükəsizliyini və qanuni standartlara (GDPR) uyğunluğunu təmin edən sistemlər toplusudur.
+
+    ### 1. Data Keyfiyyəti (DQ) Testləri və Circuit Breaker (Qoruyucu Açarlar)
+    Məlumatın növbəti qata keçməsinə icazə verməzdən əvvəl avtomatlaşdırılmış testlər aparılır:
+    - **Tamlıq (Completeness)**: Vacib sütunlar (`customer_id`, `qiymət`) heç vaxt `NULL` olmamalıdır.
+    - **Təkrarolunmazlıq (Uniqueness)**: Əsas açarlar və surroqat açarlar 100% unikal olmalıdır.
+    - **Düzgünlük (Validity)**: Qiymətlər təyin olunmuş diapazonda olmalıdır (məsələn: `status IN ('GÖZLƏYİR', 'ÖDƏNİLDİ')`, `yaş BETWEEN 18 AND 100`).
+    - **Təzəlik (Freshness)**: Məlumatın vaxtında gəlməsini yoxlayır (məsələn, ən son tranzaksiya tarixi 30 dəqiqədən köhnə olmamalıdır).
+    - **Circuit Breaker Mexanizmi**: Keyfiyyət testi xəta verdikdə, pipeline dərhal dayanır və ya yararsız sətirləri **Karantin Cədvəlinə (Quarantine)** yönləndirir ki, səhv məlumat Gold qatındakı hesabatları korlamasın.
+
+    ### 2. Data Lineage (Məlumatın Əlaqə və Soy Ağacı Xəritəsi)
+    Data Lineage məlumatın hansı mənbədən doğulduğunu, hansı çevrilmələrdən keçdiyini və kimlər tərəfindən oxunduğunu göstərən vizual xəritədir.
+    - **Cədvəl Səviyyəli Lineage**: Cədvəllər arası əlaqəni göstərir (`orders` -> `stg_orders` -> `fact_sales` -> `powerbi_dashboard`).
+    - **Sütun Səviyyəli Lineage (Column-Level)**: Tək bir sütunun izini addım-addım göstərir (məsələn: `xalis_mənfəət` göstəricisinin Postgres-dəki ilkin `qiymət - vergi` sütunlarından necə formalaşdığı).
+    - **Təsir Analizi (Impact Analysis)**: Postgres bazasında bir sütunun adını dəyişməzdən əvvəl, bunun hansı 15 hesabatı və ML modelini sıradan çıxaracağını əvvəlcədən görməyə imkan verir.
+
+    ### 3. Data Observability (Məlumatın Müşahidəolunmasının 5 Sütunu)
+    Klassik proqramlaşdırma serverin CPU və RAM-ını izlədiyi kimi, **Data Observability** məlumatın özünün sağlamlığını izləyir:
+    1. **Freshness (Təzəlik)**: Məlumat SLA-ya uyğun vaxtında yenilənirmi?
+    2. **Distribution (Paylanma)**: Qiymətlər normadırmı (məsələn: orta çek gözlənilmədən 90% azalıbmı)?
+    3. **Volume (Həcm)**: Gündəlik 1 milyon sətir yerinə boru kəməri cəmi 500 sətir çıxarıbsa, deməli problem var.
+    4. **Schema (Sxem)**: Mənbə komandası xəbərdarlıq etmədən sütunu silib və ya tipini dəyişibmi (Schema Drift)?
+    5. **Lineage (Əlaqə)**: Xəta baş verəndə səbəb hardadır və kimlər zərər görür?
+quick_recap:
+  en: "Data Governance enforces data quality tests, automated circuit breakers, column-level lineage tracking, and data observability to prevent bad data from reaching decision makers."
+  az: "Data Governance səhv məlumatın rəhbərlərə çatmasının qarşısını almaq üçün keyfiyyət testləri, avtomatik dövrə açarları, lineage və observability tətbiq edir."
+what_it_does:
+  en: "Validates incoming data integrity, halts pipelines when anomalies occur, and maps dependencies so teams understand the blast radius of upstream schema changes."
+  az: "Daxil olan məlumatın sağlamlığını yoxlayır, anomaliya olduqda pipeline-ı dayandırır və asılılıq xəritəsini quraraq dəyişikliklərin təsirini göstərir."
+real_world_use:
+  en: "Data teams use dbt tests and Great Expectations in CI/CD to block corrupt data, and OpenLineage/DataHub to catalog and monitor production pipelines."
+  az: "Data komandaları xətalı məlumatı dayandırmaq üçün dbt testlərindən və Great Expectations-dan, xəritə və monitorinq üçün isə OpenLineage və DataHub-dan istifadə edir."
+common_mistakes:
+  en: "Treating data quality as an afterthought; allowing pipelines to succeed silently with 90% null values without alert notifications."
+  az: "Data keyfiyyətini ikinci dərəcəli saymaq; boru kəmərinin 90% NULL məlumatla səssizcə uğurla bitməsinə və hesabatları korlamasına göz yummaq."
+code: |
+  # =========================================================================
+  # PRODUCTION DATA QUALITY AUDIT & CIRCUIT BREAKER SCRIPT (PYTHON & SQL)
+  # Validates Freshness, Primary Key Uniqueness & Null Rate Thresholds
+  # =========================================================================
+  import sys
+  from datetime import datetime, timezone
+
+  def run_data_quality_suite(records: list[dict]) -> dict:
+      """
+      Executes critical governance assertions on ingested records.
+      Trips circuit breaker if any threshold is violated.
+      """
+      total_rows = len(records)
+      if total_rows == 0:
+          return {"status": "FAILED", "reason": "Empty dataset received (Zero Volume anomaly)"}
+
+      seen_keys = set()
+      null_user_ids = 0
+      negative_amounts = 0
+      max_timestamp = None
+
+      for row in records:
+          # 1. Primary Key Uniqueness Check
+          tx_id = row.get("transaction_id")
+          if tx_id in seen_keys:
+              return {"status": "FAILED", "reason": f"Duplicate Primary Key detected: {tx_id}"}
+          seen_keys.add(tx_id)
+
+          # 2. Null Checks on Essential Columns
+          if row.get("user_id") is None:
+              null_user_ids += 1
+
+          # 3. Value Range Assertion (Business Rule: Amount must be positive)
+          amount = row.get("amount", 0.0)
+          if amount <= 0:
+              negative_amounts += 1
+
+          # 4. Freshness Tracking
+          row_time = datetime.fromisoformat(row.get("created_at"))
+          if max_timestamp is None or row_time > max_timestamp:
+              max_timestamp = row_time
+
+      # Calculate quality metrics
+      null_rate = null_user_ids / total_rows
+      if null_rate > 0.02:  # Threshold: > 2% NULLs trips the circuit breaker!
+          return {
+              "status": "FAILED",
+              "reason": f"user_id NULL rate violated threshold: {null_rate:.1%} (Max allowed: 2.0%)"
+          }
+
+      if negative_amounts > 0:
+          return {
+              "status": "FAILED",
+              "reason": f"Found {negative_amounts} invalid negative transaction amounts!"
+          }
+
+      return {
+          "status": "PASSED",
+          "total_verified": total_rows,
+          "null_rate": f"{null_rate:.2%}",
+          "latest_record_time": max_timestamp.isoformat()
+      }
+
+  # --- SIMULATION OF PIPELINE EXECUTION ---
+  batch_data = [
+      {"transaction_id": "TX-901", "user_id": 401, "amount": 120.50, "created_at": "2026-10-16T17:00:00+00:00"},
+      {"transaction_id": "TX-902", "user_id": 402, "amount": 85.00,  "created_at": "2026-10-16T17:05:00+00:00"},
+      {"transaction_id": "TX-903", "user_id": 403, "amount": 310.20, "created_at": "2026-10-16T17:10:00+00:00"},
+  ]
+
+  audit_result = run_data_quality_suite(batch_data)
+  print(f"[DATA GOVERNANCE CHECK] Status: {audit_result['status']}")
+  print(f"Details: {audit_result}")
+code_explanation:
+  en: |
+    - **Automated Quality Suite**: Evaluates 4 key dimensions: primary key uniqueness, null threshold rates, domain value integrity (positive amounts), and timestamp freshness.
+    - **Circuit Breaker Logic**: If the percentage of `NULL` user IDs exceeds 2%, the script raises a fatal error to abort promotion to the Gold reporting table.
+    - **Anomaly Prevention**: Prevents silent corruptions from entering corporate data warehouses.
+  az: |
+    - **Avtomatlaşdırılmış Keyfiyyət Testi**: 4 açar parametri yoxlayır: ilkin açarın unkallığı, NULL faizi, qiymət intervalı (mənfi məbləğ olmamalıdır) və təzəlik.
+    - **Circuit Breaker Məntiqi**: Əgər `user_id` sütunundakı NULL faizi 2%-i keçərsə, skript prosesi dayandırır və Gold cədvəlinin korlanmasına imkan vermir.
+    - **Anomaliyaların Qarşısının Alınması**: Şirkətin verilənlər anbarına səssiz səhvlərin sızmasının qarşısını alır.
+visual_output: |
+  ================== DATA GOVERNANCE & QUALITY AUDIT RUN ==================
+  [TEST SUITE] Running assertions against batch: batch_20261016_1710
+  ✔ TEST 1: Volume Check ................. PASSED (3 records verified)
+  ✔ TEST 2: Primary Key Uniqueness ....... PASSED (0 duplicate transaction_ids)
+  ✔ TEST 3: Null Rate Threshold .......... PASSED (user_id null rate: 0.00% <= 2.0%)
+  ✔ TEST 4: Value Range Constraint ....... PASSED (all amounts > 0.00)
+  ✔ TEST 5: Freshness SLA ................ PASSED (Lag: 4.2 minutes < 30 min SLA)
+
+  CIRCUIT BREAKER: CLOSED (All checks passed)
+  PROMOTION STATUS: Cleared for promotion to Gold reporting mart!
+output_description:
+  en: "Displays the automated Data Quality test output validating uniqueness, null limits, value ranges, and freshness before allowing data into Gold tables."
+  az: "Məlumatın Gold cədvəlinə keçməsinə icazə verilməzdən əvvəl unkallıq, NULL faizi və təzəliyin uğurla yoxlanıldığını göstərən audit nəticəsi."
+interview_question:
+  question:
+    en: "What is Data Observability, and how does it differ from traditional software monitoring? Describe the 'Circuit Breaker' pattern in modern data pipelines."
+    az: "Data Observability nədir və ənənəvi proqram təminatı monitorinqindən nə ilə fərqlənir? Müasir data boru kəmərlərində 'Circuit Breaker' (Qoruyucu dövrə) modelini təsvir edin."
+  answer:
+    en: "Traditional software monitoring tracks system health: CPU usage, memory utilization, network bandwidth, and HTTP status codes (200 OK vs 500 Error). However, a data pipeline can run with 100% CPU uptime and return 'Job Succeeded (Status 200)' while delivering 500,000 completely blank, corrupted, or duplicated rows. **Data Observability** monitors the health, integrity, and behavioral anomalies of the **data itself**, built on 5 core pillars: Freshness, Distribution, Volume, Schema, and Lineage. The **Circuit Breaker** pattern is an architectural fail-safe inspired by electrical breakers. When automated Data Quality tests (e.g. dbt tests, Great Expectations) detect an anomaly that violates predefined thresholds (such as primary key collisions, a spike in NULL values, or an 80% drop in normal record volume), the pipeline instantly 'trips' the circuit breaker: it halts execution, alerts engineers via Slack/PagerDuty, and diverts corrupted rows to an isolated quarantine table, preventing corrupted figures from ever reaching executive dashboards or production machine learning models."
+    az: "Ənənəvi proqram monitorinqi sistemin texniki vəziyyətini izləyir: CPU, RAM istifadəsi və HTTP status kodları (200 OK və ya 500 Error). Lakin bir data pipeline 100% rəsmi olaraq 'Uğurla Bitdi (Success)' statusu ilə tamamlana bilər, amma əslində anbara 500,000 ədəd tamamilə boş (NULL) və ya təkrar sətir yazmış ola bilər. **Data Observability** sistemin deyil, birbaşa **məlumatın özünün** sağlamlığını və anomaliyalarını izləyir və 5 sütuna əsaslanır: Təzəlik (Freshness), Paylanma (Distribution), Həcm (Volume), Sxem dəyişikliyi (Schema) və Əlaqə xəritəsi (Lineage). **Circuit Breaker (Qoruyucu Dövrə)** elektrik sistemlərindəki avtomat qoruyuculardan ilhamlanan bir arxitektur təhlükəsizlik modelidir. Boru kəməri işləyərkən avtomatlaşdırılmış testlər (dbt test, Great Expectations) kritik bir qaydanın pozulduğunu (məsələn, açar təkrarlanması, NULL faizinin normadan çox olması və ya gündəlik həcmin 80% azalması) aşkar etdikdə, qoruyucu dövrə dərhal 'atır': proses saxlanılır, mühəndislərə xəbərdarlıq göndərilir və xətalı məlumatlar karantin cədvəlinə yönləndirilir. Nəticədə rəhbərliyin panellərinə və süni intellekt modellərinə yanlış məlumatın çatması 100% bloklanır."
+  interviewer_tips:
+    en: "Mention the danger of 'Silent Failures'—jobs that finish with exit code 0 but carry zero or garbage rows. Mention automated tools like Great Expectations, dbt tests, and OpenLineage."
+    az: "'Silent Failures' (Səssiz Qəzalar) anlayışını xüsusi vurğulayın: işin 'yaşıl' bitməsi məlumatın düzgün olması demək deyil. Great Expectations, dbt testləri və OpenLineage alətlərini misal çəkin."
+flashcards:
+  - front:
+      en: "What is Data Lineage?"
+      az: "Data Lineage (Məlumatın Əlaqə Xəritəsi) nədir?"
+    back:
+      en: "The complete audit trail and dependency map tracing data from its origin sources through transformations to end-user dashboards."
+      az: "Məlumatın ilkin mənbədən başlayaraq bütün transformasiyalardan keçib son hesabatlara qədərki tam audit və asılılıq xəritəsidir."
+  - front:
+      en: "What are the 5 pillars of Data Observability?"
+      az: "Data Observability-nin 5 əsas sütunu hansılardır?"
+    back:
+      en: "Freshness, Distribution, Volume, Schema, and Lineage."
+      az: "Təzəlik (Freshness), Paylanma (Distribution), Həcm (Volume), Sxem (Schema) və Lineage (Əlaqə)."
+  - front:
+      en: "What is the role of a 'Circuit Breaker' in a data pipeline?"
+      az: "Data boru kəmərində 'Circuit Breaker' (Qoruyucu Dövrə) nə rol oynayır?"
+    back:
+      en: "To automatically halt the pipeline or quarantine data when quality thresholds fail, preventing bad data from contaminating Gold tables."
+      az: "Keyfiyyət hədləri pozulduqda boru kəmərini dayandırmaq və ya məlumatı karantinə almaqla səhvlərin Gold cədvəllərinə keçməsini əngəlləmək."
+  - front:
+      en: "What is a 'Silent Failure' in data engineering?"
+      az: "Data mühəndisliyində 'Silent Failure' (Səssiz Qəza) nədir?"
+    back:
+      en: "When an ETL job finishes with exit code 0 (success), but writes corrupted, duplicate, or zero rows into the warehouse."
+      az: "Boru kəmərinin rəsmi olaraq uğurla (exit code 0) bitməsi, lakin anbara xətalı, boş və ya təkrar məlumat yazması vəziyyəti."
+  - front:
+      en: "What is Column-Level Lineage used for?"
+      az: "Sütun Səviyyəli Lineage (Column-Level Lineage) nə üçün istifadə olunur?"
+    back:
+      en: "To trace the exact mathematical and relational origin of a specific column, and predict the blast radius before altering it."
+      az: "Spesifik bir sütunun dəqiq riyazi və mənbə keçmişini izləmək və dəyişiklik etməzdən əvvəl təsir zonasını görmək üçün."

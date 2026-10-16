@@ -1,0 +1,238 @@
+id: "09-open-table-formats-delta-iceberg"
+order: 9
+level: "advanced"
+title:
+  en: "Open Table Formats: Delta Lake & Apache Iceberg"
+  az: "Açıq Cədvəl Formatları: Delta Lake və Apache Iceberg"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │       HOW OPEN TABLE FORMATS (DELTA LAKE & ICEBERG) WORK ON S3         │
+    └────────────────────────────────────────────────────────────────────────┘
+    WITHOUT TABLE FORMAT (Raw S3/Parquet):
+      ❌ No ACID: Concurrent writes corrupt the table!
+      ❌ Slow file listings: O(N) S3 LIST requests take minutes for millions of files.
+      ❌ No Updates/Deletes: Must rewrite entire partitions manually.
+
+    WITH OPEN TABLE FORMAT (Delta Lake / Apache Iceberg):
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ METADATA LAYER (ACID & Concurrency Control)                            │
+    │  • Commit Log / Snapshots (_delta_log/0000.json or metadata.json)      │
+    │  • Manifests: Min/Max column statistics, file paths, partition bounds  │
+    └──────────────────────────────────┬─────────────────────────────────────┘
+                                       │ Pointers to active data files
+                                       ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ IMMUTABLE DATA STORAGE (S3 / GCS / Azure ADLS)                         │
+    │  [file_01.parquet]   [file_02.parquet]   [file_03.parquet (New)]       │
+    │  (Version 1 Data)     (Version 1 Data)    (Version 2 Upsert)           │
+    └────────────────────────────────────────────────────────────────────────┘
+    ✨ Superpowers: Full ACID MERGE, Time Travel, In-place Schema Evolution!
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │     AÇIQ CƏDVƏL FORMATLARI (DELTA LAKE VƏ ICEBERG) NECƏ İŞLƏYİR?       │
+    └────────────────────────────────────────────────────────────────────────┘
+    FORMAT OLMADAN (Sadə S3 / Parquet faylları):
+      ❌ ACID yoxdur: Eyni vaxtda yazan iki proses məlumatı zədələyir!
+      ❌ S3 LIST əməliyyatı çox ləngdir: Milyonlarla faylın siyahısı dəqiqələrlə çəkir.
+      ❌ UPDATE/DELETE yoxdur: Bütün partisiya fayllarını əllə yenidən yazmalısan.
+
+    AÇIQ CƏDVƏL FORMATI İLƏ (Delta Lake / Apache Iceberg):
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ METADATA TƏBƏQƏSİ (ACID və Konkurentlik İdarəsi)                       │
+    │  • Tranzaksiya Loqu / Snapshots (_delta_log/0000.json və ya v1.json)   │
+    │  • Manifestlər: Min/Max sütun statistikaları, fayl ünvanları           │
+    └──────────────────────────────────┬─────────────────────────────────────┘
+                                       │ Aktiv fayllara göstəricilər (Pointers)
+                                       ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ DƏYİŞMƏZ MƏLUMAT SAXLAYICISI (S3 / GCS / Azure ADLS)                   │
+    │  [fayl_01.parquet]   [fayl_02.parquet]   [fayl_03.parquet (Təzə)]      │
+    │  (Versiya 1 Faylı)   (Versiya 1 Faylı)   (Versiya 2 MERGE Faylı)       │
+    └────────────────────────────────────────────────────────────────────────┘
+    ✨ Möcüzəvi İmkanlar: 100% ACID MERGE, Time Travel, Şəffaf Sxem Təkamülü!
+    ```
+explanation:
+  en: |
+    ### The Problem: Why Raw Parquet on S3 Fails at Scale
+    Object storage services like AWS S3 or Google Cloud Storage are key-value blob stores, **not file systems**.
+    - **No Atomic Multi-File Commits**: If a Spark job writing 500 Parquet files crashes halfway through, half-written files remain visible, causing dirty reads.
+    - **No ACID or Concurrency**: If two jobs write to the same directory simultaneously, they silently overwrite or corrupt data.
+    - **Expensive File Listing**: Listing 100,000 files in S3 requires paginated `LIST` HTTP calls that can take minutes before a query even starts reading data.
+    - **No Row-level Mutations**: Performing an `UPDATE` or `DELETE` required reading the entire directory and rewriting every Parquet file from scratch.
+
+    ### What is an Open Table Format (OTF)?
+    An Open Table Format is a metadata abstraction layer that defines how a collection of immutable Parquet files in object storage behaves as a single, fully transactional SQL database table.
+    The two dominant industry standards are **Delta Lake** and **Apache Iceberg**:
+
+    ### 1. Delta Lake (Databricks / Linux Foundation)
+    - **Transaction Log (`_delta_log/`)**: Delta uses an ordered sequence of JSON files (`000000.json`, `000001.json`) recording every commit (files added, files removed, schema modifications). Every 10 commits, Delta writes an aggregated Parquet checkpoint file for instant state recovery.
+    - **Optimistic Concurrency Control (OCC)**: Transactions verify if another writer modified the same data before committing. If conflict occurs, it safely retries.
+    - **ACID Operations**: Provides native `MERGE INTO`, `UPDATE`, and `DELETE` without rewriting untouched files.
+
+    ### 2. Apache Iceberg (Netflix / Apache Software Foundation)
+    - **Snapshot Architecture**: Iceberg tracks tables using an hierarchical tree: `Table Metadata` -> `Snapshot` -> `Manifest List` -> `Manifest Files` -> `Data Files`.
+    - **Engine Agnostic**: Iceberg was designed to be completely independent of Spark. Engines like **Trino, Presto, Flink, Spark, Snowflake, ClickHouse, and DuckDB** can read and write to the same Iceberg table with zero vendor lock-in.
+    - **Hidden Partitioning**: Users query date fields directly (`WHERE event_time >= '2026-01-01'`) without needing to know physical partition schemes (e.g. `year=2026/month=01`). If partitioning changes from daily to hourly, Iceberg automatically handles partition evolution without breaking existing queries!
+
+    ### Essential Features in Modern Lakehouses
+    1. **Time Travel**: Query the table exactly as it existed at any historical snapshot or timestamp. Ideal for machine learning reproducibility and auditing rollbacks.
+    2. **Schema Enforcement & Schema Evolution**: Prevents dirty data from corrupting tables (Schema Enforcement), while allowing safe additions or renames of columns with `ALTER TABLE` in milliseconds (Schema Evolution).
+    3. **Data Skipping (Pruning)**: The metadata layer records the minimum and maximum values of every column in every Parquet file. Queries skip 95%+ of files without reading a single byte from S3.
+  az: |
+    ### Problem: S3 Üzərindəki Sadə Parquet Faylları Niyə Kifayət Etmir?
+    AWS S3 və ya Google Cloud Storage fayl sistemi deyil, key-value obyekt anbarıdır.
+    - **Atomik Kommit Yoxdur**: Əgər Spark 500 Parquet faylı yazarkən ortada xəta baş versə, natamam fayllar S3-də qalır və oxuyan sorğular səhv nəticə alır (Dirty Read).
+    - **ACID və Konkurentlik Yoxdur**: Eyni qovluğa eyni anda iki fərqli pipeline yazanda fayllar qarışır və ya biri digərini xəbərsiz silir.
+    - **Ləng S3 LIST Əməliyyatları**: S3-də 100,000 faylın siyahısını çıxarmaq dəqiqələrlə vaxt apara bilər.
+    - **UPDATE və DELETE Yoxdur**: Cəmi 1 müştərini yeniləmək və ya GDPR tələbi ilə silmək üçün bütün qovluqdakı terabaytlarla faylı yenidən yazmaq lazım gəlirdi.
+
+    ### Açıq Cədvəl Formatı (Open Table Format) Nədir?
+    Açıq Cədvəl Formatı obyekt anbarındakı yüzlərlə dəyişməz Parquet faylını vahid, ACID dəstəkli tranzaksional cədvələ çevirən metadata idarəetmə təbəqəsidir.
+    Sənayedə iki əsas nəhəng format liderlik edir: **Delta Lake** və **Apache Iceberg**:
+
+    ### 1. Delta Lake (Databricks / Linux Foundation)
+    - **Tranzaksiya Loqu (`_delta_log/`)**: Delta bütün dəyişiklikləri ardıcıl JSON faylları kimi qeyd edir (`000000.json`, `000001.json`). Hər 10 kommitdən bir Parquet checkpoint faylı yaradır.
+    - **Optimistic Concurrency Control (OCC)**: İki proses eyni anda yazarkən konflikt yaranarsa, sistem bunu təhlükəsiz şəkildə aşkar edir və təkrar cəhd edir.
+    - **Tam ACID Əməliyyatları**: SQL standartında `MERGE INTO`, `UPDATE` və `DELETE` əmrlərini dəstəkləyir.
+
+    ### 2. Apache Iceberg (Netflix / Apache Software Foundation)
+    - **Snapshot Ağac Arxitekturası**: Iceberg cədvəli iyerarxik snapshot ağacı ilə idarə edir: `Metadata File` -> `Manifest List` -> `Manifest Files` -> `Data Files`.
+    - **Mühərrik Müstəqilliyi (Engine Independence)**: Iceberg heç bir şirkətə və ya alətə bağlı deyil. Eyni Iceberg cədvəlini eyni vaxtda **Spark, Trino, Flink, Snowflake və DuckDB** oxuyub yaza bilər.
+    - **Gizli Partisiya (Hidden Partitioning)**: İstifadəçi cədvəlin hansı fiziki qovluq strukturuna bölündüyünü bilməyə məcbur deyil. Sorğuda sadəcə `WHERE event_time >= '2026-01-01'` yazmaq kifayətdir. Partisiya strukturu dəyişsə belə, mövcud SQL sorğuları qırılmır!
+
+    ### Müasir Lakehouse İmkanları
+    1. **Time Travel (Zaman Səyahəti)**: Cədvəlin keçmişdəki istənilən versiyasına və ya tarixinə qayıtmaq imkanı. Səhv yüklənmiş məlumatları anında geri qaytarmaq və ya ML modellərini eyni tarixi məlumat üzərində test etmək üçün idealdır.
+    2. **Sxem Təkamülü (Schema Evolution)**: Cədvələ yeni sütun əlavə etmək üçün terabaytlarla faylı yenidən yazmağa ehtiyac qalmır; sadəcə metadata saniyənin içində yenilənir.
+    3. **Data Skipping (Faylların Kəsilməsi)**: Metadata hər bir fayl üçün sütunların minimum və maksimum dəyərlərini saxlayır. Spark və ya Trino sorğu verərkən faylların 90-95%-ni heç oxumadan kənara qoyur.
+quick_recap:
+  en: "Delta Lake and Apache Iceberg provide ACID transactions, time travel, schema evolution, and fast metadata pruning on top of cloud object storage Parquet files."
+  az: "Delta Lake və Apache Iceberg bulud anbarındakı Parquet faylları üzərində ACID tranzaksiyaları, zaman səyahəti, sxem təkamülü və sürətli metadata axtarışı təmin edir."
+what_it_does:
+  en: "Transforms simple flat Parquet files into resilient, enterprise-grade transactional tables that support concurrent reads, writes, and historical audits."
+  az: "Sadə Parquet fayllarını eyni vaxtda oxuma, yazma və audit imkanlarına malik etibarlı tranzaksional cədvəllərə çevirir."
+real_world_use:
+  en: "Enterprises use Delta Lake or Iceberg to manage multi-petabyte Lakehouses on AWS S3 and Azure, running CDC merges, GDPR deletions, and real-time streaming."
+  az: "Müasir şirkətlər AWS S3 və Azure üzərində petabaytlarla cədvəlləri Delta və ya Iceberg ilə idarə edir, CDC MERGE və GDPR silinmələrini asanlıqla icra edir."
+common_mistakes:
+  en: "Treating S3 directories as ACID tables without an OTF; manually modifying or deleting files in `_delta_log` or `metadata/` folders."
+  az: "Açıq cədvəl formatı olmadan S3 qovluqlarının ACID olduğunu düşünmək; `_delta_log` və ya metadata qovluğundakı faylları əllə silmək və ya dəyişmək."
+code: |
+  -- =========================================================================
+  -- OPEN TABLE FORMAT PRODUCTION WORKFLOW (DELTA LAKE / ICEBERG SQL)
+  -- Demonstrating ACID Upserts (MERGE), Schema Evolution & Time Travel
+  -- =========================================================================
+
+  -- STEP 1: CREATE ACID LAKEHOUSE TABLE
+  CREATE TABLE IF NOT EXISTS lakehouse_dw.dim_customer (
+      customer_id BIGINT,
+      full_name STRING,
+      email STRING,
+      tier STRING,
+      updated_at TIMESTAMP
+  ) USING DELTA
+  LOCATION 's3://prod-lakehouse/tables/dim_customer';
+
+  -- Initial batch insert (Creates Commit Version 0)
+  INSERT INTO lakehouse_dw.dim_customer VALUES
+  (101, 'Farid Aliyev', 'farid@example.com', 'SILVER', TIMESTAMP '2026-10-01 09:00:00'),
+  (102, 'Nigar Mammadova', 'nigar@example.com', 'BRONZE', TIMESTAMP '2026-10-01 09:00:00');
+
+  -- STEP 2: ATOMIC ACID MERGE (UPSERT) - Handles Updates and Inserts simultaneously!
+  MERGE INTO lakehouse_dw.dim_customer AS target
+  USING (
+      SELECT 102 AS customer_id, 'Nigar Mammadova' AS full_name, 'nigar@example.com' AS email, 'GOLD' AS tier, CURRENT_TIMESTAMP() AS updated_at
+      UNION ALL
+      SELECT 103 AS customer_id, 'Murad Kerimov', 'murad@example.com', 'PLATINUM' AS tier, CURRENT_TIMESTAMP() AS updated_at
+  ) AS source
+  ON target.customer_id = source.customer_id
+  WHEN MATCHED THEN
+      UPDATE SET target.tier = source.tier, target.updated_at = source.updated_at
+  WHEN NOT MATCHED THEN
+      INSERT (customer_id, full_name, email, tier, updated_at)
+      VALUES (source.customer_id, source.full_name, source.email, source.tier, source.updated_at);
+
+  -- STEP 3: SCHEMA EVOLUTION (Add a new column in milliseconds without rewriting files)
+  ALTER TABLE lakehouse_dw.dim_customer ADD COLUMN loyalty_points INT;
+
+  -- STEP 4: TIME TRAVEL AUDIT (Inspect table state as of initial commit Version 0)
+  -- Queries the exact state before Nigar was upgraded to GOLD and before Murad was added!
+  SELECT customer_id, full_name, tier 
+  FROM lakehouse_dw.dim_customer VERSION AS OF 0;
+code_explanation:
+  en: |
+    - **ACID MERGE INTO**: Performs row-level updates (upgrades customer 102 to GOLD) and inserts (adds customer 103) in a single atomic transaction.
+    - **In-place ALTER TABLE**: Adds `loyalty_points` instantly by recording the change in the metadata log without scanning or rewriting historical Parquet files.
+    - **VERSION AS OF 0**: Leverages the commit log to travel back in time and query the historical table state prior to the merge.
+  az: |
+    - **ACID MERGE INTO**: Tək bir atomik tranzaksiya ilə eyni anda həm mövcud sətri yeniləyir (102-ni GOLD edir), həm də yeni müştərini (103) cədvələ əlavə edir.
+    - **Yerində ALTER TABLE**: `loyalty_points` sütununu tarixi Parquet fayllarını yenidən yazmadan, sadəcə metadata loquna qeyd etməklə dərhal əlavə edir.
+    - **VERSION AS OF 0**: Tranzaksiya loqundan istifadə edərək keçmişə qayıdır və MERGE əməliyyatından əvvəlki ilkin vəziyyəti göstərir.
+visual_output: |
+  ================== DELTA / ICEBERG TIME TRAVEL VERIFICATION ==================
+
+  1. CURRENT ACTIVE TABLE STATE (Latest Version after MERGE):
+     ┌─────────────┬─────────────────┬───────────────────┬──────────┬────────────────┐
+     │ customer_id │ full_name       │ email             │ tier     │ loyalty_points │
+     ├─────────────┼─────────────────┼───────────────────┼──────────┼────────────────┤
+     │ 101         │ Farid Aliyev    │ farid@example.com │ SILVER   │ NULL           │
+     │ 102         │ Nigar Mammadova │ nigar@example.com │ GOLD     │ NULL           │
+     │ 103         │ Murad Kerimov   │ murad@example.com │ PLATINUM │ NULL           │
+     └─────────────┴─────────────────┴───────────────────┴──────────┴────────────────┘
+     Row Count: 3 records | Schema: 5 columns
+
+  2. TIME TRAVEL HISTORICAL AUDIT (SELECT * FROM table VERSION AS OF 0):
+     ┌─────────────┬─────────────────┬───────────────────┬──────────┐
+     │ customer_id │ full_name       │ email             │ tier     │
+     ├─────────────┼─────────────────┼───────────────────┼──────────┤
+     │ 101         │ Farid Aliyev    │ farid@example.com │ SILVER   │
+     │ 102         │ Nigar Mammadova │ nigar@example.com │ BRONZE   │
+     └─────────────┴─────────────────┴───────────────────┴──────────┘
+     Verification: 100% SUCCESSFUL (Nigar is BRONZE; Customer 103 does not exist yet).
+output_description:
+  en: "Demonstrates how Open Table Formats provide instant rollback and historical time-travel auditing alongside ACID upserts and in-place schema changes."
+  az: "Açıq Cədvəl Formatlarının ACID yeniləmələri və ani sxem dəyişikliyi ilə yanaşı, keçmiş versiyalara necə sürətli audit və qayıdış təmin etdiyini nümayiş etdirir."
+interview_question:
+  question:
+    en: "What is an Open Table Format (like Delta Lake or Apache Iceberg)? What limitations of raw Parquet on S3 does it solve, and how does Time Travel work under the hood?"
+    az: "Açıq Cədvəl Formatı (Delta Lake və ya Apache Iceberg kimi) nədir? S3-dəki sadə Parquet fayllarının hansı məhdudiyyətlərini aradan qaldırır və Time Travel arxa planda necə işləyir?"
+  answer:
+    en: "An Open Table Format (OTF) is a metadata specification and management layer built on top of immutable columnar Parquet files stored in cloud object storage (S3, ADLS, GCS). While Parquet is a high-performance single-file storage format, raw Parquet directories lack ACID transactions, fail during concurrent writes, require costly O(N) S3 LIST operations to identify files, and cannot perform atomic row-level updates or deletes. Delta Lake and Apache Iceberg solve these challenges by introducing a centralized, ACID-compliant metadata catalog. In Delta Lake, every write appends a JSON commit log in `_delta_log/`; in Apache Iceberg, every write creates a new snapshot tree consisting of metadata, manifest lists, and manifest files. Under the hood, **Time Travel** works by referencing historical commit logs or snapshot manifests. Because Parquet data files are immutable, earlier files are never deleted when updates occur (until a maintenance job like `VACUUM` runs). When you query `VERSION AS OF 0`, the engine simply reads the snapshot manifest from that version and opens the exact set of Parquet files that were active at that timestamp."
+    az: "Açıq Cədvəl Formatı (OTF) bulud obyekt anbarında (S3, ADLS, GCS) saxlanılan dəyişməz Parquet faylları üzərində qurulmuş metadata idarəetmə təbəqəsidir. Parquet tək fayl səviyyəsində əla format olsa da, bir qovluq Parquet faylında ACID tranzaksiyası yoxdur, eyni vaxtda yazan proseslər məlumatı korlayır, minlərlə faylı tapmaq üçün ləng S3 LIST əməliyyatı tələb olunur və bir sətirli UPDATE/DELETE etmək olmur. Delta Lake və Iceberg bunu həll etmək üçün mərkəzləşdirilmiş metadata jurnalı təqdim edir (Delta-da `_delta_log/*.json`, Iceberg-də isə snapshot metadata ağacı). **Time Travel** arxa planda belə işləyir: Parquet faylları dəyişməz (immutable) olduğu üçün yenilənmə zamanı köhnə fayllar dərhal silinmir (`VACUUM` işə düşənə qədər qalır). İstifadəçi `VERSION AS OF 0` sorğusu verdikdə, mühərrik sadəcə həmin versiyanın metadata faylını açır və həmin tarixdə aktiv olan Parquet fayllarının siyahısını oxuyur."
+  interviewer_tips:
+    en: "Distinguish between File Format (Parquet, ORC - byte layout within a file) and Table Format (Iceberg, Delta - tracking which files constitute a table). Mention VACUUM / snapshot expiration to show production cost-awareness."
+    az: "Fayl Formatı (Parquet - tək fayl daxili bayt quruluşu) ilə Cədvəl Formatı (Iceberg, Delta - hansı faylların cədvələ aid olduğunu idarə edən sistem) arasındakı fərqi mütləq vurğulayın. VACUUM əməliyyatını xatırladaraq köhnə snapshot-ların saxlanc xərclərini idarə etməyi bildiyinizi göstərin."
+flashcards:
+  - front:
+      en: "What is the difference between a File Format and an Open Table Format?"
+      az: "Fayl Formatı ilə Açıq Cədvəl Formatı arasındakı fərq nədir?"
+    back:
+      en: "A File Format (Parquet) organizes bytes inside a single file; a Table Format (Delta/Iceberg) tracks files, schemas, and ACID commits across an entire table."
+      az: "Fayl formatı (Parquet) tək fayl daxilindəki baytları təşkil edir; Cədvəl formatı (Delta/Iceberg) bütün cədvələ aid yüzlərlə faylı, sxemi və ACID kommitləri idarə edir."
+  - front:
+      en: "Why does raw Parquet on AWS S3 fail to provide ACID transactions?"
+      az: "AWS S3 üzərindəki sadə Parquet faylları nə üçün ACID tranzaksiyalarını təmin edə bilmir?"
+    back:
+      en: "S3 is a key-value object store without multi-file atomic locks, meaning failed writes leave orphan files and concurrent writes collide."
+      az: "S3 obyekt anbarıdır və atomik fayl kilidləməsi yoxdur; xəta baş verdikdə yarımçıq fayllar qalır və eyni vaxtda yazanlar bir-birini korlayır."
+  - front:
+      en: "How does Delta Lake track transaction history and state?"
+      az: "Delta Lake tranzaksiya tarixçəsini və vəziyyətini necə izləyir?"
+    back:
+      en: "Through an ordered transaction log in `_delta_log/` containing atomic JSON commit files and Parquet checkpoints."
+      az: "`_delta_log/` qovluğunda saxlanılan ardıcıl atomik JSON kommit faylları və Parquet checkpoint-ləri vasitəsilə."
+  - front:
+      en: "What is Apache Iceberg's Hidden Partitioning feature?"
+      az: "Apache Iceberg-in Gizli Partisiya (Hidden Partitioning) xüsusiyyəti nədir?"
+    back:
+      en: "Users query natural date columns without specifying partition formulas; Iceberg automatically prunes partitions and supports partition evolution."
+      az: "İstifadəçi fiziki partisiya qovluqlarını bilmədən birbaşa tarix sütununu sorğulayır; Iceberg partisiya kəsilməsini avtomatik idarə edir."
+  - front:
+      en: "How does Time Travel work in Delta Lake and Apache Iceberg?"
+      az: "Delta Lake və Apache Iceberg-də Time Travel necə işləyir?"
+    back:
+      en: "By reading historical metadata snapshot logs that point to the immutable Parquet files that were active at that specific version or timestamp."
+      az: "Həmin versiya və ya zaman damğasında aktiv olmuş dəyişməz Parquet fayllarına işarə edən tarixi metadata loqlarını oxumaqla."

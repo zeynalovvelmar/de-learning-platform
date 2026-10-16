@@ -1,0 +1,200 @@
+id: "05-fact-and-dimension-tables"
+order: 5
+level: "junior"
+title:
+  en: "Fact vs Dimension Tables: Additive, Semi-Additive & Conformed Dimensions"
+  az: "Fakt və Ölçü Cədvəlləri: Additive, Semi-Additive və Conformed Dimensions"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE 3 TYPES OF FACTS IN DATA WAREHOUSING                              │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. ADDITIVE FACTS: Can be summed across ALL dimensions (including Time!)
+       • Examples: total_revenue, units_sold, freight_cost.
+       • SUM(sales) across all stores and across all 365 days = Mathematically Sound!
+
+    2. SEMI-ADDITIVE FACTS: Can be summed across SOME dimensions, but NEVER Time!
+       • Examples: bank_account_balance, warehouse_inventory_count.
+       • Summing your bank balance across Monday ($100) + Tuesday ($100) != $200!
+       • Must take current snapshot or ending balance across time.
+
+    3. NON-ADDITIVE FACTS: CANNOT be summed across ANY dimension!
+       • Examples: unit_price, discount_percentage, profit_margin_ratio.
+       • You CANNOT sum margins: SUM(50% + 10%) != 60%!
+       • Must recalculate: SUM(total_profit) / SUM(total_revenue).
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  VERİLƏNLƏR ANBARINDA FAKTLARIN 3 ƏSAS NÖVÜ                            │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. ADDITIVE (TAM CƏMLƏNƏN) FAKTLAR: BÜTÜN ölçülər üzrə toplana bilir
+       • Nümunələr: satış_məbləği, satılan_say, çatdırılma_haqqı.
+       • 365 gün və 50 mağaza üzrə `SUM(satış)` tamamilə düzgün nəticə verir!
+
+    2. SEMI-ADDITIVE (YARIM-CƏMLƏNƏN) FAKTLAR: Zaman üzrə CƏMLƏNƏ BİLMƏZ!
+       • Nümunələr: bank_balansı, anbarda_qalan_məhsul_sayı.
+       • Bazar ertəsi ($100) və Çərşənbə axşamı ($100) balansını toplamaq olmaz!
+       • Zaman üzrə cəmləmək deyil, ən sonuncu günün qalığını götürmək lazımdır.
+
+    3. NON-ADDITIVE (CƏMLƏNMƏYƏN) FAKTLAR: HEÇ BİR ölçü üzrə toplana bilməz!
+       • Nümunələr: vahid_qiymət, gəlir_marjası_faizi, endirim_faizi.
+       • Faizləri toplamaq riyazi səhvdir: 40% + 20% = 60% etmir!
+       • Düsturla yenidən hesablanmalıdır: `SUM(xalis_gəlir) / SUM(ümumi_dövriyyə)`.
+    ```
+explanation:
+  en: |
+    ### The Contrast: Fact Tables vs Dimension Tables
+    - **Fact Tables**:
+      - **Shape**: "Tall and Narrow" (often billions of rows, but few columns).
+      - **Contents**: Foreign keys linking to dimensions, and numeric quantitative measurements (facts).
+      - **Update Frequency**: Continually appended with new transactions.
+    - **Dimension Tables**:
+      - **Shape**: "Short and Wide" (hundreds to millions of rows, but dozens of descriptive text columns: e.g. Customer Name, Age Bracket, Loyalty Tier, City, Region).
+      - **Contents**: The contextual filters (`WHERE category = 'Electronics'`).
+
+    ### The 3 Types of Facts (Crucial Interview Topic!)
+    1. **Additive Facts**: Fully aggregatable using simple `SUM()`. Total sales revenue, quantity ordered.
+    2. **Semi-Additive Facts**: Aggregatable across dimensions like Store or Customer, but **invalid across the Time dimension**.
+       - *Classic Example*: Bank Account Balance. If you have $5,000 on Oct 1st and $5,000 on Oct 2nd, your total wealth is NOT $10,000! You must use `LAST_VALUE()` or closing balance.
+    3. **Non-Additive Facts**: Ratios, percentages, and unit prices. They must never be summed directly; you must aggregate the underlying numerator and denominator independently.
+
+    ### Conformed Dimensions: The Enterprise Glue
+    What happens when your company has multiple business processes (e.g. Sales, Returns, Customer Support)?
+    - **Conformed Dimension**: A single, standardized dimension table shared identically across multiple fact tables.
+    - If `dim_date` and `dim_customer` are conformed, you can analyze customer purchases and support tickets side-by-side using Kimball's **Enterprise Data Warehouse Bus Architecture**.
+  az: |
+    ### Fakt və Ölçü Cədvəllərinin Ziddiyyəti
+    - **Fakt Cədvəlləri (Fact Tables)**:
+      - **Forması**: "Hündür və Dar" (milyardlarla sətir ola bilər, lakin sütun sayı azdır).
+      - **Tərkibi**: Xarici açarlar (FK) və ədədi ölçülər (satış rəqəmləri).
+      - **Dəyişmə tezliyi**: Hər an yeni satışlarla yalnız sonuna əlavə olunur (append-only).
+    - **Ölçü Cədvəlləri (Dimension Tables)**:
+      - **Forması**: "Alçaq və Enli" (sətir sayı minlərlə və ya yüz minlərlə, amma onlarla təsviri mətn sütunu var: Ad, Yaş qrupu, Şəhər, Kateqoriya).
+      - **Tərkibi**: Analitiklərin axtarış və filtr etdiyi kontekst (`WHERE şəhər = 'Bakı'`).
+
+    ### Faktların 3 Əsas Növü (Müsahibələrin Sevimli Sualı)
+    1. **Tam Cəmlənən (Additive)**: Sadə `SUM()` ilə hər yerdə toplanır (Satış məbləği, alınan məhsul sayı).
+    2. **Yarım-Cəmlənən (Semi-Additive)**: Müştərilər və ya filiallar üzrə toplana bilər, lakin **Zaman üzrə əsla toplanmaz**.
+       - *Klassik Nümunə*: Bank hesabı qalığı və ya anbardakı stok sayı. Əgər 1 Oktyabrda $5,000 və 2 Oktyabrda $5,000 varsa, sizin pulunuz $10,000 deyil! Zaman üzrə cəm deyil, ən son günün bağlanış qalığı götürülməlidir.
+    3. **Cəmlənməyən (Non-Additive)**: Faizlər, nisbətlər və vahid qiymətlər. Bunları birbaşa toplamaq riyazi qəzadır; surət və məxrəc ayrı-ayrı cəmlənib sonra bölünməlidir.
+
+    ### Uyğunlaşdırılmış Ölçülər (Conformed Dimensions)
+    Şirkətdə bir neçə fərqli şöbə və proses olanda (Satış, Mal Qaytarması, Çağrı Mərkəzi):
+    - **Conformed Dimension**: Bir neçə fərqli fakt cədvəli tərəfindən ortaq istifadə olunan vahid ölçü cədvəlidir (məsələn: `dim_date` və `dim_customer`).
+    - Bu, Kimball-un **Bus Architecture** prinsipi ilə müştərinin həm etdiyi alış-verişləri, həm də açdığı şikayət zənglərini eyni hesabatda analiz etməyə şərait yaradır.
+quick_recap:
+  en: "Facts are numeric measurements (additive, semi-additive, non-additive). Dimensions provide descriptive context. Conformed dimensions tie multiple business processes together."
+  az: "Faktlar ədədi ölçülərdir (tam cəmlənən, yarım-cəmlənən, cəmlənməyən). Ölçülər isə təsviri kontekst verir. Conformed dimension-lar bir neçə fakt cədvəlini birləşdirir."
+what_it_does:
+  en: "Structures analytical data into quantitative measurements (facts) and contextual attributes (dimensions) with clear mathematical aggregation rules."
+  az: "Analitik məlumatları ədədi faktlara və kontekst verən ölçülərə bölərək düzgün riyazi aqreqasiya qaydalarını təmin edir."
+real_world_use:
+  en: "Modeling a retail banking warehouse with daily account balances as semi-additive facts and a conformed customer dimension linked to loans and credit cards."
+  az: "Bank anbarında gündəlik hesab qalıqlarını semi-additive fakt kimi saxlamaq və vahid müştəri ölçüsünü həm kredit, həm də kart faktlarına bağlamaq."
+common_mistakes:
+  en: "Summing semi-additive facts (like bank balances or warehouse stock) across dates, resulting in massive, fictional multi-million dollar balances."
+  az: "Bank hesab balansını və ya anbarda qalan məhsul sayını günlər üzrə `SUM()` edib, şirkətin balansını saxta olaraq 30 dəfə çox göstərmək."
+code: |
+  -- ==============================================================================
+  -- DEMONSTRATING SEMI-ADDITIVE FACTS & CONFORMED DIMENSIONS
+  -- ==============================================================================
+
+  -- Step 1: Conformed Customer Dimension (Shared across Sales and Banking!)
+  CREATE TABLE analytics_dwh.dim_customer (
+      customer_key      INT PRIMARY KEY,
+      account_number    VARCHAR(30) NOT NULL,
+      customer_name     VARCHAR(100),
+      segment           VARCHAR(30)
+  );
+
+  -- Step 2: Semi-Additive Fact Table: Daily Bank Balances
+  CREATE TABLE analytics_dwh.fact_daily_account_snapshot (
+      snapshot_key      BIGINT PRIMARY KEY,
+      customer_key      INT REFERENCES analytics_dwh.dim_customer(customer_key),
+      date_key          INT NOT NULL,          -- e.g. 20261016
+      
+      -- SEMI-ADDITIVE MEASURE: Valid across customers, INVALID across time!
+      closing_balance   NUMERIC(15, 2) NOT NULL,
+      
+      -- ADDITIVE MEASURES: Valid across ALL dimensions
+      daily_deposits    NUMERIC(15, 2) DEFAULT 0.0,
+      daily_withdrawals NUMERIC(15, 2) DEFAULT 0.0
+  );
+
+  -- Step 3: SAFE QUERY FOR SEMI-ADDITIVE FACT:
+  -- Summing across customers on the LATEST DATE ONLY (never sum across dates!)
+  SELECT 
+      c.segment,
+      COUNT(DISTINCT f.customer_key) AS total_customers,
+      SUM(f.closing_balance)         AS total_bank_liabilities
+  FROM analytics_dwh.fact_daily_account_snapshot f
+  JOIN analytics_dwh.dim_customer c ON f.customer_key = c.customer_key
+  WHERE f.date_key = 20261016        -- FILTER TO SPECIFIC POINT IN TIME!
+  GROUP BY c.segment;
+code_explanation:
+  en: |
+    - `closing_balance` is a classic **Semi-Additive Fact**. Notice the query strictly filters `WHERE f.date_key = 20261016`.
+    - Summing closing balances across customers on that single day produces the true total bank deposits. If you omitted the date filter and summed across the month, your financial report would be corrupted by 30x!
+    - `dim_customer` is a **Conformed Dimension**, ready to be joined with credit card or mortgage loan fact tables.
+  az: |
+    - `closing_balance` klassik **Semi-Additive Faktdır**. Sorğunun `WHERE f.date_key = 20261016` filtrinə diqqət yetirin.
+    - Həmin tək bir gün üzrə müştərilərin balansını cəmləmək bankdakı real ümumi pulu düzgün verir. Əgər bu tarixi silsəniz və ay üzrə cəmləsəniz, rəqəm 30 dəfə şişib saxta çıxacaq!
+    - `dim_customer` **Conformed Dimension**-dur və sabah kredit və ya debet kart fakt cədvəllərinə də eyni şəkildə bağlana bilər.
+visual_output: |
+  ================== SEMI-ADDITIVE QUERY: TOTAL DEPOSITS BY SEGMENT ==================
+  Snapshot Date: 2026-10-16 (Specific Point-in-Time)
+
+  ┌──────────────┬─────────────────┬─────────────────────────┐
+  │ segment      │ total_customers │ total_bank_liabilities  │
+  ├──────────────┼─────────────────┼─────────────────────────┤
+  │ Retail       │ 84,200          │ $42,100,000.00          │
+  │ Commercial   │ 3,150           │ $157,500,000.00         │
+  │ Private VIP  │ 420             │ $84,000,000.00          │
+  └──────────────┴─────────────────┴─────────────────────────┘
+  [CORRECT: Summed across customers at a point-in-time, avoiding date summation bug]
+output_description:
+  en: "Displays safe aggregation of a semi-additive bank balance fact, evaluated at a single point-in-time across customer segments."
+  az: "Semi-additive bank balansı faktının tək bir tarix pəncərəsində müştəri seqmentləri üzrə düzgün toplanmasını göstərir."
+interview_question:
+  question:
+    en: "Explain the difference between Additive, Semi-Additive, and Non-Additive facts. Give a real-world example of each and explain how you handle a semi-additive measure in SQL."
+    az: "Additive (tam cəmlənən), Semi-Additive (yarım-cəmlənən) və Non-Additive (cəmlənməyən) faktların fərqini izah edin. Hər birinə real nümunə verin və semi-additive faktı SQL-də necə idarə etdiyinizi göstərin."
+  answer:
+    en: "In dimensional modeling, facts are classified by how they can be mathematically aggregated across dimensions: (1) Additive Facts can be summed across all dimensions, including time (e.g. Sales Revenue, Quantity Sold); (2) Semi-Additive Facts can be summed across some dimensions (like Geography or Customer), but CANNOT be summed across the Time dimension (e.g. Bank Account Balances, Warehouse Inventory Stock). Summing your account balance across every day of the month yields an erroneous, massively inflated number; in SQL, you must handle semi-additive measures by filtering to the closing balance of a specific date or using window functions like `LAST_VALUE()`; (3) Non-Additive Facts cannot be summed across any dimension (e.g. Unit Price, Profit Margin Percentage, Currency Exchange Rates). To analyze non-additive metrics, you must calculate the underlying additive components independently (e.g. `SUM(profit) / SUM(revenue)`) rather than averaging or summing the ratios directly."
+    az: "Ölçülü modelləşdirmədə faktlar ölçülər üzrə necə toplana biləcəyinə görə 3 yerə bölünür: (1) Additive Faktlar bütün ölçülər (o cümlədən Zaman) üzrə sadəcə `SUM()` edilə bilər (məsələn: Satış məbləği, Alınan say); (2) Semi-Additive Faktlar Müştəri və ya Şəhər üzrə toplana bilər, lakin Zaman üzrə CƏMLƏNƏ BİLMƏZ (məsələn: Bank hesabı balansı, Anbarda qalan məhsul sayı). Balansı ayın 30 günü üzrə cəmləmək mənasız və saxta bir rəqəm yaradır; SQL-də bunu idarə etmək üçün mütləq konkret bir tarix seçilməli (`WHERE date = '...'`) və ya `LAST_VALUE()` analitik pəncərə funksiyasından istifadə edilməlidir; (3) Non-Additive Faktlar heç bir ölçü üzrə toplana bilməz (məsələn: Vahid qiymət, Mənfəət marjası faizi, Valyuta məzənnəsi). Bu faizləri toplamaq riyazi səhvdir; bunları hesablamaq üçün surət və məxrəci ayrıca cəmləyib (`SUM(gəlir) / SUM(dövriyyə)`) bölmək lazımdır."
+  interviewer_tips:
+    en: "The bank account balance or warehouse inventory is the quintessential test for semi-additive facts. Mentioning `LAST_VALUE()` or closing snapshot tables proves you know how to query them properly."
+    az: "Bank balansı və anbar stoku semi-additive faktların ən klassik nümunəsidir. SQL-də `LAST_VALUE()` pəncərə funksiyasını qeyd etmək müsahibədə mükəmməl təsir bağışlayır."
+flashcards:
+  - front:
+      en: "What is an Additive Fact?"
+      az: "Additive (Tam Cəmlənən) Fakt nədir?"
+    back:
+      en: "A numeric measure that can be meaningfully summed across all dimensions in the data warehouse (e.g. sales revenue)."
+      az: "Verilənlər anbarındakı bütün ölçülər (zaman da daxil) üzrə cəmlənə bilən ədədi ölçüdür (məs: satış məbləği)."
+  - front:
+      en: "What is a Semi-Additive Fact? Give two examples."
+      az: "Semi-Additive (Yarım-Cəmlənən) Fakt nədir? İki nümunə verin."
+    back:
+      en: "A measure that can be summed across some dimensions, but NOT across Time (e.g. bank account balance, warehouse inventory count)."
+      az: "Bəzi ölçülər üzrə toplana bilən, lakin Zaman üzrə toplana BİLMƏYƏN fakt (məs: bank balansı, anbarda qalan məhsul sayı)."
+  - front:
+      en: "Why is Profit Margin Percentage considered a Non-Additive Fact?"
+      az: "Mənfəət marjası faizi niyə Non-Additive (Cəmlənməyən) Fakt hesab olunur?"
+    back:
+      en: "Percentages cannot be directly summed; you must aggregate total profit and total revenue separately before dividing."
+      az: "Faizləri birbaşa toplamaq riyazi səhvdir; ümumi gəlir və dövriyyəni ayrı toplayıb bir-birinə bölmək lazımdır."
+  - front:
+      en: "What is a Conformed Dimension in Kimball's Enterprise Bus Architecture?"
+      az: "Kimball-un Enterprise Bus Arxitekturasında Conformed Dimension nədir?"
+    back:
+      en: "A single, standardized dimension table shared consistently across multiple different fact tables (e.g. `dim_date`, `dim_customer`)."
+      az: "Bir neçə fərqli fakt cədvəli tərəfindən ortaq istifadə olunan tək, standartlaşdırılmış ölçü cədvəlidir (məs: `dim_date`)."
+  - front:
+      en: "What is a Factless Fact Table?"
+      az: "Faktsız Fakt Cədvəli (Factless Fact Table) nədir?"
+    back:
+      en: "A fact table that contains no numeric measures, only foreign keys tracking occurrences of an event (e.g. student class attendance)."
+      az: "Daxilində heç bir ədədi rəqəm olmayan, sadəcə bir hadisənin baş verdiyini izləyən xarici açarlar toplusu (məs: tələbə davamiyyəti)."
