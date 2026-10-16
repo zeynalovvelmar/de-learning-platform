@@ -1,0 +1,225 @@
+id: "08-branching-trigger-rules"
+order: 8
+level: "intermediate"
+title:
+  en: "Branching, Conditional Execution & Trigger Rules"
+  az: "Budaqlanma (Branching), Şərti İcra və Trigger Qaydaları"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CONDITIONAL BRANCHING IN AIRFLOW (`@task.branch`)                     │
+    └────────────────────────────────────────────────────────────────────────┘
+                                 [check_day_of_week]
+                                      │
+                   ┌──────────────────┴──────────────────┐
+                   ▼                                     ▼
+        (If Mon-Fri: Weekday)                 (If Sat-Sun: Weekend)
+         [heavy_batch_transform]              [quick_audit_transform]
+                   │                                     │
+                   ▼ (SUCCESS)                           ▼ (SKIPPED)
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE TRIGGER RULE TRAP!                                                │
+    │  If downstream task has DEFAULT `trigger_rule="all_success"`:          │
+    │  Because weekend branch was SKIPPED, `generate_report` will also SKIP! │
+    │                                                                        │
+    │  SOLUTION: Set `trigger_rule="none_failed_min_one_success"`            │
+    │  Now `generate_report` runs as soon as whichever branch executed wins! │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+                        [generate_report]  (SUCCESS!)
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  AIRFLOW-DA ŞƏRTİ BUDAQLANMA (`@task.branch`)                          │
+    └────────────────────────────────────────────────────────────────────────┘
+                                [həftə_gününü_yoxla]
+                                      │
+                   ┌──────────────────┴──────────────────┐
+                   ▼                                     ▼
+          (Əgər İş Günüdürsə)                   (Əgər Həftəsonudursa)
+         [böyük_batch_emal]                    [yüngül_audit_emal]
+                   │                                     │
+                   ▼ (SUCCESS)                           ▼ (SKIPPED)
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TRİGGER QAYDASI TƏLƏSİ!                                               │
+    │  Növbəti task SUSMAYA GÖRƏ `trigger_rule="all_success"` olarsa:        │
+    │  Həftəsonu qolu SKIPPED olduğu üçün, `hesabatı_hazırla` da SKIP olar!  │
+    │                                                                        │
+    │  HƏLL YOLU: `trigger_rule="none_failed_min_one_success"` təyin edin!   │
+    │  İndi `hesabatı_hazırla` hansı qol icra olunubsa onunla davam edir!    │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+                      [hesabatı_hazırla]  (SUCCESS!)
+    ```
+explanation:
+  en: |
+    ### Why Branching Is Crucial
+    Real-world data pipelines cannot be strictly linear. You often need to:
+    - Route between full-refresh vs incremental-load based on a table check.
+    - Run expensive Spark training on Sundays, but only lightweight scoring on weekdays.
+    - Skip downstream ingestion if an upstream API returns 0 new records.
+
+    ### How `@task.branch` Works
+    In modern Airflow 2.x, the `@task.branch` decorator evaluates a Python condition and **returns the `task_id` (or list of task IDs)** that should run.
+    - Any branches whose IDs are NOT returned are automatically marked as **`SKIPPED`**.
+
+    ### The Join Trap: Why Trigger Rules Matter
+    By default, every Airflow task has `trigger_rule="all_success"`. This means: *"Only run if ALL direct upstream parents succeeded."*
+    - If you branch into Path A and Path B, and then merge back into Task C:
+      - Since Path B was `SKIPPED`, Task C's condition (`all_success`) fails, so Task C is also marked `SKIPPED`! This is known as **skip cascade**.
+    - **The Fix**: Change Task C's trigger rule to **`none_failed_min_one_success`** (or `one_success`).
+      - This tells Airflow: *"As long as no parent actively errored out, and at least one parent succeeded, proceed immediately."*
+  az: |
+    ### Budaqlanma Niyə Lazımdır?
+    Real istehsalatda boru kəmərləri heç vaxt düz xətli olmur. Tez-tez şərtlərdən asılı olaraq fərqli yollar seçmək lazım gəlir:
+    - Cədvəlin vəziyyətindən asılı olaraq tam yeniləmə (Full Refresh) və ya artımlı yükləmə (Incremental Load) seçimi.
+    - Bazar günləri ağır ML model təlimi, iş günləri isə yalnız yüngül proqnozlaşdırma aparılması.
+    - Əgər xarici API-dən 0 məlumat gəlibsə, növbəti emal mərhələlərini ötürüb (skip) resurslara qənaət edilməsi.
+
+    ### `@task.branch` Necə İşləyir?
+    Müasir Airflow-da `@task.branch` dekoratoru şərti yoxlayır və icra olunmalı olan növbəti **`task_id`-ni (və ya task_id siyahısını)** qaytarır (`return`).
+    - Seçilməyən bütün digər yollar Airflow tərəfindən avtomatik **`SKIPPED`** (ötürülmüş) elan edilir.
+
+    ### Birləşmə Tələsi və Trigger Qaydaları
+    Susmaya görə hər bir task-ın trigger qaydası `trigger_rule="all_success"` kimidir. Bu o deməkdir: *"Yalnız bütün əvvəlki task-lar uğurla (SUCCESS) bitsə işlə."*
+    - Əgər boru kəməri A və B qoluna ayrılır və sonra C task-ında birləşirsə:
+      - B qolu `SKIPPED` olduğu üçün, C task-ı düşünür ki, şərt ödənmədi və C task-ı da `SKIPPED` olur! Bu zəncirvari şəkildə bütün sonrakı task-ları da dondurur.
+    - **Həll Yolu**: Birləşmə nöqtəsindəki C task-ına **`trigger_rule="none_failed_min_one_success"`** (və ya `one_success`) verməkdir.
+      - Bu Airflow-a deyir: *"Əgər heç bir task xəta verməyibsə və ən azı biri uğurla tamamlanıbsa, dərhal işə başla!"*
+quick_recap:
+  en: "Use `@task.branch` to route pipeline paths dynamically. Always set `trigger_rule='none_failed_min_one_success'` on downstream join tasks to avoid accidental skipping."
+  az: "Dinamik yol seçimi üçün `@task.branch` istifadə edin. Birləşən task-larda səhvən skip olmanın qarşısını almaq üçün `trigger_rule='none_failed_min_one_success'` təyin edin."
+what_it_does:
+  en: "Allows pipeline graphs to choose paths dynamically at runtime based on data size, schedule, or business conditions, and controls join logic via Trigger Rules."
+  az: "Boru kəmərinin məlumat həcmi və ya biznes şərtlərindən asılı olaraq dinamik yollar seçməsinə və Trigger Qaydaları ilə birləşmə məntiqini idarə etməsinə imkan verir."
+real_world_use:
+  en: "Running full historical data re-indexing on Sundays and simple incremental appends on Monday-Friday."
+  az: "Bazar günləri bazanın tam re-indekslənməsini, iş günləri isə yalnız sadə artımlı yükləmə qolunu seçmək."
+common_mistakes:
+  en: "Leaving the default `all_success` trigger rule on a join task after a branch, causing the entire downstream pipeline to be unexpectedly skipped."
+  az: "Budaqlanmadan sonrakı birləşmə task-ında `all_success` qaydasını dəyişməyi unutmaq və nəticədə bütün növbəti mərhələlərin səhvən ötürülməsinə (skip) səbəb olmaq."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+
+  @dag(
+      schedule="@daily",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,
+      tags=["core", "branching", "trigger_rules"]
+  )
+  def dynamic_routing_pipeline():
+      """
+      Demonstrates dynamic branching and the critical use of
+      none_failed_min_one_success trigger rule at join points.
+      """
+
+      @task.branch
+      def choose_workload_branch(**context) -> str:
+          # Check day of week: Monday=0, Sunday=6
+          current_date = context["logical_date"]
+          day_of_week = current_date.weekday()
+
+          if day_of_week in [5, 6]:  # Saturday or Sunday
+              print(f"Weekend detected ({current_date.format('dddd')}). Routing to maintenance path.")
+              return "run_weekend_cleanup"
+          else:
+              print(f"Weekday detected ({current_date.format('dddd')}). Routing to standard ETL path.")
+              return "run_weekday_heavy_etl"
+
+      @task
+      def run_weekday_heavy_etl():
+          print("Executing heavy Spark processing for high-volume weekday traffic...")
+
+      @task
+      def run_weekend_cleanup():
+          print("Executing vacuum, optimization, and index maintenance...")
+
+      # CRITICAL: Trigger rule ensures this task runs even though one upstream branch was SKIPPED!
+      @task(trigger_rule="none_failed_min_one_success")
+      def send_unified_completion_alert():
+          print("Pipeline completed successfully regardless of which branch executed!")
+
+      # Graph wiring
+      branch = choose_workload_branch()
+      t_weekday = run_weekday_heavy_etl()
+      t_weekend = run_weekend_cleanup()
+      t_alert = send_unified_completion_alert()
+
+      branch >> [t_weekday, t_weekend]
+      [t_weekday, t_weekend] >> t_alert
+
+  dag_instance = dynamic_routing_pipeline()
+code_explanation:
+  en: |
+    - `@task.branch`: The function `choose_workload_branch()` evaluates `logical_date.weekday()` and returns the string ID of the chosen task (`"run_weekend_cleanup"` or `"run_weekday_heavy_etl"`).
+    - Unchosen tasks automatically transition to state `SKIPPED`.
+    - `@task(trigger_rule="none_failed_min_one_success")`: Configures `send_unified_completion_alert` to execute as long as no upstream tasks failed and at least one succeeded. Without this, it would stay `SKIPPED` forever.
+  az: |
+    - `@task.branch`: `choose_workload_branch()` funksiyası `logical_date.weekday()` yoxlayır və seçilən task-ın ID-sini qaytarır (`"run_weekend_cleanup"` və ya `"run_weekday_heavy_etl"`).
+    - Seçilməyən task Airflow tərəfindən avtomatik `SKIPPED` statusuna keçirilir.
+    - `@task(trigger_rule="none_failed_min_one_success")`: `send_unified_completion_alert` task-ının əvvəlki qollardan biri skip olsa belə, işə düşməsini təmin edir. Əks halda bu task da skip olardı.
+visual_output: |
+  ============================ AIRFLOW GRID EXECUTION VIEW ============================
+  DAG: dynamic_routing_pipeline  |  Logical Date: 2026-10-14 (Wednesday)
+  -------------------------------------------------------------------------------------
+  [choose_workload_branch]         ──► State: SUCCESS  (Decided: run_weekday_heavy_etl)
+  [run_weekday_heavy_etl]          ──► State: SUCCESS  (Heavy Spark batch processed)
+  [run_weekend_cleanup]            ──► State: SKIPPED  (Bypassed by BranchOperator)
+  [send_unified_completion_alert]  ──► State: SUCCESS  (Trigger Rule satisfied!)
+
+  ---------------------- LOG: send_unified_completion_alert ---------------------------
+  [2026-10-14 02:00:15 UTC] {taskinstance.py:1185} INFO - Task trigger rule 'none_failed_min_one_success' evaluated:
+  - Upstream 'run_weekday_heavy_etl': SUCCESS (1)
+  - Upstream 'run_weekend_cleanup': SKIPPED (1)
+  - Upstream FAILED: 0
+  - Condition MET! Proceeding to execute task.
+  [2026-10-14 02:00:16 UTC] {logging_mixin.py:115} INFO - Pipeline completed successfully regardless of which branch executed!
+output_description:
+  en: "Visualizes grid view states where the unselected branch is SKIPPED (pink/yellow) while the downstream join task succeeds (green) thanks to the custom trigger rule."
+  az: "Seçilməyən qolun SKIPPED, birləşmə task-ının isə trigger qaydası sayəsində uğurla (yaşıl / SUCCESS) tamamlandığını göstərən Grid görüntüsü."
+interview_question:
+  question:
+    en: "What happens when you use a BranchPythonOperator to select one of two downstream tasks, and both tasks feed into a final join task with the default trigger rule? How do you resolve it?"
+    az: "BranchPythonOperator istifadə edərək iki qoldan birini seçdikdə və hər iki qol standart trigger qaydası olan yekun birləşmə task-ına bağlandıqda nə baş verir? Bunu necə həll edirsiniz?"
+  answer:
+    en: "With the default trigger rule `all_success`, the final join task will be marked as SKIPPED because one of its upstream parents was skipped during branching. In Airflow, `all_success` requires 100% of direct upstream tasks to succeed. To fix this, change the join task's trigger rule to `none_failed_min_one_success` (or `one_success`). This tells Airflow that as long as no upstream branch failed and at least one succeeded, the join task should proceed."
+    az: "Standart trigger qaydası `all_success` olduqda, yekun birləşmə task-ı da SKIPPED olacaq və icra olunmayacaq. Çünki `all_success` bütün əvvəlki task-ların mütləq SUCCESS olmasını tələb edir, lakin budaqlanmada qollardan biri skip edilmişdi. Bu problemi həll etmək üçün birləşmə task-ının trigger qaydasını `none_failed_min_one_success` (və ya `one_success`) olaraq dəyişmək lazımdır. Bu, Airflow-a heç bir xəta olmadığı və ən azı bir qol uğurla gəldiyi halda task-ı icra etməyi tapşırır."
+  interviewer_tips:
+    en: "Mentioning the exact trigger rule name `none_failed_min_one_success` proves to the interviewer that you have resolved real DAG join issues in production."
+    az: "Dəqiq parametr adı olan `none_failed_min_one_success`-i qeyd etmək müsahibə götürənə real layihələrdə budaqlanma problemlərini həll etdiyinizi sübut edir."
+flashcards:
+  - front:
+      en: "What does the `@task.branch` decorator return?"
+      az: "`@task.branch` dekoratoru nə qaytarmalıdır?"
+    back:
+      en: "The `task_id` (string) or list of `task_id`s that should be executed next."
+      az: "Növbəti icra olunmalı task-ın ID-sini (string) və ya `task_id` siyahısını."
+  - front:
+      en: "What state do tasks on the unchosen branch transition to?"
+      az: "Budaqlanmada seçilməyən qoldakı task-lar hansı statusa keçir?"
+    back:
+      en: "They are marked as `SKIPPED`."
+      az: "`SKIPPED` (ötürülmüş) statusuna keçir."
+  - front:
+      en: "What is the default `trigger_rule` for Airflow tasks?"
+      az: "Airflow task-ları üçün standart (default) `trigger_rule` hansıdır?"
+    back:
+      en: "`all_success`, meaning all direct parent tasks must succeed."
+      az: "`all_success`. Bu, bütün birbaşa əvvəlki task-ların uğurla tamamlanmasını tələb edir."
+  - front:
+      en: "Why does a join task with `all_success` fail to run after a branch?"
+      az: "Budaqlanmadan sonra `all_success` olan birləşmə task-ı niyə icra olunmur?"
+    back:
+      en: "Because one of its parents was SKIPPED, failing the `all_success` requirement and triggering a skip cascade."
+      az: "Çünki qollardan biri SKIPPED olub və bu `all_success` şərtini pozaraq task-ı da skip edir."
+  - front:
+      en: "Which trigger rule should you use on a task that merges branched workflows?"
+      az: "Budaqlanmış qolları birləşdirən task-da hansı trigger qaydası istifadə edilməlidir?"
+    back:
+      en: "`none_failed_min_one_success` (or `one_success`)."
+      az: "`none_failed_min_one_success` (və ya `one_success`)."

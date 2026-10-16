@@ -1,0 +1,248 @@
+id: "01-what-is-airflow"
+order: 1
+level: "junior"
+title:
+  en: "What is Apache Airflow & Why Not Cron or Custom Scripts?"
+  az: "Apache Airflow Nədir və Niyə Cron və ya Sadə Skriptlər Deyil?"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CRON / BASH SCRIPTS: Blind Scheduling & Fragile Cascades              │
+    │  02:00 AM: `python extract.py`  ──► (Takes 65 mins instead of 30 mins) │
+    │  02:30 AM: `python transform.py`──► RUNS ON EMPTY/PARTIAL DATA! CRASH! │
+    │  • No Dependency Awareness: Relies strictly on wall-clock time guesses.│
+    │  • No Automatic Retries: Script fails silently; no retry backoff.      │
+    │  • Zero Observability: No UI, no visual graph, terminal logs scattered.│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE AIRFLOW: Graph-Aware Orchestration (The Conductor)             │
+    │  [extract_sales_data] ──► (Success!) ──► [transform_orders_spark]      │
+    │         │                                          │                   │
+    │      (Failed)                                   (Success)              │
+    │         ▼                                          ▼                   │
+    │  [Retry 1 in 5m]                            [load_to_snowflake]        │
+    │  • Dependency Graphs (DAGs): Tasks run ONLY when predecessors succeed. │
+    │  • Rich Observability: Web UI, real-time grid view, execution logs.   │
+    │  • Orchestration != Computation: Triggers Spark/Snowflake/dbt cleanly. │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CRON / BASH SKRİPTLƏRİ: Kordüşmə Cədvəl və Qırılan Zəncir            │
+    │  Saat 02:00: `python extract.py`  ──► (Gözlənilmədən 65 dəqiqə çəkdi) │
+    │  Saat 02:30: `python transform.py`──► YARIMÇIQ MƏLUMATLA İŞLƏDİ! XƏTA! │
+    │  • Asılılıq Anlayışı Yoxdur: Sadəcə divar saatının təxmininə güvənir.  │
+    │  • Avtomatik Təkrar Yoxdur: Xəta olanda susur, təkrar cəhd etmir.      │
+    │  • Sıfır İzləmə: UI yoxdur, vizual qraf yoxdur, loqlar itib-batır.     │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE AIRFLOW: Qraf Asılılıqlı Orkestrasiya (Baş Dirijor)            │
+    │  [extract_sales_data] ──► (Uğurlu!) ──► [transform_orders_spark]       │
+    │         │                                          │                   │
+    │      (Xəta)                                     (Uğurlu)               │
+    │         ▼                                          ▼                   │
+    │  [5 dəqiqəyə Təkrar Cəhd]                   [load_to_snowflake]        │
+    │  • Asılılıq Qrafı (DAG): Növbəti iş YALNIZ əvvəlki bitəndə başlayır.  │
+    │  • Vizual İdarəetmə: Veb UI, Grid görünüşü, real-vaxt loq izləməsi.    │
+    │  • Orkestrasiya != Hesablama: Spark, Snowflake və dbt-ni idarə edir.  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of the difference between an **Alarm Clock** and an **Airport Air Traffic Control Tower**:
+    - **Cron / Custom Scripts (The Alarm Clock)**: You set an alarm for 07:00 AM to wake up, assuming your coffee maker finished at 06:50 AM. But what if the water pipe froze overnight? The alarm still rings blindly at 07:00 AM, you walk into a dry kitchen, and the day is ruined. Cron has zero awareness of data prerequisites, failure states, or task completion.
+    - **Apache Airflow (The Air Traffic Control Tower)**: A Boeing 777 cannot land on Runway 1 just because the schedule says "14:30". The control tower ensures that Runway 1 is completely vacant, the previous Airbus has safely exited the tarmac, and weather sensors confirm safe wind speeds. If an issue occurs, the flight circles around for a retry. Airflow is the air traffic control tower for all data pipelines in an enterprise.
+
+    ### The #1 Golden Rule of Airflow:
+    > **Orchestration != Computation!**
+    Airflow is **NOT** a data processing engine. It is an orchestrator. Airflow's job is to say:
+    1. *"Hey Spark, start this 50 GB ETL job."*
+    2. *"Hey Snowflake, run this SQL aggregation."*
+    3. *"Hey dbt, test our data quality models."*
+    A common junior mistake is loading gigabytes of data into Pandas inside an Airflow worker. This crashes the Airflow scheduler with Out-Of-Memory (OOM) errors!
+
+    ### What is a DAG?
+    - **Directed**: Edges between tasks have a clear forward direction ($A \rightarrow B$).
+    - **Acyclic**: The graph has NO circular loops ($A \rightarrow B \rightarrow C \rightarrow A$ is strictly forbidden). A pipeline cannot depend on its own future output.
+    - **Graph**: The mathematical network of interconnected nodes and dependencies.
+  az: |
+    Köhnə **Zəngli Saat** ilə **Hava Limanı Uçuş İdarəetmə Qülləsi** arasındakı fərqi təsəvvür edin:
+    - **Cron / Sadə Skriptlər (Zəngli Saat)**: Səhər saat 07:00-a zəng qurursunuz və təxmin edirsiniz ki, saat 06:50-də kofe maşını kofeni hazırlayıb bitirib. Bəs gecə su borusu donubsa? Zəngli saat buna baxmır, 07:00 olan kimi kor-koranə zəng çalır, mətbəxə keçirsiniz və kofe yoxdur! Cron əvvəlki işin bitib-bitmədiyindən, xəta baş verib-vermədiyindən tamamilə xəbərsizdir.
+    - **Apache Airflow (Uçuş İdarəetmə Qülləsi)**: Təyyarə cədvəldə "14:30" yazılıb deyə kor-koranə uçuş zolağına enə bilməz. Dispetçer qülləsi zolağın tamamilə boş olduğuna, əvvəlki təyyarənin zolaqdan çıxdığına və külək sürətinin normal olduğuna əmin olduqdan sonra eniş əmri verir. Problem olarsa, təyyarəni təkrar cəhd üçün dövrəyə göndərir. Airflow şirkətin bütün data kəmərlərinin mərkəzi dispetçer qülləsidir.
+
+    ### Airflow-un 1 Nömrəli Qızıl Qaydası:
+    > **Orkestrasiya Hesablama Deyildir! (Orchestration != Computation)**
+    Airflow data emal edən mühərrik **DEYİLDİR**. Airflow baş dirijordur. Onun işi tapşırıqları tətikləməkdir:
+    1. *"Spark, get filan 50 GB-lıq ETL işini başlat."*
+    2. *"Snowflake, filan SQL cədvəlini yenilə."*
+    3. *"dbt, data keyfiyyət testlərini yoxla."*
+    Junior mühəndislərin ən böyük səhvi Airflow daxilində Pandas ilə giqabaytlarla data oxumaqdır. Bu, Airflow serverini dərhal OOM (Out Of Memory) ilə çökdürər!
+
+    ### DAG Nədir? (Directed Acyclic Graph)
+    - **Directed (İstiqamətlənmiş)**: Tapşırıqlar arasındakı oxların dəqiq birtərəfli istiqaməti var ($A \rightarrow B$).
+    - **Acyclic (Dövrsüz)**: Qrafda sonsuz dövrə ola bilməz ($A \rightarrow B \rightarrow C \rightarrow A$ qəti qadağandır). Kəmər öz gələcək nəticəsindən asılı ola bilməz.
+    - **Graph (Qraf)**: Tapşırıqların və onların asılılıqlarının yaratdığı riyazi şəbəkə.
+quick_recap:
+  en: "Airflow is a workflow orchestrator, not a data processing engine. It replaces rigid cron schedules with Directed Acyclic Graphs (DAGs), guaranteeing tasks execute strictly when upstream dependencies succeed and managing retries and observability."
+  az: "Airflow məlumat emal edən mühərrik deyil, işləri idarə edən orkestrator (dirijor)-dur. O, kor-koranə cron cədvəlini Birtərəfli Dövrsüz Qraflarla (DAG) əvəz edir, işlərin yalnız əvvəlki addımlar uğurla bitdikdə işləməsini və xətalarda avtomatik təkrar cəhdi təmin edir."
+code: |
+  # Production Blueprint: Your Very First Apache Airflow DAG
+  from datetime import datetime, timedelta
+  from airflow import DAG
+  from airflow.operators.bash import BashOperator
+  from airflow.operators.python import PythonOperator
+
+  # 1. Default arguments applied to every task in the DAG
+  default_args = {
+      'owner': 'data_engineering_team',
+      'depends_on_past': False,
+      'retries': 2,                             # Retry twice on transient failure
+      'retry_delay': timedelta(minutes=5),       # Wait 5 mins between retry attempts
+      'email_on_failure': True,
+      'email': ['alerts@company.com']
+  }
+
+  # 2. Instantiate the DAG context
+  with DAG(
+      dag_id='01_daily_orders_orchestration',
+      default_args=default_args,
+      description='Daily e-commerce batch extraction and Spark loading pipeline',
+      schedule_interval='@daily',               # Runs once every 24 hours
+      start_date=datetime(2026, 1, 1),
+      catchup=False,                            # Do not backfill past historical runs!
+      tags=['ecommerce', 'production', 'junior']
+  ) as dag:
+
+      # 3. Task 1: Check upstream API health (BashOperator)
+      check_api_health = BashOperator(
+          task_id='check_api_health',
+          bash_command='curl -s -f https://api.store.internal/health || exit 1'
+      )
+
+      # 4. Task 2: Python orchestration checkpoint
+      def notify_orchestration_start():
+          print("⚡ Airflow: Upstream API is healthy. Submitting Spark job...")
+          return "HEALTHY"
+
+      notify_start = PythonOperator(
+          task_id='notify_start',
+          python_callable=notify_orchestration_start
+      )
+
+      # 5. Task 3: Trigger external Spark ETL cluster
+      trigger_spark_etl = BashOperator(
+          task_id='trigger_spark_etl',
+          bash_command='echo "Executing: spark-submit --master k8s://... orders_etl.py"'
+      )
+
+      # 6. Establish strict dependencies using bitshift operators (>>)
+      check_api_health >> notify_start >> trigger_spark_etl
+code_explanation:
+  en: |
+    - `default_args`: Propagates operational policies (retries, alerts, timeouts) down to all tasks.
+    - `schedule_interval='@daily'`: The execution cadence. Airflow triggers this workflow once per day.
+    - `catchup=False`: Prevents Airflow from triggering hundreds of backfill runs between `start_date` and current date.
+    - `check_api_health >> notify_start >> trigger_spark_etl`: The bitshift operator `>>` explicitly establishes linear upstream/downstream graph dependencies.
+  az: |
+    - `default_args`: Bütün tapşırıqlara şamil edilən ortaq qaydalardır (təkrar cəhdlər, gecikmələr, xəbərdarlıqlar).
+    - `schedule_interval='@daily'`: İcra periodu. Kəmərin hər 24 saatdan bir işə düşəcəyini bildirir.
+    - `catchup=False`: `start_date`-dən bu günə qədər olan keçmiş ayların yüzlərlə işini eyni anda klasterə hücum etməsinin qarşısını alır.
+    - `>>`: Bitshift asılılıq operatorudur. Tapşırıqların dəqiq xətti ardıcıllığını (`check_api_health` bitmədən `notify_start` başlamaz) təmin edir.
+visual_output: |
+  === Airflow UI Grid & Graph View Status ===
+  DAG: 01_daily_orders_orchestration [Schedule: @daily]
+
+  Task Dependencies Graph:
+  [check_api_health] ──► [notify_start] ──► [trigger_spark_etl]
+
+  Execution Run: 2026-10-15T00:00:00+00:00 (Status: SUCCESS)
+    • check_api_health   | State: SUCCESS 🟢 | Duration: 1.2s  | Retries: 0
+    • notify_start       | State: SUCCESS 🟢 | Duration: 0.4s  | Retries: 0
+    • trigger_spark_etl  | State: SUCCESS 🟢 | Duration: 18.5s | Retries: 0
+
+  Task Log Output (trigger_spark_etl):
+  [2026-10-15 02:01:45] {bash.py:180} INFO - Executing: spark-submit --master k8s://... orders_etl.py
+  [2026-10-15 02:02:03] {bash.py:192} INFO - Spark Master acknowledged job completion with exit code 0.
+output_description:
+  en: "Airflow UI Grid representation demonstrating green (success) states across all 3 sequenced tasks, followed by actual task executor execution logs."
+  az: "3 tapşırığın hər birinin yaşıl (uğurlu) rənglə başa çatdığını göstərən Airflow UI Grid görünüşü və terminal icra loqları."
+what_it_does:
+  en: "Demonstrates core DAG definition, default task argument inheritance, operator instantiation, and linear graph dependency chaining."
+  az: "Təməl DAG tərifini, ortaq parametr ötürülməsini, operatorların yaradılmasını və `>>` ilə asılılıq zəncirinin qurulmasını nümayiş etdirir."
+real_world_use:
+  en: "The standard backbone of production data platforms. Daily pipelines coordinate ingestion, Spark transformations, dbt validation, and BI dashboard caching."
+  az: "İstehsalat data platformalarının əsasıdır. Hər gecə məlumatların çəkilməsi, Spark-da emalı və analitik panellərə yüklənməsi bu cür DAG-larla koordinasiya olunur."
+common_mistakes:
+  en: |
+    - **Processing heavy data inside Airflow**: Reading a 5 GB CSV with `pandas.read_csv()` inside `PythonOperator` consumes all worker memory, killing the host.
+    - **Creating dynamic `start_date = datetime.now()`**: Changes every time the scheduler parses the file, preventing tasks from ever scheduling cleanly! Always use a fixed historical date (e.g. `datetime(2026, 1, 1)`).
+    - **Forgetting `catchup=False`**: If `start_date` is 1 year ago and `catchup` is omitted (defaults to True), Airflow immediately fires 365 simultaneous runs, overwhelming your database.
+  az: |
+    - **Ağır məlumatı birbaşa Airflow daxilində emal etmək**: `PythonOperator` daxilində `pandas.read_csv()` ilə 5 GB fayl oxumaq worker-in yaddaşını partladır və Airflow-u çökdürür.
+    - **`start_date = datetime.now()` yazmaq**: Scheduler faylı hər oxuyanda vaxt dəyişir və Airflow heç vaxt işi başlada bilmir! Həmişə sabit keçmiş tarix yazılmalıdır (`datetime(2026, 1, 1)`).
+    - **`catchup=False` yazmağı unutmaq**: Əgər `start_date` 1 il əvvəldirsə, Airflow keçmiş 365 günün hər biri üçün eyni anda yüzlərlə iş qaldıraraq verilənlər bazasını donduracaq.
+interview_question:
+  question:
+    en: "What is Apache Airflow, what is the fundamental difference between Orchestration and Computation, and why shouldn't you process Big Data inside Airflow workers?"
+    az: "Apache Airflow nədir, Orkestrasiya ilə Hesablama arasındakı fundamental fərq nədir və nə üçün Böyük Məlumatları (Big Data) birbaşa Airflow işçiləri daxilində emal etmək olmaz?"
+  answer:
+    en: |
+      1. **Definition of Apache Airflow**:
+         - Airflow is an open-source platform programmatically authoring, scheduling, and monitoring workflows as **Directed Acyclic Graphs (DAGs)**.
+         - It is a **workflow orchestrator**, coordinating when, where, and in what order tasks run across external systems.
+      2. **Orchestration vs Computation**:
+         - **Orchestration**: The control plane. Tracking dependencies, retries, schedules, failure alerting, and SLAs. It is the "Conductor of the Orchestra".
+         - **Computation**: The data plane. The actual heavy lifting of processing gigabytes/terabytes of data (filtering, joining, aggregating). The "Musicians in the Orchestra".
+      3. **Why Big Data Belongs Outside Airflow**:
+         - Airflow worker processes are lightweight Python environments meant for coordination, not distributed computing.
+         - If an engineer runs `pd.read_csv()` on multi-gigabyte datasets inside an Airflow worker, it triggers excessive CPU consumption, JVM Garbage Collection freezes, and fatal Out-Of-Memory (OOM) operating system kills.
+         - **Production Standard**: Airflow should trigger external distributed engines (e.g. submitting a PySpark job to Databricks/EMR, executing SQL in Snowflake, or triggering dbt models) and merely monitor the job to completion.
+    az: |
+      1. **Apache Airflow-un Tərifi**:
+         - Airflow kəmərləri proqramlaşdırılmış **Birtərəfli Dövrsüz Qraflar (DAG)** şəklində quran, planlayan və monitorinq edən açıq mənbəli orkestrasiya platformasıdır.
+         - O, tapşırıqların hansı ardıcıllıqla və nə vaxt işləyəcəyini tənzimləyən **orkestrator (baş menecer)** rolunu oynayır.
+      2. **Orkestrasiya vs Hesablama Fərqi**:
+         - **Orkestrasiya (İdarəetmə Müstəvisi)**: Tapşırıqların asılılıqlarını izləmək, xətada təkrar başlatmaq, vaxt cədvəlini saxlamaq və bildiriş göndərməkdir. "Orkestrin Dirijorudur".
+         - **Hesablama (Məlumat Müstəvisi)**: Terabaytlarla datanı oxumaq, süzgəcdən keçirmək və aqreqasiya etməkdir. "Orkestrdəki Musiqiçilərdir".
+      3. **Böyük Məlumat Niyə Airflow Daxilində Emal Edilə Bilməz?**:
+         - Airflow worker-ləri sadəcə koordinasiya üçün nəzərdə tutulmuş yüngül Python prosesləridir; onlar paylanmış hesablama klasteri deyildir.
+         - Əgər mühəndis worker daxilində Pandas ilə böyük faylları emal etməyə çalışarsa, serverin yaddaşı tükənər və Əməliyyat Sistemi Airflow prosesini OOM (Out Of Memory) ilə məhv edər.
+         - **İstehsalat Qaydası**: Airflow işi kənar paylanmış güclü mühərriklərə həvalə etməlidir (məs. Spark işini Databricks klasterinə göndərmək, Snowflake-də SQL başlatmaq və ya dbt modelini tətikləmək) və sadəcə onların uğurla bitməsini gözləməlidir.
+  interviewer_tips:
+    en: "Strictly emphasize the mantra 'Airflow is an orchestrator, not an execution engine'. Mention that Airflow workers delegate heavy data lifting to external distributed systems like Spark, Trino, or Snowflake."
+    az: "Müsahibədə qətiyyətlə deyin: 'Airflow orkestratordur, hesablama mühərriki deyil'. Airflow-un sadəcə xarici hesablama mühərriklərini (Spark, Snowflake, dbt) kənardan idarə etdiyini vurğulayın."
+flashcards:
+  - front:
+      en: "What does DAG stand for in Apache Airflow?"
+      az: "Apache Airflow-da DAG nə deməkdir?"
+    back:
+      en: "Directed Acyclic Graph — a mathematical graph of tasks connected by directional edges without circular loops."
+      az: "Birtərəfli Dövrsüz Qraf (Directed Acyclic Graph) — dövrələri olmayan və istiqamətlənmiş oxlarla bağlanan tapşırıqlar şəbəkəsidir."
+  - front:
+      en: "What is the core distinction between an Orchestrator and an Execution Engine?"
+      az: "Orkestrator ilə Hesablama Mühərriki arasındakı əsas fərq nədir?"
+    back:
+      en: "An orchestrator coordinates schedules and task dependencies; an execution engine (like Spark) performs the heavy data processing."
+      az: "Orkestrator işlərin cədvəlini və asılılıqlarını koordinasiya edir; hesablama mühərriki (Spark kimi) isə xammal məlumatları emal edir."
+  - front:
+      en: "Why should you never use `datetime.now()` for a DAG's `start_date`?"
+      az: "DAG-ın `start_date` parametrinə nə üçün heç vaxt `datetime.now()` yazmaq olmaz?"
+    back:
+      en: "Because `datetime.now()` evaluates dynamically on every scheduler parsing cycle, preventing tasks from ever triggering."
+      az: "Çünki `datetime.now()` scheduler faylı hər yoxlayanda cari vaxta dəyişir və tapşırıqlar heç vaxt icra olunmur."
+  - front:
+      en: "What does `catchup = False` prevent when deploying a new DAG?"
+      az: "Yeni DAG yerləşdirərkən `catchup = False` nəyin qarşısını alır?"
+    back:
+      en: "Prevents Airflow from triggering hundreds of backfill runs for all historical execution intervals between `start_date` and today."
+      az: "`start_date`-dən bu günə qədər olan keçmiş günlərin yüzlərlə tarixi işinin eyni anda işə düşməsinin qarşısını alır."
+  - front:
+      en: "Why is processing large datasets inside PythonOperator considered an antipattern?"
+      az: "`PythonOperator` daxilində böyük məlumatları emal etmək nə üçün antipattern hesab olunur?"
+    back:
+      en: "It exhausts worker memory, triggering Out-Of-Memory (OOM) operating system kills and destabilizing Airflow."
+      az: "Worker-in yaddaşını dolduraraq Əməliyyat Sisteminin OOM (Out Of Memory) çöküşünə səbəb olur və Airflow-u sıradan çıxarır."

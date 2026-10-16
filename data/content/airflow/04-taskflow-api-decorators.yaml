@@ -1,0 +1,249 @@
+id: "04-taskflow-api-decorators"
+order: 4
+level: "junior"
+title:
+  en: "Modern Airflow: TaskFlow API (`@dag`, `@task`) & Decorators"
+  az: "Müasir Airflow: TaskFlow API (`@dag`, `@task`) və Dekoratorlar"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LEGACY AIRFLOW 1.x (Clunky Boilerplate & Manual XComs)                │
+    │  def my_func(ti):                                                      │
+    │      data = ti.xcom_pull(task_ids='extract_task')  # Manual Pull       │
+    │      ti.xcom_push(key='result', value=len(data))    # Manual Push      │
+    │  t1 = PythonOperator(task_id='transform', python_callable=my_func)     │
+    │  • Verbose, error-prone, hard to refactor, feels un-Pythonic.          │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MODERN AIRFLOW 2.x TASKFLOW API (`@dag` & `@task` Decorators)         │
+    │  @task                                                                 │
+    │  def extract():                                                        │
+    │      return {"order_count": 500}       # Auto-pushed to XCom!          │
+    │                                                                        │
+    │  @task                                                                 │
+    │  def transform(data: dict):            # Auto-pulled from XCom!        │
+    │      print(f"Processing {data['order_count']} orders")                 │
+    │                                                                        │
+    │  # Dependencies are inferred naturally by passing Python return values!│
+    │  raw_orders = extract()                                                │
+    │  transform(raw_orders)  # Airflow automatically builds `extract >> tr` │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  KÖHNƏ AIRFLOW 1.x (Qarışıq Əl İlə XCom və Boilerplate Kod)            │
+    │  def hesabla(ti):                                                      │
+    │      data = ti.xcom_pull(task_ids='xammal_task')   # Əl ilə çək        │
+    │      ti.xcom_push(key='cavab', value=len(data))    # Əl ilə itələ      │
+    │  t1 = PythonOperator(task_id='hesabla', python_callable=hesabla)       │
+    │  • Çoxlu lazımsız kod, xətalara açıq, Python qaydalarına ziddir.       │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MÜASİR AIRFLOW 2.x TASKFLOW API (`@dag` və `@task` Dekoratorları)     │
+    │  @task                                                                 │
+    │  def xammalı_gətir():                                                  │
+    │      return {"say": 500}               # XCom-a avtomatik yazılır!     │
+    │                                                                        │
+    │  @task                                                                 │
+    │  def emal_et(data: dict):              # XCom-dan avtomatik oxunur!    │
+    │      print(f"Emal olunan: {data['say']}")                              │
+    │                                                                        │
+    │  # Asılılıq adi funksiya arqumenti kimi təbii qurulur!                 │
+    │  xammal = xammalı_gətir()                                              │
+    │  emal_et(xammal)        # Airflow avtomatik `xammal >> emal` edir!     │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of the difference between an **Old Telegraph Dispatch** and a **Modern Wireless Headset**:
+    - **Legacy Airflow (The Telegraph)**: To send a message between two stations, an operator had to manually encode the dots and dashes, type an explicit station address, pull the lever (`ti.xcom_push`), and the receiver had to manually tune the radio frequency (`ti.xcom_pull(task_ids='station_1')`). A single typo broke the entire factory.
+    - **TaskFlow API (The Wireless Headset)**: Introduced in Airflow 2.0, you simply talk into the headset. Function `return` values are automatically serialized into XComs, and downstream tasks receive them directly as standard function arguments. Airflow's compiler analyzes the function argument graph and **automatically generates the DAG dependency arrows (`>>`)** without you writing them!
+
+    ### The Superpowers of TaskFlow API:
+    1. **Zero Boilerplate**: No need to import `PythonOperator` or define cumbersome `op_kwargs`.
+    2. **Implicit Dependency Deduction**: Passing the output of `@task A` into `@task B` (`b(a())`) automatically tells Airflow that `task_a >> task_b`.
+    3. **Specialized Task Decorators**:
+       - `@task.bash`: Write bash scripts directly inside decorated functions.
+       - `@task.branch`: Implement conditional branching cleanly.
+       - `@task.docker` and `@task.kubernetes`: Execute specific functions inside isolated Docker containers or dedicated Kubernetes pods with custom libraries.
+    4. **Hybrid Interoperability**: Traditional operators (like `BashOperator` or `SparkSubmitOperator`) connect seamlessly to TaskFlow tasks via standard `>>` bitshifts.
+  az: |
+    Köhnə **Teleqraf Xətti** ilə **Müasir Simsiz Qulaqlıq** arasındakı fərqi təsəvvür edin:
+    - **Köhnə Airflow Modeli (Teleqraf)**: İki tapşırıq arasında məlumat ötürmək üçün mühəndis əllə teleqraf kodunu yığmalı (`ti.xcom_push`), qarşı tərəf isə həmin tapşırığın adını hərfi-hərfinə yazıb qəbul etməli idi (`ti.xcom_pull(task_ids='birinci_is')`). Hər hansı hərf səhvi bütün kəməri qırırdı.
+    - **TaskFlow API (Simsiz Qulaqlıq)**: Airflow 2.0 ilə gələn bu müasir yanaşmada adi Python funksiyaları kimi yazırsınız. Funksiyanın `return` etdiyi dəyər avtomatik XCom-a yazılır və növbəti funksiyaya arqument kimi ötürülür. Airflow arxa planda funksiya zəncirini analiz edir və **asılılıq oxlarını (`>>`) avtomatik özü qurur**!
+
+    ### TaskFlow API-nin Üstünlükləri:
+    1. **Sıfır Boilerplate**: `PythonOperator` idxal etməyə və ya mürəkkəb `op_kwargs` lüğətləri yazmağa ehtiyac qalmır.
+    2. **Avtomatik Asılılıq**: `@task B`-yə `@task A`-nın nəticəsini ötürdükdə (`b(a())`), Airflow avtomatik `A >> B` asılılığını formalaşdırır.
+    3. **Xüsusi Dekoratorlar**:
+       - `@task.bash`: Birbaşa funksiya içində terminal əmrləri işlətmək üçün.
+       - `@task.branch`: Şərti budaqlanma üçün.
+       - `@task.docker` və `@task.kubernetes`: Funksiyanı ayrıca təcrid olunmuş Docker konteynerində və ya K8s podunda işlətmək üçün.
+    4. **Hibrid Uyğunluq**: Klassik operatorlarla (`BashOperator`, `EmptyOperator`) TaskFlow funksiyalarını eyni DAG-da `>>` ilə rahatlıqla birləşdirə bilərsiniz.
+quick_recap:
+  en: "The TaskFlow API (`@dag` and `@task`) transforms Airflow into idiomatic Python. Data dependencies between decorated tasks automatically infer graph dependencies and serialize XComs under the hood."
+  az: "TaskFlow API (`@dag` və `@task`) Airflow-u təmiz Pythonic formaya gətirir. Dekorasiya edilmiş funksiyalar arasında ötürülən arqumentlər arxa planda avtomatik XCom yaradır və qraf asılılıqlarını avtomatik qurur."
+code: |
+  # Production Blueprint: Modern TaskFlow API Pipeline with Hybrid Operators
+  from datetime import datetime, timedelta
+  from airflow.decorators import dag, task
+  from airflow.operators.empty import EmptyOperator
+
+  default_args = {
+      'owner': 'analytics_eng',
+      'retries': 2,
+      'retry_delay': timedelta(minutes=2)
+  }
+
+  @dag(
+      dag_id='04_modern_taskflow_etl',
+      default_args=default_args,
+      start_date=datetime(2026, 1, 1),
+      schedule_interval='@daily',
+      catchup=False,
+      tags=['taskflow', 'modern', 'airflow2']
+  )
+  def taskflow_pipeline():
+
+      start = EmptyOperator(task_id='start')
+      end = EmptyOperator(task_id='end')
+
+      @task
+      def extract_orders() -> dict:
+          """Extract order records and return metadata summary."""
+          print("📥 Extracted 1,200 orders from transactional API.")
+          return {"batch_id": "b_20261015", "order_count": 1200, "total_value": 84500.50}
+
+      @task
+      def validate_and_transform(metadata: dict) -> dict:
+          """Cleanse records using extracted XCom metadata."""
+          count = metadata["order_count"]
+          print(f"⚙️ Transforming batch {metadata['batch_id']}. Found {count} orders.")
+          return {"batch_id": metadata["batch_id"], "clean_count": count - 12, "currency": "AZN"}
+
+      @task
+      def load_lakehouse(clean_summary: dict):
+          """Load final summary partition into warehouse."""
+          print(f"🚀 Loaded {clean_summary['clean_count']} valid rows into Lakehouse. Batch closed.")
+
+      # Natural Python invocation automatically builds XComs and dependencies!
+      raw_meta = extract_orders()
+      clean_meta = validate_and_transform(raw_meta)
+      load_done = load_lakehouse(clean_meta)
+
+      # Hybrid integration with classic EmptyOperators
+      start >> raw_meta
+      load_done >> end
+
+  # Instantiate the DAG
+  pipeline_instance = taskflow_pipeline()
+code_explanation:
+  en: |
+    - `@dag(...)`: Decorates the top-level pipeline function, replacing the legacy `with DAG(...)` context manager.
+    - `@task`: Turns standard Python functions into Airflow Task instances.
+    - `clean_meta = validate_and_transform(raw_meta)`: Automatically establishes that `extract_orders >> validate_and_transform` without writing bitshifts!
+    - `start >> raw_meta` and `load_done >> end`: Demonstrates seamless hybrid interoperability between classic operators and TaskFlow tasks.
+  az: |
+    - `@dag(...)`: Köhnə `with DAG(...)` blokunu əvəz edərək funksiyanı bütöv bir DAG-a çevirən əsas dekoratordur.
+    - `@task`: Sadə Python funksiyasını tamhüquqlu Airflow tapşırığına çevirir.
+    - `validate_and_transform(raw_meta)`: Arqument ötürməklə Airflow avtomatik `extract_orders >> validate_and_transform` asılılığını və XCom ötürülməsini qurur.
+    - `start >> raw_meta`: Klassik operatorların (`EmptyOperator`) TaskFlow funksiyaları ilə necə qüsursuz birləşdiyini nümayiş etdirir.
+visual_output: |
+  === Airflow UI Grid View & TaskFlow XCom Inspection ===
+  DAG: 04_modern_taskflow_etl (Schedule: @daily)
+
+  Task Graph Topology:
+  [start] ──► [extract_orders] ──► [validate_and_transform] ──► [load_lakehouse] ──► [end]
+
+  Task Instance Logs & XCom Values:
+  • extract_orders:
+    [2026-10-15 02:00:01] INFO - 📥 Extracted 1,200 orders from transactional API.
+    [XCom Return Value]: {"batch_id": "b_20261015", "order_count": 1200, "total_value": 84500.5}
+
+  • validate_and_transform:
+    [2026-10-15 02:00:03] INFO - ⚙️ Transforming batch b_20261015. Found 1200 orders.
+    [XCom Return Value]: {"batch_id": "b_20261015", "clean_count": 1188, "currency": "AZN"}
+
+  • load_lakehouse:
+    [2026-10-15 02:00:05] INFO - 🚀 Loaded 1188 valid rows into Lakehouse. Batch closed.
+output_description:
+  en: "Airflow UI execution logs demonstrating automatic XCom payload transfer between decorated tasks and clean terminal state transitions."
+  az: "Dekorasiya edilmiş TaskFlow funksiyaları arasında XCom-un avtomatik ötürülməsini və tapşırıq loqlarını göstərən terminal çıxışı."
+what_it_does:
+  en: "Illustrates the modern TaskFlow API paradigm, demonstrating decorators, automated XCom passing, and hybrid chaining with traditional operators."
+  az: "Müasir TaskFlow API paradiqmasını, avtomatik XCom ötürülməsini və klassik operatorlarla hibrid işləməni nümayiş etdirir."
+real_world_use:
+  en: "The default development standard for all new Airflow 2.x projects in modern cloud environments (Astronomer, AWS MWAA, GCP Cloud Composer)."
+  az: "Müasir bulud platformalarında (Astronomer, AWS MWAA, Cloud Composer) yeni yazılan bütün Airflow layihələrinin standart yazılış formasıdır."
+common_mistakes:
+  en: |
+    - **Returning huge objects from `@task` functions**: Returning a 500 MB Pandas DataFrame writes 500 MB directly into the PostgreSQL Metadata DB, degrading cluster performance!
+    - **Forgetting to invoke the decorated DAG function**: Writing `@dag def my_dag(): ...` without calling `my_dag()` at the bottom leaves the DAG unregistered!
+    - **Mixing decorated task calls with uncalled references**: Passing the function name `validate_and_transform` instead of calling it `validate_and_transform(data)`.
+  az: |
+    - **`@task` funksiyasından nəhəng obyektlər return etmək**: Funksiyadan 500 MB-lıq DataFrame qaytarmaq həmin 500 MB-ı birbaşa PostgreSQL metadata bazasına doldurur və sistemi iflic edir!
+    - **Dekorasiya edilmiş DAG funksiyasını çağırmağı unutmaq**: Faylın sonunda `pipeline_instance = taskflow_pipeline()` çağırılmazsa, Airflow DAG-ı görməyəcək.
+    - **Funksiyanı çağırmaq əvəzinə sadəcə adını ötürmək**: Mötərizəsiz `validate_and_transform` yazmaq tapşırığı işə salmır.
+interview_question:
+  question:
+    en: "What is the TaskFlow API in Apache Airflow 2.x, how does it simplify DAG authoring compared to classic operators, and how are task dependencies inferred?"
+    az: "Apache Airflow 2.x-də TaskFlow API nədir, klassik operatorlarla müqayisədə DAG yazılışını necə sadələşdirir və tapşırıq asılılıqları necə müəyyən olunur?"
+  answer:
+    en: |
+      1. **Definition of TaskFlow API**:
+         - Introduced in Airflow 2.0 (AIP-31), the TaskFlow API allows data engineers to author DAGs and Tasks using native Python decorators (`@dag`, `@task`).
+         - It eliminates the boilerplate of `PythonOperator`, `op_args`, `op_kwargs`, and manual XCom method calls.
+      2. **Key Simplifications over Classic Operators**:
+         - **Automated XCom Handling**: Any value returned by a `@task` function is automatically serialized and pushed to XCom. When passed into another `@task` function, Airflow automatically pulls and deserializes it.
+         - **Implicit Graph Dependency Deduction**: Calling `task_b(task_a())` implicitly declares an upstream/downstream dependency (`task_a >> task_b`). Airflow infers the DAG structure from the data flow without requiring manual bitshift operators.
+      3. **Interoperability & Custom Decorators**:
+         - TaskFlow is not exclusive: classic operators (like `BashOperator` or `KubernetesPodOperator`) and TaskFlow tasks can be chained together freely using `>>`.
+         - It also includes specialized decorators like `@task.branch`, `@task.docker`, `@task.kubernetes`, and `@task.sensor`.
+    az: |
+      1. **TaskFlow API-nin Tərifi**:
+         - Airflow 2.0 ilə gələn TaskFlow API, DAG və tapşırıqları birbaşa doğma Python dekoratorları (`@dag`, `@task`) vasitəsilə yazmağa imkan verən müasir paradiqmadır.
+         - O, `PythonOperator`, `op_kwargs` və əl ilə yazılan mürəkkəb XCom kodlarını aradan qaldırır.
+      2. **Klassik Operatorlardan Üstünlükləri**:
+         - **Avtomatlaşdırılmış XCom**: `@task` funksiyasının `return` etdiyi hər bir dəyər avtomatik olaraq XCom-a yazılır və növbəti funksiyaya ötürüldükdə avtomatik oxunur.
+         - **Avtomatik Asılılıq Çıxarışı**: `b(a())` yazdıqda Airflow data axınından anlayır ki, `a` tapşırığı `b`-dən əvvəl işləməlidir (`a >> b`) və qrafı özü qurur.
+      3. **Hibrid Dəstək və Xüsusi Dekoratorlar**:
+         - TaskFlow klassik operatorları kənara atmır: `BashOperator` və ya `KubernetesPodOperator` ilə TaskFlow funksiyaları `>>` vasitəsilə asanlıqla bir-birinə bağlanır.
+         - Eyni zamanda `@task.branch`, `@task.docker` və `@task.kubernetes` kimi ixtisaslaşmış dekoratorlar təqdim edir.
+  interviewer_tips:
+    en: "Demonstrate modern knowledge by calling TaskFlow 'the idiomatic Pythonic standard for Airflow 2.x'. Explain that returning a value automatically pushes to XCom, while input arguments automatically pull from XCom."
+    az: "Müsahibədə TaskFlow-u 'Airflow 2.x üçün sənaye standartı olan Pythonic yanaşma' adlandırın və `return` dəyərinin avtomatik XCom-a yazıldığını, arqumentin isə avtomatik XCom-dan oxunduğunu vurğulayın."
+flashcards:
+  - front:
+      en: "What decorator turns a Python function into an Airflow task in Airflow 2.x?"
+      az: "Airflow 2.x-də hansı dekorator Python funksiyasını Airflow tapşırığına çevirir?"
+    back:
+      en: "The `@task` decorator from `airflow.decorators`."
+      az: "`airflow.decorators` modulundan `@task` dekoratoru."
+  - front:
+      en: "How are XCom values handled automatically within TaskFlow API functions?"
+      az: "TaskFlow API funksiyalarında XCom dəyərləri avtomatik necə idarə olunur?"
+    back:
+      en: "Function return values are automatically pushed to XCom; input parameters automatically pull from XCom."
+      az: "Funksiyanın return dəyəri avtomatik XCom-a yazılır; giriş arqumentləri isə avtomatik XCom-dan oxunur."
+  - front:
+      en: "How does Airflow infer dependencies between two `@task` functions without bitshift operators?"
+      az: "Airflow bitshift operatoru olmadan iki `@task` funksiyası arasındakı asılılığı necə müəyyən edir?"
+    back:
+      en: "By analyzing function calls where the output of one task is passed as an argument to another (`task_b(task_a())`)."
+      az: "Bir tapşırığın nəticəsinin digərinə arqument kimi ötürüldüyünü analiz edərək (`task_b(task_a())`)."
+  - front:
+      en: "Can you combine TaskFlow decorated tasks with classic operators (e.g. `BashOperator`) in the same DAG?"
+      az: "Eyni DAG daxilində TaskFlow tapşırıqları ilə klassik operatorları (`BashOperator`) birləşdirmək olarmı?"
+    back:
+      en: "Yes! They can be chained together seamlessly using standard bitshift operators (`>>` and `<<`)."
+      az: "Bəli! Onlar standart bitshift (`>>` və `<<`) operatorları ilə asanlıqla bir-birinə bağlana bilir."
+  - front:
+      en: "What decorator is used in TaskFlow API to define conditional branching logic?"
+      az: "TaskFlow API-də şərti budaqlanma məntiqini yazmaq üçün hansı dekoratordan istifadə olunur?"
+    back:
+      en: "The `@task.branch` decorator."
+      az: "`@task.branch` dekoratoru."

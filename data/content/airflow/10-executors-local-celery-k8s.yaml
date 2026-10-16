@@ -1,0 +1,226 @@
+id: "10-executors-local-celery-k8s"
+order: 10
+level: "advanced"
+title:
+  en: "Executors: Sequential, Local, Celery & Kubernetes"
+  az: "İcraçılar (Executors): Sequential, Local, Celery və Kubernetes"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  WHAT IS AN AIRFLOW EXECUTOR?                                          │
+    │  The Scheduler decides WHEN a task runs; the EXECUTOR decides WHERE & HOW!
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+        ┌───────────────┬─────────────┴─────────────┬────────────────┐
+        ▼               ▼                           ▼                ▼
+    ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ ┌─────────────────────────┐
+    │ SEQUENTIAL  │ │ LOCAL       │ │ CELERY                  │ │ KUBERNETES            │
+    │ • SQLite DB │ │ • Multproc  │ │ • Distributed Workers   │ │ • Dynamic K8s Pods    │
+    │ • 1 task at │ │ • Single VM │ │ • Redis / RabbitMQ Queue│ │ • 1 Pod per Task      │
+    │   a time    │ │ • Limited by│ │ • Always-on static VMs  │ │ • Scale-to-Zero       │
+    │ • Dev only  │ │   1 server  │ │ • Python env clash risk │ │ • 100% Isolated Deps  │
+    └─────────────┘ └─────────────┘ └─────────────────────────┘ └─────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  AIRFLOW EXECUTOR NƏDİR?                                               │
+    │  Scheduler task-ın NƏ VAXT, Executor isə HARADA və NECƏ işləyəcəyini seçir!
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+        ┌───────────────┬─────────────┴─────────────┬────────────────┐
+        ▼               ▼                           ▼                ▼
+    ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ ┌─────────────────────────┐
+    │ SEQUENTIAL  │ │ LOCAL       │ │ CELERY                  │ │ KUBERNETES            │
+    │ • SQLite    │ │ • Multproc  │ │ • Paylanmış Workerlər   │ │ • Dinamik K8s Podlar  │
+    │ • Tək task  │ │ • Tək server│ │ • Redis / RabbitMQ növbə│ │ • Hər Task-a 1 Pod    │
+    │   (0 paralel│ │ • Tək maşın │ │ • Daim yanan statik VM  │ │ • Sıfıra qədər kiçilir│
+    │ • Yalnız dev│ │   RAM limiti│ │ • Kitabxana toqquşması  │ │ • 100% Asılılıq Təcridi│
+    └─────────────┘ └─────────────┘ └─────────────────────────┘ └─────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Role of an Executor
+    While the **Scheduler** orchestrates the DAG graph and marks tasks as `SCHEDULED`, the **Executor** is the computational engine responsible for allocating worker processes or containers to run the tasks.
+
+    ### 1. SequentialExecutor
+    - **How it works**: Runs tasks synchronously in a single thread using an SQLite backend.
+    - **Pros & Cons**: Zero configuration, great for local experimentation. Cannot run parallel tasks; completely unsuited for production.
+
+    ### 2. LocalExecutor
+    - **How it works**: Runs tasks as parallel Python subprocesses on the same machine hosting the scheduler (requires Postgres or MySQL).
+    - **Pros & Cons**: Simple, supports multi-threading and parallel runs. Limited strictly by the CPU and RAM of the single host machine.
+
+    ### 3. CeleryExecutor
+    - **How it works**: Uses a distributed message broker (Redis or RabbitMQ) and a cluster of dedicated worker servers running `airflow celery worker`.
+    - **Pros & Cons**: High throughput, battle-tested for massive enterprise workloads.
+    - **Disadvantages**: Worker machines must remain powered on (costly when idle), and all tasks share the worker's Python environment (leading to Python package dependency hell).
+
+    ### 4. KubernetesExecutor (Modern Cloud-Native Standard)
+    - **How it works**: For every single TaskInstance, the executor talks to the Kubernetes API to launch a dedicated, short-lived **Pod**.
+    - **Pros**:
+      - **Scale-to-Zero**: Zero worker infrastructure running when there are no DAGs.
+      - **Dependency Isolation**: Task A can run in Python 3.9 with PyTorch in Docker Image A, while Task B runs in Python 3.12 with DuckDB in Docker Image B!
+      - **Resource Limits**: Exact CPU/Memory limits per task.
+    - **Trade-off**: 5 to 10 seconds of Pod startup and image pull latency per task.
+  az: |
+    ### Executor-un Vəzifəsi Nədir?
+    **Scheduler** boru kəmərinin ardıcıllığını idarə edir və task-ları `SCHEDULED` statusuna gətirir. **Executor** isə həmin task-ların fiziki olaraq *harada və necə* icra olunacağını təyin edən hesablama mühərrikidir.
+
+    ### 1. SequentialExecutor
+    - **İş prinsipi**: SQLite bazası üzərində tək bir prosesdə işləyir. Eyni vaxtda yalnız 1 task icra edə bilər.
+    - **Təyinatı**: Yalnız ilkin lokal testlər üçündür. İstehsalatda qətiyyən istifadə olunmur.
+
+    ### 2. LocalExecutor
+    - **İş prinsipi**: Scheduler ilə eyni serverdə (PostgreSQL/MySQL tələb olunur) Python subprocess-ləri yaradaraq task-ları paralel icra edir.
+    - **Təyinatı**: Orta həcmli sistemlər üçün idealdır. Lakin bir serverin RAM və prosessor gücü ilə məhdudlaşır.
+
+    ### 3. CeleryExecutor
+    - **İş prinsipi**: Paylanmış mesaj növbəsi (Redis və ya RabbitMQ) və bir neçə ayrı worker serverindən ibarət klaster qurur.
+    - **Üstünlüyü**: Minlərlə task-ı eyni anda paylanmış şəkildə icra edə bilir.
+    - **Mənfi cəhəti**: İş olmadıqda belə serverlər açıq qalır (bulud xərci artır) və bütün task-lar worker-də eyni Python mühitini bölüşür (kitabxana versiyaları toqquşa bilər).
+
+    ### 4. KubernetesExecutor (Müasir Bulud Standartı)
+    - **İş prinsipi**: Hər bir task üçün Kubernetes API-ə sorğu göndərərək ayrıca müvəqqəti bir **Pod (Docker konteyneri)** yaradır və iş bitəndə pod silinir.
+    - **Böyük Üstünlükləri**:
+      - **Sıfır Boş Xərc (Scale-to-Zero)**: İş yoxdursa, heç bir worker serveri işləmir, xərc sıfıra düşür.
+      - **100% Asılılıq Təcridi**: Task A Python 3.9 və köhnə PyTorch ilə, Task B isə Python 3.12 və yeni Spark ilə tam fərqli Docker imiclərində işləyə bilər!
+      - **Resurs Nəzarəti**: Hər task üçün ayrıca dəqiq RAM və CPU limiti qoymaq mümkündür.
+    - **Mənfi cəhəti**: Pod-un qalxması və imicin yüklənməsi hər task-a 5-10 saniyə əlavə vaxt tələb edir.
+quick_recap:
+  en: "Sequential is single-threaded dev only; Local uses single-node multiprocessing; Celery uses fixed worker pools with Redis; Kubernetes runs each task in an isolated dynamic pod."
+  az: "Sequential tək yivli test üçündür; Local tək serverdə paralel işləyir; Celery Redis ilə statik worker qrupu saxlayır; Kubernetes hər task-ı təcrid olunmuş dinamik pod-da qaldırır."
+what_it_does:
+  en: "Defines the task scheduling architecture and physical execution runtime (subprocess, Celery worker, or Kubernetes pod) across your Airflow cluster."
+  az: "Airflow klasterində task-ların hansı arxitektura və fiziki mühitdə (proses, Celery worker və ya Kubernetes pod-u) icra olunacağını təyin edir."
+real_world_use:
+  en: "Using KubernetesExecutor in cloud environments (EKS, GKE, AKS) to run specialized tasks with custom Docker images and zero idle compute costs."
+  az: "Bulud mühitlərində (AWS EKS, GCP GKE) fərqli Docker imicləri tələb edən task-ları KubernetesExecutor ilə sıfır boş qalma xərci ilə işlətmək."
+common_mistakes:
+  en: "Running CeleryExecutor with tasks requiring conflicting Python package versions, causing mysterious import errors across worker nodes."
+  az: "Celery worker-lərində fərqli layihələrin toqquşan Python paketlərini eyni mühitə yükləmək və worker-lərdə anlaşılmaz import xətaları almaq."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+  from kubernetes.client import models as k8s
+
+  # Configuration example for KubernetesExecutor custom resource overrides
+  k8s_resource_requirements = {
+      "pod_override": k8s.V1Pod(
+          spec=k8s.V1PodSpec(
+              containers=[
+                  k8s.V1Container(
+                      name="base",
+                      image="custom-ml-pipeline:python3.11-gpu",
+                      resources=k8s.V1ResourceRequirements(
+                          requests={"memory": "4Gi", "cpu": "2"},
+                          limits={"memory": "8Gi", "cpu": "4"}
+                      )
+                  )
+              ]
+          )
+      )
+  }
+
+  @dag(
+      schedule="@daily",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,
+      tags=["executors", "kubernetes", "cloud_native"]
+  )
+  def kubernetes_isolated_pipeline():
+      """
+      Demonstrates task-level resource and container image isolation
+      using KubernetesExecutor capabilities.
+      """
+
+      @task
+      def extract_standard():
+          print("Lightweight extraction running on default Airflow base image.")
+          return 50000
+
+      @task(executor_config=k8s_resource_requirements)
+      def heavy_ml_inference(record_count: int):
+          # This task spins up in its OWN dedicated 8GB RAM Kubernetes Pod!
+          print(f"Running heavy neural inference on {record_count} records inside dedicated K8s Pod...")
+          print("GPU acceleration enabled. Task completed.")
+
+      @task
+      def finalize_run():
+          print("All tasks finished. K8s Pods have been cleanly terminated to save costs.")
+
+      count = extract_standard()
+      heavy_ml_inference(count) >> finalize_run()
+
+  dag_instance = kubernetes_isolated_pipeline()
+code_explanation:
+  en: |
+    - In `KubernetesExecutor`, each task can define an `executor_config` specifying its own Docker image and K8s resource requests (`cpu`, `memory`).
+    - `extract_standard` runs in a standard lightweight container.
+    - `heavy_ml_inference` launches a dedicated Pod with 8GB RAM and a custom ML image. Once finished, Kubernetes terminates the Pod immediately, so the company pays zero idle server cost!
+  az: |
+    - `KubernetesExecutor`-da hər bir task `executor_config` vasitəsilə özünə məxsus Docker imicini və RAM/CPU limitlərini təyin edə bilər.
+    - `extract_standard` standart yüngül konteynerdə işə düşür.
+    - `heavy_ml_inference` isə 8GB RAM tələb edən xüsusi ML Docker konteynerində qalxır. İş bitən kimi həmin Pod silinir və şirkət boş yerə heç bir server xərci ödəmir!
+visual_output: |
+  ====================== KUBERNETES EXECUTOR CLUSTER VIEW ======================
+  [Scheduler] Dispatched Task: heavy_ml_inference
+  [KubeClient] Creating Pod: airflow-task-heavy_ml_inference_20261016_a98f1
+  
+  $ kubectl get pods -n airflow
+  NAME                                                  READY   STATUS    AGE
+  airflow-webserver-6b5d9b688d-m5zpl                    1/1     Running   3d
+  airflow-scheduler-58687bd75-j92kc                     1/1     Running   3d
+  airflow-task-heavy_ml_inference_20261016_a98f1        1/1     Running   12s  [DYNAMIC POD]
+  
+  [Task Execution Log]
+  [2026-10-16 05:00:15 UTC] INFO - Container started with 8Gi Memory Limit.
+  [2026-10-16 05:00:22 UTC] INFO - Running heavy neural inference on 50000 records...
+  [2026-10-16 05:00:25 UTC] INFO - Task completed successfully. Exiting container.
+
+  [KubeClient] Pod airflow-task-heavy_ml_inference_20261016_a98f1 deleted. (Scale-to-zero)
+output_description:
+  en: "Shows Kubernetes dynamically spawning an isolated Pod with custom resources for the task and automatically deleting it upon completion."
+  az: "Kubernetes-in task üçün xüsusi resurslu ayrıca Pod yaratdığını və iş bitən kimi onu avtomatik silərək sıfır xərc təmin etdiyini göstərir."
+interview_question:
+  question:
+    en: "Compare CeleryExecutor and KubernetesExecutor. When would you choose one over the other in an enterprise production architecture?"
+    az: "CeleryExecutor ilə KubernetesExecutor-u müqayisə edin. Müəssisə səviyyəli arxitekturada birini digərindən üstün tutmağınızın səbəbləri nə olar?"
+  answer:
+    en: "CeleryExecutor uses a pool of static worker VMs listening to a Redis/RabbitMQ queue. It offers very low task start latency (sub-second) and handles high volumes of frequent, short-lived tasks well. However, workers are always running (incurring idle costs) and tasks share the worker's Python environment, risking dependency conflicts. KubernetesExecutor launches a fresh Pod for every single TaskInstance via K8s API. It provides 100% dependency and resource isolation (different Docker images, RAM/CPU limits per task) and scales to zero when idle, saving significant cloud costs. However, Pod startup introduces a 5-10 second overhead. Choose CeleryExecutor for high-frequency micro-tasks, and KubernetesExecutor for modern cloud architectures with heterogeneous workloads, ML tasks, or strict cost optimization."
+    az: "CeleryExecutor Redis/RabbitMQ növbəsini dinləyən statik worker serverlərindən istifadə edir. Task-ın dərhal (saniyədən az) başlamasını təmin edir və tez-tez işə düşən qısamüddətli işlər üçün əladır. Lakin worker serverləri daim açıq qalır (boş vaxtlarda da xərc yazır) və bütün task-lar eyni Python mühitini bölüşdüyü üçün versiya toqquşması riski yaranır. KubernetesExecutor isə hər bir task üçün Kubernetes üzərində sıfırdan ayrıca Pod yaradır. Bu, 100% asılılıq və resurs təcridi təmin edir (hər task fərqli Docker imicində və fərqli RAM/CPU ilə işləyə bilər) və iş olmadıqda sıfıra qədər kiçilərək (scale-to-zero) bulud xərclərinə kəskin qənaət edir. Mənfi cəhəti podun açılması üçün 5-10 saniyə gözləmə vaxtıdır. Əgər çox sürətli və qısa işlərdirsə Celery, müxtəlif kitabxanalar, ML modelləri və resurs qənaəti tələb olunursa müasir bulud standartı olan KubernetesExecutor seçilir."
+  interviewer_tips:
+    en: "Highlighting 'Scale-to-Zero' and 'Docker image dependency isolation' vs 'Pod startup latency' shows real-world architecture trade-off understanding."
+    az: "'Scale-to-Zero' (sıfıra qədər kiçilmə) və 'asılılıqların Docker imicləri ilə təcrid olunması' amillərini vurğulamaq arxitektura səviyyəli biliklərinizi sübut edir."
+flashcards:
+  - front:
+      en: "What is the primary role of an Airflow Executor?"
+      az: "Airflow Executor-un əsas vəzifəsi nədir?"
+    back:
+      en: "It defines the mechanism, infrastructure, and runtime environment where task instances physically execute."
+      az: "Task icralarının fiziki olaraq hansı infrastrukturda və necə icra olunacağını müəyyən edən mühərrikdir."
+  - front:
+      en: "Why is SequentialExecutor unsuitable for production environments?"
+      az: "SequentialExecutor niyə istehsalat mühitləri üçün yararsızdır?"
+    back:
+      en: "It uses SQLite and is strictly single-threaded, meaning only one task in the entire cluster can run at any time."
+      az: "SQLite bazasından istifadə edir və tək yivlidir; bütün sistemdə eyni anda yalnız 1 task işləyə bilər."
+  - front:
+      en: "What message brokers are typically used with CeleryExecutor?"
+      az: "CeleryExecutor ilə adətən hansı mesaj brokerlərindən istifadə olunur?"
+    back:
+      en: "Redis or RabbitMQ."
+      az: "Redis və ya RabbitMQ."
+  - front:
+      en: "What are the two biggest advantages of KubernetesExecutor?"
+      az: "KubernetesExecutor-un ən böyük iki üstünlüyü nədir?"
+    back:
+      en: "1) Complete dependency isolation via custom Docker images/resources per task, and 2) Scale-to-zero cost savings."
+      az: "1) Hər task üçün fərqli Docker imici və resursla tam asılılıq təcridi, və 2) Sıfıra qədər kiçilmə (scale-to-zero) ilə xərc qənaəti."
+  - front:
+      en: "What is the main trade-off (drawback) of KubernetesExecutor compared to CeleryExecutor?"
+      az: "KubernetesExecutor-un CeleryExecutor ilə müqayisədə əsas mənfi cəhəti nədir?"
+    back:
+      en: "Pod startup and image pull latency (typically 5-15 seconds per task) before task code begins executing."
+      az: "Task başlamazdan əvvəl Pod-un qalxması və imicin yüklənməsi üçün tələb olunan 5-15 saniyəlik gecikmə."

@@ -1,0 +1,234 @@
+id: "03-operators-tasks-dependencies"
+order: 3
+level: "junior"
+title:
+  en: "Operators, Tasks & Dependencies: Building Parallel Workflows"
+  az: "Operatorlar, Tapşırıqlar və Asılılıqlar: Paralel Kəmərlər Qurmaq"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  OPERATOR vs TASK vs TASKINSTANCE (The OOP Hierarchy)                 │
+    │  1. Operator (The Class): Blueprint in airflow library (PythonOperator)│
+    │  2. Task (The Object): Instantiated in your DAG (`t1 = PythonOp(...)`) │
+    │  3. TaskInstance (The Execution): `t1` executed on 2026-10-15 at 02:00 │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PARALLEL FAN-OUT & FAN-IN DEPENDENCIES (`>>` Bitshift Syntax)         │
+    │                                                                        │
+    │                          ┌──► [clean_orders_data]  ──┐                 │
+    │  [extract_raw_csv] ──────┤                           ├──► [load_to_dwh]│
+    │                          └──► [clean_users_data]   ──┘                 │
+    │                                                                        │
+    │  Code Syntax: `extract_raw_csv >> [clean_orders, clean_users] >> load` │
+    │  Execution: Both clean tasks run concurrently in parallel on workers!  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  OPERATOR vs TASK vs TASKINSTANCE (Kompüter Elmləri Fərqi)             │
+    │  1. Operator (Sinif / Şablon): Kitabxanadakı təməl sinif (PythonOp)    │
+    │  2. Task (Obyekt): Sizin DAG-da yaratdığınız vahid (`t1 = PythonOp()`) │
+    │  3. TaskInstance (Real İcra): Həmin `t1`-in 2026-10-15 saat 02:00 icrası│
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PARALEL ŞAXƏLƏNMƏ VƏ BİRLƏŞMƏ ASILILIĞI (`>>` Sintaksisi)             │
+    │                                                                        │
+    │                          ┌──► [sifarişləri_təmizlə] ──┐                │
+    │  [xammal_datanı_yüklə]───┤                            ├──► [anbara_yaz]│
+    │                          └──► [müştəriləri_təmizlə] ──┘                │
+    │                                                                        │
+    │  Kod: `xammal >> [sifarişləri_təmizlə, müştəriləri_təmizlə] >> anbara` │
+    │  İcra: Hər iki təmizləmə tapşırığı worker-lərdə paralel icra olunur!   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of an automated automobile assembly line in a car factory:
+    - **Operator (The Robotic Machine Specification)**: The manufacturer catalog selling a robotic welding arm.
+    - **Task (The Installed Robot at Station 4)**: The specific welding arm configured on your factory floor to weld the car doors.
+    - **TaskInstance (Welding Car Chassis #9842)**: The specific moment that robotic arm welded chassis #9842 on Tuesday morning.
+
+    ### The 3 Core Categories of Airflow Operators:
+    1. **Action Operators**: Execute an explicit piece of computation (e.g. `BashOperator`, `PythonOperator`, `EmailOperator`).
+    2. **Transfer Operators**: Move data across disparate enterprise systems (e.g. `S3ToRedshiftOperator`, `PostgresToGoogleCloudStorageOperator`).
+    3. **Sensor Operators**: Pause and wait until a specific external condition is met (e.g. `HttpSensor`, `FileSensor`).
+
+    ### The Bitshift Dependency Operator (`>>` and `<<`):
+    - `task_a >> task_b`: Means *task_a runs first, and upon success, task_b runs* (`task_a` is upstream of `task_b`).
+    - `task_a >> [task_b, task_c] >> task_d`:
+      - `task_a` executes.
+      - Once `task_a` succeeds, Airflow triggers `task_b` and `task_c` **in parallel** on available worker cores!
+      - `task_d` waits until **both** `task_b` and `task_c` successfully finish before executing.
+  az: |
+    Müasir avtomobil yığma zavodunun konveyer xəttini təsəvvür edin:
+    - **Operator (Robot Qolun Texniki Pasportu)**: Mağazadakı robot qaynaq aparatının kataloq təsviridir.
+    - **Task (4-cü Stansiyada Quraşdırılmış Robot)**: Sizin zavod xəttinizə quraşdırılmış və qapıları qaynaq etmək üçün təyin olunmuş konkret aparatdır.
+    - **TaskInstance (9842 Nömrəli Maşının Qaynaq Edilməsi)**: Həmin aparatın çərşənbə axşamı saat 10:15-də konkret 9842 nömrəli kuzovu qaynaq etməsi hadisəsidir.
+
+    ### Airflow Operatorlarının 3 Əsas Növü:
+    1. **Fəaliyyət Operatorları (Action)**: Müəyyən bir əmri icra edir (`BashOperator`, `PythonOperator`, `EmailOperator`).
+    2. **Köçürmə Operatorları (Transfer)**: Məlumatı bir sistemdən digərinə daşıyır (`PostgresToGCSOperator`, `S3ToRedshiftOperator`).
+    3. **Sensor Operatorları (Sensor)**: Xarici şərt (məs. faylın gəlməsi) ödənənə qədər gözləyir (`FileSensor`, `HttpSensor`).
+
+    ### Bitshift Asılılıq Operatoru (`>>`):
+    - `task_a >> task_b`: `task_a` əvvəl işləsin, uğurla bitsə `task_b` başlasın deməkdir.
+    - `task_a >> [task_b, task_c] >> task_d`:
+      - Əvvəlcə `task_a` işləyir.
+      - `task_a` bitən kimi Airflow `task_b` və `task_c`-ni **eyni vaxtda paralel** işə salır!
+      - `task_d` isə həm `task_b`, həm də `task_c` tam uğurla bitdikdən sonra icra olunur.
+quick_recap:
+  en: "Operators define what work is done; Tasks define the node in a DAG; TaskInstances are runtime executions. Bitshift operators (`>>`) chain tasks into complex parallel workflows, supporting concurrent fan-out and fan-in dependencies."
+  az: "Operator nə iş görüləcəyini, Task DAG-dakı qovşağı, TaskInstance isə real icranı bildirir. `>>` operatoru işləri bir-birinə bağlayaraq çoxnüvəli paralel kəmərlər formalaşdırır."
+code: |
+  # Production Blueprint: Parallel Fan-Out / Fan-In DAG with Bitshift Syntax
+  from datetime import datetime, timedelta
+  from airflow import DAG
+  from airflow.operators.empty import EmptyOperator
+  from airflow.operators.python import PythonOperator
+
+  default_args = {
+      'owner': 'data_platform',
+      'retries': 1,
+      'retry_delay': timedelta(minutes=3)
+  }
+
+  def extract_source():
+      print("📥 Extracted 10,000 raw sales and customer events from OLTP DB.")
+
+  def transform_sales():
+      print("⚙️ Processing: Normalized 8,500 sales currency records to AZN.")
+
+  def transform_customers():
+      print("⚙️ Processing: Enriched customer demographics and tiers.")
+
+  def load_warehouse():
+      print("🚀 Loading: Successfully merged clean partitions into Lakehouse!")
+
+  with DAG(
+      dag_id='03_parallel_fan_out_fan_in',
+      default_args=default_args,
+      start_date=datetime(2026, 1, 1),
+      schedule_interval='@daily',
+      catchup=False,
+      tags=['parallelism', 'core']
+  ) as dag:
+
+      start_signal = EmptyOperator(task_id='start_signal')
+      extract_task = PythonOperator(task_id='extract_raw_data', python_callable=extract_source)
+      
+      # Parallel Branches
+      clean_sales_task = PythonOperator(task_id='transform_sales_data', python_callable=transform_sales)
+      clean_customers_task = PythonOperator(task_id='transform_customers_data', python_callable=transform_customers)
+      
+      load_task = PythonOperator(task_id='load_to_lakehouse', python_callable=load_warehouse)
+      end_signal = EmptyOperator(task_id='end_signal')
+
+      # Construct Graph Topology: Fan-Out -> Parallel -> Fan-In
+      start_signal >> extract_task >> [clean_sales_task, clean_customers_task] >> load_task >> end_signal
+code_explanation:
+  en: |
+    - `EmptyOperator`: A no-op lightweight placeholder used in production to anchor clean start and end milestones in visual graphs.
+    - `[clean_sales_task, clean_customers_task]`: A Python list placed in a bitshift chain creates an automatic parallel fan-out.
+    - `>> load_task`: Represents a fan-in synchronization point. `load_task` waits for all list members to report `success` before starting.
+  az: |
+    - `EmptyOperator`: Heç bir kod icra etməyən, qrafın başlanğıc və son nöqtələrini vizual birləşdirmək üçün istifadə olunan yüngül operator.
+    - `[clean_sales_task, clean_customers_task]`: Siyahı halında ötürüldükdə Airflow bu iki tapşırığı paralel işə salır.
+    - `>> load_task`: Birləşmə nöqtəsidir. `load_task` hər iki paralel tapşırıq uğurla tamamlanana qədər gözləyir.
+visual_output: |
+  === Airflow Graph View Execution Status ===
+  DAG: 03_parallel_fan_out_fan_in [Execution Date: 2026-10-15]
+
+  Graph Topology:
+  [start_signal] ──► [extract_raw_data] ──┬──► [transform_sales_data]     ──┬──► [load_to_lakehouse] ──► [end_signal]
+                                          └──► [transform_customers_data] ──┘
+
+  Real-time Execution Timeline:
+  [02:00:00] start_signal             : SUCCESS 🟢 (0.1s)
+  [02:00:01] extract_raw_data         : SUCCESS 🟢 (2.4s)
+  [02:00:04] transform_sales_data     : RUNNING 🔵 (Parallel Worker 1)
+  [02:00:04] transform_customers_data : RUNNING 🔵 (Parallel Worker 2)
+  [02:00:12] transform_sales_data     : SUCCESS 🟢 (8.1s)
+  [02:00:14] transform_customers_data : SUCCESS 🟢 (9.8s)
+  [02:00:15] load_to_lakehouse        : SUCCESS 🟢 (4.2s)
+  [02:00:20] end_signal               : SUCCESS 🟢 (0.1s)
+output_description:
+  en: "Visual execution timeline demonstrating concurrent worker parallelism: both transform tasks execute simultaneously at 02:00:04 before joining at load_to_lakehouse."
+  az: "Hər iki transform tapşırığının eyni saniyədə (02:00:04) paralel işçilərdə başladığını və birləşərək uğurla bitdiyini göstərən Airflow qraf icra xətti."
+what_it_does:
+  en: "Builds a production multi-branch DAG topology, illustrating how bitshift syntax orchestrates concurrent task fan-out and synchronization fan-in."
+  az: "Çoxşaxəli paralel DAG quruluşunu nümayiş etdirir, bitshift sintaksisi ilə paralel işləməni və yekun birləşməni tənzimləyir."
+real_world_use:
+  en: "Standard pattern in nightly corporate ETL where separate fact and dimension tables are extracted and transformed concurrently to fit within tight batch processing SLA windows."
+  az: "Gecə ETL kəmərlərində fakt və ölçü (dimension) cədvəllərinin vaxta qənaət etmək üçün paralel emal olunub birgə yüklənməsində tətbiq edilir."
+common_mistakes:
+  en: |
+    - **Using `task_a > task_b` instead of `>>`**: Single greater-than causes a Python syntax error. Always use double bitshift `>>`.
+    - **Attempting circular dependencies**: Writing `t1 >> t2 >> t3 >> t1` raises `AirflowDagCycleException` immediately upon file parsing.
+    - **Chaining lists directly to lists**: Syntax like `[t1, t2] >> [t3, t4]` is invalid in older Airflow versions; use `airflow.models.baseoperator.chain()` instead.
+  az: |
+    - **`>>` yerinə tək `>` yazmaq**: Python sintaksis xətası verir. Həmişə qoşa bitshift `>>` yazılmalıdır.
+    - **Dövrə yaratmağa cəhd etmək**: `t1 >> t2 >> t3 >> t1` yazmaq Airflow-da qəti qadağandır və dərhal `AirflowDagCycleException` xətası atır.
+    - **Siyahını birbaşa siyahıya bağlamaq**: `[t1, t2] >> [t3, t4]` köhnə versiyalarda xəta verir; bunun üçün `chain()` funksiyasından istifadə olunmalıdır.
+interview_question:
+  question:
+    en: "What is the precise object-oriented difference between an Operator, a Task, and a TaskInstance, and how does Airflow handle parallel branch execution?"
+    az: "Operator, Task və TaskInstance arasındakı obyekt-yönümlü dəqiq fərq nədir və Airflow paralel şaxələnməni necə idarə edir?"
+  answer:
+    en: |
+      1. **The OOP Relationship**:
+         - **Operator**: A Python class defining template logic (e.g. `PythonOperator` knows how to invoke a callable; `BashOperator` executes a subprocess).
+         - **Task**: An instantiated object of an Operator assigned a `task_id` inside a DAG context (`extract_task = BashOperator(task_id='extract')`). It is a static blueprint node in the DAG graph.
+         - **TaskInstance**: The concrete runtime execution of a Task for a specific `logical_date` (execution interval). It holds dynamic state (`running`, `success`, `failed`, `try_number`, `duration`, `xcom_data`).
+      2. **Parallel Branch Execution (Fan-Out / Fan-In)**:
+         - Airflow supports parallel branching natively using Python lists and bitshift operators: `t1 >> [t2, t3] >> t4`.
+         - When `t1` completes with `success`, the Scheduler sets both `t2` and `t3` to `scheduled` state simultaneously.
+         - If worker slots are available in the Executor pool (Celery/K8s), `t2` and `t3` execute concurrently on separate cores or nodes.
+         - `t4` evaluates its `trigger_rule` (default: `all_success`). It waits until both `t2` and `t3` reach terminal `success` state before transitioning to `scheduled`.
+    az: |
+      1. **Obyekt-Yönümlü Fərq**:
+         - **Operator**: Görüləcək işin şablon sinfidir (`PythonOperator` funksiya çağırmağı, `BashOperator` isə terminal əmrini icra etməyi bilir).
+         - **Task**: Həmin operator sinfindən yaradılmış konkret obyekt və DAG qrafındakı statik qovşaqdır (`t1 = BashOperator(task_id='extract')`).
+         - **TaskInstance**: Həmin Task-ın müəyyən bir tarix və vaxt üçün real dinamik icrasıdır. O, cari vəziyyəti (`running`, `success`, `failed`, icra müddəti və loqları) özündə saxlayır.
+      2. **Paralel Şaxələnmənin İdarə Edilməsi**:
+         - Airflow siyahı və bitshift ilə paralel işləməni dəstəkləyir: `t1 >> [t2, t3] >> t4`.
+         - `t1` uğurla bitən kimi Scheduler `t2` və `t3` tapşırıqlarını eyni anda növbəyə qoyur.
+         - Əgər klasterdə boş worker yuvası varsa, `t2` və `t3` tamamilə müstəqil serverlərdə paralel icra edilir.
+         - `t4` isə öz `trigger_rule` (susmaya görə `all_success`) qaydasına baxır və həm `t2`, həm də `t3` uğurla bitdikdən sonra işə düşür.
+  interviewer_tips:
+    en: "Define the trio clearly: 'Operator is the Class, Task is the Object, TaskInstance is the Specific Run with State'. Explain that `[t2, t3]` instructs the scheduler to queue both downstream tasks concurrently."
+    az: "Müsahibədə üçlüyü aydın ifadə edin: 'Operator Sinifdir, Task Obyektdir, TaskInstance isə konkret vaxtdakı İcradır'. Siyahı formatının (`[t2, t3]`) scheduler-ə eyni anda hər iki işi paralel başlatmaq əmri verdiyini qeyd edin."
+flashcards:
+  - front:
+      en: "What is the difference between an Operator and a Task in Apache Airflow?"
+      az: "Apache Airflow-da Operator ilə Task arasındakı fərq nədir?"
+    back:
+      en: "An Operator is the template class; a Task is an instantiated node configured inside a DAG."
+      az: "Operator şablon Python sinfidir; Task isə həmin sinifdən DAG daxilində yaradılmış konkret tapşırıq qovşağıdır."
+  - front:
+      en: "What does the bitshift expression `t1 >> [t2, t3] >> t4` accomplish?"
+      az: "`t1 >> [t2, t3] >> t4` bitshift ifadəsi nəyi həyata keçirir?"
+    back:
+      en: "`t1` executes first; once complete, `t2` and `t3` run concurrently in parallel, joining back before `t4`."
+      az: "`t1` bitdikdən sonra `t2` və `t3` paralel işləyir; hər ikisi tamamlandıqda `t4` başlayır."
+  - front:
+      en: "What is an `EmptyOperator` used for in production DAGs?"
+      az: "İstehsalat DAG-larında `EmptyOperator` nə üçün istifadə olunur?"
+    back:
+      en: "As a visual anchor node to cleanly organize start/end fan-outs without running any code."
+      az: "Heç bir kod işlətmədən qrafın başlanğıc və ya son qovşaqlarını vizual birləşdirmək üçün."
+  - front:
+      en: "What exception is raised if tasks are chained in an infinite circular loop?"
+      az: "Tapşırıqlar sonsuz dövrə şəklində bağlandıqda hansı xəta baş verir?"
+    back:
+      en: "`AirflowDagCycleException` (Airflow strictly forbids cycles in Directed Acyclic Graphs)."
+      az: "`AirflowDagCycleException` (Airflow dövrsüz qraflarda dövrələri qəti qadağan edir)."
+  - front:
+      en: "Where do `retries` and `retry_delay` configurations come from if not set on the task itself?"
+      az: "Tapşırığın özündə qeyd edilmədikdə `retries` və `retry_delay` parametrləri haradan götürülür?"
+    back:
+      en: "They are inherited automatically from the DAG's `default_args` dictionary."
+      az: "DAG-ın `default_args` lüğətindən avtomatik miras alınır."

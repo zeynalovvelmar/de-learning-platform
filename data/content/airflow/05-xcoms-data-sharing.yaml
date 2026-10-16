@@ -1,0 +1,225 @@
+id: "05-xcoms-data-sharing"
+order: 5
+level: "intermediate"
+title:
+  en: "XComs: Inter-Task Communication & The Metadata DB Limit"
+  az: "XComs: Task-lar Arası Məlumat Mübadiləsi və Metadata DB Limiti"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  WHAT IS XCOM? ("Cross-Communication")                                 │
+    │  Each Airflow task runs in its OWN isolated process or container.      │
+    │  Variables in Task A's memory DO NOT EXIST in Task B's memory!         │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            ▼                                                   ▼
+    ┌───────────────────────────────┐   ┌───────────────────────────────┐
+    │ ✅ DO USE XCOM FOR METADATA   │   │ ❌ NEVER PUT RAW DATA IN XCOM │
+    │ • IDs, Row counts (e.g. 500)  │   │ • 5GB CSV or DataFrames       │
+    │ • S3 / GCS URIs / S3 keys     │   │ • Serialized to Postgres/MySQL│
+    │ • Execution status / timestamps│   │ • Blows up Metadata Database! │
+    └───────────────────────────────┘   └───────────────────────────────┘
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            │  PRODUCTION PATTERN: CLOUD OBJECT STORAGE CLAIM CHECK
+            │
+            │  [Task 1: Extract] ──────► Writes 10GB Data ──► [S3 / GCS Bucket]
+            │          │                                             ▲
+            │          ▼ Pushes XCom: "s3://lake/2026/05/orders.parquet"
+            │  [Task 2: Load]    ◄───── Reads S3 URI from XCom ──────┘
+            └───────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  XCOM NƏDİR? ("Cross-Communication" - Çarpaz Əlaqə)                   │
+    │  Hər bir Airflow task-ı ÖZÜNƏMƏXSUS təcrid olunmuş proses və ya        │
+    │  konteynerdə icra edilir. Task A-nın yaddaşındakı dəyişən Task B-də YOXDUR!
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            ▼                                                   ▼
+    ┌───────────────────────────────┐   ┌───────────────────────────────┐
+    │ ✅ XCOM ÜÇÜN DÜZGÜN MƏLUMAT   │   │ ❌ XCOM-A HEÇ VAXT QOYMAYIN   │
+    │ • Sətir sayı (məs: 500 sətir) │   │ • 5GB CSV və ya DataFrame     │
+    │ • S3 / GCS fayl ünvanları     │   │ • Metadata DB-yə yazılır!     │
+    │ • Partisiya tarixi, ID siyahısı│  │ • DB-ni şişirdib çökdürər!   │
+    └───────────────────────────────┘   └───────────────────────────────┘
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            │  REAL İSTEHSALAT MODELİ: CLAIM-CHECK PATTERN      │
+            │
+            │  [Task 1: Extract] ──────► 10GB Məlumat Yazır ──► [S3 / GCS Bucket]
+            │          │                                              ▲
+            │          ▼ XCom-a ünvan ötürür: "s3://lake/orders.parquet"
+            │  [Task 2: Load]    ◄───── S3 ünvanını XCom-dan oxuyur ──┘
+            └───────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Core Reality of Airflow Tasks
+    In Airflow, tasks are strictly isolated. Task 1 and Task 2 might run on completely different worker machines (in CeleryExecutor or KubernetesExecutor). They do not share Python global variables or memory heaps.
+
+    ### How XCom Works
+    **XCom** (short for Cross-Communication) allows tasks to exchange small pieces of state.
+    - When a task returns a value in TaskFlow API (`return my_val`), Airflow automatically serializes it (JSON/Pickle) and stores it in the `xcom` table of Airflow's **Metadata Database** (PostgreSQL/MySQL).
+    - Downstream tasks pull this value by key or function parameter.
+
+    ### The Golden Rule of XCom: Metadata Only!
+    The metadata database is meant for task state and scheduling information, **NOT for big data storage**.
+    - If you push a 1GB Pandas DataFrame or 500,000 JSON records into XCom, you will overwhelm Postgres connections, bloat database storage, and crash Airflow workers with Out-Of-Memory (OOM) errors.
+    - **Production Pattern**: Write large data directly to cloud storage (Amazon S3, Google Cloud Storage, or MinIO), and pass only the storage URI (`s3://bucket/path/data.parquet`) through XCom.
+  az: |
+    ### Airflow Task-larının Əsas Təbiəti
+    Airflow-da task-lar bir-birindən tam təcrid olunmuş şəkildə işləyir. Task 1 və Task 2 hətta tamam fərqli serverlərdə (Celery və ya Kubernetes pod-larında) icra oluna bilər. Buna görə də onların arasında ortaq Python yaddaşı (RAM) və ya qlobal dəyişən mövcud deyil.
+
+    ### XCom Necə İşləyir?
+    **XCom** ("Cross-Communication") task-lar arasında kiçik həcmli status və idarəetmə məlumatlarını ötürmək üçün vasitədir.
+    - TaskFlow API-də bir task `return my_dict` etdikdə, Airflow həmin dəyəri avtomatik olaraq seriyalaşdırır və Airflow-un **Metadata Database** (PostgreSQL/MySQL) cədvəlinə yazır.
+    - Növbəti task bu məlumatı arqument və ya `xcom_pull` ilə oxuyur.
+
+    ### XCom-un Qızıl Qaydası: Yalnız Kiçik Metadata!
+    Metadata verilənlər bazası yalnız cədvəl statuslarını və iş qrafiklərini saxlamaq üçündür, **böyük məlumatlar (Big Data) üçün deyil**.
+    - Əgər siz XCom-a 1GB Pandas DataFrame və ya 500,000 sətir JSON göndərsəniz, PostgreSQL bazası iflic olar, sorğular time-out verər və Worker-lər OOM (Out Of Memory) ilə çökər.
+    - **Real İstehsalat Qaydası (Claim-Check Pattern)**: Böyük məlumatları birbaşa Data Lake-ə (S3, GCS və ya MinIO) yazın, XCom vasitəsilə isə növbəti task-a yalnız həmin faylın yolunu (məsələn: `s3://datalake/raw/2026-10-16/orders.parquet`) göndərin.
+quick_recap:
+  en: "XCom passes small metadata through Airflow's Metadata DB. Never pass raw datasets or DataFrames; pass cloud storage paths (S3/GCS URIs) instead."
+  az: "XCom Airflow-un Metadata DB-si vasitəsilə kiçik metadata ötürür. Heç vaxt böyük dataset və ya DataFrame ötürməyin; yalnız S3/GCS fayl ünvanlarını göndərin."
+what_it_does:
+  en: "Allows upstream tasks to publish values (`xcom_push` or function `return`) and downstream tasks to retrieve them (`xcom_pull` or function arguments)."
+  az: "Əvvəlki task-ların dəyər göndərməsinə (`xcom_push` və ya `return`) və növbəti task-ların həmin dəyəri oxumasına (`xcom_pull` və ya arqument) imkan verir."
+real_world_use:
+  en: "Passing dynamic file paths, generated partition keys, target table names, model validation scores, or batch IDs between pipeline stages."
+  az: "Boru kəməri mərhələləri arasında dinamik fayl yollarını, partisiya tarixlərini, cədvəl adlarını və ya model dəqiqlik xallarını ötürmək."
+common_mistakes:
+  en: "Returning entire SQL query results (e.g. `df.to_dict()`) into XCom, quickly exhausting Postgres memory and disk space."
+  az: "Bütün SQL nəticəsini və ya Pandas DataFrame-i `return` edərək XCom-a göndərmək və Metadata DB-ni doldurub Airflow-u sıradan çıxarmaq."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+
+  @dag(
+      schedule="@daily",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,
+      tags=["core", "xcom", "production_pattern"]
+  )
+  def xcom_production_pipeline():
+      """
+      Demonstrates production-grade XCom usage:
+      Passing cloud storage URIs and metadata instead of huge datasets.
+      """
+
+      @task
+      def extract_and_dump_to_s3() -> dict:
+          # Simulating extracting 1,000,000 rows from an external API
+          # In real life, write directly to S3 / Cloud Storage!
+          s3_target_uri = "s3://company-lake/raw/orders/dt=2026-10-16/data.parquet"
+          row_count = 1000000
+
+          print(f"Uploaded {row_count} rows to {s3_target_uri}")
+          
+          # Only return lightweight metadata into XCom!
+          return {
+              "s3_path": s3_target_uri,
+              "rows_ingested": row_count,
+              "status": "COMPLETED"
+          }
+
+      @task
+      def transform_with_spark(ingest_meta: dict) -> str:
+          # Downstream task receives metadata dictionary via XCom automatically
+          file_location = ingest_meta["s3_path"]
+          rows = ingest_meta["rows_ingested"]
+
+          print(f"Connecting to Spark cluster to process {rows} rows from {file_location}...")
+          output_table = "analytics.fact_daily_orders"
+          print(f"Data successfully transformed and loaded into: {output_table}")
+
+          return output_table
+
+      @task
+      def notify_slack(target_table: str):
+          print(f"Sending Slack notification: Pipeline finished! Target: {target_table}")
+
+      # Clean, Pythonic TaskFlow dependency graph
+      meta = extract_and_dump_to_s3()
+      table = transform_with_spark(meta)
+      notify_slack(table)
+
+  dag_instance = xcom_production_pipeline()
+code_explanation:
+  en: |
+    - `extract_and_dump_to_s3()` saves the large data payload directly to cloud storage (`s3://...`).
+    - It returns only a small dictionary containing the S3 path and count (`{"s3_path": ..., "rows_ingested": ...}`).
+    - Airflow automatically pushes this dictionary to XCom under the key `return_value`.
+    - `transform_with_spark(meta)` receives the dictionary as a standard Python parameter, reading the S3 path and executing without blowing up Postgres memory.
+  az: |
+    - `extract_and_dump_to_s3()` böyük məlumatı birbaşa Cloud Storage-ə (`s3://...`) yazır.
+    - Funksiya XCom-a yalnız S3 yolunu və sətir sayını saxlayan kiçik lüğət (`dict`) qaytarır.
+    - Airflow bu lüğəti avtomatik olaraq Metadata DB-dəki `xcom` cədvəlində `return_value` kimi saxlayır.
+    - `transform_with_spark(meta)` bu məlumatı adi Python arqumenti kimi qəbul edir və S3 ünvanını oxuyaraq Spark emalını başladır.
+visual_output: |
+  ================================ AIRFLOW XCOM INSPECTION ================================
+  DAG: xcom_production_pipeline  |  Run ID: scheduled__2026-10-16T00:00:00+00:00
+  -----------------------------------------------------------------------------------------
+  Task: extract_and_dump_to_s3
+  Key: return_value
+  Value: {
+    "s3_path": "s3://company-lake/raw/orders/dt=2026-10-16/data.parquet",
+    "rows_ingested": 1000000,
+    "status": "COMPLETED"
+  }
+  Size in DB: 142 bytes  [SAFE: Metadata DB healthy]
+
+  ----------------------------- TASK LOG: transform_with_spark ----------------------------
+  [2026-10-16 02:00:15 UTC] {taskinstance.py:1185} INFO - Running: <Task(transform_with_spark)>
+  [2026-10-16 02:00:16 UTC] {logging_mixin.py:115} INFO - Connecting to Spark cluster to process 1000000 rows from s3://company-lake/raw/orders/dt=2026-10-16/data.parquet...
+  [2026-10-16 02:00:25 UTC] {logging_mixin.py:115} INFO - Data successfully transformed and loaded into: analytics.fact_daily_orders
+  [2026-10-16 02:00:26 UTC] {taskinstance.py:1300} INFO - Task exited with return code 0 (SUCCESS)
+output_description:
+  en: "Shows the lightweight 142-byte XCom record stored in Airflow's metadata table and the downstream task successfully consuming the S3 reference."
+  az: "Metadata DB-də saxlanılan cəmi 142 baytlıq yüngül XCom qeydini və növbəti task-ın bu S3 ünvanını uğurla oxuduğunu göstərir."
+interview_question:
+  question:
+    en: "Can we pass a 10 GB Pandas DataFrame directly between two Airflow tasks using XCom? Why or why not, and what is the best practice?"
+    az: "İki Airflow task-ı arasında XCom vasitəsilə 10 GB-lıq Pandas DataFrame-i birbaşa ötürmək olarmı? Niyə və bu halda ən yaxşı təcrübə (best practice) nədir?"
+  answer:
+    en: "No, never pass 10 GB through XCom. XCom values are serialized and stored in Airflow's central Metadata Database (PostgreSQL/MySQL), which has strict row/cell size constraints and will crash or lock under large payloads. The industry best practice is the Claim-Check Pattern: write the 10 GB payload to an external object store (Amazon S3, Google Cloud Storage, or ADLS) and pass only the S3 URI/metadata string through XCom."
+    az: "Xeyr, qətiyyən olmaz! XCom məlumatları Airflow-un mərkəzi Metadata Verilənlər Bazasında (PostgreSQL/MySQL) saxlanılır. Baza cədvəlləri böyük həcmli data üçün nəzərdə tutulmayıb; bu bazanı kilitləyər, yaddaşı doldurar və bütün sistemi çökdürər. Ən düzgün həll 'Claim-Check Pattern'-dir: 10 GB məlumatı birbaşa obyekt anbarına (S3, GCS, ADLS) yazmaq, XCom ilə isə yalnız həmin faylın ünvanını (S3 URI) və sətir sayını ötürməkdir."
+  interviewer_tips:
+    en: "Senior interviewers ask this to test if you understand Airflow's boundary between orchestration and data storage. Mentioning the 'Claim-Check pattern' and 'Metadata DB explosion' instantly gives you a top score."
+    az: "Müsahibə götürənlər bu sualı sizin orkestrasiya ilə data saxlama arasındakı sərhədi anlayıb-anlamadığınızı yoxlamaq üçün verirlər. 'Claim-Check pattern' və 'Metadata DB-nin şişməsi' terminlərini vurğulamaq sizə ən yüksək xalı qazandıracaq."
+flashcards:
+  - front:
+      en: "What does XCom stand for in Apache Airflow?"
+      az: "Apache Airflow-da XCom abreviaturası nə deməkdir?"
+    back:
+      en: "Cross-Communication. It is Airflow's built-in mechanism for passing small pieces of metadata between tasks."
+      az: "Cross-Communication (çarpaz əlaqə). Task-lar arasında kiçik həcmli metadata ötürmək üçün quraşdırılmış mexanizmdir."
+  - front:
+      en: "Where are XCom values physically stored in Airflow?"
+      az: "XCom məlumatları Airflow-da fiziki olaraq harada saxlanılır?"
+    back:
+      en: "In the `xcom` table of Airflow's central Metadata Database (PostgreSQL / MySQL)."
+      az: "Airflow-un mərkəzi Metadata Verilənlər Bazasının (PostgreSQL / MySQL) `xcom` cədvəlində."
+  - front:
+      en: "Why is passing large datasets (e.g., 5GB CSV) through XCom considered a severe anti-pattern?"
+      az: "Böyük həcmli məlumatı (məsələn: 5GB CSV) XCom ilə ötürmək niyə ciddi anti-pattern hesab olunur?"
+    back:
+      en: "It bloats and locks the Metadata Database, degrades scheduler performance, and causes Out-Of-Memory (OOM) crashes across workers."
+      az: "Metadata DB-ni doldurub kilitləyir, scheduler-in sürətini salır və worker-lərdə OOM (yaddaş çatışmazlığı) xətalarına səbəb olur."
+  - front:
+      en: "What is the recommended design pattern for transferring large files between tasks?"
+      az: "Task-lar arasında böyük faylları ötürmək üçün tövsiyə olunan dizayn şablonu hansıdır?"
+    back:
+      en: "The Claim-Check Pattern: write the data to S3/GCS object storage and pass only the storage URI/path through XCom."
+      az: "Claim-Check Pattern: məlumatı S3/GCS obyekt anbarına yazmaq və XCom ilə yalnız faylın ünvanını (URI) ötürmək."
+  - front:
+      en: "In TaskFlow API, how does a task automatically push and pull XCom values?"
+      az: "TaskFlow API-də task XCom məlumatını necə avtomatik göndərir və qəbul edir?"
+    back:
+      en: "A Python function's `return` value is automatically pushed to XCom, and passing that returned variable into another task's parameter automatically pulls it."
+      az: "Python funksiyasının `return` dəyəri avtomatik XCom-a yazılır, növbəti task-a arqument kimi ötürüldükdə isə avtomatik oxunur."

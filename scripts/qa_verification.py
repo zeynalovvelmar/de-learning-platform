@@ -332,9 +332,64 @@ WHERE p.product_id IS NULL;
     assert not at_kafka.exception
     print(" [PASS] Kafka Master Deck flashcard navigation cycled successfully.")
 
+    # 24. Switch to Apache Airflow Module
+    print("\n--- TEST CASE 24: Switch to Apache Airflow Module ---")
+    at_airflow = AppTest.from_file("app.py", default_timeout=30)
+    at_airflow.run()
+    # Switch to AZ
+    at_airflow.sidebar.button[0].click().run()
+    assert at_airflow.session_state['lang'] == 'az'
+    # Select Airflow
+    at_airflow.sidebar.radio[0].set_value("airflow").run()
+    assert not at_airflow.exception
+    print(" [PASS] Switched sidebar module to 'Apache Airflow'.")
+
+    # 25. Verify Airflow Lesson Selector (12 Lessons)
+    print("\n--- TEST CASE 25: Airflow Lesson Selector & 12 Lessons Discovery ---")
+    airflow_selector = at_airflow.selectbox[0]
+    print(f" [PASS] Airflow Lesson options count: {len(airflow_selector.options)}")
+    for i, opt in enumerate(airflow_selector.options, 1):
+        print(f"   Airflow Lesson {i}: {opt}")
+    assert len(airflow_selector.options) == 12, f"Expected 12 Airflow lessons, got {len(airflow_selector.options)}"
+
+    # 26. Verify Airflow Lesson 01 Content, Infographic & Visual Output
+    print("\n--- TEST CASE 26: Airflow Lesson 01 Theory, Infographic & Visual Output QA ---")
+    at_airflow.selectbox[0].select("01-what-is-airflow").run()
+    assert not at_airflow.exception
+    # Check tabs
+    airflow_tabs = [t.label for t in at_airflow.tabs]
+    print(f" [PASS] Airflow Tabs: {airflow_tabs}")
+    assert "Nəzəriyyə" in airflow_tabs
+    assert "Airflow Kodu və Nəticəsi" in airflow_tabs
+    assert "Müsahibə Kartları" in airflow_tabs
+    assert "Fleşkartlar" in airflow_tabs
+    print(" [PASS] Verified Lesson 01 loaded cleanly with Infographic, Code, and Visual Output.")
+
+    # 27. Verify Airflow Flashcards & 60-Card Master Deck
+    print("\n--- TEST CASE 27: Airflow Flashcards & 60-Card Master Deck QA ---")
+    at_airflow.selectbox[0].select("12-monitoring-sla-antipatterns").run()
+    assert not at_airflow.exception
+    deck_radio = at_airflow.radio(key="airflow_deck_mode_12-monitoring-sla-antipatterns")
+    assert deck_radio is not None
+    deck_radio.set_value("master").run()
+    assert not at_airflow.exception
+
+    # Verify 60 flashcards in caption
+    captions = [c.value for c in at_airflow.caption]
+    assert any("60" in c for c in captions), f"Master deck should show 60 cards, got captions: {captions}"
+    print(" [PASS] Airflow Master Deck loaded all 60 flashcards across 12 lessons.")
+
+    # Cycle flashcard with next button
+    af_next_btn = at_airflow.button(key="airflow_btn_next_12-monitoring-sla-antipatterns_master")
+    assert af_next_btn is not None
+    af_next_btn.click().run()
+    assert not at_airflow.exception
+    print(" [PASS] Airflow Master Deck flashcard navigation cycled successfully.")
+
     print("\n=====================================================================")
-    print("🎉 ALL 23 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
+    print("🎉 ALL 27 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
     print("=====================================================================")
 
 if __name__ == "__main__":
     run_qa_suite()
+

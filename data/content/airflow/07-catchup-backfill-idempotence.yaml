@@ -1,0 +1,241 @@
+id: "07-catchup-backfill-idempotence"
+order: 7
+level: "intermediate"
+title:
+  en: "Catchup, Backfill & Idempotent Pipeline Design"
+  az: "Catchup, Backfill və İdempotent Boru Kəməri Dizaynı"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CATCHUP CATASTROPHE (Default: catchup=True)                           │
+    │  start_date = 2025-01-01  |  Current Date = 2026-10-16                 │
+    │                                                                        │
+    │  Airflow Scheduler notices: "650 daily runs have NOT been executed!"   │
+    │  Result: 650 DAG Runs triggered SIMULTANEOUSLY!                        │
+    │  💥 Worker pools exhausted, source API rate-limited, Database crashes!  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         THE FIX: catchup=False
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CONTROLLED BACKFILL VIA CLI                                           │
+    │  $ airflow dags backfill \                                             │
+    │        -s 2026-10-01 -e 2026-10-05 --reset-dagruns my_pipeline         │
+    │  • Airflow orderly replays only the specified 5 days.                  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  IDEMPOTENCY: THE GOLDEN DATA ENGINEERING RULE                         │
+    │  Running a DAG 1 time or 100 times MUST yield the exact same result!   │
+    │  ❌ NAIVE: INSERT INTO table VALUES (...) ──► Creates duplicates!      │
+    │  ✅ IDEMPOTENT: INSERT OVERWRITE PARTITION(dt='...') ──► Clean & Safe! │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CATCHUP QƏZASI (Susmaya görə: catchup=True)                           │
+    │  start_date = 2025-01-01  |  Bugünkü Tarix = 2026-10-16                │
+    │                                                                        │
+    │  Scheduler görür: "Aha! Keçmişdən qalan 650 gün icra olunmayıb!"       │
+    │  Nəticə: 650 DAG Run EYNİ ANDA işə salınır!                            │
+    │  💥 Worker-lər tıxanır, xarici API bloklayır, verilənlər bazası çökür! │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         ÇIXIŞ YOLU: catchup=False
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  İDARƏ OLUNAN BACKFILL (CLI VASİTƏSİLƏ)                                │
+    │  $ airflow dags backfill \                                             │
+    │        -s 2026-10-01 -e 2026-10-05 --reset-dagruns my_pipeline         │
+    │  • Airflow yalnız göstərilən 5 günü növbə ilə, təhlükəsiz icra edir.   │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  İDEMPOTENTLİK (IDEMPOTENCY): ƏN VACİB MÜHƏNDİSLİK QAYDASI             │
+    │  DAG-ı 1 dəfə və ya 100 dəfə işlətsəniz, nəticə EYNİ qalmalıdır!      │
+    │  ❌ SƏHV: INSERT INTO table VALUES (...) ──► Dublikat sətirlər yığır!  │
+    │  ✅ DÜZGÜN: INSERT OVERWRITE PARTITION(dt='...') ──► Təhlükəsiz və Təmiz│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### What is Catchup and Why Is It Dangerous?
+    When you define a DAG with `start_date` in the past and enable it in the UI:
+    - By default in early Airflow, **`catchup=True`**.
+    - The scheduler immediately creates a DAG Run for **every single data interval** between `start_date` and today.
+    - If `start_date` was 1 year ago, 365 DAG Runs fire at once, flooding your message queues, exhausting DB connection pools, and getting your API keys banned.
+    - **Production Standard**: Always set **`catchup=False`** on scheduled DAGs unless specifically intended.
+
+    ### Backfill: Historical Replay
+    When a schema changes or business logic bug is fixed, you need to reprocess historical data.
+    - Instead of enabling catchup, use the CLI:
+      `airflow dags backfill --start-date 2026-01-01 --end-date 2026-01-31 dag_id`
+    - This allows precise, controlled historical execution.
+
+    ### Idempotence: The Golden Rule of Data Engineering
+    **An operation is idempotent if executing it multiple times produces the exact same outcome as executing it once.**
+    - If your pipeline fails midway and you click **"Clear / Re-run"** in Airflow:
+      - **Non-idempotent**: Simple `INSERT INTO` inserts duplicates. Now your finance dashboard shows double sales!
+      - **Idempotent**: `INSERT OVERWRITE` partition, `DELETE WHERE date = '...'` before insert, or SQL `MERGE` (Upsert). Re-running always leaves the database in the correct state.
+  az: |
+    ### Catchup Nədir və Niyə Təhlükəlidir?
+    Siz keçmiş bir `start_date` ilə DAG yaradıb UI-da onu aktiv (unpause) etdikdə:
+    - Əgər **`catchup=True`** olarsa, Scheduler `start_date`-dən bu günə qədər olan **bütün keçmiş günlər** üçün dərhal ayrı-ayrı icralar yaradır.
+    - Əgər `start_date` 1 il əvvəldirsə, 365 dənə DAG eyni vaxtda işə düşür. Bu, worker-ləri dondurur, xarici API-lərin rate-limitinə ilişir və bazanı çökdürür ("Catchup fırtınası").
+    - **İstehsalat Standartı**: DAG təyin edərkən həmişə **`catchup=False`** yazın.
+
+    ### Backfill: Keçmiş Məlumatın Təkrar Emalı
+    Hesablama məntiqində səhv tapıldıqda və ya yeni sütun əlavə edildikdə keçmiş məlumatları yenidən hesablamaq lazım gəlir.
+    - Bunu catchup ilə deyil, Airflow CLI vasitəsilə təhlükəsiz idarə edirik:
+      `airflow dags backfill -s 2026-01-01 -e 2026-01-10 dag_id`
+    - Bu, yalnız istədiyiniz günləri nizamlı şəkildə icra edir.
+
+    ### İdempotentlik (Idempotence): Ən Əsas DE Qaydası
+    **Bir əməliyyat o zaman idempotentdir ki, onu 1 dəfə və ya 100 dəfə işə saldıqda alınan yekun nəticə dəyişməz qalsın.**
+    - Əgər boru kəməri ortada xəta verib dayansa və siz Airflow UI-da **"Clear / Re-run"** düyməsinə bassanız:
+      - **İdempotent Olmayan**: Adi `INSERT INTO` əmri eyni məlumatı təkrar bazaya yazacaq və maliyyə hesabatında rəqəmlər ikiqat görünəcək!
+      - **İdempotent**: `INSERT OVERWRITE PARTITION`, `DELETE WHERE date = '...'` və ya `MERGE` (Upsert). Neçə dəfə işlətsəniz də məlumat heç vaxt təkrarlanmır.
+quick_recap:
+  en: "Always set `catchup=False` to prevent scheduler storms. Ensure pipeline tasks are idempotent (e.g. partition overwrite) so reruns never duplicate data."
+  az: "Scheduler fırtınasının qarşısını almaq üçün həmişə `catchup=False` qoyun. Task-ları idempotent edin (məsələn partisiya üzərinə yazma) ki, təkrar icra heç vaxt dublikat yaratmasın."
+what_it_does:
+  en: "Controls whether past unrun intervals execute automatically (`catchup`) and guarantees repeatable, safe execution without data corruption (`idempotence`)."
+  az: "Keçmiş icra olunmamış intervalların avtomatik işə düşməsini tənzimləyir (`catchup`) və təkrar icraların məlumatı korlamadan təhlükəsiz olmasını təmin edir (`idempotence`)."
+real_world_use:
+  en: "Reprocessing last month's financial metrics using backfill after a bug fix, guaranteed by partition overwrite to overwrite dirty rows without duplicating."
+  az: "Xəta düzəldildikdən sonra keçən ayın maliyyə hesabatlarını backfill ilə yenidən hesablamaq və partisiya üzərinə yazaraq dublikat yaratmamaq."
+common_mistakes:
+  en: "Leaving `catchup=True` on a daily DAG with a start_date 2 years in the past, instantly spawning hundreds of concurrent tasks."
+  az: "`start_date`-i 2 il əvvələ qoyub `catchup=True` saxlamaq və eyni anda yüzlərlə task işə salaraq serveri və xarici API-ləri kilitləmək."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+
+  @dag(
+      schedule="@daily",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,  # CRITICAL: Prevents 200+ runs from triggering simultaneously!
+      max_active_runs=1,  # Ensures historical runs execute one day at a time
+      tags=["production", "idempotent", "backfill"]
+  )
+  def idempotent_daily_sales():
+      """
+      Demonstrates an idempotent load pattern:
+      Overwriting the partition for the specific data interval
+      ensures re-running never creates duplicate records.
+      """
+
+      @task
+      def load_partition_idempotently(**context):
+          ds = context["ds"]  # 'YYYY-MM-DD' formatted logical date
+          data_interval_start = context["data_interval_start"]
+          data_interval_end = context["data_interval_end"]
+
+          print(f"Starting pipeline execution for target date partition: {ds}")
+
+          # IDEMPOTENT PATTERN:
+          # In SQL / Data Warehouse (Snowflake, BigQuery, Postgres):
+          # Step 1: DELETE from table WHERE dt = 'ds' (or INSERT OVERWRITE)
+          # Step 2: INSERT new rows for 'ds'
+          idempotent_sql = f"""
+              DELETE FROM warehouse.daily_sales_summary 
+              WHERE report_date = '{ds}';
+
+              INSERT INTO warehouse.daily_sales_summary (report_date, total_orders, total_revenue)
+              SELECT 
+                  '{ds}' AS report_date,
+                  COUNT(order_id) AS total_orders,
+                  SUM(amount) AS total_revenue
+              FROM raw_db.orders
+              WHERE created_at >= '{data_interval_start}'
+                AND created_at <  '{data_interval_end}';
+          """
+
+          print("Executing Idempotent Transaction:")
+          print(idempotent_sql.strip())
+          return f"Partition {ds} successfully refreshed."
+
+      @task
+      def verify_partition(status: str):
+          print(f"Health Check Passed: {status}")
+
+      status = load_partition_idempotently()
+      verify_partition(status)
+
+  dag_instance = idempotent_daily_sales()
+code_explanation:
+  en: |
+    - `catchup=False`: When this DAG is first deployed, it will only run for the current interval, avoiding a flood of historical runs.
+    - `max_active_runs=1`: Guarantees that if a backfill is triggered, runs process sequentially day-by-day.
+    - Idempotency via `DELETE WHERE report_date = '{ds}'` followed by `INSERT`: If network glitches cause this task to be re-run 5 times, `daily_sales_summary` will still contain exactly one record for that day.
+  az: |
+    - `catchup=False`: DAG ilk dəfə aktivləşdirildikdə keçmiş ayların yüzlərlə icrasını eyni anda başlatmır, yalnız ən son intervalı icra edir.
+    - `max_active_runs=1`: Əgər CLI ilə backfill edilsə belə, günlərin bir-bir, ardıcıl icra olunmasını təmin edir.
+    - İdempotentlik nümunəsi: Əvvəlcə `DELETE WHERE report_date = '{ds}'`, sonra isə `INSERT`. Əgər şəbəkə xətası səbəbindən bu task 5 dəfə yenidən icra olunarsa belə, cədvəldə heç vaxt dublikat yaranmayacaq.
+visual_output: |
+  ============================ CLI BACKFILL COMMAND ============================
+  $ airflow dags backfill \
+      --dag-id idempotent_daily_sales \
+      --start-date 2026-10-10 \
+      --end-date 2026-10-12 \
+      --reset-dagruns
+
+  [2026-10-16 10:00:00 UTC] {backfill_job.py:382} INFO - [Backfill Progress] Executing run for partition: 2026-10-10
+  [2026-10-16 10:00:05 UTC] {logging_mixin.py:115} INFO - Deleting existing rows for 2026-10-10... (0 deleted)
+  [2026-10-16 10:00:08 UTC] {logging_mixin.py:115} INFO - Inserted 4,200 rows for 2026-10-10. SUCCESS!
+  
+  [2026-10-16 10:00:09 UTC] {backfill_job.py:382} INFO - [Backfill Progress] Executing run for partition: 2026-10-11
+  [2026-10-16 10:00:12 UTC] {logging_mixin.py:115} INFO - Deleting existing rows for 2026-10-11... (4,150 deleted & refreshed)
+  [2026-10-16 10:00:15 UTC] {logging_mixin.py:115} INFO - Inserted 4,150 rows for 2026-10-11. SUCCESS!
+  
+  [Backfill Job Completed]: 3 runs processed cleanly. Zero duplicates found.
+output_description:
+  en: "Shows an orderly CLI backfill replaying 3 specific days with idempotent delete-and-insert ensuring zero duplicate records."
+  az: "CLI ilə 3 günün nizamlı backfill edildiyini və idempotent sil-və-yaz prinsipi ilə heç bir dublikatın yaranmadığını göstərir."
+interview_question:
+  question:
+    en: "What is an idempotent pipeline? How do you ensure your Airflow DAGs are idempotent, and why does this matter during task retries or backfills?"
+    az: "İdempotent boru kəməri nədir? Airflow DAG-larınızın idempotent olmasını necə təmin edirsiniz və bunun təkrar icralarda (retries/backfill) əhəmiyyəti nədir?"
+  answer:
+    en: "An idempotent pipeline guarantees that executing the same task multiple times with the same input parameters (e.g. for logical_date '2026-10-10') always produces the exact same end state without side effects or duplicates. We achieve idempotency by: (1) using partition overwrites (`INSERT OVERWRITE` in Spark/Hive/Snowflake) instead of naive `INSERT INTO`, (2) performing a transaction with `DELETE FROM table WHERE partition_date = '{{ ds }}'` before inserting, or (3) using UPSERT/MERGE with unique keys. This is critical because distributed systems inevitably fail; when Airflow automatically retries a failed task or an engineer triggers a backfill, idempotence guarantees business numbers never get duplicated."
+    az: "İdempotent boru kəməri eyni parametr və eyni tarix üçün (`logical_date`) bir neçə dəfə icra edildikdə belə, yekunda eyni nəticəni verən və heç bir dublikat yaratmayan sistemdir. Biz bunu 3 üsulla təmin edirik: (1) adi `INSERT INTO` əvəzinə `INSERT OVERWRITE PARTITION` istifadə edərək, (2) məlumatı yazmazdan əvvəl həmin günün köhnə məlumatını silən (`DELETE WHERE date = '{{ ds }}'`) tranzaksiya quraraq, (3) unikal açarlar üzrə `MERGE` (Upsert) tətbiq edərək. Bu ona görə həyati əhəmiyyət daşıyır ki, paylanmış sistemlərdə xətalar qaçılmazdır; Airflow xətadan sonra task-ı təkrar işə saldıqda və ya biz keçmişi yenidən hesabladıqda (backfill), idempotentlik maliyyə və biznes göstəricilərinin ikiqat artmasının qarşısını alır."
+  interviewer_tips:
+    en: "Distinguish between 'INSERT OVERWRITE' and naive 'INSERT INTO'. Explaining that naive inserts cause dashboard duplication during retries is one of the quickest ways to convince an interviewer of your production readiness."
+    az: "'INSERT OVERWRITE' ilə adi 'INSERT INTO' arasındakı fərqi izah etmək və dublikatların hesabatları korlamasını qeyd etmək istehsalat təcrübənizi sübut edən ən güclü arqumentdir."
+flashcards:
+  - front:
+      en: "What happens if a DAG has `start_date` set to 1 year ago and `catchup=True`?"
+      az: "Əgər DAG-ın `start_date`-i 1 il əvvələ qoyulsa və `catchup=True` olarsa, nə baş verər?"
+    back:
+      en: "Airflow immediately triggers 365 DAG runs at once, overwhelming workers, queues, and external databases."
+      az: "Airflow dərhal eyni anda 365 DAG icrası başladır, worker-ləri, növbələri və xarici bazaları kilitləyir."
+  - front:
+      en: "What is the recommended setting for `catchup` in production DAGs?"
+      az: "İstehsalat DAG-larında `catchup` parametri üçün tövsiyə olunan dəyər nədir?"
+    back:
+      en: "`catchup=False`. Historical runs should be performed deliberately using the CLI `airflow dags backfill` command."
+      az: "`catchup=False`. Keçmiş icralar yalnız ehtiyac olduqda CLI `airflow dags backfill` əmri ilə idarə olunmalıdır."
+  - front:
+      en: "What is the definition of an idempotent task in data engineering?"
+      az: "Data mühəndisliyində idempotent task-ın tərifi nədir?"
+    back:
+      en: "A task that produces the exact same outcome whether it is executed once or multiple times for the same input."
+      az: "Eyni giriş məlumatı üçün 1 dəfə və ya dəfələrlə icra olunmasından asılı olmayaraq tamamilə eyni yekun nəticəni verən task."
+  - front:
+      en: "Why is a naive `INSERT INTO` SQL statement dangerous during Airflow task retries?"
+      az: "Airflow task təkrar icralarında (retries) adi `INSERT INTO` SQL əmri niyə təhlükəlidir?"
+    back:
+      en: "It appends rows again on every retry, leading to duplicate records and inaccurate analytics."
+      az: "Hər təkrar icrada məlumatı yenidən əlavə edərək dublikat sətirlər yaradır və analitikanı korlayır."
+  - front:
+      en: "Name two SQL techniques used to make a data warehouse loading task idempotent."
+      az: "Verilənlər anbarına məlumat yazma task-ını idempotent etmək üçün istifadə olunan iki SQL texnikası hansıdır?"
+    back:
+      en: "1) `INSERT OVERWRITE PARTITION`, and 2) `DELETE WHERE partition_key = '...'` followed by `INSERT` (or `MERGE` / Upsert)."
+      az: "1) `INSERT OVERWRITE PARTITION`, və 2) `DELETE WHERE partition_key = '...'` etdikdən sonra `INSERT` (və ya `MERGE` / Upsert)."

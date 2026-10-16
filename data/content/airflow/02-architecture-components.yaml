@@ -1,0 +1,248 @@
+id: "02-architecture-components"
+order: 2
+level: "junior"
+title:
+  en: "Airflow Architecture: Webserver, Scheduler, Worker & Metadata DB"
+  az: "Airflow Arxitekturası: Webserver, Scheduler, Worker və Metadata Baza"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE AIRFLOW 2.x ARCHITECTURE OVERVIEW                              │
+    │                                                                        │
+    │  [Webserver (UI / REST API)]          [CLI / Developer DAG Files]      │
+    │               ▲                                    │                   │
+    │               │ Reads/Writes state                 │ Continuous parsing│
+    │               ▼                                    ▼                   │
+    │     ┌─────────────────────────────────────────────────────┐            │
+    │     │      METADATA DATABASE (PostgreSQL / MySQL)         │            │
+    │     │  • The Single Source of Truth for all state!        │            │
+    │     └─────────────────────────────────────────────────────┘            │
+    │               ▲                                    ▲                   │
+    │               │ Heartbeats & States                │ Schedules tasks   │
+    │               ▼                                    ▼                   │
+    │     [Airflow Scheduler] ────────► [Message Queue / Executor Queue]     │
+    │     (The Brain / Heart)                            │                   │
+    │                                                    ▼                   │
+    │     [Triggerer (Async IO)] ◄─────────────► [Worker Pool / K8s Pods]    │
+    │     (Lightweight Sensor Waits)             (Executes Task Code)        │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TASK INSTANCE STATE MACHINE LIFECYCLE                                 │
+    │  [None] ──► [Scheduled] ──► [Queued] ──► [Running] ──► [Success] 🟢    │
+    │                                │              │                        │
+    │                                ▼              ├──► [Failed]  🔴        │
+    │                         [Upstream Failed] 🟡  ├──► [Skipped] ⚪        │
+    │                                               └──► [Up for Retry] 🟠   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  APACHE AIRFLOW 2.x ƏSAS ARXİTEKTURASI                                 │
+    │                                                                        │
+    │  [Webserver (Veb İnterfeys / UI)]     [DAG Faylları Qovluğu (.py)]     │
+    │               ▲                                    │                   │
+    │               │ Vəziyyəti göstərir                 │ Fasiləsiz oxunur  │
+    │               ▼                                    ▼                   │
+    │     ┌─────────────────────────────────────────────────────┐            │
+    │     │     METADATA VERİLƏNLƏR BAZASI (PostgreSQL)         │            │
+    │     │  • Bütün vəziyyətlərin saxlandığı yeganə mərkəz!    │            │
+    │     └─────────────────────────────────────────────────────┘            │
+    │               ▲                                    ▲                   │
+    │               │ Vəziyyəti yeniləyir                │ Tapşırıqları yazır│
+    │               ▼                                    ▼                   │
+    │     [Airflow Scheduler] ────────► [İcra Növbəsi / Executor]           │
+    │     (Beyin və İdarəedici Ürək)                     │                   │
+    │                                                    ▼                   │
+    │     [Triggerer (Asinxron)] ◄──────────────► [Worker-lər / K8s Podları] │
+    │     (Resurs tutmayan gözləmələr)           (Kodu icra edən işçilər)    │
+    └────────────────────────────────────────────────────────────────────────┘
+                                    VS
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TAPŞIRIQ İSTİNSİYASININ (TASKINSTANCE) HƏYAT DÖVRÜ                   │
+    │  [None] ──► [Scheduled] ──► [Queued] ──► [Running] ──► [Success] 🟢    │
+    │                                │              │                        │
+    │                                ▼              ├──► [Failed]  🔴        │
+    │                         [Upstream Failed] 🟡  ├──► [Skipped] ⚪        │
+    │                                               └──► [Up for Retry] 🟠   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    Think of a bustling construction company building a skyscraper:
+    - **Metadata Database (The Central Blueprints & Filing Vault)**: The single source of truth (PostgreSQL or MySQL). Every task state, past execution log path, user permission, and connection credential lives here. If this database dies, the company freezes.
+    - **Scheduler (The General Contractor / Project Manager)**: Continuously scans the project plans (DAG files), checks the filing vault, and determines which task is ready to start right now.
+    - **Webserver (The Visitor Presentation Center)**: Does **NO** construction work. It simply reads the filing vault and renders graphs, grids, Gantt charts, and buttons for humans. If the Webserver crashes, all ongoing pipelines continue running completely unaffected!
+    - **Workers (The Bricklayers & Electricians)**: Physical machines or containers that pick up queued tasks from the Executor and actually run the Python or Bash code.
+    - **Triggerer (The Security Guard at the Gate)**: Introduced in Airflow 2.2. Instead of paying 10 expensive bricklayers to sit idle at the gate waiting for concrete delivery (the old `Sensor` problem), one single async security guard monitors 10,000 deliveries at once using Python `asyncio`.
+
+    ### The Task Instance State Progression:
+    1. **`Scheduled`**: The scheduler verifies that upstream tasks succeeded and the data interval has arrived.
+    2. **`Queued`**: The scheduler hands the task off to the executor's message broker.
+    3. **`Running`**: A worker has picked up the task and is actively executing the payload.
+    4. **`Success / Failed`**: Worker writes final exit code back to the Metadata DB.
+  az: |
+    Göyədələn inşa edən böyük bir tikinti şirkətini təsəvvür edin:
+    - **Metadata Bazası (Mərkəzi Arxiv və Çertyoj Seyfi)**: Bütün məlumatların saxlandığı tək həqiqət mərkəzidir (adətən PostgreSQL). Kimin hansı işi gördüyü, keçmiş tarixlər, parollar hamısı buradadır. Bu baza sönsə, şirkət tamamilə dayanır.
+    - **Scheduler (Baş Mühəndis / Layihə Rəhbəri)**: Fasiləsiz olaraq layihə çertyojlarını (DAG fayllarını) oxuyur, arxivə baxır və bu saat hansı işin başlama vaxtının çatdığını müəyyən edir.
+    - **Webserver (Şirkətin Şüşəli Qəbul Otağı)**: Heç bir tikinti işi **GÖRMÜR**. O, sadəcə arxivdən məlumatları oxuyub insanlara gözəl qrafiklər, düymələr və loqlar göstərir. Webserver sönsə belə, arxa planda kəmərlər fasiləsiz işləməyə davam edir!
+    - **Worker-lər (Fəhlələr və Ustalar)**: Növbədən işi götürüb bilavasitə icra edən (Python və ya Bash kodunu qaçıran) serverlər və ya Kubernetes podlarıdır.
+    - **Triggerer (Müasir Nəzarətçi)**: Airflow 2.2-də əlavə olunub. Əvvəllər kənardan fayl gələcək deyə 10 fəhlə saatlarla boş oturub gözləyirdi (`Sensor`). İndi isə tək bir Triggerer asinxron olaraq (`asyncio` ilə) minlərlə gözləmə işini heç bir fəhləni məşğul etmədən təkbaşına idarə edir.
+
+    ### Tapşırığın Həyat Dövrü (States):
+    1. **`Scheduled`**: Əvvəlki işlər bitib və vaxt çatıb; Scheduler tapşırığı sıraya qoyur.
+    2. **`Queued`**: Tapşırıq icra növbəsinə (Executor-a) göndərilir.
+    3. **`Running`**: Bir worker tapşırığı götürür və kodu işlətməyə başlayır.
+    4. **`Success / Failed`**: Nəticə Metadata Bazasına qeyd olunur.
+quick_recap:
+  en: "Airflow's architecture decouples monitoring (Webserver), scheduling (Scheduler), persistence (Metadata DB), execution (Workers), and async waiting (Triggerer). The Metadata DB is the single source of truth; if the Webserver crashes, active pipeline runs continue uninterrupted."
+  az: "Airflow-un arxitekturası monitorinq (Webserver), planlaşdırma (Scheduler), vəziyyət (Metadata DB), icra (Workers) və asinxron gözləməni (Triggerer) bir-birindən ayırır. Metadata DB tək həqiqət mərkəzidir; Webserver sönsə belə kəmərlər dayanmadan işləyir."
+code: |
+  # CLI Commands: Inspecting Airflow Architecture & Component Health
+  """
+  Production commands executed on the bastion/management host:
+
+  # 1. Verify Metadata Database Connectivity & Latency
+  airflow db check
+
+  # 2. Check running Scheduler and Triggerer health jobs
+  airflow jobs check --job-type SchedulerJob --limit 1
+  airflow jobs check --job-type TriggererJob --limit 1
+
+  # 3. List all registered active DAGs discovered by the scheduler
+  airflow dags list --output table
+
+  # 4. Programmatically inspect a specific TaskInstance state
+  airflow tasks state 01_daily_orders_orchestration check_api_health 2026-10-15
+  """
+
+  # Python Script Equivalent to Interrogate Metadata via SQLAlchemy
+  from airflow.models import DagRun, TaskInstance, DagModel
+  from airflow.utils.session import provide_session
+  from airflow.utils.state import State
+
+  @provide_session
+  def audit_cluster_health(session=None):
+      total_dags = session.query(DagModel).filter(DagModel.is_active == True).count()
+      active_runs = session.query(DagRun).filter(DagRun.state == State.RUNNING).count()
+      failed_tasks = session.query(TaskInstance).filter(TaskInstance.state == State.FAILED).count()
+      
+      print(f"=== Airflow 2.x Cluster Health Audit ===")
+      print(f"• Active Registered DAGs: {total_dags}")
+      print(f"• Currently Running DAG Runs: {active_runs}")
+      print(f"• Total Recorded Failed Tasks: {failed_tasks}")
+      print(f"• Metadata DB Connection: 🟢 OK (PostgreSQL 15.4)")
+
+  if __name__ == "__main__":
+      audit_cluster_health()
+code_explanation:
+  en: |
+    - `airflow db check`: CLI health-check verifying the connection pool to PostgreSQL is healthy.
+    - `airflow jobs check`: Ensures that the Scheduler daemon has emitted a heartbeat within the last 30 seconds.
+    - `@provide_session`: Airflow's internal decorator injecting an active scoped SQLAlchemy ORM session connecting directly to the Metadata DB.
+    - Notice that querying the metadata database allows monitoring cluster-wide operational metrics without touching workers.
+  az: |
+    - `airflow db check`: PostgreSQL metadata bazası ilə əlaqənin sağlam olduğunu yoxlayan komandadır.
+    - `airflow jobs check`: Scheduler prosesinin son 30 saniyədə nəbz (heartbeat) göndərdiyini yoxlayır.
+    - `@provide_session`: Airflow-un birbaşa Metadata Bazasına qoşulan daxili SQLAlchemy sessiyasını təmin edən dekoratordur.
+    - Worker-lərə heç bir toxunmadan birbaşa bazadan bütün klasterin canlı statistikasını almağın mümkünlüyünə diqqət yetirin.
+visual_output: |
+  $ airflow db check
+  INFO  [airflow.utils.db] Database connection successful. PostgreSQL 15.4.
+
+  $ airflow jobs check --job-type SchedulerJob --limit 1
+  Found one alive SchedulerJob job: id=1402, hostname=airflow-scheduler-7b89f.
+
+  === Airflow 2.x Cluster Health Audit ===
+  • Active Registered DAGs: 48
+  • Currently Running DAG Runs: 3
+  • Total Recorded Failed Tasks: 0
+  • Metadata DB Connection: 🟢 OK (PostgreSQL 15.4)
+
+  $ airflow tasks state 01_daily_orders_orchestration check_api_health 2026-10-15
+  success
+output_description:
+  en: "Terminal output validating healthy PostgreSQL metadata connectivity, an alive active scheduler heartbeat, and verified task instance status."
+  az: "PostgreSQL metadata bazası bağlantısının, aktiv Scheduler nəbzinin və tapşırıq vəziyyətinin uğurlu olduğunu göstərən terminal diaqnostikası."
+what_it_does:
+  en: "Demonstrates core Airflow subsystem discovery, component health checks, and task state tracking via CLI and the metadata layer."
+  az: "Airflow alt sistemlərini yoxlamağı, komponentlərin sağlamlığını təsdiq etməyi və metadata vasitəsilə tapşırıq vəziyyətini izləməyi nümayiş etdirir."
+real_world_use:
+  en: "Used in Kubernetes readiness and liveness probes (Helm chart deployment) to guarantee that schedulers and database pools are responsive."
+  az: "Kubernetes mühitində (Helm) tətbiqin sağlamlığını (readiness/liveness probe) yoxlamaq üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using SQLite in production**: SQLite locks the whole file on writes. Airflow becomes strictly single-threaded with zero parallelism. Always use PostgreSQL or MySQL.
+    - **Panicking when the Webserver restarts**: Thinking that restarting the Webserver kills running jobs. Workers communicate with the Metadata DB, not the Webserver!
+    - **Neglecting Metadata DB cleanup**: Storing millions of task logs and xcoms without running `airflow db clean` causes the metadata database to bloat and slow down the scheduler.
+  az: |
+    - **İstehsalatda SQLite istifadə etmək**: SQLite hər yazılmada bütün faylı kilidləyir və paralellik sıfıra enir. İstehsalatda mütləq PostgreSQL istifadə edilməlidir.
+    - **Webserver sönəndə işlərin dayandığını düşünmək**: Webserver sadəcə ekrandır; worker-lər Webserver-lə deyil, birbaşa Metadata Bazası ilə danışır.
+    - **Metadata Bazasını təmizləməmək**: İllərlə yığılan milyonlarla loq və xcom bazanı şişirdir; mütləq vaxtaşırı `airflow db clean` işlədilməlidir.
+interview_question:
+  question:
+    en: "What are the core components of Apache Airflow architecture, what happens if the Metadata Database fails, and what is the lifecycle of a TaskInstance?"
+    az: "Apache Airflow arxitekturasının əsas komponentləri hansılardır, Metadata Bazası sıradan çıxarsa nə baş verər və TaskInstance-ın həyat dövrü necədir?"
+  answer:
+    en: |
+      1. **The 5 Core Architectural Components**:
+         - **Metadata Database**: The single source of truth (PostgreSQL/MySQL). Stores all DAG definitions, run histories, variables, connections, and task states.
+         - **Scheduler**: The heartbeat engine. Continuously parses DAG files from disk, evaluates scheduling intervals, monitors upstream dependencies, and enqueues ready tasks into the Executor.
+         - **Webserver**: The user presentation layer. Renders the UI, visualizes DAG graphs, and serves the REST API. Stateless and completely decoupled from task execution.
+         - **Workers**: The execution agents. Pick up queued tasks and execute user Python/Bash code inside isolated processes or Kubernetes pods.
+         - **Triggerer**: The async event monitor. Uses Python `asyncio` to monitor deferred tasks (sensors) with near-zero worker resource footprint.
+      2. **What Happens if the Metadata DB Fails?**:
+         - **Complete Platform Paralysis**: The entire Airflow cluster halts immediately. The Scheduler cannot advance states, the Webserver throws 500 errors, and Workers cannot commit task exit codes. This is why production Airflow mandates High-Availability (HA) managed database instances (e.g. AWS Aurora PostgreSQL or GCP Cloud SQL).
+      3. **TaskInstance Lifecycle Progression**:
+         - `None`: Initial uninstantiated state.
+         - `Scheduled`: Dependencies are satisfied, and execution slot is allocated by the scheduler.
+         - `Queued`: Dispatched to the executor's message queue (Celery/K8s).
+         - `Running`: Actively executing on a worker node.
+         - `Success / Failed / Upstream_Failed / Skipped`: Final terminal state written back to the DB.
+    az: |
+      1. **5 Əsas Arxitektur Komponent**:
+         - **Metadata Verilənlər Bazası**: Tək həqiqət mərkəzidir (PostgreSQL). Bütün DAG-ların, icra tarixlərinin, parolların və tapşırıq vəziyyətlərinin saxlandığı yerdir.
+         - **Scheduler**: Mərkəzi ürəkdir. Diskdəki DAG fayllarını fasiləsiz oxuyur, vaxtı və asılılıqları yoxlayır və hazır tapşırıqları icra üçün növbəyə atır.
+         - **Webserver**: İstifadəçi interfeysidir (UI). Qrafikləri və loqları göstərir. Tapşırıqların icrası ilə heç bir əlaqəsi yoxdur; sönsə belə kəmərlər dayanmır.
+         - **Worker-lər**: Fəhlələrdir. Növbədəki tapşırıqları götürüb Python/Bash kodunu fiziki maşında və ya K8s podunda icra edir.
+         - **Triggerer**: Asinxron gözləyicidir. Sensorları worker yuvalarını məşğul etmədən `asyncio` ilə arxa planda yüngül şəkildə izləyir.
+      2. **Metadata Bazası Sıradan Çıxarsa Nə Baş Verər?**:
+         - **Bütün Sistem Tamamilə Donur**: Scheduler heç bir vəziyyəti yeniləyə bilmir, Webserver 500 xətası verir, Worker-lər nəticəni yaza bilmir. Buna görə də istehsalatda mütləq High-Availability (HA) PostgreSQL klasteri (məs. AWS Aurora) tələb olunur.
+      3. **TaskInstance Həyat Dövrü**:
+         - `None` ──► `Scheduled` (Vaxt çatıb, növbə gözləyir) ──► `Queued` (İcraçıya göndərildi) ──► `Running` (Worker-də işləyir) ──► `Success` (Uğurlu) və ya `Failed` (Uğursuz).
+  interviewer_tips:
+    en: "Explicitly highlight that the Webserver is purely cosmetic: if the webserver crashes, tasks keep running! State that the Metadata Database is the single point of failure (SPOF) requiring HA replication."
+    az: "Müsahibədə Webserver-in sadəcə vizual qat olduğunu (sönsə belə kəmərlərin işlədiyini), əsas kritik darboğazın (SPOF) isə Metadata Bazası olduğunu qeyd edin."
+flashcards:
+  - front:
+      en: "What is the single source of truth for all state in Apache Airflow?"
+      az: "Apache Airflow-da bütün vəziyyətlərin yeganə həqiqət mənbəyi nədir?"
+    back:
+      en: "The Metadata Database (typically PostgreSQL or MySQL)."
+      az: "Metadata Verilənlər Bazası (adətən PostgreSQL və ya MySQL)."
+  - front:
+      en: "What happens to currently running pipeline tasks if the Airflow Webserver crashes?"
+      az: "Airflow Webserver-i qəzaya uğrayıb sönsə, hazırda işləyən kəmərlərə nə olar?"
+    back:
+      en: "Nothing! Running tasks continue completely unaffected because Workers interact with the Metadata DB, not the Webserver."
+      az: "Heç nə olmaz! İşlər fasiləsiz davam edir, çünki Worker-lər Webserver-lə deyil, birbaşa Metadata Bazası ilə işləyir."
+  - front:
+      en: "What component continuously parses DAG files and schedules tasks whose dependencies are met?"
+      az: "DAG fayllarını fasiləsiz analiz edən və asılılıqları ödənən tapşırıqları planlayan komponent hansıdır?"
+    back:
+      en: "The Airflow Scheduler."
+      az: "Airflow Scheduler (Planlayıcı)."
+  - front:
+      en: "What is the difference between a Task and a TaskInstance in Airflow?"
+      az: "Airflow-da Task ilə TaskInstance arasındakı fərq nədir?"
+    back:
+      en: "A Task is the conceptual definition in code; a TaskInstance is a specific execution of that task for a specific point in time."
+      az: "Task kodda yazılmış konseptual tərifdir; TaskInstance isə həmin tapşırığın müəyyən bir tarix və vaxt üçün real icrasıdır."
+  - front:
+      en: "What problem does the Airflow Triggerer solve?"
+      az: "Airflow Triggerer komponenti hansı problemi həll edir?"
+    back:
+      en: "It runs asynchronous event-driven checks (deferrable sensors) without consuming expensive worker slots."
+      az: "Sensorların kənar hadisələri gözləməsini bahalı worker yuvalarını kilidləmədən asinxron (asyncio) şəkildə təmin edir."

@@ -1,0 +1,213 @@
+id: "06-scheduling-data-interval"
+order: 6
+level: "junior"
+title:
+  en: "Scheduling & The Data Interval Paradox (`logical_date`)"
+  az: "İş Qrafiki və Data Interval Paradoksu (`logical_date`)"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE AIRFLOW SCHEDULER PARADOX: "WHY DIDN'T MY DAG RUN AT START_DATE?"│
+    └────────────────────────────────────────────────────────────────────────┘
+    Example DAG: start_date = 2026-10-01, schedule = "@daily" (24 hours)
+
+               Interval: 2026-10-01 00:00:00  to  2026-10-01 23:59:59
+              ├───────────────────────────────────────────────────────┤
+              ▲                                                       ▲
+      data_interval_start                                     data_interval_end
+    (Period Begins - Data accumulating)                     (Period Finished!)
+                                                                      │
+                                                                      ▼
+                                                       DAG ACTUALLY RUNS HERE!
+                                                       (2026-10-02 00:00:00 UTC)
+                                                       logical_date = 2026-10-01
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GOLDEN INTUITION:                                                     │
+    │  Airflow waits for a time window to COMPLETE before processing it!     │
+    │  You cannot summarize Monday's sales until Monday has officially ended!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  AIRFLOW QRAFİK PARADOKSU: "DAG START_DATE GÜNÜ NİYƏ İŞƏ DÜŞMƏDİ?"    │
+    └────────────────────────────────────────────────────────────────────────┘
+    Nümunə: start_date = 2026-10-01, schedule = "@daily" (gündəlik 24 saat)
+
+               İnterval: 2026-10-01 00:00:00  -  2026-10-01 23:59:59
+              ├───────────────────────────────────────────────────────┤
+              ▲                                                       ▲
+      data_interval_start                                     data_interval_end
+    (Dövr Başlayır - Satışlar yığılır)                      (Günün dövrü bitdi!)
+                                                                      │
+                                                                      ▼
+                                                       DAG BAX BURADA İŞLƏYİR!
+                                                       (2026-10-02 00:00:00 UTC)
+                                                       logical_date = 2026-10-01
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  QIZIL MƏNTİQ:                                                         │
+    │  Airflow zaman pəncərəsi TAM BİTMƏDƏN onu emal etməyə başlamır!        │
+    │  Bazar ertəsinin satış hesabatını Bazar ertəsi bitmədən hesablaya      │
+    │  bilməzsiniz! Gün bitməlidir ki, məlumat tam olsun.                    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The #1 Confusion for New Airflow Engineers
+    Almost every beginner asks: *"I set `start_date=2026-10-01` and `schedule='@daily'`. Why did my DAG not execute on October 1st?"*
+
+    The answer is Airflow's **Data Interval concept**:
+    - Airflow is designed for **batch data processing**.
+    - If you are aggregating daily sales for October 1st, you cannot run the pipeline at 9:00 AM on October 1st, because new transactions will still occur throughout the day until midnight.
+    - Therefore, Airflow schedules the run for `start_date + interval` (i.e. **October 2nd, 00:00:00 UTC**).
+
+    ### `logical_date` vs `execution_date`
+    - In Airflow 1.x, this was called `execution_date`, which was deeply confusing because it was actually the *beginning* of the data period, not the time the task was physically executed!
+    - In Airflow 2.2+, this was renamed to **`logical_date`**, accompanied by two explicit parameters:
+      - `data_interval_start`: The exact timestamp when this batch window begins.
+      - `data_interval_end`: The exact timestamp when this batch window ends.
+    - **Jinja Templating**: You can inject `{{ data_interval_start }}` and `{{ data_interval_end }}` directly into your SQL queries or API parameters to extract data for the exact target period.
+  az: |
+    ### Yeni Başlayan Mühəndislərin Ən Böyük Yanılgısı
+    Demək olar ki, hər bir yeni mühəndis soruşur: *"Mən `start_date=2026-10-01` və `schedule='@daily'` qoydum. Niyə mənim DAG-ım 1 Oktyabr tarixində işə düşmədi?"*
+
+    Səbəb Airflow-un **Data Interval (Məlumat İntervalı)** fəlsəfəsidir:
+    - Airflow **partiya (batch) emalı** üçün nəzərdə tutulub.
+    - Əgər siz 1 Oktyabr gününün yekun satış hesabatını hazırlayırsınızsa, bunu 1 Oktyabr günü saat 12:00-da işə sala bilməzsiniz, çünki günün sonuna qədər hələ yeni satışlar olacaq.
+    - Buna görə Airflow intervalın bitməsini gözləyir və tapşırığı `start_date + interval` vaxtında, yəni **2 Oktyabr 00:00:00 UTC** anında işə salır.
+
+    ### `logical_date` və `execution_date` Fərqi
+    - Köhnə Airflow 1.x versiyasında bu dəyər `execution_date` adlanırdı və çox çaşqınlıq yaradırdı, çünki bu kodun fiziki icra vaxtı deyil, aid olduğu məlumat intervalının *başlanğıcı* idi.
+    - Müasir Airflow 2.2+ versiyasında bu termin **`logical_date`** adlandırıldı və iki aydın dəyişən əlavə olundu:
+      - `data_interval_start`: Bu partiya pəncərəsinin başladığı dəqiq vaxt.
+      - `data_interval_end`: Bu partiya pəncərəsinin bitdiyi dəqiq vaxt.
+    - **Jinja Şablonları**: Siz SQL sorğularınıza və ya API parametrlərinizə `{{ data_interval_start }}` və `{{ data_interval_end }}` yazaraq yalnız həmin günün məlumatlarını asanlıqla filtr edə bilərsiniz.
+quick_recap:
+  en: "Airflow DAGs run at the END of their data interval, not the start. For a daily DAG, October 1st's data is processed on October 2nd."
+  az: "Airflow DAG-ları intervalın əvvəlində deyil, SONUNDA icra olunur. Gündəlik DAG-da 1 Oktyabrın məlumatı 2 Oktyabr gecə saat 00:00-da emal edilir."
+what_it_does:
+  en: "Defines the exact time window of data (`data_interval_start` to `data_interval_end`) that each DAG execution is responsible for processing."
+  az: "Hər bir DAG icrasının emal etməli olduğu məlumatın dəqiq zaman pəncərəsini (`data_interval_start` və `data_interval_end`) müəyyən edir."
+real_world_use:
+  en: "Extracting daily incremental records from transactional databases using `WHERE order_timestamp >= '{{ data_interval_start }}' AND order_timestamp < '{{ data_interval_end }}'`."
+  az: "Verilənlər bazasından gündəlik artan məlumatı çıxarmaq üçün SQL-də `WHERE timestamp >= '{{ data_interval_start }}' AND timestamp < '{{ data_interval_end }}'` şablonundan istifadə etmək."
+common_mistakes:
+  en: "Using Python's `datetime.now()` inside task queries instead of Airflow's `logical_date` or data intervals, breaking historical re-runs."
+  az: "Task sorğularının içində Airflow-un `logical_date` dəyəri əvəzinə Python-un `datetime.now()` funksiyasını yazmaq; bu zaman keçmiş tarixlər üçün təkrar emal (backfill) xarab olur."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+
+  @dag(
+      # Runs daily at 01:00 AM UTC
+      schedule="0 1 * * *",
+      start_date=pendulum.datetime(2026, 10, 1, tz="UTC"),
+      catchup=False,
+      tags=["scheduling", "intervals"]
+  )
+  def scheduled_reporting_pipeline():
+      """
+      Demonstrates how to access data interval timestamps inside tasks
+      so tasks are strictly deterministic for backfilling.
+      """
+
+      @task
+      def extract_orders_in_window(**context):
+          # Access the data interval bounds from context
+          interval_start = context["data_interval_start"]
+          interval_end = context["data_interval_end"]
+          logical_date = context["logical_date"]
+
+          print(f"--- AIRFLOW EXECUTION CONTEXT ---")
+          print(f"Logical Date        : {logical_date.to_iso8601_string()}")
+          print(f"Data Interval Start : {interval_start.to_iso8601_string()}")
+          print(f"Data Interval End   : {interval_end.to_iso8601_string()}")
+
+          # Parametrized SQL query for deterministic extraction
+          query = f"""
+              SELECT id, total_amount, created_at 
+              FROM production_db.orders
+              WHERE created_at >= '{interval_start}'
+                AND created_at <  '{interval_end}';
+          """
+          print(f"Executing deterministic query:\n{query.strip()}")
+          return {"processed_window": str(interval_start)}
+
+      @task
+      def summarize(extract_meta: dict):
+          print(f"Summary generated successfully for window: {extract_meta['processed_window']}")
+
+      data = extract_orders_in_window()
+      summarize(data)
+
+  dag_instance = scheduled_reporting_pipeline()
+code_explanation:
+  en: |
+    - `schedule="0 1 * * *"` runs the DAG every morning at 01:00 UTC.
+    - Airflow automatically passes the `context` dictionary containing `data_interval_start`, `data_interval_end`, and `logical_date`.
+    - By querying `created_at >= interval_start AND created_at < interval_end`, the query is completely deterministic. Even if you re-run this task 3 years later, it will query the exact same data window without using non-deterministic `NOW()`.
+  az: |
+    - `schedule="0 1 * * *"` hər səhər saat 01:00 UTC-də DAG-ı işə salır.
+    - Airflow task-a avtomatik olaraq `data_interval_start`, `data_interval_end` və `logical_date` dəyərlərini saxlayan `context` lüğətini ötürür.
+    - SQL sorğusunda `created_at >= interval_start AND created_at < interval_end` filtrindən istifadə etməklə nəticə tam deterministik olur. Bu task-ı hətta 3 il sonra təkrar işə salsanız belə, `NOW()` funksiyasından asılı olmadan eyni günün məlumatını çıxaracaq.
+visual_output: |
+  =============================== TASK EXECUTION LOG ===============================
+  Task: extract_orders_in_window | DagRun: scheduled__2026-10-15T01:00:00+00:00
+  ---------------------------------------------------------------------------------
+  [2026-10-16 01:00:03 UTC] {logging_mixin.py:115} INFO - --- AIRFLOW EXECUTION CONTEXT ---
+  [2026-10-16 01:00:03 UTC] {logging_mixin.py:115} INFO - Logical Date        : 2026-10-15T01:00:00+00:00
+  [2026-10-16 01:00:03 UTC] {logging_mixin.py:115} INFO - Data Interval Start : 2026-10-15T01:00:00+00:00
+  [2026-10-16 01:00:03 UTC] {logging_mixin.py:115} INFO - Data Interval End   : 2026-10-16T01:00:00+00:00
+  [2026-10-16 01:00:04 UTC] {logging_mixin.py:115} INFO - Executing deterministic query:
+  SELECT id, total_amount, created_at 
+  FROM production_db.orders
+  WHERE created_at >= '2026-10-15 01:00:00+00:00'
+    AND created_at <  '2026-10-16 01:00:00+00:00';
+  [2026-10-16 01:00:08 UTC] {taskinstance.py:1300} INFO - Task exited with return code 0 (SUCCESS)
+output_description:
+  en: "Demonstrates that a task executing on October 16th at 01:00 UTC actually processes the data window covering October 15th 01:00 to October 16th 01:00."
+  az: "16 Oktyabr saat 01:00-da icra olunan task-ın əslində 15 Oktyabr saat 01:00 ilə 16 Oktyabr saat 01:00 arasındakı məlumat pəncərəsini emal etdiyini sübut edir."
+interview_question:
+  question:
+    en: "Explain the difference between `logical_date` (formerly `execution_date`) and the physical time a task runs. Why does Airflow trigger a DAG after the data interval ends?"
+    az: "`logical_date` (əvvəllər `execution_date`) ilə task-ın fiziki icra vaxtı arasındakı fərqi izah edin. Niyə Airflow DAG-ı interval bitdikdən sonra işə salır?"
+  answer:
+    en: "In Airflow, `logical_date` represents the start of the data period being processed, not the wall-clock execution time. Because batch pipelines aggregate data over a fixed time period (e.g., daily from 00:00 to 23:59), the pipeline cannot execute until that period is 100% complete. Therefore, a daily DAG for October 1st physically triggers at the end of the interval, which is October 2nd 00:00 UTC."
+    az: "Airflow-da `logical_date` task-ın fiziki işlədiyi saatı deyil, emal olunan məlumat pəncərəsinin başlanğıc anını təmsil edir. Çünki batch (partiya) kəmərləri müəyyən zaman aralığının məlumatını yığır (məsələn, 00:00-dan 23:59-a qədər). Həmin zaman aralığı 100% başa çatmadan onu emal etmək olmaz. Buna görə də 1 Oktyabr üçün nəzərdə tutulan gündəlik DAG fiziki olaraq yalnız interval bitdikdə — yəni 2 Oktyabr saat 00:00-da işə düşür."
+  interviewer_tips:
+    en: "Clarifying that `execution_date` was renamed to `logical_date` in Airflow 2.2 to prevent semantic confusion shows the interviewer you are up to date with modern Airflow architecture."
+    az: "Airflow 2.2 versiyasında çaşqınlığı aradan qaldırmaq üçün `execution_date`-in `logical_date` olaraq dəyişdirildiyini qeyd etmək müasir Airflow biliklərinizi sübut edir."
+flashcards:
+  - front:
+      en: "When does Airflow physically trigger a scheduled DAG run?"
+      az: "Airflow qrafik üzrə təyin edilmiş DAG-ı fiziki olaraq nə vaxt işə salır?"
+    back:
+      en: "At the END of its data interval (`data_interval_end`), not at the beginning."
+      az: "Məlumat intervalının başlanğıcında deyil, SONUNDA (`data_interval_end`)."
+  - front:
+      en: "What does `logical_date` represent in Airflow?"
+      az: "Airflow-da `logical_date` nəyi təmsil edir?"
+    back:
+      en: "The start timestamp of the data interval that the DAG run is responsible for processing."
+      az: "DAG icrasının emal etməli olduğu məlumat intervalının başlanğıc zaman damğasını."
+  - front:
+      en: "What was `logical_date` formerly known as in Airflow 1.x?"
+      az: "Airflow 1.x-də `logical_date` əvvəllər necə adlanırdı?"
+    back:
+      en: "`execution_date`, which was renamed in Airflow 2.2 because it caused confusion with actual execution time."
+      az: "`execution_date`. Fiziki icra saatı ilə qarışdırıldığı üçün Airflow 2.2-də adı dəyişdirildi."
+  - front:
+      en: "Why should you avoid using Python's `datetime.now()` in your DAG extraction queries?"
+      az: "DAG daxilindəki SQL sorğularında niyə Python-un `datetime.now()` funksiyasından qaçınmaq lazımdır?"
+    back:
+      en: "It makes runs non-deterministic, making backfills or re-runs of historical dates impossible."
+      az: "Bu icranı qeyri-müəyyən (non-deterministic) edir və keçmiş tarixlər üçün backfill etməyi mümkünsüz edir."
+  - front:
+      en: "Which Airflow context variables define the exact boundaries of a run's time window?"
+      az: "DAG icrasının zaman pəncərəsinin dəqiq sərhədlərini hansı Airflow context dəyişənləri müəyyən edir?"
+    back:
+      en: "`data_interval_start` and `data_interval_end`."
+      az: "`data_interval_start` və `data_interval_end`."

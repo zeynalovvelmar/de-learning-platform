@@ -1,0 +1,231 @@
+id: "11-dynamic-task-mapping-groups"
+order: 11
+level: "advanced"
+title:
+  en: "Dynamic Task Mapping (`.expand()`), Task Groups & Pools"
+  az: "Dinamik Task Xəritələnməsi (`.expand()`), Task Qrupları və Pool-lar"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DYNAMIC TASK MAPPING (AIRFLOW 2.3+ Map-Reduce)                        │
+    └────────────────────────────────────────────────────────────────────────┘
+    Upstream Task: Discovers 3 files in S3 today: ["f1.csv", "f2.csv", "f3.csv"]
+
+                 [list_files_in_s3] ──► Returns list of 3 items
+                         │
+        ┌────────────────┼────────────────┐   .expand(file_name=files)
+        ▼                ▼                ▼   DYNAMICTASKS CREATED AT RUNTIME!
+    [process_file[0]] [process_file[1]] [process_file[2]]
+        │                │                │
+        └────────────────┼────────────────┘
+                         ▼
+                   [reduce_summary] ──► Consumes all 3 outputs together!
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  POOLS: PROTECTING DOWNSTREAM DATABASES FROM CONCURRENCY OVERLOAD      │
+    │  Pool: "warehouse_db_pool" (Slots: 5)                                  │
+    │  Even if 1,000 mapped tasks run, only 5 will query the DB at once!    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DİNAMİK TASK XƏRİTƏLƏNMƏSİ (AIRFLOW 2.3+ Map-Reduce)                 │
+    └────────────────────────────────────────────────────────────────────────┘
+    Əvvəlki Task: S3-də bu gün 3 fayl tapır: ["f1.csv", "f2.csv", "f3.csv"]
+
+               [s3_fayllarını_tap] ──► 3 elementli siyahı qaytarır
+                         │
+        ┌────────────────┼────────────────┐   .expand(fayl_adı=fayllar)
+        ▼                ▼                ▼   PROSES ƏSNASINDA DİNAMİK YARANIR!
+    [emal_et[0]]    [emal_et[1]]     [emal_et[2]]
+        │                │                │
+        └────────────────┼────────────────┘
+                         ▼
+                 [yekun_hesabat] ──► Hər 3 nəticəni birləşdirir!
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  POOL-LAR: VERİLƏNLƏR BAZASINI HƏDDƏN ARTIQ YÜKDƏN QORUMAQ            │
+    │  Pool: "baza_pool" (Slot sayı: 5)                                      │
+    │  1,000 dənə dinamik task yaransa belə, bazaya eyni anda MAX 5-i girir!│
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Old Problem: Dynamic Workloads
+    In older Airflow versions, the DAG graph had to be strictly static. If an S3 bucket had 5 files today and 1,000 files tomorrow, you could not dynamically spawn a task for each file without writing fragile code that crashed the scheduler.
+
+    ### Modern Airflow 2.3+: Dynamic Task Mapping
+    Dynamic Task Mapping allows a task to spawn multiple parallel instances at runtime based on the output of an upstream task.
+    - **`.partial()`**: Passes arguments that are constant across all mapped tasks (e.g., target table name, environment).
+    - **`.expand()`**: Takes an upstream collection (list/array) and spawns one task instance for each element.
+    - Airflow tracks each dynamic instance using an index `[0]`, `[1]`, `[2]`, etc.
+
+    ### TaskGroup: UI Organization
+    - In complex DAGs with 50+ tasks, the UI becomes unreadable.
+    - In the past, engineers used **SubDAGs**, which caused scheduler deadlocks and are now deprecated.
+    - **`TaskGroup`** is the modern replacement: it visually groups tasks into clean, collapsible UI boxes without any scheduling performance overhead.
+
+    ### Pools & Concurrency Protection
+    When dynamic task mapping spawns 500 tasks at once, running them all simultaneously could crash your Postgres database or exceed external API rate limits.
+    - **Airflow Pools** allow you to create a named slot pool (e.g. `postgres_pool = 10 slots`).
+    - By assigning tasks to this pool (`pool='postgres_pool'`), Airflow guarantees that no more than 10 tasks touch the database simultaneously, queuing the rest safely.
+  az: |
+    ### Keçmişin Böyük Problemi: Dinamik İş Həcmi
+    Köhnə Airflow versiyalarında DAG qrafiki mütləq statik olmalı idi. Əgər S3 anbarına bu gün 5 fayl, sabah isə 1,000 fayl gəlirdisə, hər fayl üçün ayrıca bir task yaratmaq mümkün deyildi və ya scheduler-i dondururdu.
+
+    ### Müasir Airflow 2.3+: Dynamic Task Mapping
+    Dinamik Task Xəritələnməsi icra zamanı əvvəlki task-ın qaytardığı siyahıya əsasən paralel task nüsxələri yaratmağa imkan verir.
+    - **`.partial()`**: Bütün yaranacaq task-lar üçün eyni (sabit) qalan arqumentləri ötürür (məsələn: hədəf cədvəl adı).
+    - **`.expand()`**: Əvvəlki task-dan gələn siyahını qəbul edir və hər bir element üçün ayrıca bir task nüsxəsi qaldırır.
+    - Airflow hər bir dinamik nüsxəni indekslə qeyd edir: `[0]`, `[1]`, `[2]`.
+
+    ### TaskGroup: İnterfeysin Təmiz Təşkili
+    - 50-dən çox task-ı olan böyük DAG-larda UI ekranı tamamilə oxunmaz və qarışıq hala düşür.
+    - Keçmişdə istifadə olunan **SubDAG-lar** scheduler-i kilitlədiyi üçün ləğv edildi (deprecated).
+    - **`TaskGroup`** onun müasir əvəzləyicisidir: task-ları qrafikdə səliqəli, yığılıb-açılan qovluqlar kimi qruplaşdırır və heç bir performans itkisi yaratmır.
+
+    ### Pool-lar və Paralellik Nəzarəti
+    Dinamik task xəritələnməsi eyni vaxtda 500 task yarada bilər. Əgər onların hamısı eyni saniyədə PostgreSQL bazasına daxil olsa, baza əlaqə limiti dolub çökər.
+    - **Airflow Pool-ları** adlandırılmış slot hovuzudur (məsələn: `postgres_pool = 10 slot`).
+    - Task-a `pool='postgres_pool'` verdikdə, Airflow eyni anda maksimum 10 task-ın bazaya sorğu göndərməsinə icazə verir, qalan 490 task isə növbədə təhlükəsiz şəkildə gözləyir.
+quick_recap:
+  en: "Use `.expand()` for dynamic runtime task fan-out, `TaskGroup` for clean collapsible UI organization, and `Pools` to protect databases from concurrency spikes."
+  az: "Dinamik task-lar yaratmaq üçün `.expand()`, interfeysi səliqəyə salmaq üçün `TaskGroup`, bazanı həddən artıq sorğulardan qorumaq üçün `Pools` istifadə edin."
+what_it_does:
+  en: "Dynamically scales tasks based on runtime data collections (`.expand()`), groups tasks in UI without SubDAG deadlocks, and caps database concurrency using Pools."
+  az: "Gələn məlumat siyahısına görə dinamik task-lar yaradır (`.expand()`), UI-da səliqəli qruplaşdırma edir və Pool-lar vasitəsilə bazanın yükünü tənzimləyir."
+real_world_use:
+  en: "Processing 50 incoming partition files in parallel with `process_file.expand(file=files)`, capped to 5 concurrent DB connections via a Pool."
+  az: "Gələn 50 partisiya faylını `process_file.expand(file=files)` ilə paralel emal etmək və Pool vasitəsilə bazaya eyni anda maksimum 5 qoşulma ilə daxil olmaq."
+common_mistakes:
+  en: "Using deprecated SubDAGs instead of modern TaskGroups, leading to severe scheduling freezes and DAG worker deadlocks."
+  az: "Müasir TaskGroup əvəzinə köhnəlmiş SubDAG-lardan istifadə etmək və scheduler-in donmasına səbəb olmaq."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+  from airflow.utils.task_group import TaskGroup
+
+  @dag(
+      schedule="@daily",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,
+      tags=["dynamic_task_mapping", "task_groups", "pools"]
+  )
+  def dynamic_ecommerce_ingestion():
+      """
+      Demonstrates:
+      1. Dynamic Task Mapping via .expand()
+      2. TaskGroup for UI collapsible organization
+      3. Pool assignment to cap database concurrency
+      """
+
+      @task
+      def discover_landing_files() -> list:
+          # Discovers files at runtime from an S3 prefix
+          files = [
+              "s3://bucket/orders_us.parquet",
+              "s3://bucket/orders_eu.parquet",
+              "s3://bucket/orders_apac.parquet"
+          ]
+          print(f"Discovered {len(files)} regional files ready for processing.")
+          return files
+
+      # Visual organization using TaskGroup
+      with TaskGroup(group_id="transformation_group") as transformation_group:
+          
+          # Mapped task assigned to 'warehouse_db_pool' to avoid overloading Snowflake/Postgres
+          @task(pool="warehouse_db_pool")
+          def process_regional_file(file_path: str, environment: str = "prod") -> int:
+              print(f"[{environment}] Ingesting {file_path} using protected DB pool slot...")
+              # Return processed row count
+              return 15000
+
+          # Downstream reduce/aggregation task
+          @task
+          def aggregate_totals(counts: list) -> int:
+              total = sum(counts)
+              print(f"Total aggregated records across all regions: {total}")
+              return total
+
+          # 1. Discover files
+          discovered = discover_landing_files()
+          
+          # 2. Dynamic Task Mapping: Spawns 3 task instances at runtime!
+          # .partial() holds static args, .expand() iterates over dynamic list
+          regional_counts = process_regional_file.partial(environment="prod").expand(file_path=discovered)
+
+          # 3. Aggregation task takes the list of results from all mapped instances
+          aggregate_totals(regional_counts)
+
+  dag_instance = dynamic_ecommerce_ingestion()
+code_explanation:
+  en: |
+    - `discover_landing_files()` dynamically discovers 3 S3 files at runtime.
+    - `process_regional_file.partial(environment="prod").expand(file_path=discovered)` creates 3 distinct task instances (`[0]`, `[1]`, `[2]`), one for each file, without hardcoding them in the DAG.
+    - `pool="warehouse_db_pool"` ensures that even if 500 files arrived, only the pool limit (e.g., 5 tasks) will hit the database at once.
+    - `TaskGroup` groups these tasks into an interactive collapsible box in the Airflow Grid & Graph UI.
+  az: |
+    - `discover_landing_files()` runtime zamanı S3-də 3 regional fayl aşkar edir.
+    - `process_regional_file.partial(environment="prod").expand(file_path=discovered)` DAG kodunu dəyişmədən həmin 3 fayl üçün avtomatik 3 ayrı paralel task nüsxəsi (`[0]`, `[1]`, `[2]`) yaradır.
+    - `pool="warehouse_db_pool"` hətta 500 fayl gəlsə belə, bazaya eyni anda yalnız təyin edilmiş limit qədər (məsələn, 5 task) daxil olmasına icazə verir.
+    - `TaskGroup` bu mərhələləri Airflow UI-da səliqəli, yığılıb-açılan blok daxilində birləşdirir.
+visual_output: |
+  ======================== AIRFLOW DYNAMIC GRID INSPECTION ========================
+  DAG: dynamic_ecommerce_ingestion  |  Run ID: scheduled__2026-10-16
+  --------------------------------------------------------------------------------
+  [discover_landing_files]                                   ──► SUCCESS
+  ▼ TaskGroup: transformation_group
+     [process_regional_file] (Mapped 3 instances)            ──► SUCCESS [3/3]
+        ├── process_regional_file [0] (s3://...orders_us)    ──► SUCCESS (15000 rows)
+        ├── process_regional_file [1] (s3://...orders_eu)    ──► SUCCESS (15000 rows)
+        └── process_regional_file [2] (s3://...orders_apac)  ──► SUCCESS (15000 rows)
+     [aggregate_totals]                                      ──► SUCCESS (Total: 45000)
+
+  ------------------------ POOL USAGE: warehouse_db_pool ------------------------
+  Total Slots: 5  |  Used: 3  |  Queued: 0  |  Status: HEALTHY
+output_description:
+  en: "Shows the 3 dynamically mapped instances nested inside the TaskGroup, along with active pool slot monitoring."
+  az: "TaskGroup içərisində 3 dinamik xəritələnmiş nüsxənin icrasını və Pool slotlarının təhlükəsiz istifadəsini göstərir."
+interview_question:
+  question:
+    en: "What is Dynamic Task Mapping in Airflow, and how does `.partial()` differ from `.expand()`? How do Pools prevent dynamic tasks from crashing target databases?"
+    az: "Airflow-da Dynamic Task Mapping nədir və `.partial()` ilə `.expand()` arasındakı fərq nədir? Pool-lar dinamik task-ların hədəf bazanı çökdürməsinin qarşısını necə alır?"
+  answer:
+    en: "Introduced in Airflow 2.3, Dynamic Task Mapping is Airflow's native Map-Reduce feature allowing tasks to spawn dynamically at runtime based on upstream list outputs. `.partial()` supplies parameters that remain static across all mapped instances (e.g. table names, environment), while `.expand()` accepts an iterable and generates one task instance per element. Because `.expand()` can generate hundreds of concurrent tasks, target databases can be overwhelmed with connections. Airflow Pools solve this by assigning tasks to a named pool with a fixed slot capacity (e.g. 5 slots). Even if 200 mapped tasks are ready, only 5 run concurrently while 195 wait in the queue, preventing connection exhaustion."
+    az: "Airflow 2.3-də təqdim olunan Dynamic Task Mapping runtime zamanı əvvəlki task-ın qaytardığı siyahıya əsasən dinamik sayda task nüsxəsi yaratmağa imkan verən xüsusiyyətdir. `.partial()` bütün yaranacaq task-lar üçün sabit qalan dəyərləri (məsələn, cədvəl adı, mühit) ötürür, `.expand()` isə siyahı qəbul edərək hər bir element üçün 1 task nüsxəsi yaradır. `.expand()` eyni anda yüzlərlə task yarada bildiyi üçün hədəf verilənlər bazası qoşulma limiti səbəbindən çökə bilər. Airflow Pool-ları buna nəzarət edir: task-a müəyyən slot sayı olan Pool (məsələn: 5 slot) təyin etdikdə, 200 task yaransa belə eyni anda yalnız 5-i bazaya sorğu göndərir, qalan 195-i isə növbədə gözləyir."
+  interviewer_tips:
+    en: "Clearly explain the Map-Reduce pattern: `.expand()` is the Map phase and the downstream collecting task is the Reduce phase. Mentioning Pools highlights real-world operational maturity."
+    az: "Map-Reduce modelini aydın izah edin: `.expand()` Map mərhələsidir, nəticələri toplayan task isə Reduce. Pool-ları qeyd etmək real istehsalat təcrübənizi göstərir."
+flashcards:
+  - front:
+      en: "What Airflow feature allows tasks to be generated dynamically at runtime based on data?"
+      az: "Məlumat əsasında runtime zamanı task-ların dinamik yaranmasına hansı Airflow xüsusiyyəti imkan verir?"
+    back:
+      en: "Dynamic Task Mapping (introduced in Airflow 2.3)."
+      az: "Dynamic Task Mapping (Airflow 2.3 versiyasında əlavə olunub)."
+  - front:
+      en: "In Dynamic Task Mapping, what is the difference between `.partial()` and `.expand()`?"
+      az: "Dynamic Task Mapping-də `.partial()` ilə `.expand()` arasındakı fərq nədir?"
+    back:
+      en: "`.partial()` supplies static arguments shared by all instances, while `.expand()` iterates over a collection to spawn one instance per item."
+      az: "`.partial()` bütün nüsxələr üçün ortaq sabit arqumentləri ötürür, `.expand()` isə siyahı üzrə hər elementə 1 task nüsxəsi yaradır."
+  - front:
+      en: "Why were SubDAGs deprecated in favor of TaskGroups?"
+      az: "SubDAG-lar niyə ləğv edildi və TaskGroup-lar ilə əvəzləndi?"
+    back:
+      en: "SubDAGs used separate DAG runs causing scheduler deadlocks and resource hogging; TaskGroups are lightweight, UI-only grouping constructs."
+      az: "SubDAG-lar ayrıca DAG icrası kimi işləyərək scheduler-i kilitləyirdi; TaskGroup isə yalnız UI üçün yüngül və təhlükəsiz qruplaşdırmadır."
+  - front:
+      en: "What is an Airflow Pool?"
+      az: "Airflow Pool nədir?"
+    back:
+      en: "A concurrency management tool that limits the number of tasks that can run simultaneously against a shared resource or database."
+      az: "Ortaq resursa və ya bazaya eyni anda müraciət edə biləcək paralel task-ların sayını məhdudlaşdıran idarəetmə alətidir."
+  - front:
+      en: "How are dynamically mapped task instances indexed in Airflow logs and UI?"
+      az: "Dinamik xəritələnmiş task nüsxələri Airflow loqlarında və interfeysində necə indekslənir?"
+    back:
+      en: "Zero-based bracket notation: `task_name[0]`, `task_name[1]`, `task_name[2]`, etc."
+      az: "Sıfırdan başlayan mötərizə indeksi ilə: `task_adı[0]`, `task_adı[1]`, `task_adı[2]` və s."

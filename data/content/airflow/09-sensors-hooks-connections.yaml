@@ -1,0 +1,234 @@
+id: "09-sensors-hooks-connections"
+order: 9
+level: "intermediate"
+title:
+  en: "Sensors, Hooks & Connections (The Deadlock Trap)"
+  az: "Sensorlar, Hook-lar və Connection-lar (Deadlock Tələsi)"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SENSOR MODE: POKE VS RESCHEDULE (THE DEADLOCK TRAP)                   │
+    └────────────────────────────────────────────────────────────────────────┘
+    Scenario: You have 4 worker slots. 4 DAG runs start a FileSensor waiting for files.
+
+    ❌ mode="poke" (Slot Hogging Deadlock):
+       Slot 1: [Sensor A - Sleeping 60s] ──► Holding worker thread hostage!
+       Slot 2: [Sensor B - Sleeping 60s] ──► Holding worker thread hostage!
+       Slot 3: [Sensor C - Sleeping 60s] ──► Holding worker thread hostage!
+       Slot 4: [Sensor D - Sleeping 60s] ──► Holding worker thread hostage!
+       💥 DEADLOCK! No other tasks in the entire company can run!
+
+    ✅ mode="reschedule" (Smart Cooperative Scheduling):
+       Slot 1: Checks S3 ──► File not there yet?
+       Yields slot! ──► Task state becomes `UP_FOR_RESCHEDULE`.
+       Slot is FREE for other tasks to use! Airflow wakes sensor up 60s later.
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  HOOKS & CONNECTIONS: SECURE EXTERNAL SYSTEM ACCESS                   │
+    │  • Airflow Connection: Stores Host, Port, User, Password in DB/Vault   │
+    │  • Hook: High-level Python client (e.g. PostgresHook, S3Hook)          │
+    │  • DAG Code NEVER contains hardcoded credentials!                      │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SENSOR REJİMİ: POKE VƏ YA RESCHEDULE (DEADLOCK TƏLƏSİ)                │
+    └────────────────────────────────────────────────────────────────────────┘
+    Ssenari: 4 worker slotunuz var. 4 DAG işə düşüb faylın gəlməsini gözləyir.
+
+    ❌ mode="poke" (Slotları Donduran Tələ):
+       Slot 1: [Sensor A - 60s yatır] ──► Bütün prosesi boş yerə məşğul edir!
+       Slot 2: [Sensor B - 60s yatır] ──► Bütün prosesi boş yerə məşğul edir!
+       Slot 3: [Sensor C - 60s yatır] ──► Bütün prosesi boş yerə məşğul edir!
+       Slot 4: [Sensor D - 60s yatır] ──► Bütün prosesi boş yerə məşğul edir!
+       💥 DEADLOCK! Şirkətin heç bir digər task-ı işləyə bilmir, sistem dondu!
+
+    ✅ mode="reschedule" (Ağıllı Resurs İdarəetməsi):
+       Slot 1: S3-ü yoxlayır ──► Fayl hələ gəlməyib?
+       Slotu dərhal təhvil verir! ──► Task statusu `UP_FOR_RESCHEDULE` olur.
+       Slot başqa işlər üçün AZADDIR! 60 saniyə sonra Airflow onu yenidən yoxlayır.
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  HOOK VƏ CONNECTION-LAR: TƏHLÜKƏSİZ XARİCİ SİSTEM ƏLAQƏSİ              │
+    │  • Airflow Connection: Şifrələri və Hostu bazada/Vault-da saxlayır     │
+    │  • Hook: Yüksək səviyyəli Python interfeysi (PostgresHook, S3Hook)     │
+    │  • DAG kodunda HEÇ VAXT şifrə və ya login açıq yazılmır!               │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### What is a Sensor?
+    A **Sensor** is a special type of Operator whose sole purpose is to wait for an external event to happen before allowing downstream tasks to proceed.
+    Examples:
+    - `S3KeySensor`: Wait until an S3 file `orders_2026-10-16.csv` is uploaded.
+    - `HttpSensor`: Wait until an external API returns HTTP 200.
+    - `ExternalTaskSensor`: Wait until another DAG or Task completes.
+
+    ### The Critical Trap: `mode='poke'` vs `mode='reschedule'`
+    - **`mode='poke'` (Default)**: The sensor process stays alive and occupies a worker slot while sleeping. If the wait takes 3 hours, that worker slot is completely blocked for 3 hours! If several sensors run concurrently, they consume all available worker slots, causing a total cluster **deadlock**.
+    - **`mode='reschedule'`**: The sensor checks once. If the condition isn't met, it releases the worker slot immediately and marks itself as `UP_FOR_RESCHEDULE`. The worker slot is freed for other tasks. At the next interval, the scheduler assigns it to an available worker to check again.
+    - **Rule of Thumb**: For any wait longer than 1-2 minutes, **always use `mode='reschedule'`**!
+
+    ### Connections & Hooks
+    - **Airflow Connection**: Encrypted database record storing credentials (`conn_id`, `host`, `login`, `password`, `extra`). Airflow UI / Secrets Manager allows updating database passwords without touching DAG files.
+    - **Hook**: Python class that communicates with the external system (e.g., `PostgresHook(postgres_conn_id='postgres_warehouse')`). It automatically retrieves the connection credentials and handles pooling, authentication, and error retries.
+  az: |
+    ### Sensor Nədir?
+    **Sensor** — xarici bir hadisə (məsələn, faylın gəlməsi və ya API-nin açılması) baş verənə qədər gözləyən xüsusi Operator növüdür.
+    Nümunələr:
+    - `S3KeySensor`: S3 anbarına `orders_2026-10-16.csv` faylının yüklənməsini gözləyir.
+    - `HttpSensor`: Xarici API-nin HTTP 200 cavabı qaytarmasını gözləyir.
+    - `ExternalTaskSensor`: Başqa bir DAG-ın və ya task-ın uğurla bitməsini gözləyir.
+
+    ### Ən Təhlükəli Səhv: `mode='poke'` və ya `mode='reschedule'`
+    - **`mode='poke'` (Susmaya görə)**: Sensor worker slotunu tutur və gözlədiyi müddətdə slotu buraxmır (yatır). Əgər fayl 3 saat sonra gələcəksə, həmin worker 3 saat boyunca donub qalır! Əgər 5-10 sensor eyni vaxtda işə düşərsə, bütün worker-lər tükənir və klaster **deadlock** vəziyyətinə düşür.
+    - **`mode='reschedule'`**: Sensor şərti yoxlayır, əgər fayl yoxdursa, dərhal worker slotunu azad edir və öz statusunu `UP_FOR_RESCHEDULE` edir. Nəticədə server digər vacib işləri görə bilir. Vaxt çatanda Airflow onu növbəti yoxlama üçün yenidən çağırır.
+    - **Qızıl Qayda**: 1-2 dəqiqədən çox çəkən istənilən sensor üçün mütləq **`mode='reschedule'`** yazılmalıdır!
+
+    ### Connection və Hook Nədir?
+    - **Airflow Connection**: Xarici sistemin giriş məlumatlarını (host, istifadəçi adı, şifrə) şifrələnmiş şəkildə saxlayan təhlükəsiz qeyddir (`conn_id`). Şifrə dəyişdikdə DAG koduna toxunmadan yalnız UI və ya Secrets Manager-dən dəyişmək kifayətdir.
+    - **Hook**: Həmin sistemlə danışan Python sinfidir (məsələn: `PostgresHook`). O, Connection-dan məlumatları çəkir, bazaya qoşulmanı açır və sorğunu icra edir.
+quick_recap:
+  en: "Always use `mode='reschedule'` for sensors waiting more than 1-2 minutes to prevent worker deadlock. Use Connections and Hooks to keep credentials out of DAG code."
+  az: "Worker-ləri kilitləməmək üçün 1-2 dəqiqədən çox gözləyən sensorlarda həmişə `mode='reschedule'` istifadə edin. Şifrələri kodda deyil, Connection və Hook-larda saxlayın."
+what_it_does:
+  en: "Sensors pause workflows until external conditions are met, while Hooks abstract low-level API/DB authentication using centralized Connections."
+  az: "Sensorlar xarici hadisələr baş verənə qədər boru kəmərini gözlədir, Hook-lar isə mərkəzi Connection-lar vasitəsilə xarici bazalara təhlükəsiz qoşulma yaradır."
+real_world_use:
+  en: "Waiting for partner vendors to drop hourly SFTP/S3 files before triggering downstream Spark transformations, querying via PostgresHook."
+  az: "Xarici tərəfdaşın saatlıq faylı S3-ə yükləməsini gözləyib, ardınca PostgresHook ilə cədvəlləri yeniləmək."
+common_mistakes:
+  en: "Running sensors in default `poke` mode for hours, starving all other tasks of execution slots and bringing the cluster to a halt."
+  az: "Sensoru standart `poke` rejimində saatlarla gözlətmək, bütün worker slotlarını tükəndirib klasterdə ümumi dayanmaya səbəb olmaq."
+code: |
+  import pendulum
+  from airflow.decorators import dag, task
+  from airflow.sensors.filesystem import FileSensor
+  from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+  @dag(
+      schedule="@hourly",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,
+      tags=["sensors", "hooks", "connections"]
+  )
+  def sensor_and_hook_pipeline():
+      """
+      Demonstrates:
+      1. Safe sensor usage with mode='reschedule' to prevent worker deadlocks.
+      2. Secure PostgresHook usage referencing connection 'warehouse_postgres'.
+      """
+
+      # SENSOR: Waiting for incoming batch file
+      wait_for_incoming_file = FileSensor(
+          task_id="wait_for_incoming_file",
+          filepath="/data/landing/orders_{{ ds_nodash }}.csv",
+          fs_conn_id="fs_default",
+          poke_interval=60,       # Check every 60 seconds
+          timeout=3600,           # Fail if file does not arrive within 1 hour
+          mode="reschedule"       # CRITICAL: Releases worker slot while sleeping!
+      )
+
+      @task
+      def load_via_postgres_hook():
+          # NO hardcoded passwords! Retrieves credentials securely from Airflow Connection.
+          hook = PostgresHook(postgres_conn_id="warehouse_postgres")
+          
+          # Querying using the hook's managed connection
+          conn = hook.get_conn()
+          cursor = conn.cursor()
+          
+          cursor.execute("""
+              SELECT COUNT(*) 
+              FROM warehouse.orders 
+              WHERE order_status = 'PENDING';
+          """)
+          count = cursor.fetchone()[0]
+          print(f"PostgresHook query successful! Pending orders count: {count}")
+          
+          cursor.close()
+          conn.close()
+          return count
+
+      @task
+      def process_complete(count: int):
+          print(f"Batch completed for {count} records.")
+
+      # Execution graph
+      wait_for_incoming_file >> load_via_postgres_hook() >> process_complete(0)
+
+  dag_instance = sensor_and_hook_pipeline()
+code_explanation:
+  en: |
+    - `FileSensor` is configured with `mode="reschedule"`. If the file is absent, the task releases its worker thread immediately and sleeps for 60 seconds without consuming cluster resources.
+    - `timeout=3600` ensures that if a vendor never uploads the file, the task fails cleanly after 1 hour rather than hanging indefinitely.
+    - `PostgresHook(postgres_conn_id="warehouse_postgres")` securely queries the database without exposing usernames, passwords, or hostnames inside the Python file.
+  az: |
+    - `FileSensor` `mode="reschedule"` ilə konfiqurasiya edilib. Əgər fayl hələ gəlməyibsə, task worker slotunu dərhal azad edir və 60 saniyə ərzində klasterin resursunu xərcləmir.
+    - `timeout=3600`: Əgər tərəfdaş faylı ümumiyyətlə göndərməzsə, task-ın sonsuza qədər ilişib qalmaması üçün 1 saatdan sonra xəta verib dayanmasını təmin edir.
+    - `PostgresHook(postgres_conn_id="warehouse_postgres")`: Python kodunun daxilində heç bir şifrə və ya login yazmadan bazaya təhlükəsiz qoşulur.
+visual_output: |
+  ============================= SENSOR EXECUTION TRACE =============================
+  Task: wait_for_incoming_file | Mode: reschedule | Interval: 60s
+  ---------------------------------------------------------------------------------
+  [2026-10-16 04:00:01 UTC] INFO - Poking for file: /data/landing/orders_20261016.csv
+  [2026-10-16 04:00:01 UTC] INFO - File does NOT exist yet.
+  [2026-10-16 04:00:02 UTC] INFO - Rescheduling task. State changed to UP_FOR_RESCHEDULE.
+  [2026-10-16 04:00:02 UTC] INFO - Worker slot released for other jobs! [SLOT FREED]
+  
+  [2026-10-16 04:01:02 UTC] INFO - Task rescheduled and assigned to worker.
+  [2026-10-16 04:01:03 UTC] INFO - Poking for file: /data/landing/orders_20261016.csv
+  [2026-10-16 04:01:03 UTC] INFO - File found! Criteria satisfied.
+  [2026-10-16 04:01:04 UTC] INFO - Sensor returned SUCCESS.
+
+  ---------------------------- POSTGRES HOOK EXECUTION ----------------------------
+  [2026-10-16 04:01:05 UTC] INFO - Fetching connection 'warehouse_postgres' from Secret Manager...
+  [2026-10-16 04:01:06 UTC] INFO - PostgresHook query successful! Pending orders count: 1845
+output_description:
+  en: "Shows the sensor checking for a file, releasing its worker slot to UP_FOR_RESCHEDULE, and resuming cleanly 60 seconds later when the file arrives."
+  az: "Sensorun faylı tapmadıqda worker slotunu UP_FOR_RESCHEDULE ilə dərhal azad etdiyini və 60 saniyə sonra fayl gəldikdə uğurla davam etdiyini göstərir."
+interview_question:
+  question:
+    en: "What is the difference between `mode='poke'` and `mode='reschedule'` in Airflow Sensors? What catastrophic failure can occur if you use the wrong mode?"
+    az: "Airflow Sensorlarında `mode='poke'` ilə `mode='reschedule'` arasındakı fərq nədir? Yanlış rejim seçildikdə hansı fəlakətli problem yarana bilər?"
+  answer:
+    en: "In `mode='poke'`, the sensor holds onto its worker slot and thread continuously, even while sleeping between checks (`poke_interval`). In `mode='reschedule'`, if the condition is not met, the sensor yields its worker slot, transitions to state `UP_FOR_RESCHEDULE`, and frees the thread for other tasks until the next check. If you have many sensors running in `poke` mode waiting for hours, they consume 100% of the worker slots, causing worker pool starvation and a total cluster deadlock where no other DAGs in the entire company can execute."
+    az: "`mode='poke'` rejimində sensor yoxlamalar arasındakı gözləmə (yuxu) vaxtında belə worker slotunu və yaddaşı əlində saxlayır və buraxmır. `mode='reschedule'` rejimində isə şərt ödənmədikdə sensor dərhal worker slotunu azad edir, `UP_FOR_RESCHEDULE` statusuna keçir və növbəti yoxlamaya qədər resursu digər task-ların istifadəsinə verir. Əgər çoxlu sayda sensor `poke` rejimində saatlarla gözləyərsə, klasterdəki bütün worker slotları tutulur, resurs tükənməsi (starvation) və klaster miqyasında ümumi kilitlənmə (deadlock) yaranır; nəticədə şirkətdə heç bir digər pipeline işləyə bilmir."
+  interviewer_tips:
+    en: "Mention the exact state name `UP_FOR_RESCHEDULE` and explain worker pool starvation. Senior interviewers look for this operational experience."
+    az: "`UP_FOR_RESCHEDULE` statusunun adını çəkmək və worker slotlarının tükənməsini (pool starvation) izah etmək dərin təcrübənizi nümayiş etdirir."
+flashcards:
+  - front:
+      en: "What is an Airflow Sensor?"
+      az: "Airflow Sensor-u nədir?"
+    back:
+      en: "A special operator designed to wait for an external state, condition, or file before letting downstream tasks run."
+      az: "Növbəti task-ların işləməsinə icazə verməzdən əvvəl xarici bir hadisənin və ya faylın gəlməsini gözləyən xüsusi operator."
+  - front:
+      en: "What is the danger of running sensors with `mode='poke'`?"
+      az: "Sensorları `mode='poke'` rejimində işlətməyin təhlükəsi nədir?"
+    back:
+      en: "It continuously holds worker slots while sleeping, potentially causing worker pool starvation and cluster deadlocks."
+      az: "Gözləmə müddətində worker slotlarını buraxmır, nəticədə bütün slotları doldurub klasterdə deadlock yarada bilər."
+  - front:
+      en: "How does `mode='reschedule'` solve the sensor slot starvation problem?"
+      az: "`mode='reschedule'` sensorun slot tükənməsi problemini necə həll edir?"
+    back:
+      en: "It releases the worker slot immediately after a failed check, entering `UP_FOR_RESCHEDULE` until the next check."
+      az: "Şərt ödənmədikdə worker slotunu dərhal azad edir və növbəti yoxlamaya qədər `UP_FOR_RESCHEDULE` statusunda gözləyir."
+  - front:
+      en: "What is an Airflow Connection?"
+      az: "Airflow Connection nədir?"
+    back:
+      en: "A centrally stored and encrypted set of credentials (host, login, password, port) for accessing external systems."
+      az: "Xarici sistemlərə qoşulmaq üçün mərkəzi şəkildə şifrələnmiş giriş məlumatları toplusudur (host, login, şifrə, port)."
+  - front:
+      en: "What is an Airflow Hook?"
+      az: "Airflow Hook nədir?"
+    back:
+      en: "A Python interface that retrieves connection details and manages communication with external platforms (e.g., Postgres, S3, Snowflake)."
+      az: "Connection məlumatlarını oxuyan və xarici platformalarla (Postgres, S3, Snowflake) əlaqəni idarə edən Python interfeysidir."

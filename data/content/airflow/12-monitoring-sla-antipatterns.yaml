@@ -1,0 +1,238 @@
+id: "12-monitoring-sla-antipatterns"
+order: 12
+level: "advanced"
+title:
+  en: "Production Monitoring, SLAs, Callbacks & The Top-Level Code Anti-Pattern"
+  az: "İstehsalat Monitorinqi, SLA-lar, Callback-lər və Top-Level Kod Səhvi"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE #1 AIRFLOW PERFORMANCE DISASTER: TOP-LEVEL CODE!                  │
+    └────────────────────────────────────────────────────────────────────────┘
+    Airflow Scheduler PARSES every DAG file in `dags/` every 30 seconds!
+
+    ❌ CATASTROPHIC ANTI-PATTERN:
+       # top of my_dag.py:
+       conn = psycopg2.connect(...)      # 💥 Ran by SCHEDULER every 30s!
+       token = requests.get("https://..") # 💥 Scheduler blocked on network!
+       • Result: Scheduler CPU hits 100%, DAG parsing freezes, tasks starve!
+
+    ✅ GOLDEN PRODUCTION RULE:
+       • Top-level file: ONLY imports and DAG definitions.
+       • Heavy logic, DB connections, API calls: MUST BE INSIDE `@task` functions!
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  ALERTING & SLA SYSTEM                                                 │
+    │  • on_failure_callback: Instant Slack / PagerDuty webhook alert         │
+    │  • SLA (Service Level Agreement): Alert if pipeline takes > 2 hours    │
+    │  • UI Grid View: Fast drill-down into failed logs & execution runtimes │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  AIRFLOW-DA 1 NÖMRƏLİ FƏLAKƏT: TOP-LEVEL KOD YAZILMASI!                │
+    └────────────────────────────────────────────────────────────────────────┘
+    Airflow Scheduler hər 30 saniyədən bir `dags/` qovluğundakı bütün faylları oxuyur!
+
+    ❌ FƏLAKƏTLİ ANTİ-PATTERN (SƏHV):
+       # my_dag.py faylının ən yuxarı sətrində:
+       conn = psycopg2.connect(...)      # 💥 SCHEDULER bunu hər 30s-dən bir işlədir!
+       token = requests.get("https://..") # 💥 Scheduler şəbəkədə ilişib donur!
+       • Nəticə: Scheduler CPU 100% olur, DAG oxunması dayanır, heç nə işləmir!
+
+    ✅ İSTEHSALATIN QIZIL QAYDASI:
+       • Faylın başında: YALNIZ import-lar və DAG təyini olmalıdır.
+       • Ağır sorğular, DB bağlantısı, API çağırışları: YALNIZ `@task` daxilində!
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BİLDİRİŞ (ALERT) VƏ SLA SİSTEMİ                                       │
+    │  • on_failure_callback: Xəta zamanı dərhal Slack / Telegram bildirişi  │
+    │  • SLA (Service Level Agreement): DAG 2 saatdan çox çəkərsə xəbərdarlıq│
+    │  • UI Grid View: Xəta verən task loqlarını 1 kliklə tapıb araşdırmaq   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The #1 Airflow Killer: Top-Level Code
+    The Airflow Scheduler continuously loops through the `dags/` folder (by default, every 30 seconds) to detect new DAGs or schedule updates. This is called **DAG Parsing**.
+    - If you place an HTTP request, a SQL database query, or a heavy calculation outside a task function (at the file's top level):
+      - The **Scheduler itself** executes that query every 30 seconds!
+      - If you have 100 DAGs doing this, the Scheduler process CPU spikes to 100%, exhausts all database connections, and completely stops scheduling tasks.
+    - **Golden Rule**: Keep top-level code strictly to DAG declarations and imports. Any network call or database query **must live strictly inside a task callable**!
+
+    ### Alerts & Callbacks
+    In production, you cannot stare at the Airflow UI all day. You need automated incident alerting:
+    - **`on_failure_callback`**: A Python function triggered automatically when a task or DAG run fails. In real systems, this sends an incident payload to Slack, Microsoft Teams, or PagerDuty.
+    - **`sla_miss_callback`**: Triggers if a task breaches its expected time deadline (e.g., daily executive report not ready by 06:00 AM).
+
+    ### UI Debugging Mastery
+    When an alert fires:
+    1. Navigate to the **Grid View**: Instantly see which task turned red (`FAILED`).
+    2. Click the failed square and select **Log**: Read the exact Python traceback.
+    3. Use the **Task Duration / Gantt chart**: Identify pipeline bottlenecks where execution is slowing down over time.
+  az: |
+    ### Airflow-un Ən Böyük Qatili: Top-Level Kod Səhvi
+    Airflow Scheduler yeni DAG-ları və dəyişiklikləri aşkar etmək üçün hər 30 saniyədən bir `dags/` qovluğundakı bütün Python fayllarını başdan-ayağa oxuyur (parse edir).
+    - Əgər siz task funksiyasından kənarda (faylın birbaşa içində) HTTP sorğusu, verilənlər bazasına qoşulma və ya ağır hesablama yazsanız:
+      - **Scheduler özü** hər 30 saniyədən bir həmin xarici bazaya qoşulmağa cəhd edəcək!
+      - Əgər 100 dənə DAG-da belə səhv olarsa, Scheduler-in prosessoru 100% donur, bazanın bütün əlaqələrini doldurur və sistem ümumiyyətlə heç bir task-ı işə sala bilmir.
+    - **Qızıl Qayda**: Faylın əsas hissəsində yalnız import və DAG təyini olmalıdır. Bütün SQL sorğuları və API çağırışları **mütləq `@task` funksiyalarının daxilində** yazılmalıdır!
+
+    ### Bildirişlər və Callback Mexanizmi
+    İstehsalatda heç kim bütün gün UI-a baxıb gözləmir. Xəta baş verdikdə sistem dərhal xəbər verməlidir:
+    - **`on_failure_callback`**: Task və ya DAG xəta verib dayandıqda avtomatik işə düşən funksiyadır. Buradan Slack kanalına, Telegram botuna və ya PagerDuty xidmətinə təcili bildiriş göndərilir.
+    - **`sla_miss_callback`**: Əgər hesabat təyin olunmuş vaxtdan gecikərsə (məsələn, səhər saat 06:00-a qədər hazır olmasa), komandaya xəbərdarlıq edir.
+
+    ### UI-da Xətaların Tapılması (Debugging)
+    Bildiriş gələndə addımlar:
+    1. **Grid View**: Hansı task-ın qırmızı (`FAILED`) rəngə boyandığını dərhal görürsünüz.
+    2. Həmin xananın üzərinə klikləyib **Log** bölməsinə keçirsiniz: Dəqiq Python xəta sətrini (traceback) oxuyursunuz.
+    3. **Task Duration**: Boru kəmərində ən çox vaxt aparan və ləngiyən mərhələləri müəyyən edirsiniz.
+quick_recap:
+  en: "Never put DB queries or HTTP requests at top-level DAG scope—it freezes the scheduler. Use `on_failure_callback` for instant Slack alerts and Grid View for fast log debugging."
+  az: "DAG faylının başında heç vaxt baza sorğusu və ya API yazmayın—bu scheduler-i dondurur. Xətalar üçün `on_failure_callback` ilə Slack bildirişi göndərin və Grid View ilə loqları araşdırın."
+what_it_does:
+  en: "Dispatches automated failure notifications to alerting channels, enforces SLAs, prevents scheduler parsing degradation, and provides UI tools for rapid incident resolution."
+  az: "Xəta baş verdikdə avtomatik xəbərdarlıq göndərir, vaxt limitlərinə (SLA) nəzarət edir, scheduler-in donmasının qarşısını alır və UI ilə sürətli araşdırmaya şərait yaradır."
+real_world_use:
+  en: "Sending detailed Slack alerts containing task name, execution date, and log URL whenever a critical finance pipeline fails."
+  az: "Maliyyə boru kəməri xəta verdikdə task adını, tarixini və birbaşa loq linkini saxlayan bildirişi Slack kanalına göndərmək."
+common_mistakes:
+  en: "Calling `requests.get()` or `engine.connect()` at the top level of a DAG file, causing scheduler paralysis and massive connection leaks."
+  az: "DAG faylının yuxarı hissəsində `requests.get()` və ya baza bağlantısı açmaq, scheduler-i iflic edərək bütün serveri dondurmaq."
+code: |
+  from datetime import timedelta
+  import pendulum
+  from airflow.decorators import dag, task
+
+  def slack_failure_alert(context):
+      """
+      Callback triggered automatically when any task in the DAG fails.
+      Constructs a notification payload with direct Airflow log links.
+      """
+      task_id = context["task_instance"].task_id
+      dag_id = context["task_instance"].dag_id
+      log_url = context["task_instance"].log_url
+      logical_date = context["logical_date"]
+
+      alert_msg = f"""
+      🚨 *AIRFLOW PIPELINE FAILURE ALERT* 🚨
+      • DAG: `{dag_id}`
+      • Task: `{task_id}`
+      • Date: `{logical_date}`
+      • Log Link: <{log_url}|View Airflow Log>
+      """
+      print(f"Dispatched Slack Webhook Alert:\n{alert_msg.strip()}")
+
+  @dag(
+      schedule="@daily",
+      start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+      catchup=False,
+      default_args={
+          "owner": "data_platform",
+          "retries": 2,
+          "retry_delay": timedelta(minutes=5),
+          "on_failure_callback": slack_failure_alert,
+          "sla": timedelta(hours=1)  # SLA: Must complete within 1 hour!
+      },
+      tags=["monitoring", "callbacks", "sla", "best_practices"]
+  )
+  def resilient_monitored_pipeline():
+      """
+      Demonstrates enterprise best practices:
+      1. Zero top-level database or network code.
+      2. Automated on_failure_callback dispatching Slack alerts.
+      3. Task retries with exponential backoff and SLA alerting.
+      """
+
+      @task
+      def safe_query_task():
+          # ✅ CORRECT: DB connection is created strictly INSIDE the task callable!
+          print("Connecting to database inside task worker process...")
+          print("Extracted 250,000 records successfully.")
+          return 250000
+
+      @task
+      def process_and_validate(count: int):
+          print(f"Validating business constraints for {count} rows...")
+          if count <= 0:
+              raise ValueError("Validation failed: 0 records found!")
+          print("Validation passed. Ready for downstream consumption.")
+
+      count = safe_query_task()
+      process_and_validate(count)
+
+  dag_instance = resilient_monitored_pipeline()
+code_explanation:
+  en: |
+    - `default_args` assigns `"on_failure_callback": slack_failure_alert` across all tasks in the DAG.
+    - If any task fails after exhausting its 2 retries, `slack_failure_alert` fires immediately with the task name, execution date, and direct URL to the Airflow log.
+    - Note how there are ZERO database connections or network calls outside the tasks. The file parses in milliseconds, keeping the scheduler blazing fast.
+  az: |
+    - `default_args` lüğətində `"on_failure_callback": slack_failure_alert` təyin edilib; bu bütün task-lar üçün keçərlidir.
+    - Əgər hər hansı task 2 təkrar cəhddən (retries) sonra da xəta versə, dərhal `slack_failure_alert` işə düşür və task adını, tarixini və birbaşa loq linkini Slack-ə göndərir.
+    - Diqqət yetirin ki, task-lardan kənarda heç bir baza bağlantısı və ya sorğu yoxdur. Fayl millisaniyələr ərzində oxunur və scheduler-in sürəti maksimum yüksək qalır.
+visual_output: |
+  ============================ SLACK FAILURE NOTIFICATION ============================
+  [Slack Channel: #data-alerts]
+  🚨 AIRFLOW PIPELINE FAILURE ALERT 🚨
+  • DAG: resilient_monitored_pipeline
+  • Task: process_and_validate
+  • Date: 2026-10-16 00:00:00+00:00
+  • Log Link: http://airflow.company.internal/log?dag_id=resilient...&task_id=process_and_validate
+  • Error: ValueError: Validation failed: 0 records found!
+  
+  ============================ AIRFLOW UI GRID VIEW ============================
+  DAG: resilient_monitored_pipeline  |  Status: FAILED (Red Square)
+  [safe_query_task]       ──► State: SUCCESS (Run duration: 14s)
+  [process_and_validate]  ──► State: FAILED  (Attempt 3/3 failed)
+  
+  SLA Miss Notification: DAG execution exceeded configured SLA of 1h 00m.
+output_description:
+  en: "Shows the automated Slack incident dispatch with actionable log links and the corresponding failed state in the Airflow Grid UI."
+  az: "Xəta baş verdikdə Slack kanalına göndərilən loq linkli təcili bildirişi və Grid UI-da qırmızı statusu göstərir."
+interview_question:
+  question:
+    en: "What is the 'Top-Level Code' anti-pattern in Airflow DAG files, why does it degrade cluster performance, and how do you prevent it?"
+    az: "Airflow DAG fayllarında 'Top-Level Kod' anti-patterni nədir, klaster performansını niyə aşağı salır və bunun qarşısını necə alırsınız?"
+  answer:
+    en: "The Airflow Scheduler continuously re-parses every Python file in the `dags/` folder on a loop (every 30 seconds by default) to detect changes and calculate execution dates. The top-level anti-pattern happens when developers write dynamic code—such as database connections (`psycopg2.connect`), API requests (`requests.get`), or heavy file I/O—outside of task functions at the global file scope. When this happens, the Scheduler itself executes those queries hundreds of times every minute, driving CPU to 100%, causing database connection pool leaks, and blocking the scheduling loop so no tasks can be triggered. We prevent it by strictly restricting the top-level scope to library imports and DAG/Operator instantiations, ensuring all business logic and external I/O exist only inside task callables or Hooks."
+    az: "Airflow Scheduler dəyişiklikləri tapmaq üçün `dags/` qovluğundakı bütün Python fayllarını hər 30 saniyədən bir başdan-ayağa təkrar oxuyur (parse edir). 'Top-Level Kod' anti-patterni o zaman baş verir ki, tərtibatçı task funksiyalarından kənarda, faylın birbaşa içində verilənlər bazasına qoşulma, API sorğusu və ya ağır hesablama yazır. Bu zaman Scheduler-in özü həmin sorğuları hər dəqiqə yüzlərlə dəfə icra etməyə başlayır. Nəticədə Scheduler CPU-su 100%-ə çatır, bazanın qoşulma limitləri dolur və bütün orkestrasiya sistemi donur. Bunun qarşısını almaq üçün faylın əsas hissəsində yalnız kitabxana importları və DAG təyini saxlanılır; bütün xarici əlaqələr və sorğular isə yalnız və yalnız `@task` funksiyalarının daxilində yazılır."
+  interviewer_tips:
+    en: "Explain that the Scheduler parses files, NOT the workers. Junior engineers often believe DAG code only runs when a worker executes a task; distinguishing Scheduler parsing from Worker execution is a massive plus."
+    az: "Faylları worker-lərin deyil, Scheduler-in oxuduğunu izah edin. Yeni başlayanlar elə bilir ki, kod yalnız task işləyəndə icra olunur; Scheduler parsing-i Worker icrasından fərqləndirmək müsahibədə böyük üstünlükdür."
+flashcards:
+  - front:
+      en: "How often does the Airflow Scheduler re-parse files in the `dags/` directory by default?"
+      az: "Airflow Scheduler susmaya görə `dags/` qovluğundakı faylları nə qədər tezliklə təkrar oxuyur (parse edir)?"
+    back:
+      en: "Every few seconds (default `dag_dir_list_interval` is typically 30 seconds)."
+      az: "Bir neçə saniyədən bir (susmaya görə `dag_dir_list_interval` adətən 30 saniyədir)."
+  - front:
+      en: "Why is putting a database query at the top-level of a DAG file considered a catastrophic anti-pattern?"
+      az: "DAG faylının başında (top-level) baza sorğusu yazmaq niyə fəlakətli anti-pattern hesab olunur?"
+    back:
+      en: "The Scheduler executes that query every 30 seconds during parsing, spiking CPU, leaking connections, and freezing task scheduling."
+      az: "Scheduler faylı hər oxuduqda (30s-dən bir) həmin sorğunu təkrar icra edir, prosessoru dondurur və bazanın əlaqə limitini doldurur."
+  - front:
+      en: "What should be the only contents of a DAG file outside task functions?"
+      az: "DAG faylında task funksiyalarından kənarda yalnız nələr olmalıdır?"
+    back:
+      en: "Imports, DAG definitions, and operator instantiations with configuration arguments."
+      az: "Yalnız import-lar, DAG təyini və operatorların konfiqurasiya arqumentləri."
+  - front:
+      en: "What callback parameter is used to trigger automatic alerts (e.g. Slack/PagerDuty) when a task fails?"
+      az: "Task xəta verdikdə avtomatik bildiriş (Slack/PagerDuty) göndərmək üçün hansı callback parametri istifadə olunur?"
+    back:
+      en: "`on_failure_callback`."
+      az: "`on_failure_callback`."
+  - front:
+      en: "What does SLA stand for in Airflow and what is its purpose?"
+      az: "Airflow-da SLA nə deməkdir və məqsədi nədir?"
+    back:
+      en: "Service Level Agreement. It defines the maximum expected completion time for a task/DAG and alerts if execution is delayed."
+      az: "Service Level Agreement (Xidmət Səviyyəsi Razılaşması). Task-ın bitməli olduğu maksimum vaxtı təyin edir və gecikmə olduqda xəbərdarlıq edir."
