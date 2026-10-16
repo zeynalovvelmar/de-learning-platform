@@ -20,7 +20,7 @@ class TestFastAPIBackend(unittest.TestCase):
         modules = res.json()
         self.assertEqual(len(modules), 8)
         mod_ids = [m["id"] for m in modules]
-        expected_ids = ["python_core", "sql", "spark", "kafka", "airflow", "devops", "data_architecture", "dbt"]
+        expected_ids = ["python", "sql", "spark", "kafka", "airflow", "devops", "data_architecture", "dbt"]
         self.assertEqual(mod_ids, expected_ids)
 
     def test_03_get_module_lessons(self):

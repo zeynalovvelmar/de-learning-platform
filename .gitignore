@@ -1,3 +1,7 @@
 venv/
 __pycache__/
 .streamlit/secrets.toml
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+tests/screenshots/

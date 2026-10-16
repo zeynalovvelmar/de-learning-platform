@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/modules", tags=["modules"])
 DATA_CONTENT_DIR = Path(__file__).parent.parent.parent / "data" / "content"
 
 MODULE_ORDER = [
-    "python_core",
+    "python",
     "sql",
     "spark",
     "kafka",
@@ -20,7 +20,7 @@ MODULE_ORDER = [
 ]
 
 MODULE_TITLES = {
-    "python_core": {"en": "Python Core", "az": "Python Əsasları"},
+    "python": {"en": "Python Core", "az": "Python Əsasları"},
     "sql": {"en": "SQL", "az": "SQL"},
     "spark": {"en": "Apache Spark", "az": "Apache Spark"},
     "kafka": {"en": "Apache Kafka", "az": "Apache Kafka"},
