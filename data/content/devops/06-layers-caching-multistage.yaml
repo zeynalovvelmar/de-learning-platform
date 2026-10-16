@@ -1,0 +1,224 @@
+id: "06-layers-caching-multistage"
+order: 6
+level: "intermediate"
+title:
+  en: "Docker Layers, Build Cache & Multi-Stage Builds"
+  az: "Docker Layları (Layers), Keşlənmə və Multi-Stage Builds"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE 1.8 GB BLOAT PROBLEM: SINGLE-STAGE DOCKERFILE                     │
+    │  • Installs gcc, g++, build-essential, libpq-dev to compile C-libraries│
+    │  • Compilers remain stuck in the final image forever!                  │
+    │  💥 Image Size: 1.8 GB! Slow Kubernetes pulls, high attack surface.    │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         THE FIX: MULTI-STAGE BUILDS
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  STAGE 1: BUILDER STAGE (`FROM python:3.11 AS builder`)                │
+    │  • Installs compilers: gcc, g++, libpq-dev                             │
+    │  • Builds pre-compiled binary Python wheels in `/root/wheels`          │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼ COPY --from=builder /root/wheels
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  STAGE 2: PRODUCTION RUNNER (`FROM python:3.11-slim`)                  │
+    │  • Installs ONLY the pre-compiled wheels.                              │
+    │  • ZERO compilers, zero dev headers, zero gcc!                         │
+    │  ✨ FINAL IMAGE SIZE: 110 MB! (15x Smaller & Blazing Fast!)            │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  1.8 GB-LIQ ŞİŞMƏ PROBLEMİ: TƏK MƏRHƏLƏLİ DOCKERFILE                  │
+    │  • C kitabxanalarını yığmaq üçün gcc, g++, build-essential yükləyir    │
+    │  • Bütün kompilyatorlar yekun imicdə ilişib qalır!                     │
+    │  💥 İmic Həcmi: 1.8 GB! K8s-də açılması dəqiqələr çəkir, təhlükəlidir. │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                       HƏLL YOLU: MULTI-STAGE BUILDS
+                                      │
+                                      ▼
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  1-Cİ MƏRHƏLƏ: İNŞAATÇI (`FROM python:3.11 AS builder`)               │
+    │  • Ağır kompilyatorları yükləyir: gcc, g++, libpq-dev                  │
+    │  • Kitabxanaları hazır binar "wheel" paketlərinə çevirir (`/wheels`)   │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼ COPY --from=builder /root/wheels
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  2-Cİ MƏRHƏLƏ: İSTEHSALAT İCRAÇISI (`FROM python:3.11-slim`)          │
+    │  • Yalnız hazır binar paketləri kopyalayıb quraşdırır.                 │
+    │  • İmicdə 0 dənə gcc, 0 dənə kompilyator zibili qalır!                 │
+    │  ✨ YEKUN İMİC HƏCMİ: 110 MB! (15 Dəfə Kiçik və İldırım Kimi Sürətli!) │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### How Docker Layers Work (OverlayFS)
+    Every instruction in a Dockerfile (`FROM`, `RUN`, `COPY`) generates an immutable, read-only filesystem layer.
+    - **Layer Invalidation Cascade**: Docker caches each layer. When a layer changes (e.g., `COPY src/ .`), Docker invalidates the cache for that layer and **re-runs every single instruction after it**!
+    - That is why you must always copy dependencies (`requirements.txt`) before copying code.
+
+    ### The Single-Stage Bloat Dilemma
+    Python data engineering libraries like `psycopg2`, `duckdb`, and `cryptography` require C compilers (`gcc`, `g++`, `musl-dev`) to build.
+    - If you install compilers in a single-stage Dockerfile, those heavy development tools (weighing 1GB+) permanently stay inside your final image.
+    - Large images cause slow downloads across Airflow/Kubernetes worker clusters and present security risks (hackers can use `gcc` inside your container to compile malware).
+
+    ### The Solution: Multi-Stage Builds
+    Introduced in Docker 17.05+, **Multi-Stage Builds** let you use multiple `FROM` statements in a single Dockerfile:
+    1. **Builder Stage**: A heavyweight stage that compiles source code and builds Python wheel binaries into a temporary folder.
+    2. **Production Stage**: A fresh, ultra-minimal base image that uses `COPY --from=builder` to copy *only* the compiled artifacts, discarding the compilers and temporary build files completely.
+  az: |
+    ### Docker Layları Necə İşləyir?
+    Dockerfile-dakı hər bir əmr (`FROM`, `RUN`, `COPY`) imicdə dəyişməz, yalnız-oxunan bir fayl layı (layer) yaradır.
+    - **Zəncirvari Keş Ləğvi**: Docker hər bir layı keşdə saxlayır. Əgər bir lay dəyişərsə (məsələn: `COPY src/`), Docker həmin laydan sonrakı **bütün digər layların keşini ləğv edir və onları sıfırdan icra edir**!
+    - Məhz buna görə də həmişə koddan əvvəl kitabxana siyahısını (`requirements.txt`) kopyalayırıq.
+
+    ### Niyə Tək Mərhələli İmiclər 1.8 GB Olur?
+    `psycopg2`, `duckdb` və ya `grpcio` kimi data kitabxanalarını quraşdırmaq üçün Linux C kompilyatorları (`gcc`, `g++`, `build-essential`) tələb edir.
+    - Tək mərhələli Dockerfile-da `apt-get install gcc` etdikdə, həmin 1GB-lıq kompilyator alətləri silinmir və yekun imicdə qalır.
+    - Böyük imiclər Kubernetes və Airflow-da gec açılır, şəbəkəni doldurur və təhlükəsizlik cəhətdən zəifdir (haker konteynerə girsə `gcc` ilə zərərli proqram kompilyasiya edə bilər).
+
+    ### Həll Yolu: Çoxmərhələli Qurma (Multi-Stage Builds)
+    Multi-Stage build bir Dockerfile daxilində bir neçə `FROM` istifadə etməyə imkan verir:
+    1. **Builder (İnşaatçı) Mərhələsi**: Ağır kompilyatorları yükləyir, C kodlarını kompilyasiya edir və hazır binar "wheel" fayllarını müvəqqəti qovluğa yığır.
+    2. **İstehsalat Mərhələsi**: Sıfırdan təmiz və yüngül `python:3.11-slim` açır, `COPY --from=builder` ilə yalnız hazır binar faylları götürür, kompilyatorları isə zibil kimi kənara atır!
+quick_recap:
+  en: "Docker layers rebuild from the point of change. Use Multi-Stage builds to compile heavy C/Python wheels in a builder stage and copy only binaries to production, cutting size by 90%."
+  az: "Docker layları dəyişən yerdən etibarən yenidən qurulur. Kompilyasiyanı Builder mərhələsində edib, icraçıya yalnız hazır faylları köçürmək üçün Multi-Stage build istifadə edin."
+what_it_does:
+  en: "Optimizes image caching order and strips unnecessary build tools (gcc, headers) using multi-stage pipelines to minimize container size and security vulnerabilities."
+  az: "Keşlənmə ardıcıllığını optimallaşdırır və lazımsız kompilyatorları təmizləyərək imicin həcmini və təhlükəsizlik risklərini minimuma endirir."
+real_world_use:
+  en: "Compiling complex dependencies like psycopg2, duckdb, or grpcio for high-performance Kubernetes data workers without inflating the pod image size."
+  az: "Kubernetes worker-ləri üçün psycopg2 və ya duckdb kimi ağır kitabxanaları imici şişirtmədən sürətli və yüngül şəkildə quraşdırmaq."
+common_mistakes:
+  en: "Running `apt-get update` on a separate line from `apt-get install`, leading to stale cache errors, or leaving `.cache/pip` inside layers."
+  az: "`apt-get update` əmrini `apt-get install`-dan ayrı sətrdə yazmaq və ya pip keşini təmizləməyib imicin ölçüsünü boş yerə artırmaq."
+code: |
+  # ==============================================================================
+  # MULTI-STAGE DOCKERFILE FOR HIGH-PERFORMANCE DATA PIPELINE
+  # Shrinks image from ~1.8GB to ~110MB!
+  # ==============================================================================
+
+  # ------------------------------------------------------------------------------
+  # STAGE 1: BUILDER (Compiles C-extensions and wheels)
+  # ------------------------------------------------------------------------------
+  FROM python:3.11-slim AS builder
+
+  WORKDIR /build
+
+  # Install required Linux compilation tools
+  RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      gcc \
+      libpq-dev \
+      && rm -rf /var/lib/apt/lists/*
+
+  # Build wheels from requirements
+  COPY requirements.txt .
+  RUN pip wheel --no-cache-dir --wheel-dir=/build/wheels -r requirements.txt
+
+
+  # ------------------------------------------------------------------------------
+  # STAGE 2: PRODUCTION RUNNER (Minimal footprint, zero build tools)
+  # ------------------------------------------------------------------------------
+  FROM python:3.11-slim AS runner
+
+  ENV PYTHONDONTWRITEBYTECODE=1 \
+      PYTHONUNBUFFERED=1
+
+  # Create unprivileged runtime user
+  RUN groupadd -r dataops && useradd -r -g dataops -m etluser
+  WORKDIR /home/etluser/app
+
+  # Install only runtime shared library (libpq for postgres, NO gcc!)
+  RUN apt-get update && apt-get install -y --no-install-recommends \
+      libpq5 \
+      && rm -rf /var/lib/apt/lists/*
+
+  # Copy pre-compiled binary wheels from STAGE 1
+  COPY --from=builder /build/wheels /wheels
+  RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+  # Copy application source code
+  COPY --chown=etluser:dataops src/ ./src/
+
+  USER etluser
+  ENTRYPOINT ["python"]
+  CMD ["src/main.py"]
+code_explanation:
+  en: |
+    - `FROM python:3.11-slim AS builder`: The first stage installs `build-essential` and `gcc` to compile binary Python wheels into `/build/wheels`.
+    - `pip wheel --wheel-dir=/build/wheels`: Creates standalone `.whl` packages that no longer require a compiler to be installed.
+    - `FROM python:3.11-slim AS runner`: The second stage starts completely fresh. Notice it only installs `libpq5` (runtime library), NOT `libpq-dev` or `gcc`!
+    - `COPY --from=builder /build/wheels /wheels`: Copies only the built binaries. Once installed, `/wheels` is deleted, leaving a tiny, clean 110MB container.
+  az: |
+    - `FROM python:3.11-slim AS builder`: Birinci mərhələdə `build-essential` və `gcc` quraşdırılır və C kitabxanaları `/build/wheels` qovluğuna yığılır.
+    - `pip wheel`: Hazır `.whl` paketləri yaradır; bu paketləri işlətmək üçün gələcəkdə heç bir kompilyatora ehtiyac qalmır.
+    - `FROM python:3.11-slim AS runner`: İkinci mərhələ tamamilə sıfırdan başlayır. Burada kompilyator yoxdur, yalnız icra üçün zəruri olan `libpq5` kitabxanası var!
+    - `COPY --from=builder`: Birinci mərhələdən yalnız hazır paketləri götürür və quraşdırdıqdan sonra dərhal silir. Nəticədə 110MB-lıq zərif imic əldə olunur.
+visual_output: |
+  ====================== MULTI-STAGE DOCKER BUILD COMPARISON ======================
+  $ docker build -t enterprise-pipeline:multistage .
+  [+] Building 14.2s (17/17) FINISHED
+   => [builder 1/4] FROM python:3.11-slim as builder
+   => [builder 2/4] RUN apt-get update && apt-get install build-essential gcc...
+   => [builder 3/4] RUN pip wheel --wheel-dir=/build/wheels -r requirements.txt
+   => [runner 1/5] FROM python:3.11-slim as runner
+   => [runner 2/5] RUN apt-get install -y libpq5
+   => [runner 3/5] COPY --from=builder /build/wheels /wheels
+   => [runner 4/5] RUN pip install /wheels/*
+
+  $ docker images | grep enterprise-pipeline
+  enterprise-pipeline   single-stage   1.78GB   [BLOATED & INSECURE: gcc inside]
+  enterprise-pipeline   multistage     112MB    [OPTIMIZED: 15x Smaller & Fast]
+output_description:
+  en: "Shows the multi-stage build comparison, where the image drops from 1.78GB to 112MB by discarding build tools."
+  az: "Kompilyatorları kənara atmaqla imicin həcminin 1.78 GB-dan 112 MB-a (15 dəfə) enməsini əks etdirən müqayisə."
+interview_question:
+  question:
+    en: "What are Multi-Stage Builds in Docker, and why are they considered essential for production Data Engineering containers?"
+    az: "Docker-də Multi-Stage Builds nədir və niyə istehsalat Data Mühəndisliyi konteynerləri üçün vacib hesab olunur?"
+  answer:
+    en: "Multi-Stage Builds allow you to use multiple `FROM` statements in a single Dockerfile, creating distinct build phases. Heavy development tools, build chains (`gcc`, `g++`, header packages), and build-time caches are confined to a 'builder' stage that compiles the application or Python wheels. The final production stage starts from a minimal runtime image and copies only the compiled binaries using `COPY --from=builder`. In Data Engineering, this is essential because libraries like `psycopg2`, `duckdb`, and `cryptography` require heavy C compilers to build. Without multi-stage builds, images bloat to 1.5GB+, causing severe network latency during Kubernetes pod scaling, inflating cloud storage costs, and introducing security vulnerabilities by leaving compilers in production."
+    az: "Multi-Stage Builds bir Dockerfile içində bir neçə `FROM` istifadə edərək ayrı-ayrı mərhələlər yaratmağa imkan verən texnologiyadır. Ağır proqramlaşdırma alətləri, C kompilyatorları (`gcc`, `g++`, başlıq faylları) yalnız birinci 'builder' mərhələsində işlədilir və Python paketlərini binar formaya salır. Yekun istehsalat mərhələsi isə ən yüngül baza imicindən başlayır və `COPY --from=builder` ilə yalnız hazır binar faylları götürür. Data Mühəndisliyində bu vacibdir, çünki `psycopg2`, `duckdb` kimi kitabxanalar mütləq C kompilyasiyası tələb edir. Multi-stage olmasa, imiclər 1.5-2 GB-a qədər şişir, Kubernetes-də podların açılmasını ləngidir, bulud xərcini artırır və istehsalatda lazımsız kompilyator saxlamaqla təhlükəsizlik boşluğu yaradır."
+  interviewer_tips:
+    en: "Contrast Kubernetes pod startup latency with large vs small images. Pods that take 3 minutes to pull large images can cause SLA breaches in dynamic ETL workflows."
+    az: "Böyük imiclərin Kubernetes-də podların açılmasını ləngitdiyini və bunun SLA pozuntularına səbəb olduğunu qeyd etmək real arxitektura təcrübənizi göstərir."
+flashcards:
+  - front:
+      en: "What happens to Docker's build cache when a layer changes in a Dockerfile?"
+      az: "Dockerfile-da bir lay dəyişdikdə Docker-in qurma keşi (build cache) ilə nə baş verir?"
+    back:
+      en: "The cache for that specific layer and ALL subsequent layers is invalidated and must be rebuilt."
+      az: "Həmin layın və ondan sonrakı BÜTÜN sonrakı layların keşi ləğv edilir və sıfırdan yenidən qurulur."
+  - front:
+      en: "What is the primary benefit of Multi-Stage Docker builds?"
+      az: "Multi-Stage Docker qurmalarının əsas üstünlüyü nədir?"
+    back:
+      en: "Isolating compilers and build tools to an intermediate stage, resulting in radically smaller, faster, and more secure production images."
+      az: "Kompilyatorları müvəqqəti mərhələdə saxlayaraq yekun istehsalat imicini qat-qat kiçik, sürətli və təhlükəsiz etmək."
+  - front:
+      en: "How do you copy compiled artifacts from a previous stage named 'builder' in Dockerfile?"
+      az: "Dockerfile-da 'builder' adlı əvvəlki mərhələdən hazır faylları necə kopyalayırlar?"
+    back:
+      en: "`COPY --from=builder <source_path> <destination_path>`."
+      az: "`COPY --from=builder <mənbə_yol> <hədəf_yol>`."
+  - front:
+      en: "Why should you combine `apt-get update` and `apt-get install` into a single `RUN` instruction?"
+      az: "Niyə `apt-get update` və `apt-get install` əmrlərini tək bir `RUN` daxilində birləşdirmək lazımdır?"
+    back:
+      en: "To ensure package lists are fresh and prevent stale cached package index layers from causing installation failures."
+      az: "Paket siyahısının təzə olmasını təmin etmək və köhnə keşlənmiş indeks səbəbilə quraşdırma xətalarının qarşısını almaq üçün."
+  - front:
+      en: "What command should you run at the end of an `apt-get install` layer to reduce image size?"
+      az: "İmicin ölçüsünü kiçiltmək üçün `apt-get install` layının sonunda hansı təmizləmə əmri yazılmalıdır?"
+    back:
+      en: "`rm -rf /var/lib/apt/lists/*`."
+      az: "`rm -rf /var/lib/apt/lists/*`."

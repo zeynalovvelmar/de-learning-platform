@@ -1,0 +1,179 @@
+id: "03-containers-docker-vs-vm"
+order: 3
+level: "junior"
+title:
+  en: "Containerization: Docker vs Virtual Machines (VM)"
+  az: "Konteynerləşdirmə: Docker və Virtual Maşınların (VM) Fərqi"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  VIRTUAL MACHINES (Heavy & Slow)    │  DOCKER CONTAINERS (Light & Fast)│
+    ├─────────────────────────────────────┼──────────────────────────────────┤
+    │  [App A]      [App B]               │  [App A]      [App B]            │
+    │  [Libs/Deps]  [Libs/Deps]           │  [Libs/Deps]  [Libs/Deps]        │
+    │  [Guest OS]   [Guest OS] (GBs!)     │  ------------------------------- │
+    │  ───────────────────────────────    │  [Container Engine (Docker)]     │
+    │  [Hypervisor (ESXi, KVM)]           │  ------------------------------- │
+    │  [Host OS Kernel]                   │  [Host OS Linux Kernel (SHARED!)]│
+    │  [Physical Hardware]                │  [Physical Hardware]             │
+    │                                     │                                  │
+    │  • Boot time: Minutes               │  • Boot time: Milliseconds       │
+    │  • Size: Gigabytes (10GB+)          │  • Size: Megabytes (50MB - 500MB)│
+    │  • High CPU & RAM overhead          │  • Near-zero bare-metal overhead │
+    └─────────────────────────────────────┴──────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  VİRTUAL MAŞINLAR (Ağır və Ləng)    │  DOCKER KONTEYNERLƏRİ (Yüngül)   │
+    ├─────────────────────────────────────┼──────────────────────────────────┤
+    │  [Tətbiq A]   [Tətbiq B]            │  [Tətbiq A]   [Tətbiq B]         │
+    │  [Kitabxana]  [Kitabxana]           │  [Kitabxana]  [Kitabxana]        │
+    │  [Qonaq ƏS]   [Qonaq ƏS] (Qiqabayt!)│  ------------------------------- │
+    │  ───────────────────────────────    │  [Docker Mühərriki]              │
+    │  [Hypervisor (VMware, VirtualBox)]  │  ------------------------------- │
+    │  [Əsas Server Əməliyyat Sistemi]    │  [Ortaq Linux Nüvəsi (Kernel)]   │
+    │  [Fiziki Kompüter / Server]         │  [Fiziki Kompüter / Server]      │
+    │                                     │                                  │
+    │  • Başlama vaxtı: Dəqiqələr         │  • Başlama vaxtı: Millisaniyələr │
+    │  • Həcm: 10-20 Qiqabayt             │  • Həcm: 50-300 Meqabayt         │
+    │  • RAM və CPU itkisi çox böyükdür   │  • Fiziki server qədər sürətlidir│
+    └─────────────────────────────────────┴──────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Classic IT Dilemma: "It Works on My Machine!"
+    Every engineer has faced this: a PySpark script runs smoothly on your MacBook or Windows laptop, but completely crashes when deployed to the Linux production server because:
+    - The server has Python 3.9 while you used 3.11.
+    - System C-libraries (like `libpq-dev` or `gcc`) are missing on the server.
+    - Path separators and environment variables behave differently.
+
+    ### Virtual Machines (VM) vs Docker Containers
+    - **Virtual Machine (VM)**: Simulates entire physical hardware. It uses a **Hypervisor** to run complete **Guest Operating Systems** on top of the host. Because each VM has its own full Linux/Windows kernel, it requires gigabytes of disk and RAM, and takes several minutes to boot.
+    - **Docker Container**: Virtualizes only at the **OS level**. Containers do NOT carry their own operating system kernel; they **share the host machine's Linux Kernel**. A container is simply an isolated Linux process bundled with its exact code and required dependencies.
+
+    ### The Engine Under the Hood: Linux Primitives
+    Docker is not magic; it leverages native Linux kernel capabilities:
+    1. **Namespaces (Isolation)**: Isolates what the container can *see* (Process IDs, Network interfaces, Mount points, Users). A process inside a container thinks it is PID 1 on its own machine.
+    2. **Control Groups (cgroups) (Resource Caps)**: Enforces limits on what the container can *use* (e.g., maximum 2GB RAM and 1 CPU core), preventing a leaky pipeline from crashing the host server.
+    3. **OverlayFS (Union File System)**: Enables lightweight layered filesystem sharing.
+  az: |
+    ### Klassik İT Problemi: "Mənim Kompüterimdə İşləyirdi!"
+    Hər bir mühəndis bu halla qarşılaşır: PySpark skripti sizin noutbukunuzda problemsiz işləyir, lakin istehsalat serverinə atanda dərhal çökür. Səbəb:
+    - Serverdə Python 3.9-dur, siz isə 3.11 yazmısınız.
+    - Linux sistem kitabxanaları (`libpq`, C kompilyatorları) serverdə yoxdur.
+    - Fayl yolları və konfiqurasiyalar fərqlidir.
+
+    ### Virtual Maşın (VM) ilə Docker Konteynerinin Fərqi
+    - **Virtual Maşın (VM)**: Bütöv bir kompüter avadanlığını simulyasiya edir. **Hypervisor** vasitəsilə hər VM üçün sıfırdan ayrıca **Qonaq Əməliyyat Sistemi (Guest OS)** qaldırır. Hər VM-in öz nüvəsi (kernel) olduğu üçün 10-20 GB yer tutur, çoxlu RAM yeyir və açılması dəqiqələr çəkir.
+    - **Docker Konteyneri**: Yalnız əməliyyat sistemi səviyyəsində təcrid edir. Konteynerin öz daxili ƏS nüvəsi yoxdur; o, **əsas serverin ortaq Linux nüvəsini (Host Kernel) bölüşür**. Konteyner sadəcə olaraq öz asılılıqları ilə birlikdə qapalı qutuda işləyən adi bir Linux prosesidir.
+
+    ### Docker-in Daxili Mühərriki: Linux Prinsipləri
+    Docker sehr deyil; o, Linux nüvəsinin 3 təməl xüsusiyyəti üzərində qurulub:
+    1. **Namespaces (Görünüş Təcridi)**: Konteynerin nəyi *görə biləcəyini* təcrid edir (Proses ID-ləri, Şəbəkə kartı, Fayl sistemi). Konteyner içindəki proqram elə bilir ki, dünyada tək odur (PID 1).
+    2. **Control Groups (cgroups) (Resurs Limiti)**: Konteynerin nə qədər *resurs işlədə biləcəyini* məhdudlaşdırır (məsələn: maksimum 2GB RAM və 1 CPU), beləliklə bir kəmər bütün serverin yaddaşını tükəndirə bilmir.
+    3. **OverlayFS (Laylı Fayl Sistemi)**: Şəkillərin (images) diskdə yer tutmaması üçün layların paylaşılmasını təmin edir.
+quick_recap:
+  en: "Containers share the host Linux kernel while VMs virtualize full OS kernels. Containers boot in milliseconds with near-zero overhead and strict cgroups resource limits."
+  az: "Konteynerlər ortaq Linux nüvəsini bölüşür, VM-lər isə ayrıca ağır ƏS qaldırır. Konteynerlər millisaniyələr ərzində açılır və minimal RAM sərf edir."
+what_it_does:
+  en: "Packages code, system binaries, and runtime environments into lightweight, deterministic, and isolated execution units."
+  az: "Proqram kodunu, sistem kitabxanalarını və mühiti istənilən yerdə eyni cür işləyən yüngül və təcrid olunmuş konteynerlərdə paketləyir."
+real_world_use:
+  en: "Packaging a PySpark or dbt transformation pipeline into a Docker container that executes identically on developer laptops, testing servers, and Kubernetes clusters."
+  az: "PySpark və ya dbt kəmərini Docker konteynerinə yığıb həm lokal kompüterdə, həm də istehsalat Kubernetes klasterində eyni şəkildə işlətmək."
+common_mistakes:
+  en: "Treating Docker containers like persistent Virtual Machines and saving state or database files directly inside the ephemeral container layer."
+  az: "Docker konteynerinə VM kimi baxmaq və verilənlər bazası fayllarını konteynerin müvəqqəti daxilində saxlayıb, konteyner silinəndə datanı itirmək."
+code: |
+  # ==============================================================================
+  # DOCKER CLI COMMANDS DEMONSTRATING CONTAINER SPEED & RESOURCE CAPS
+  # ==============================================================================
+
+  # 1. Run a lightweight Python data processing container in milliseconds
+  # -d : Run in detached background mode
+  # --name : Human-readable name
+  # --memory : Strict cgroup limit (Max 512MB RAM)
+  # --cpus : Strict cgroup limit (Max 1.0 CPU Core)
+  docker run -d \
+      --name etl-worker-01 \
+      --memory="512m" \
+      --cpus="1.0" \
+      python:3.11-slim \
+      sleep 3600
+
+  # 2. Inspect real-time container CPU/Memory consumption
+  docker stats --no-stream etl-worker-01
+
+  # 3. Execute an interactive command inside the isolated container namespace
+  docker exec -it etl-worker-01 python3 --version
+
+  # 4. Clean up container
+  docker rm -f etl-worker-01
+code_explanation:
+  en: |
+    - `python:3.11-slim`: Extremely small base image (~45MB) sharing the host's Linux kernel.
+    - `--memory="512m"` and `--cpus="1.0"`: Uses Linux `cgroups` under the hood to ensure this pipeline task never starves other processes on the server.
+    - `docker stats`: Directly queries cgroup counters to report precise memory, CPU, and network I/O stats.
+    - `docker exec`: Enters the container's isolated Linux namespace without booting a slow virtual machine.
+  az: |
+    - `python:3.11-slim`: Əsas serverin Linux nüvəsini bölüşən olduqca yüngül (~45MB) Docker imicidir.
+    - `--memory="512m"` və `--cpus="1.0"`: Linux `cgroups` mexanizmindən istifadə edərək bu kəmərin serverdəki digər vacib işlərin RAM-ını doldurmasının qarşısını alır.
+    - `docker stats`: Konteynerin cari RAM, CPU və şəbəkə sərfiyyatını dərhal göstərir.
+    - `docker exec`: Ağır virtual maşın açmadan, birbaşa konteynerin təcrid olunmuş Linux namespace-inə daxil olur.
+visual_output: |
+  ============================ DOCKER CONTAINER EXECUTION ============================
+  $ docker run -d --name etl-worker-01 --memory="512m" --cpus="1.0" python:3.11-slim sleep 3600
+  6d8a7c2e1f409b3d4f8e5c1a2b3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d  [Spun up in 0.4s!]
+
+  $ docker stats --no-stream etl-worker-01
+  CONTAINER ID   NAME            CPU %     MEM USAGE / LIMIT     MEM %     NET I/O     PIDS
+  6d8a7c2e1f40   etl-worker-01   0.02%     12.4MiB / 512MiB      2.42%     1.2kB/0B    1
+
+  $ docker exec -it etl-worker-01 python3 --version
+  Python 3.11.10
+output_description:
+  en: "Demonstrates launching an isolated Python container in 0.4 seconds, strictly capped at 512MB RAM with sub-second startup."
+  az: "512MB RAM limiti ilə təcrid olunmuş Python konteynerinin 0.4 saniyədə işə düşməsini və resurs göstəricilərini əks etdirir."
+interview_question:
+  question:
+    en: "Explain the architectural difference between a Docker container and a Virtual Machine (VM). What Linux kernel primitives make containers possible?"
+    az: "Docker konteyneri ilə Virtual Maşın (VM) arasındakı arxitektura fərqini izah edin. Hansı Linux nüvə (kernel) mexanizmləri konteynerləri mümkün edir?"
+  answer:
+    en: "A Virtual Machine virtualizes the entire hardware layer using a Hypervisor (e.g. VMware, KVM) to run independent, complete Guest Operating Systems. Each VM has its own kernel, consuming gigabytes of storage/RAM and taking minutes to boot. A Docker container virtualizes at the OS level by sharing the host machine's Linux Kernel. Containers are simply isolated processes that boot in milliseconds with near-zero overhead. The two fundamental Linux kernel primitives enabling containers are: (1) Namespaces, which provide isolation for processes (PID), network interfaces, mount points, and users; and (2) Control Groups (cgroups), which enforce hardware resource limits (CPU, memory, disk I/O, network bandwidth)."
+    az: "Virtual Maşın Hypervisor (məs: VMware, KVM) vasitəsilə bütöv bir kompüter avadanlığını virtualizasiya edir və hər maşın üçün müstəqil Qonaq Əməliyyat Sistemi (Guest OS) qaldırır. Hər VM-in öz nüvəsi (kernel) olduğu üçün qiqabaytlarla yer tutur və açılması dəqiqələr çəkir. Docker konteyneri isə ƏS səviyyəsində işləyir və əsas serverin ortaq Linux nüvəsini bölüşür. Konteyner sadəcə təcrid olunmuş bir prosesdir və millisaniyələr ərzində açılır. Konteynerləri mümkün edən iki təməl Linux mexanizmi vardır: (1) Namespaces — prosesləri, şəbəkəni və fayl sistemini təcrid edərək konteynerin nəyi *görə bildiyini* tənzimləyir; (2) Control Groups (cgroups) — konteynerin nə qədər RAM, CPU və disk I/O *işlədə biləcəyini* məhdudlaşdırır."
+  interviewer_tips:
+    en: "Immediately naming 'Namespaces' for isolation and 'cgroups' for resource limiting guarantees a maximum rating on container architecture questions."
+    az: "Görünüş təcridi üçün 'Namespaces' və resurs məhdudiyyəti üçün 'cgroups' terminlərini ilk cümlədə demək arxitektura biliklərinizi sübut edir."
+flashcards:
+  - front:
+      en: "What is the primary architectural difference between Docker containers and Virtual Machines?"
+      az: "Docker konteynerləri ilə Virtual Maşınlar (VM) arasındakı əsas arxitektur fərq nədir?"
+    back:
+      en: "Containers share the host OS kernel and virtualize at the OS layer, whereas VMs run a complete separate Guest OS via a Hypervisor."
+      az: "Konteynerlər əsas serverin Linux nüvəsini bölüşür; VM-lər isə Hypervisor vasitəsilə ayrıca bütöv bir qonaq ƏS qaldırır."
+  - front:
+      en: "What role do Linux Namespaces play in Docker containers?"
+      az: "Linux Namespaces mexanizmi Docker konteynerlərində hansı rolu oynayır?"
+    back:
+      en: "They provide process and environment isolation (PID, Network, Mount, IPC, User namespaces)."
+      az: "Proseslərin, şəbəkənin və fayl sisteminin təcrid olunmasını (izolyasiyasını) təmin edir."
+  - front:
+      en: "What role do Linux Control Groups (cgroups) play in Docker?"
+      az: "Linux Control Groups (cgroups) mexanizmi Docker-də nə işə yarayır?"
+    back:
+      en: "They enforce limits on hardware resource usage, such as maximum CPU, RAM, and I/O bandwidth."
+      az: "Konteynerin istifadə edə biləcəyi maksimum CPU, RAM və I/O resurslarına limit qoyur."
+  - front:
+      en: "Why do Docker containers boot significantly faster than Virtual Machines?"
+      az: "Docker konteynerləri Virtual Maşınlardan niyə qat-qat sürətlə işə düşür?"
+    back:
+      en: "Containers are just isolated processes that don't need to initialize virtual hardware or boot an OS kernel."
+      az: "Çünki konteynerlər virtual avadanlıq və ya ƏS nüvəsi yükləmir, sadəcə izolasiya edilmiş proses kimi dərhal açılır."
+  - front:
+      en: "What problem does Docker fundamentally solve for data pipelines?"
+      az: "Docker data kəmərləri üçün əsasən hansı problemi həll edir?"
+    back:
+      en: "The 'it works on my machine' dilemma, guaranteeing identical dependencies and execution across all environments."
+      az: "'Mənim kompüterimdə işləyirdi' problemini aradan qaldıraraq kodun hər mühitdə eyni cür icra olunmasını təmin edir."

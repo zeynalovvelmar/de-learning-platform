@@ -1,0 +1,193 @@
+id: "05-dockerfile-builds"
+order: 5
+level: "junior"
+title:
+  en: "Dockerfile Authoring & Building Production DE Images"
+  az: "Dockerfile Yazılışı və İstehsalat DE İmiclərinin Quraşdırılması"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DOCKERFILE: THE BLUEPRINT FOR YOUR DATA PIPELINE ENVIRONMENT          │
+    └────────────────────────────────────────────────────────────────────────┘
+    FROM python:3.11-slim         ──► Base OS & Runtime layer (Small & secure)
+    WORKDIR /app                  ──► Sets container execution directory
+    COPY requirements.txt .       ──► Copies dependencies FIRST (Cache benefit!)
+    RUN pip install -r req.txt    ──► Installs dependencies in build layer
+    COPY src/ ./src               ──► Copies pipeline code LAST (Fast rebuilds!)
+    USER appuser                  ──► Security: NEVER run as root!
+    ENTRYPOINT ["python"]         ──► Fixed binary executable
+    CMD ["src/pipeline.py"]       ──► Default argument (overridable via CLI)
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BUILD & RUN WORKFLOW                                                  │
+    │  $ docker build -t my-de-pipeline:v1.0 .   ──► Compiles into Image     │
+    │  $ docker run --rm my-de-pipeline:v1.0     ──► Executes ETL pipeline   │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DOCKERFILE: DATA KƏMƏRİNİZİN MEMARLIQ QƏLİBİ (BLUEPRINT)              │
+    └────────────────────────────────────────────────────────────────────────┘
+    FROM python:3.11-slim         ──► Baza ƏS və Runtime layı (Yüngül və təhlükəsiz)
+    WORKDIR /app                  ──► İcra olunacaq daxili qovluğu seçir
+    COPY requirements.txt .       ──► Əvvəlcə kitabxana siyahısını köçürür (Keş üçün!)
+    RUN pip install -r req.txt    ──► Paketləri konteyner layına quraşdırır
+    COPY src/ ./src               ──► Kodu ən sonda köçürür (Sürətli build üçün!)
+    USER appuser                  ──► Təhlükəsizlik: Root kimi İŞLƏTMƏYİN!
+    ENTRYPOINT ["python"]         ──► Sabit icraçı proqram
+    CMD ["src/pipeline.py"]       ──► Standart arqument (CLI ilə dəyişdirilə bilər)
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  QURMA VƏ İCRA ZƏNCİRİ                                                 │
+    │  $ docker build -t my-de-pipeline:v1.0 .   ──► İmicə çevirir           │
+    │  $ docker run --rm my-de-pipeline:v1.0     ──► ETL kəmərini işə salır  │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### What is a Dockerfile?
+    A **Dockerfile** is a plain text recipe containing sequential instructions that Docker reads to assemble an automated image. Each instruction creates a new read-only layer in the image.
+
+    ### Anatomy of a Production-Grade Dockerfile
+    1. **`FROM`**: The starting foundation. Always prefer `-slim` or official vendor images (e.g. `python:3.11-slim`). Avoid huge generic OS images (`ubuntu` + manually installing Python bloats images to 1.5GB+).
+    2. **`WORKDIR`**: Creates and navigates to the working directory. Never run scripts in root `/`.
+    3. **`COPY` vs `ADD`**: Always use `COPY`. `ADD` has unpredictable magic behavior (auto-extracting tars, downloading remote URLs).
+    4. **`RUN`**: Executes commands during the build phase (e.g., `pip install`).
+    5. **`ENV PYTHONUNBUFFERED=1`**: Essential for Python data pipelines! Ensures print/logging statements stream immediately to the console without being buffered in memory.
+    6. **`USER`**: Running containers as default `root` is a major enterprise security vulnerability. Always create and switch to a non-root user (`USER nonroot`).
+    7. **`ENTRYPOINT` vs `CMD`**:
+       - `ENTRYPOINT`: The immutable command that always runs (e.g. `["python"]`).
+       - `CMD`: The default parameter supplied to the entrypoint (e.g. `["main.py"]`). Can be overridden easily from the CLI: `docker run my-image test.py`.
+  az: |
+    ### Dockerfile Nədir?
+    **Dockerfile** — Docker-in oxuyub addım-addım təmiz bir imic yaratması üçün yazılan sadə mətn reseptidir. Buradakı hər bir əmr imicdə yeni bir lay (layer) yaradır.
+
+    ### İstehsalat Standartında Dockerfile-ın Anatomiyası
+    1. **`FROM`**: Baza layı. Həmişə rəsmi və yüngül `-slim` variantlarına üstünlük verin (`python:3.11-slim`). Ümumi böyük ƏS imiclərindən qaçın (məsələn: Ubuntu götürüb içinə əllə Python yığmaq imici 1.5GB-dan böyük edir).
+    2. **`WORKDIR`**: Konteyner daxilində işçi qovluq açır (`/app`). Heç vaxt skriptləri birbaşa root (`/`) qovluğunda saxlamayın.
+    3. **`COPY` vs `ADD`**: Həmişə `COPY` istifadə edin. `ADD` arxa planda faylları avtomatik açmağa çalışır və gözlənilməz xətalar yaradır.
+    4. **`RUN`**: İmic qurularkən (build vaxtı) paketləri quraşdırmaq üçün icra olunur (`pip install`).
+    5. **`ENV PYTHONUNBUFFERED=1`**: Data mühəndisi üçün ən vacib parametr! Python loqlarının buferdə yığılmadan dərhal terminala və Airflow/Docker loqlarına çıxmasını təmin edir.
+    6. **`USER`**: Konteyneri standart `root` kimi işlətmək böyük təhlükəsizlik səhvidir. Həmişə məhdud hüquqlu istifadəçi (`appuser`) yaradıb ona keçin.
+    7. **`ENTRYPOINT` vs `CMD`**:
+       - `ENTRYPOINT`: Konteyner qalxanda mütləq işə düşəcək proqram (məs: `["python"]`).
+       - `CMD`: Həmin proqrama standart parametr (məs: `["main.py"]`). Lazım gəldikdə terminaldan dəyişdirilə bilər: `docker run my-image test.py`.
+quick_recap:
+  en: "Write Dockerfiles with `python:3.11-slim`, set `ENV PYTHONUNBUFFERED=1` for immediate logs, switch to non-root `USER`, and combine `ENTRYPOINT` with `CMD`."
+  az: "Dockerfile yazarkən `python:3.11-slim` seçin, dərhal loq almaq üçün `PYTHONUNBUFFERED=1` qoyun, `USER` ilə root-dan çıxın və `ENTRYPOINT` + `CMD` istifadə edin."
+what_it_does:
+  en: "Defines the exact build steps, system packages, Python libraries, and runtime command required to execute a data pipeline."
+  az: "Data kəmərini işə salmaq üçün tələb olunan sistem paketlərini, Python kitabxanalarını və icra əmrini dəqiq təyin edir."
+real_world_use:
+  en: "Building a containerized data transformation microservice deployed to AWS ECS or GCP Cloud Run triggered by scheduled events."
+  az: "Cədvəl üzrə işə düşən AWS ECS və ya GCP Cloud Run bulud servisinə göndərmək üçün PySpark/Python kəmərini Docker imicinə yığmaq."
+common_mistakes:
+  en: "Running containers as root user, and copying entire project files before `pip install`, invalidating the Docker cache on every one-line code edit."
+  az: "Konteyneri root kimi işlətmək və `pip install`-dan əvvəl bütün kodu kopyalayaraq kodda bircə vergül dəyişəndə belə bütün kitabxanaları yenidən yükləmək."
+code: |
+  # ==============================================================================
+  # PRODUCTION DOCKERFILE FOR A PYTHON DATA PIPELINE
+  # ==============================================================================
+  # 1. Use slim base image to reduce attack surface and size (~120MB vs ~1GB)
+  FROM python:3.11-slim
+
+  # 2. Prevent Python from writing .pyc files and buffer stdout/stderr
+  ENV PYTHONDONTWRITEBYTECODE=1 \
+      PYTHONUNBUFFERED=1 \
+      PIP_NO_CACHE_DIR=1
+
+  # 3. Create non-root system user for enterprise security
+  RUN groupadd -r dataops && useradd -r -g dataops -m appuser
+
+  # 4. Set application working directory
+  WORKDIR /home/appuser/pipeline
+
+  # 5. CACHE OPTIMIZATION: Copy requirements first and install dependencies
+  COPY requirements.txt .
+  RUN pip install --upgrade pip && \
+      pip install -r requirements.txt
+
+  # 6. Copy pipeline source code
+  COPY src/ ./src/
+
+  # 7. Grant ownership to non-root user and switch user
+  RUN chown -R appuser:dataops /home/appuser/pipeline
+  USER appuser
+
+  # 8. Fixed executable with overridable default script
+  ENTRYPOINT ["python"]
+  CMD ["src/ingest_orders.py"]
+code_explanation:
+  en: |
+    - `ENV PYTHONUNBUFFERED=1`: Ensures terminal output from `print()` appears immediately in container logs without delay.
+    - `COPY requirements.txt .` before copying source code: Takes advantage of Docker layer caching. Docker will not reinstall pip libraries unless `requirements.txt` specifically changes!
+    - `useradd -r ... && USER appuser`: Ensures that even if an attacker exploits a vulnerability in a Python library, they do not gain root access to the host server.
+    - `ENTRYPOINT ["python"]`: Makes the container behave like a Python binary. Running `docker run my-image src/validate.py` easily overrides the default `CMD`.
+  az: |
+    - `ENV PYTHONUNBUFFERED=1`: Kod daxilindəki `print()` və loqların dərhal Docker və Airflow loqlarında görünməsini təmin edir.
+    - Koddan əvvəl `COPY requirements.txt .`: Docker-in keşləmə (caching) xüsusiyyətindən istifadə edir. Kodunuzda nə dəyişir-dəyişsin, kitabxanalar yenidən yüklənmir!
+    - `useradd ... && USER appuser`: Hətta kimsə Python kitabxanasında boşluq tapıb konteynerə girsə belə, əsas serverə root kimi zərər vura bilməz.
+    - `ENTRYPOINT ["python"]`: Konteyneri xalis Python proqramı kimi işlədir. Əgər fərqli skript işlətmək istəsəniz, `docker run my-image src/test.py` yazmaq kifayətdir.
+visual_output: |
+  ============================= DOCKER BUILD OUTPUT =============================
+  $ docker build -t enterprise-pipeline:v1.0 .
+  [+] Building 8.4s (11/11) FINISHED
+   => [internal] load build definition from Dockerfile                      0.1s
+   => [1/6] FROM docker.io/library/python:3.11-slim                         1.2s
+   => [2/6] RUN groupadd -r dataops && useradd -r -g dataops -m appuser     0.3s
+   => [3/6] WORKDIR /home/appuser/pipeline                                  0.1s
+   => [4/6] COPY requirements.txt .                                         0.1s
+   => [5/6] RUN pip install --upgrade pip && pip install -r req...         5.2s
+   => [6/6] COPY src/ ./src/                                                0.2s
+   => exporting to image                                                    1.3s
+   => => naming to docker.io/library/enterprise-pipeline:v1.0               0.0s
+
+  $ docker images enterprise-pipeline:v1.0
+  REPOSITORY            TAG       IMAGE ID       CREATED         SIZE
+  enterprise-pipeline   v1.0      3e92ba18fc50   2 minutes ago   142MB  [EXTREMELY SLIM]
+output_description:
+  en: "Shows the fast 8-second build producing a lightweight 142MB production-grade Python pipeline image running as a non-root user."
+  az: "8 saniyə ərzində qurulan və cəmi 142MB yer tutan təhlükəsiz istehsalat Python imicinin yaradılmasını əks etdirir."
+interview_question:
+  question:
+    en: "What is the difference between `ENTRYPOINT` and `CMD` in a Dockerfile? Why is combining them considered a best practice for Data Engineering workloads?"
+    az: "Dockerfile-da `ENTRYPOINT` ilə `CMD` arasındakı fərq nədir? Niyə bu ikisini birləşdirmək Data Mühəndisliyi üçün ən yaxşı təcrübə hesab olunur?"
+  answer:
+    en: "`ENTRYPOINT` sets the fixed binary or command that will always be executed when the container starts. `CMD` provides the default arguments passed to that `ENTRYPOINT`. If you specify both `ENTRYPOINT ['python']` and `CMD ['src/main.py']`, running `docker run my_image` executes `python src/main.py`. However, an engineer or Airflow task can easily override the script by passing arguments at runtime: `docker run my_image src/backfill.py --date 2026-10-16`, which cleanly executes `python src/backfill.py --date 2026-10-16`. This gives your pipeline image maximum flexibility while preventing accidental execution of the wrong binary."
+    az: "`ENTRYPOINT` konteyner açılan zaman mütləq işə düşəcək sabit proqramı (məs: `python`) təyin edir. `CMD` isə həmin proqrama ötürüləcək standart arqumentdir (məs: `src/main.py`). Əgər ikisini birlikdə `ENTRYPOINT ['python']` və `CMD ['src/main.py']` kimi yazsaq, `docker run my_image` əmri birbaşa `python src/main.py` işə salacaq. Əgər Airflow və ya mühəndis başqa bir skript işlətmək istəsə, terminaldan sadəcə `docker run my_image src/backfill.py` yazması kifayətdir və bu `python src/backfill.py` kimi icra olunacaq. Bu, imici həm çevik edir, həm də yanlış proqramın çağırılmasının qarşısını alır."
+  interviewer_tips:
+    en: "Demonstrate how `CMD` acts as the default argument list to `ENTRYPOINT`, and mention how CLI arguments cleanly override `CMD` without needing `--entrypoint` flags."
+    az: "`CMD`-nin `ENTRYPOINT` üçün standart arqumentlər siyahısı olduğunu və CLI-dan ötürülən arqumentlərin yalnız `CMD`-ni əvəz etdiyini nümayiş etdirin."
+flashcards:
+  - front:
+      en: "What is the purpose of `ENV PYTHONUNBUFFERED=1` in a Python Dockerfile?"
+      az: "Python Dockerfile-ında `ENV PYTHONUNBUFFERED=1` parametrinin məqsədi nədir?"
+    back:
+      en: "It forces stdout and stderr to be flushed immediately, ensuring logs appear in real time in container logging."
+      az: "Çıxış və xəta loqlarının buferlənmədən dərhal terminala və Docker loqlarına axmasını təmin edir."
+  - front:
+      en: "Why should you copy `requirements.txt` before copying the rest of your application code in a Dockerfile?"
+      az: "Dockerfile-da niyə bütün koddan əvvəl yalnız `requirements.txt` faylını kopyalamalıyıq?"
+    back:
+      en: "To utilize Docker's layer cache so `pip install` only re-runs when dependencies actually change."
+      az: "Docker-in keşindən istifadə etmək üçün; beləliklə `pip install` yalnız kitabxanalar dəyişəndə yenidən icra olunur."
+  - front:
+      en: "Why should you never run production containers as the default `root` user?"
+      az: "İstehsalat konteynerlərini niyə heç vaxt standart `root` istifadəçisi kimi işlətmək olmaz?"
+    back:
+      en: "Security vulnerability: if an attacker compromises the container, they could potentially escape to host root."
+      az: "Təhlükəsizlik boşluğu: əgər kimsə konteynerə hücum etsə, əsas serverə root hüququ ilə sıza bilər."
+  - front:
+      en: "What is the difference between `COPY` and `ADD` in a Dockerfile?"
+      az: "Dockerfile-da `COPY` ilə `ADD` arasındakı fərq nədir?"
+    back:
+      en: "`COPY` strictly copies local files, whereas `ADD` can download remote URLs and automatically extract tarballs."
+      az: "`COPY` yalnız yerli faylları köçürür; `ADD` isə həm də URL yükləyə və arxivləri (`tar`) aça bilir."
+  - front:
+      en: "How does `CMD` interact with `ENTRYPOINT` in a Dockerfile?"
+      az: "Dockerfile-da `CMD` ilə `ENTRYPOINT` bir-biri ilə necə əlaqələnir?"
+    back:
+      en: "`ENTRYPOINT` defines the executable, and `CMD` supplies the default overridable parameters to it."
+      az: "`ENTRYPOINT` icraçı proqramı, `CMD` isə ona ötürülən və dəyişdirilə bilən standart arqumentləri müəyyən edir."

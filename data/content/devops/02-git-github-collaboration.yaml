@@ -1,0 +1,202 @@
+id: "02-git-github-collaboration"
+order: 2
+level: "junior"
+title:
+  en: "Git & GitHub: Branching Strategies, Merge vs Rebase & PRs"
+  az: "Git və GitHub: Budaqlanma Strategiyaları, Merge vs Rebase və PR-lar"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GIT IN DATA ENGINEERING: THE 3 CORE LOCAL ZONES + REMOTE              │
+    └────────────────────────────────────────────────────────────────────────┘
+     [Working Directory] ──git add──► [Staging Area (Index)] ──git commit──► [Local Repo]
+             │                                                                   │
+             │                                                               git push
+             │                                                                   ▼
+             └────────── git diff (Inspect before staging) ──────────► [GitHub / Remote]
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MERGE VS REBASE: HOW SHOULD YOU INTEGRATE FEATURE BRANCHES?           │
+    │                                                                        │
+    │  Option 1: GIT MERGE (Non-destructive, creates a Merge Commit)         │
+    │  main:    ───●───────●─────────● (Merge commit)                        │
+    │               \               /                                        │
+    │  feature:      ──●──────────●─                                         │
+    │                                                                        │
+    │  Option 2: GIT REBASE (Rewrites history into a clean linear line)      │
+    │  main:    ───●───────●───●'───●' (Linear history, zero clutter)        │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DATA MÜHƏNDİSLİYİNDƏ GİT: 3 LOKAL ZONA + UZAQ ANBAR (REMOTE)          │
+    └────────────────────────────────────────────────────────────────────────┘
+     [İşçi Qovluq] ──git add──► [Staging Sahəsi (Index)] ──git commit──► [Lokal Anbar]
+           │                                                                 │
+           │                                                             git push
+           │                                                                 ▼
+           └────────── git diff (Yoxla və fərqə bax) ─────────────► [GitHub / Remote]
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MERGE VS REBASE: BUDAQLARI NECƏ BİRLƏŞDİRMƏLİ?                        │
+    │                                                                        │
+    │  1-ci Variant: GIT MERGE (Tarixçəni olduğu kimi qoruyur, birləşmə edir) │
+    │  main:    ───●───────●─────────● (Birləşmə commit-i)                  │
+    │               \               /                                        │
+    │  feature:      ──●──────────●─                                         │
+    │                                                                        │
+    │  2-ci Variant: GIT REBASE (Tarixçəni səliqəli düz xəttə çevirir)       │
+    │  main:    ───●───────●───●'───●' (Təmiz, xətti loq)                    │
+    └────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### Why Git is Essential for Data Engineers
+    In modern data teams, **pipelines are code**. If an untracked change breaks the hourly ETL pipeline feeding the executive finance dashboard, the company loses money and credibility.
+    
+    Git enables:
+    - Complete version history: Instantly roll back a broken DAG or Spark script to yesterday's stable version (`git revert`).
+    - Collaboration: Multiple data engineers can build separate features without overwriting each other's code.
+
+    ### Merge vs Rebase
+    - **`git merge`**: Combines two branches by creating a special "merge commit". It preserves the exact chronological order of how and when commits were made, but can result in a messy, branching "train tracks" git history graph.
+    - **`git rebase`**: Takes your feature branch commits and "replays" them one by one on top of the latest `main` branch. This creates a beautiful, perfectly linear commit history without unnecessary merge commits.
+    - **Production Rule**: Rebase your local feature branch before creating a Pull Request (PR) to ensure smooth, conflict-free merges. Never rebase a public/shared branch!
+
+    ### The Golden `.gitignore` Rule in Data Engineering
+    **NEVER commit:**
+    1. Credentials or API keys (`.env`, `gcp_key.json`, AWS secrets).
+    2. Large datasets (`*.csv`, `*.parquet`, `/data/landing/`). Git is for code, not data storage!
+    3. Virtual environments (`.venv/`, `__pycache__/`).
+  az: |
+    ### Git Niyə Data Mühəndisi Üçün Əvəzedilməzdir?
+    Müasir şirkətlərdə data kəmərləri xalis proqram kodudur. Əgər kimsə test etmədən Airflow DAG-ında dəyişiklik edib maliyyə hesabatını dondurarsa, şirkət böyük ziyan görər.
+    
+    Git sizə nə verir:
+    - Bütün versiyaların tarixçəsi: Əgər yeni Spark kodu çöksə, dərhal `git revert` ilə dünənki stabil versiyaya qayıtmaq mümkündür.
+    - Komanda əməkdaşlığı: Bir neçə mühəndis eyni vaxtda biri Spark transformasiyası, digəri Kafka produceri üzərində bir-birinə mane olmadan işləyə bilir.
+
+    ### Merge vs Rebase Fərqi
+    - **`git merge`**: İki budağı birləşdirir və araya xüsusi bir "Merge commit" atır. Bütün addımların vaxt tarixçəsini saxlayır, lakin çoxlu qollar olduqda tarixçə qatar relsləri kimi qarışıq görünür.
+    - **`git rebase`**: Sizin yazdığınız commit-ləri götürür və `main` budağının ən sonuncu commit-inin ardınca düzür (tarixçəni yenidən yazır). Nəticədə git loqu tərtəmiz, düz bir xətt kimi qalır.
+    - **İstehsalat Qaydası**: Pull Request (PR) açmazdan əvvəl öz lokal budağınızı `main`-ə rebase edin. Lakin başqaları ilə ortaq işlədiyiniz ümumi budağı heç vaxt rebase etməyin!
+
+    ### Data Mühəndisinin `.gitignore` Qızıl Qaydası
+    **Git anbarına QƏTİYYƏN atmamalı olduğunuz fayllar:**
+    1. Şifrələr və giriş açarları (`.env`, `service_account.json`, AWS tokenləri).
+    2. Böyük data faylları (`*.csv`, `*.parquet`, `data/`). Git kod üçündür, data saxlamaq üçün deyil!
+    3. Python virtual mühitləri (`.venv/`, `__pycache__/`).
+quick_recap:
+  en: "Pipelines are code. Use feature branches and PRs for code reviews. Use rebase for clean linear commit history. Never commit credentials or large raw datasets to Git."
+  az: "Data kəmərləri koddur. Kod rəyləri üçün budaqlardan (branches) və PR-lardan istifadə edin. Təmiz tarixçə üçün rebase edin. Git-ə heç vaxt şifrə və ya böyük data atmayın."
+what_it_does:
+  en: "Tracks code changes, coordinates multi-engineer pipeline development, and prevents regressions through reviews and pull requests."
+  az: "Kod dəyişikliklərini izləyir, komanda işini koordinasiya edir və Pull Request-lər vasitəsilə istehsalat xətalarının qarşısını alır."
+real_world_use:
+  en: "Branching off `main` to build a new Kafka consumer pipeline, opening a GitHub PR, running automated CI tests, and squashing into production."
+  az: "`main` budağından yeni Kafka kəməri üçün budaq ayırmaq, GitHub-da PR açıb testlərdən keçirdikdən sonra əsas koda birləşdirmək."
+common_mistakes:
+  en: "Accidentally committing database passwords or 2GB Parquet test files to Git history, bloating the repo forever and leaking security credentials."
+  az: "Səhvən verilənlər bazası şifrəsini və ya 2GB-lıq Parquet faylını Git-ə göndərmək, anbarı doldurmaq və şirkətin təhlükəsizliyini təhlükəyə atmaq."
+code: |
+  # ==============================================================================
+  # TYPICAL DATA ENGINEER GIT COLLABORATION WORKFLOW
+  # ==============================================================================
+
+  # 1. Update local main with latest team changes
+  git checkout main
+  git pull origin main
+
+  # 2. Create and switch to a descriptive feature branch
+  git checkout -b feature/spark-order-dedup
+
+  # 3. Make changes to Spark job and ensure .gitignore ignores raw test data!
+  echo "data/landing/*.parquet" >> .gitignore
+  echo ".env" >> .gitignore
+
+  # 4. Stage and commit with conventional commit message
+  git add dags/spark_order_pipeline.py .gitignore
+  git commit -m "feat(spark): implement window-based deduplication for daily orders"
+
+  # 5. Keep branch up to date with main using clean rebase
+  git fetch origin
+  git rebase origin/main
+
+  # 6. Push to remote repository and create Pull Request
+  git push -u origin feature/spark-order-dedup
+code_explanation:
+  en: |
+    - `git checkout -b feature/...`: Always work on an isolated branch; never commit directly to production `main`!
+    - Staging `.gitignore`: Prevents sensitive `.env` files and large `.parquet` datasets from ever entering Git's commit history.
+    - `git commit -m "feat(...): ..."`: Uses standard Conventional Commits for automated changelogs and clean history.
+    - `git rebase origin/main`: Replays your local commits cleanly on top of the latest team updates before opening a Pull Request.
+  az: |
+    - `git checkout -b feature/...`: Heç vaxt birbaşa `main` budağına commit etməyin; həmişə ayrıca təcrid olunmuş budaqda işləyin!
+    - `.gitignore` təyini: Gizli `.env` şifrələrinin və böyük `.parquet` data fayllarının Git-ə düşməsinin qarşısını dərhal alır.
+    - `feat(...): ...`: Komanda daxilində səliqəli dəyişiklik tarixçəsi üçün Conventional Commits standartından istifadə edir.
+    - `git rebase origin/main`: PR açmazdan əvvəl komandanın son dəyişikliklərini səliqəli şəkildə öz kodunuzun arxasına düzür.
+visual_output: |
+  ============================= GIT CLI EXECUTION TRACE =============================
+  $ git checkout -b feature/spark-order-dedup
+  Switched to a new branch 'feature/spark-order-dedup'
+
+  $ git status
+  On branch feature/spark-order-dedup
+  Changes to be committed:
+    modified:   dags/spark_order_pipeline.py
+    modified:   .gitignore
+
+  $ git commit -m "feat(spark): implement window-based deduplication for daily orders"
+  [feature/spark-order-dedup 4b8c91a] feat(spark): implement window-based deduplication
+   2 files changed, 48 insertions(+), 3 deletions(-)
+
+  $ git log --oneline --graph -n 3
+  * 4b8c91a (HEAD -> feature/spark-order-dedup) feat(spark): implement window-based deduplication
+  * 7c7a5e9 (origin/main, main) feat: implement Apache Airflow module
+  * 9ca3389 feat: implement Apache Kafka module
+output_description:
+  en: "Displays the clean creation of a feature branch, staging of pipeline files, and a perfectly linear git commit graph."
+  az: "Yeni feature budağının yaradılmasını, pipeline fayllarının commit olunmasını və tam xətti, təmiz git qrafikini göstərir."
+interview_question:
+  question:
+    en: "What is the difference between `git merge` and `git rebase`? When should a Data Engineer use one over the other?"
+    az: "`git merge` ilə `git rebase` arasındakı fərq nədir? Data mühəndisi hansı halda hansını seçməlidir?"
+  answer:
+    en: "`git merge` integrates changes from one branch into another by creating a new 'merge commit', preserving the complete chronological history and branch topology. `git rebase` rewrites commit history by lifting the feature branch commits and reapplying them sequentially on top of the target branch, resulting in a clean, perfectly linear project history. As a Data Engineer, the best practice is to use `git rebase` on your local feature branch before opening a Pull Request so that your changes apply cleanly to the latest `main`. However, you should NEVER rebase a public or shared branch (such as `main`), because rewriting public history breaks collaboration for everyone else."
+    az: "`git merge` iki budağı birləşdirərkən araya yeni bir 'merge commit' əlavə edir və commit-lərin yazıldığı dəqiq xronoloji vaxtı qoruyur. `git rebase` isə sizin budaqdakı commit-ləri götürür və hədəf budağın (`main`) ən sonuna ardıcıl yapışdıraraq tarixçəni yenidən yazır və tam xətti, təmiz bir loq yaradır. Data mühəndisi kimi ən düzgün təcrübə odur ki, PR açmazdan əvvəl öz lokal budağınızı `main`-ə rebase edəsiniz. Lakin heç vaxt ortaq, ictimai budaqlarda (`main` və ya `master`) rebase etmək olmaz, çünki ümumi tarixçəni dəyişmək digər komanda yoldaşlarının işini pozar."
+  interviewer_tips:
+    en: "Explicitly state the Golden Rule of Rebase: 'Never rebase public shared branches.' This immediately signals that you understand production Git etiquette."
+    az: "Rebase-in qızıl qaydasını dilə gətirin: 'Heç vaxt hamının istifadə etdiyi ümumi budaqda rebase edilməz.' Bu sizin peşəkar komanda təcrübənizi sübut edir."
+flashcards:
+  - front:
+      en: "What are the 3 main local working zones in Git?"
+      az: "Git-də əsas 3 lokal iş zonası hansıdır?"
+    back:
+      en: "Working Directory, Staging Area (Index), and Local Repository (`.git`)."
+      az: "İşçi Qovluq (Working Directory), Staging Sahəsi (Index) və Lokal Anbar (Repository)."
+  - front:
+      en: "What is the primary difference between `git merge` and `git rebase`?"
+      az: "`git merge` ilə `git rebase` arasındakı əsas fərq nədir?"
+    back:
+      en: "Merge creates a new merge commit preserving branching history; rebase rewrites commits to create a linear history."
+      az: "Merge budaqlanma tarixçəsini saxlayaraq yeni commit yaradır; rebase isə commit-ləri təzədən düzüb xətti tarixçə qurur."
+  - front:
+      en: "What is the Golden Rule of Git Rebase?"
+      az: "Git Rebase əməliyyatının Qızıl Qaydası nədir?"
+    back:
+      en: "Never rebase a public or shared branch (like `main`), only rebase private local feature branches."
+      az: "Heç vaxt ortaq və ya ictimai budaqları (`main`) rebase etməyin; yalnız öz lokal budaqlarınızı rebase edin."
+  - front:
+      en: "What should you NEVER commit to a Git repository in Data Engineering?"
+      az: "Data mühəndisliyində Git anbarına QƏTİYYƏN nələri göndərmək olmaz?"
+    back:
+      en: "Credentials/secrets (`.env`, private keys) and large raw datasets (`*.csv`, `*.parquet`)."
+      az: "Şifrələr/açar sözlər (`.env`, açar faylları) və böyük xammal data faylları (`*.csv`, `*.parquet`)."
+  - front:
+      en: "Which command cancels a broken commit and safely records a new opposite commit in Git history?"
+      az: "Git tarixçəsində xətalı bir commit-i təhlükəsiz şəkildə ləğv edib əks commit yazan əmr hansıdır?"
+    back:
+      en: "`git revert <commit-hash>`."
+      az: "`git revert <commit-kodu>`."

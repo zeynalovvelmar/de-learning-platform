@@ -1,0 +1,197 @@
+id: "08-networking-service-discovery"
+order: 8
+level: "intermediate"
+title:
+  en: "Docker Networking, Internal DNS & Service Discovery"
+  az: "Docker Şəbəkələri (Networking), Daxili DNS və Xidmət Aşkarlanması"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  WHY USER-DEFINED NETWORKS ARE MANDATORY FOR DATA PLATFORMS            │
+    └────────────────────────────────────────────────────────────────────────┘
+    ❌ DEFAULT BRIDGE (Legacy docker0):
+       • NO Automatic DNS! Containers CANNOT talk by name.
+       • Airflow must guess Postgres IP: 172.17.0.3 (Changes on every reboot!)
+       💥 Broken pipelines on every container restart!
+
+    ✅ USER-DEFINED BRIDGE NETWORK (`docker network create data-net`):
+       • AUTOMATIC INTERNAL DNS RESOLUTION!
+       • Airflow connects using clean hostnames: `postgres:5432` or `kafka:9092`
+       
+       ┌─────────────────────────────── data-net (172.20.0.0/16) ───────────────────────────────┐
+       │                                                                                        │
+       │   [Airflow Worker] ──────DNS: 'postgres:5432'──────► [PostgreSQL DWH]                  │
+       │   (172.20.0.4)                                       (172.20.0.2)                      │
+       │                                                                                        │
+       │   [Spark Driver]   ──────DNS: 'kafka:9092'────────►  [Kafka Broker]                    │
+       │   (172.20.0.5)                                       (172.20.0.3)                      │
+       └────────────────────────────────────────────────────────────────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  XÜSUSİ DOCKER ŞƏBƏKƏSİ NİYƏ DATA PLATFORMALARI ÜÇÜN MƏCBURİDİR?       │
+    └────────────────────────────────────────────────────────────────────────┘
+    ❌ STANDART ŞƏBƏKƏ (Köhnə docker0):
+       • Daxili DNS YOXDUR! Konteynerlər bir-birini adı ilə TAPA BİLMİR.
+       • Airflow Postgres-in IP-sini təxmin etməlidir: 172.17.0.3 (Hər dəfə dəyişir!)
+       💥 Konteyner sönüb-yanan kimi bütün kəmərlər çökür!
+
+    ✅ XÜSUSİ ŞƏBƏKƏ (`docker network create data-net`):
+       • AVTOMATİK DAXİLİ DNS ŞƏBƏKƏSİ!
+       • Airflow bazaya adı ilə qoşulur: `postgres:5432` və ya `kafka:9092`
+       
+       ┌─────────────────────────────── data-net (172.20.0.0/16) ───────────────────────────────┐
+       │                                                                                        │
+       │   [Airflow Worker] ──────DNS: 'postgres:5432'──────► [PostgreSQL DWH]                  │
+       │   (172.20.0.4)                                       (172.20.0.2)                      │
+       │                                                                                        │
+       │   [Spark Driver]   ──────DNS: 'kafka:9092'────────►  [Kafka Broker]                    │
+       │   (172.20.0.5)                                       (172.20.0.3)                      │
+       └────────────────────────────────────────────────────────────────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Multi-Container Data Reality
+    Modern data pipelines never run in isolation on a single container. A standard data engineering stack requires multiple services collaborating:
+    - Apache Airflow querying PostgreSQL for metadata.
+    - Spark streaming jobs pulling real-time events from Apache Kafka.
+    - Ingestion scripts dumping raw records into MinIO (S3-compatible object storage).
+
+    ### The 4 Docker Network Drivers
+    1. **`bridge`**: The standard private virtual network. Containers on the same bridge can communicate with each other using IP addresses and ports, isolated from the outside world.
+    2. **`host`**: Removes network virtualization. The container binds directly to the host's network interfaces (fastest throughput, but risks port conflicts).
+    3. **`none`**: Fully closes all network interfaces (loopback only). Ideal for isolated, security-hardened air-gapped data computation jobs.
+    4. **`overlay`**: Distributes networks across multiple separate host servers (used in Docker Swarm and Kubernetes).
+
+    ### The Critical Rule: Default Bridge vs User-Defined Bridge
+    - **Default Bridge (`docker0`)**: When you run `docker run` without `--network`, containers are attached to the default bridge. In this network, **Docker disables automatic DNS resolution**! Containers must communicate using raw IP addresses (`172.17.0.2`), which change unpredictably every time a container restarts.
+    - **User-Defined Bridge (`docker network create my-net`)**: Automatically provides an embedded DNS server. A container with `--name warehouse-db` is resolvable by any other container on that network simply by using the hostname `warehouse-db`!
+  az: |
+    ### Çoxkonteynerli Data Reallığı
+    Data mühəndisliyində heç vaxt tək bir konteyner işləmir. Standart data infrastrukturu bir neçə xidmətin bir-biri ilə fasiləsiz əlaqəsini tələb edir:
+    - Apache Airflow Metadata üçün PostgreSQL bazasına sorğu göndərir.
+    - Spark axın proqramları real vaxtda Apache Kafka-dan mesajları oxuyur.
+    - Python kəmərləri xammal faylları MinIO (S3 tipli obyekt anbarı) servisinə yükləyir.
+
+    ### 4 Əsas Docker Şəbəkə Sürücüsü (Drivers)
+    1. **`bridge` (Körpü)**: Ən geniş yayılan xüsusi virtual şəbəkədir. Eyni körpüdə olan konteynerlər bir-biri ilə sərbəst danışır, lakin xarici dünyadan təcrid olunur.
+    2. **`host`**: Şəbəkə təcridini ləğv edir. Konteyner birbaşa əsas maşının şəbəkə kartına qoşulur (ən sürətlidir, lakin port toqquşması riski var).
+    3. **`none`**: Şəbəkəni tamamilə bağlayır (internet və lokal şəbəkə yoxdur). Təhlükəsiz və qapalı data emalı üçün istifadə olunur.
+    4. **`overlay`**: Bir neçə fərqli serveri birləşdirən paylanmış şəbəkədir (Docker Swarm və Kubernetes arxasında dayanır).
+
+    ### Ən Vacib Qayda: Standart Körpü vs Xüsusi Yaradılmış Körpü
+    - **Standart Körpü (Default `docker0`)**: Əgər siz şəbəkə yaratmadan adi `docker run` etsəniz, konteyner standart şəbəkəyə düşür. Bu şəbəkədə **Daxili DNS işləmir**! Yəni Airflow bazaya qoşulmaq üçün onun dəyişkən IP ünvanını (`172.17.0.2`) bilməlidir; konteyner sönüb-yananda IP dəyişir və bütün pipeline sınır!
+    - **Xüsusi Körpü (`docker network create data-net`)**: Docker-in daxili DNS serverini aktivləşdirir. `--name warehouse-db` adı verdiyiniz konteynerə digər konteynerlər birbaşa `warehouse-db:5432` adı ilə qoşula bilirlər!
+quick_recap:
+  en: "Always create a User-Defined Bridge network (`docker network create`) so containers can communicate reliably using container names via automatic internal DNS."
+  az: "Həmişə xüsusi şəbəkə yaradın (`docker network create`) ki, konteynerlər avtomatik DNS sayəsində bir-biri ilə adları vasitəsilə rahat danışa bilsinlər."
+what_it_does:
+  en: "Establishes isolated virtual networks and embeds an automatic DNS server so microservices and databases discover each other by container name."
+  az: "Təcrid olunmuş virtual şəbəkələr qurur və daxili DNS serveri ilə konteynerlərin bir-birini adla tapmasını təmin edir."
+real_world_use:
+  en: "Connecting an Airflow scheduler container to a PostgreSQL metadata database and a Kafka broker on a shared network called `data-platform-net`."
+  az: "Airflow, PostgreSQL və Kafka konteynerlərini `data-platform-net` şəbəkəsində birləşdirərək bir-biri ilə ad vasitəsilə danışdırmaq."
+common_mistakes:
+  en: "Relying on hardcoded container IP addresses (e.g. `172.17.0.2`) in data pipeline connection strings instead of container DNS names on a user-defined network."
+  az: "Daxili DNS adı əvəzinə kodun içinə konteynerin IP ünvanını yazmaq və konteyner restart olanda IP dəyişdiyi üçün kəmərin çökməsi."
+code: |
+  # ==============================================================================
+  # DOCKER NETWORKING & SERVICE DISCOVERY IN ACTION
+  # Demonstrates inter-container communication using automatic DNS resolution
+  # ==============================================================================
+
+  # 1. Create an isolated user-defined bridge network
+  docker network create de-network
+
+  # 2. Launch PostgreSQL database attached to the network
+  docker run -d \
+      --name warehouse-db \
+      --network de-network \
+      -e POSTGRES_PASSWORD=secret \
+      -e POSTGRES_DB=analytics \
+      postgres:16-alpine
+
+  # 3. Launch an ETL worker on the SAME network
+  # Notice: It connects directly to 'warehouse-db:5432' using Docker DNS!
+  docker run --rm \
+      --network de-network \
+      python:3.11-slim \
+      python -c "
+  import socket
+  host = 'warehouse-db'
+  port = 5432
+  ip = socket.gethostbyname(host)
+  print(f'DNS Resolution Successful! Hostname [{host}] resolved to IP [{ip}]')
+  "
+
+  # 4. Clean up network and container
+  docker rm -f warehouse-db
+  docker network rm de-network
+code_explanation:
+  en: |
+    - `docker network create de-network`: Creates a private subnet with an embedded DNS resolver.
+    - `--network de-network --name warehouse-db`: Registers the name `warehouse-db` in Docker's internal DNS table.
+    - `socket.gethostbyname('warehouse-db')`: The Python container resolves the hostname `warehouse-db` to its active container IP address automatically, without any hardcoded IPs or `/etc/hosts` hacks!
+  az: |
+    - `docker network create de-network`: Daxili DNS resolveri olan təcrid olunmuş şəbəkə açır.
+    - `--network de-network --name warehouse-db`: `warehouse-db` adını Docker-in daxili DNS cədvəlinə qeyd edir.
+    - `socket.gethostbyname('warehouse-db')`: Python konteyneri heç bir IP ünvanı bilmədən, birbaşa adı oxuyur və Docker DNS sayəsində bazanın cari IP ünvanını dərhal tapır!
+visual_output: |
+  ====================== DOCKER DNS RESOLUTION VERIFICATION ======================
+  $ docker network create de-network
+  9b8e1f02c4a75d8e  [Network created]
+
+  $ docker run -d --name warehouse-db --network de-network ... postgres:16-alpine
+  1a2b3c4d5e6f
+
+  $ docker run --rm --network de-network python:3.11-slim python -c "..."
+  DNS Resolution Successful! Hostname [warehouse-db] resolved to IP [172.20.0.2]
+
+  $ docker network inspect de-network --format '{{json .Containers}}'
+  {"1a2b3c...":{"Name":"warehouse-db","IPv4Address":"172.20.0.2/16"}}
+output_description:
+  en: "Shows the Python client container resolving the database's container name 'warehouse-db' to its dynamic IP address 172.20.0.2 via internal DNS."
+  az: "Python müştərisinin daxili DNS vasitəsilə 'warehouse-db' adını dərhal 172.20.0.2 dinamik IP ünvanına çevirdiyini göstərir."
+interview_question:
+  question:
+    en: "Why is using a User-Defined Bridge network mandatory when orchestrating multiple data services with Docker, rather than using the default bridge network?"
+    az: "Docker ilə bir neçə data servisini işlədərkən standart körpü (default bridge) əvəzinə Xüsusi Yaradılmış Körpü (User-Defined Bridge) şəbəkəsi niyə məcburidir?"
+  answer:
+    en: "On the default bridge network (`docker0`), Docker disables automatic DNS resolution; containers can only communicate with each other using raw IP addresses. In a data platform, container IP addresses are dynamic and change whenever containers are restarted or recreated during updates. On a User-Defined Bridge network (`docker network create`), Docker provides an automatic embedded DNS server where containers resolve each other by container name (e.g. `postgres:5432` or `kafka:9092`). This eliminates hardcoded IP addresses, ensures resilient service discovery, and isolates application network traffic from other unrelated containers on the host."
+    az: "Standart körpü şəbəkəsində (`docker0`) Docker daxili avtomatik DNS xidmətini söndürür; konteynerlər bir-biri ilə yalnız birbaşa IP ünvanları vasitəsilə danışa bilir. Data platformasında isə konteynerlər hər yenidən başlayanda onların IP ünvanı dəyişir, bu isə kəmərlərin dayanmasına gətirib çıxarır. Xüsusi yaradılmış körpü şəbəkəsində (`docker network create`) Docker daxili DNS serverini aktivləşdirir və konteynerlər bir-birini adları vasitəsilə (`postgres:5432` və ya `kafka:9092`) dərhal tapır. Bu, kodda heç bir IP yazmamağa imkan verir, xidmətlərin aşkarlanmasını (service discovery) təmin edir və data şəbəkəsini digər konteynerlərdən təhlükəsiz şəkildə təcrid edir."
+  interviewer_tips:
+    en: "State clearly that 'Automatic DNS Resolution is only enabled on user-defined networks, NOT on the default bridge network.' Interviewers test this exact networking nuance."
+    az: "'Avtomatik DNS yalnız xüsusi yaradılmış şəbəkələrdə işləyir, standart körpüdə işləmir' cümləsini dəqiq vurğulamaq şəbəkə biliklərinizi sübut edir."
+flashcards:
+  - front:
+      en: "Why do containers on the default bridge network fail to communicate by container name?"
+      az: "Standart körpü şəbəkəsində olan konteynerlər niyə bir-biri ilə ad vasitəsilə danışa bilmir?"
+    back:
+      en: "Docker disables automatic DNS resolution on the default bridge network; it only functions on user-defined networks."
+      az: "Çünki Docker standart körpü şəbəkəsində avtomatik DNS xidmətini söndürür; bu yalnız xüsusi şəbəkələrdə aktiv olur."
+  - front:
+      en: "What command creates a custom Docker bridge network?"
+      az: "Xüsusi Docker körpü şəbəkəsi yaradan əmr hansıdır?"
+    back:
+      en: "`docker network create <network_name>`."
+      az: "`docker network create <şəbəkə_adı>`."
+  - front:
+      en: "What does the `host` network driver do in Docker?"
+      az: "Docker-də `host` şəbəkə sürücüsü nə edir?"
+    back:
+      en: "Removes network isolation, binding the container directly to the host machine's physical network stack."
+      az: "Şəbəkə təcridini ləğv edir və konteyneri birbaşa əsas maşının fiziki şəbəkə kartına bağlayır."
+  - front:
+      en: "What is the purpose of the `none` network driver?"
+      az: "Docker-də `none` şəbəkə sürücüsünün məqsədi nədir?"
+    back:
+      en: "Completely disables all network access, providing an isolated, security-hardened execution sandbox."
+      az: "Bütün şəbəkə çıxışını bağlayır və təhlükəsiz, tam qapalı icra mühiti təmin edir."
+  - front:
+      en: "How do two containers on a user-defined network discover each other?"
+      az: "Xüsusi şəbəkədə olan iki konteyner bir-birini necə aşkar edir?"
+    back:
+      en: "Through Docker's embedded DNS server using the container name as the hostname (e.g. `http://kafka:9092`)."
+      az: "Docker-in daxili DNS serveri vasitəsilə konteyner adını host kimi istifadə edərək (məs: `kafka:9092`)."

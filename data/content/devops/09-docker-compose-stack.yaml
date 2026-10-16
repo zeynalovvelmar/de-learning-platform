@@ -1,0 +1,239 @@
+id: "09-docker-compose-stack"
+order: 9
+level: "intermediate"
+title:
+  en: "Docker Compose: Multi-Container Data Engineering Stacks"
+  az: "Docker Compose: Çoxkonteynerli Data Mühəndisliyi Yığınları (Stacks)"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DOCKER COMPOSE: DECLARATIVE MULTI-SERVICE ORCHESTRATION               │
+    │  Instead of typing 15 separate `docker run` commands with messy flags: │
+    │  A single file `docker-compose.yml` spins up the entire data platform! │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         $ docker compose up -d
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        ▼                             ▼                             ▼
+    ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+    │ postgres (Warehouse) │   │ kafka (Event Stream) │   │ airflow (Orchestrator│
+    │ • Port: 5432:5432    │   │ • Port: 9092:9092    │   │ • Port: 8080:8080    │
+    │ • Volume: pg_data    │   │ • Volume: kf_data    │   │ • Depends on:        │
+    │ • Health: pg_isready │   │ • Environment: KRaft │   │   postgres (healthy!)│
+    └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
+        │                             │                             │
+        └─────────────────────────────┴─────────────────────────────┘
+                                      ▼
+             Auto-created Shared Network: `analytics_default`
+             (All services communicate by name via internal DNS!)
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DOCKER COMPOSE: BÜTÖV SİSTEMİ BİR FAYLLA İDARƏ ETMƏK                   │
+    │  15 ayrı `docker run` əmri və qarışıq bayraqlar yazmaq əvəzinə:        │
+    │  Tək bir `docker-compose.yml` faylı bütün data platformasını qaldırır!  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         $ docker compose up -d
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        ▼                             ▼                             ▼
+    ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+    │ postgres (Baza)      │   │ kafka (Axın Sistemi) │   │ airflow (Kəmər İcraçı│
+    │ • Port: 5432:5432    │   │ • Port: 9092:9092    │   │ • Port: 8080:8080    │
+    │ • Volume: pg_data    │   │ • Volume: kf_data    │   │ • Asılıdır:          │
+    │ • Yoxlama: pg_isready│   │ • Mühit: KRaft rejim │   │   postgres (sağlam!) │
+    └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
+        │                             │                             │
+        └─────────────────────────────┴─────────────────────────────┘
+                                      ▼
+             Avtomatik Yaradılan Ortaq Şəbəkə: `analytics_default`
+             (Bütün xidmətlər daxili DNS ilə bir-birini adla tapır!)
+    ```
+explanation:
+  en: |
+    ### Why Docker Compose is Mandatory in Data Engineering
+    In a real project, you cannot manually run 6 individual terminal commands every morning:
+    - 1 for PostgreSQL
+    - 1 for Kafka
+    - 1 for MinIO
+    - 3 for Airflow (Webserver, Scheduler, Triggerer)
+    
+    If you forget a flag or start Airflow before Postgres is ready, the scheduler crashes.
+    
+    ### What is Docker Compose?
+    **Docker Compose** is a tool for defining and running multi-container Docker applications using a single YAML configuration file (`docker-compose.yml`).
+    - With one command (`docker compose up -d`), Docker creates all networks, provisions all persistent volumes, and spins up every service in the exact dependency order.
+
+    ### Key Directives You Must Know
+    1. **`services:`**: The list of containers to deploy.
+    2. **`depends_on:` with `condition: service_healthy`**: The golden solution to startup race conditions! Airflow will wait until PostgreSQL actually passes its healthcheck (`pg_isready`) before launching, preventing initialization crashes.
+    3. **`volumes:`**: Declares top-level Named Volumes for persistent database storage.
+    4. **`env_file:`**: Pulls secrets and environment variables from a local `.env` file cleanly.
+
+    ### Everyday CLI Commands
+    - `docker compose up -d`: Creates networks, volumes, and starts all containers in the background.
+    - `docker compose ps`: Checks the status, port bindings, and health of the entire stack.
+    - `docker compose logs -f <service>`: Follows real-time logs for a specific service (e.g. `airflow-webserver`).
+    - `docker compose down`: Gracefully stops and removes all containers and internal networks.
+    - `docker compose down -v`: Destroys containers AND wipes persistent volumes (used for full database resets).
+  az: |
+    ### Docker Compose Niyə Data Mühəndisi Üçün Şərtdir?
+    Real iş mühitində hər səhər terminalı açıb əllə 6 fərqli əmr yazmaq mümkün deyil:
+    - 1 əmr PostgreSQL üçün
+    - 1 əmr Kafka üçün
+    - 1 əmr MinIO üçün
+    - 3 əmr Airflow üçün (Webserver, Scheduler, Triggerer)
+
+    Bircə bayrağı unutsanız və ya Airflow-u baza tam açılmamış işə salsanız, bütün sistem çökəcək.
+
+    ### Docker Compose Nədir?
+    **Docker Compose** — çoxkonteynerli mürəkkəb tətbiqləri tək bir YAML faylı (`docker-compose.yml`) vasitəsilə bəyan edib idarə edən rəsmi alətdir.
+    - Tək bir əmrlə (`docker compose up -d`) Docker lazım olan bütün xüsusi şəbəkələri açır, volume-ları yaradır və xidmətləri düzgün ardıcıllıqla işə salır.
+
+    ### Ən Vacib Parametrlər
+    1. **`services:`**: İşə salınacaq konteynerlərin siyahısı.
+    2. **`depends_on` və `condition: service_healthy`**: Başlama yarışının (race condition) qızıl həlli! Airflow Postgres-in tam hazır olduğunu (`pg_isready` yoxlaması ilə) təsdiqləmədən işə düşmür, beləliklə xəta baş vermir.
+    3. **`volumes:`**: Yuxarı səviyyədə daimi Named Volume-ları elan edir.
+    4. **`env_file:`**: Gizli şifrələri `.env` faylından avtomatik oxuyur.
+
+    ### Əsas İş Əmrləri
+    - `docker compose up -d`: Bütün data infrastrukturunu arxa planda dərhal qaldırır.
+    - `docker compose ps`: Bütün servislərin vəziyyətini və sağlamlıq (`healthy`) statusunu göstərir.
+    - `docker compose logs -f <xidmət>`: Konkret bir servisin loqlarını canlı izləyir.
+    - `docker compose down`: Bütün konteynerləri və şəbəkəni təhlükəsiz şəkildə dayandırıb təmizləyir.
+    - `docker compose down -v`: Konteynerlərlə bərabər **bütün cədvəl və məlumat volume-larını da silir** (tam sıfırlama üçün).
+quick_recap:
+  en: "Docker Compose defines multi-container stacks in `docker-compose.yml`. Use `depends_on` with `service_healthy` to prevent startup race conditions."
+  az: "Docker Compose çoxsaylı konteynerləri `docker-compose.yml` ilə idarə edir. Başlama xətalarının qarşısını almaq üçün `depends_on` və `service_healthy` istifadə edin."
+what_it_does:
+  en: "Orchestrates multi-container local data platforms with shared networks, persistent volumes, environment configs, and healthcheck dependencies."
+  az: "Çoxkonteynerli data platformalarını ortaq şəbəkələr, daimi yaddaş, mühit dəyişənləri və sağlamlıq yoxlamaları ilə vahid şəkildə idarə edir."
+real_world_use:
+  en: "Spinning up a complete local Data Engineering stack comprising PostgreSQL, Apache Kafka, and Apache Airflow with a single command for end-to-end testing."
+  az: "Tək bir əmrlə lokal kompüterdə PostgreSQL, Kafka və Airflow-dan ibarət tam kəmər laboratoriyasını qaldırıb sınaqdan keçirmək."
+common_mistakes:
+  en: "Using basic `depends_on: - postgres` without healthcheck conditions, causing dependent apps to crash because Postgres is still initializing its database files."
+  az: "`depends_on` yazarkən `healthcheck` qoymamaq və Postgres hələ fayllarını hazırlayarkən asılı olan tətbiqin qoşulma xətası verib çökməsi."
+code: |
+  # ==============================================================================
+  # PRODUCTION-GRADE LOCAL DATA ENGINEERING STACK (docker-compose.yml)
+  # Orchestrates PostgreSQL DWH and an Ingestion Worker with Healthchecks
+  # ==============================================================================
+  version: "3.8"
+
+  services:
+    # Service 1: PostgreSQL Data Warehouse
+    warehouse:
+      image: postgres:16-alpine
+      container_name: de_postgres_warehouse
+      restart: unless-stopped
+      environment:
+        POSTGRES_DB: analytics_db
+        POSTGRES_USER: de_user
+        POSTGRES_PASSWORD: de_secure_password
+      ports:
+        - "5432:5432"
+      volumes:
+        - pg_warehouse_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U de_user -d analytics_db"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+
+    # Service 2: Automated ETL Ingestion Pipeline
+    etl-worker:
+      image: python:3.11-slim
+      container_name: de_etl_worker
+      restart: "no"
+      depends_on:
+        warehouse:
+          condition: service_healthy  # CRITICAL: Waits for DB to be 100% READY!
+      environment:
+        DB_HOST: warehouse            # Clean DNS hostname resolved automatically!
+        DB_PORT: 5432
+        DB_NAME: analytics_db
+        DB_USER: de_user
+        DB_PASSWORD: de_secure_password
+      command: >
+        sh -c "echo 'ETL Worker connected successfully to DB at host: warehouse' &&
+               sleep 2"
+
+  volumes:
+    pg_warehouse_data:
+      driver: local
+code_explanation:
+  en: |
+    - `warehouse.healthcheck`: Periodically executes `pg_isready`. Only when Postgres returns exit 0 does Docker mark the container as `healthy`.
+    - `etl-worker.depends_on.warehouse.condition: service_healthy`: Guarantees the ETL worker does not start until the warehouse is fully initialized and listening on port 5432.
+    - `DB_HOST: warehouse`: Docker Compose automatically creates a shared bridge network (`<folder>_default`) allowing `etl-worker` to resolve `warehouse` via DNS.
+    - `volumes.pg_warehouse_data`: Creates a persistent Named Volume that outlives container restarts.
+  az: |
+    - `warehouse.healthcheck`: 5 saniyədən bir `pg_isready` əmri ilə bazanın hazır olub-olmadığını yoxlayır və yalnız hazır olduqda statusu `healthy` edir.
+    - `condition: service_healthy`: ETL worker-in baza 100% açılana qədər gözləməsini təmin edir; beləliklə "Connection Refused" xətası yaranmır.
+    - `DB_HOST: warehouse`: Docker Compose avtomatik olaraq ortaq şəbəkə açdığı üçün worker bazaya birbaşa adı (`warehouse`) ilə qoşulur.
+    - `volumes.pg_warehouse_data`: Baza silinsə belə cədvəlləri qoruyan daimi Named Volume təyin edir.
+visual_output: |
+  ========================= DOCKER COMPOSE CLI EXECUTION =========================
+  $ docker compose up -d
+  [+] Running 3/3
+   ✔ Network de-learning-platform_default     Created                        0.1s 
+   ✔ Volume "pg_warehouse_data"               Created                        0.0s 
+   ✔ Container de_postgres_warehouse          Started (healthy)              6.2s 
+   ✔ Container de_etl_worker                  Started                        6.3s 
+
+  $ docker compose ps
+  NAME                    IMAGE               COMMAND                  SERVICE      STATUS                    PORTS
+  de_postgres_warehouse   postgres:16-alpine  "docker-entrypoint.s…"   warehouse    Up 15s (healthy)          0.0.0.0:5432->5432/tcp
+  de_etl_worker           python:3.11-slim    "sh -c 'echo 'ETL Wo…"   etl-worker   Exited (0) 8 seconds ago  
+
+  $ docker compose logs etl-worker
+  de_etl_worker | ETL Worker connected successfully to DB at host: warehouse
+output_description:
+  en: "Shows Docker Compose creating networks, volumes, waiting for PostgreSQL to become healthy, and cleanly running the dependent ETL worker."
+  az: "Docker Compose-un şəbəkə və volume yaradaraq Postgres-in sağlamlaşmasını gözlədiyini və ardınca ETL worker-i xətasız işə saldığını göstərir."
+interview_question:
+  question:
+    en: "Why is a naive `depends_on: - postgres` often insufficient in a Docker Compose file for Data Engineering pipelines, and how do you resolve it?"
+    az: "Data kəmərləri üçün Docker Compose faylında sadəcə `depends_on: - postgres` yazmaq niyə çox vaxt kifayət etmir və bunu necə həll edirsiniz?"
+  answer:
+    en: "A naive `depends_on: - postgres` only tells Docker Compose to wait for the PostgreSQL container to start its process (enter the RUNNING state). It does NOT wait for the PostgreSQL database engine to actually complete its internal startup scripts, initialize catalog tables, and listen for incoming connections on port 5432. As a result, dependent applications (like Airflow or an ETL script) attempt to connect too early and immediately crash with 'Connection Refused' errors. To resolve this, you must configure a `healthcheck` block on the database using a probe like `pg_isready -U user`, and expand `depends_on` to include `condition: service_healthy`. This forces Docker Compose to hold dependent services in queue until the database passes its healthcheck."
+    az: "Sadəcə `depends_on: - postgres` yazmaq Docker-ə yalnız Postgres konteyner prosesinin başlamasını (RUNNING statusunu) gözləməyi tapşırır. Lakin prosesin başlaması bazanın dərhal sorğu qəbul etməyə hazır olması demək deyil! Postgres daxili fayllarını yoxlayarkən və konfiqurasiyanı yükləyərkən 5-10 saniyə vaxt aparır. Bu zaman asılı olan Airflow və ya ETL worker bazaya qoşulmağa cəhd edir və dərhal 'Connection Refused' xətası ilə çökür. Bunun düzgün həlli bazaya `healthcheck` bloku (`pg_isready` əmri ilə) əlavə etmək və `depends_on` daxilində `condition: service_healthy` təyin etməkdir. Bu zaman Docker Compose worker-i yalnız baza 100% sağlam cavab verdikdən sonra işə salır."
+  interviewer_tips:
+    en: "Explaining the race condition between 'container running' and 'application ready to accept TCP connections' proves senior-level systems engineering maturity."
+    az: "'Konteynerin qalxması' ilə 'tətbiqin TCP sorğusu qəbul etməyə hazır olması' arasındakı fərqi izah etmək dərin sistem mühəndisliyi təcrübənizi sübut edir."
+flashcards:
+  - front:
+      en: "What is the primary purpose of Docker Compose?"
+      az: "Docker Compose-un əsas məqsədi nədir?"
+    back:
+      en: "To define, configure, and orchestrate multi-container Docker applications through a single declarative YAML file."
+      az: "Çoxkonteynerli Docker tətbiqlərini tək bir deklarativ YAML faylı vasitəsilə bəyan edib idarə etmək."
+  - front:
+      en: "Why can `depends_on: [db]` fail without a healthcheck?"
+      az: "`depends_on: [db]` healthcheck olmadan niyə uğursuz ola bilər?"
+    back:
+      en: "It only waits for the container process to start, not for the database inside to finish initializing and accept connections."
+      az: "Çünki o yalnız konteyner prosesinin başlamasını gözləyir, daxildəki bazanın hazır olub sorğu qəbul etməsini gözləmir."
+  - front:
+      en: "What command stops containers and removes networks without deleting persistent volumes in Docker Compose?"
+      az: "Docker Compose-da daimi volume-ları silmədən konteynerləri və şəbəkəni dayandırıb təmizləyən əmr hansıdır?"
+    back:
+      en: "`docker compose down`."
+      az: "`docker compose down`."
+  - front:
+      en: "What command destroys all containers, networks, AND persistent volumes in Docker Compose?"
+      az: "Docker Compose-da konteynerlər və şəbəkə ilə bərabər DAİMİ VOLUME-LARI DA tamamilə silən əmr hansıdır?"
+    back:
+      en: "`docker compose down -v`."
+      az: "`docker compose down -v`."
+  - front:
+      en: "How do services defined within the same `docker-compose.yml` communicate with each other?"
+      az: "Eyni `docker-compose.yml` faylında olan xidmətlər bir-biri ilə necə əlaqə qurur?"
+    back:
+      en: "Through the automatically created shared bridge network, using their service names as hostnames via internal DNS."
+      az: "Avtomatik yaradılan ortaq şəbəkə vasitəsilə və xidmət adlarını host adı kimi istifadə edərək."

@@ -1,0 +1,201 @@
+id: "04-docker-cli-lifecycle"
+order: 4
+level: "junior"
+title:
+  en: "Docker CLI & Container Lifecycle Management"
+  az: "Docker CLI və Konteynerin Həyat Dövrü İdarəetməsi"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DOCKER CONTAINER LIFECYCLE STATE MACHINE                              │
+    └────────────────────────────────────────────────────────────────────────┘
+                    docker create
+    [Docker Image] ───────────────► [CREATED]
+                                       │
+                                   docker start / docker run
+                                       │
+                                       ▼
+    ┌───────────────────────────► [RUNNING] ◄───────────────────────────┐
+    │ (Process active & healthy)       │                                │
+    │                                  │ docker stop (SIGTERM)          │
+    │ docker unpause                   ▼                                │ docker restart
+    │                            [STOPPED / EXITED] ────────────────────┘
+    │                                  │
+    │ docker pause                     │ docker rm
+    │                                  ▼
+    └─────────── [PAUSED]         [DESTROYED / REMOVED]
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DOCKER KONTEYNERİNİN HƏYAT DÖVRÜ VƏZİYYƏT MAŞINI                      │
+    └────────────────────────────────────────────────────────────────────────┘
+                    docker create
+    [Docker İmic]  ───────────────► [YARADILDI (CREATED)]
+                                       │
+                                   docker start / docker run
+                                       │
+                                       ▼
+    ┌───────────────────────────► [İŞLƏYİR (RUNNING)] ◄─────────────────┐
+    │ (Proses aktiv və sağlam)         │                                │
+    │                                  │ docker stop (SIGTERM)          │
+    │ docker unpause                   ▼                                │ docker restart
+    │                          [DAYANDI (EXITED)] ──────────────────────┘
+    │                                  │
+    │ docker pause                     │ docker rm
+    │                                  ▼
+    └─────────── [FASİLƏDƏ]       [SİLİNDİ (REMOVED)]
+    ```
+explanation:
+  en: |
+    ### The Difference Between Images and Containers
+    - **Docker Image**: A read-only template or blueprint containing OS libraries, runtime, and application code (like a class in programming).
+    - **Docker Container**: A runnable, isolated instance of an image with a thin read/write layer on top (like an object instantiated from a class).
+
+    ### The Container Lifecycle States
+    A container is bound to the lifecycle of its primary foreground process (PID 1):
+    1. **`RUNNING`**: PID 1 is actively executing. If PID 1 completes or crashes, the container transitions to `EXITED`.
+    2. **`EXITED`**: The container has stopped. The filesystem state is still saved on disk! You can restart it (`docker start`) or inspect its exit code (`docker ps -a`).
+    3. **Exit Codes to Memorize**:
+       - **Exit 0**: Clean, normal completion (e.g. batch ETL finished).
+       - **Exit 1**: Application runtime exception (e.g. Python traceback, database connection error).
+       - **Exit 137**: Process was killed by Linux OOM Killer (SIGKILL, Out-Of-Memory) because it exceeded its RAM limit!
+
+    ### Essential Everyday CLI Commands
+    - `docker run -d -p 5432:5432 --name pg postgres:16`: Runs PostgreSQL in detached mode, exposing port 5432.
+    - `docker logs -f <name>`: Streams stdout and stderr live.
+    - `docker exec -it <name> bash`: Opens an interactive shell inside the running container to debug network or databases.
+    - `docker stop` vs `docker kill`: `stop` sends `SIGTERM` giving the app 10 seconds to close open database connections gracefully; `kill` sends `SIGKILL` instantly.
+  az: |
+    ### İmic (Image) və Konteyner (Container) Fərqi
+    - **Docker İmic**: Proqram kodunu, Python kitabxanalarını və konfiqurasiyaları saxlayan dəyişməz, yalnız-oxunan (read-only) qəlibdir (proqramlaşdırmadakı `Class` kimi).
+    - **Docker Konteyneri**: Həmin imicdən yaradılmış və aktiv işləyən canlı nüsxədir (`Object` kimi).
+
+    ### Konteynerin Həyat Dövrü və Statusları
+    Konteynerin ömrü onun daxilindəki əsas prosesin (PID 1) ömrünə bağlıdır:
+    1. **`RUNNING` (İşləyir)**: Əsas proses işləyir. Əgər həmin proses başa çatsa və ya xəta versə, konteyner `EXITED` statusuna keçir.
+    2. **`EXITED` (Dayandı)**: Konteyner dayanıb, lakin diskinizdən silinməyib! Siz onun loqlarına baxa (`docker logs`) və ya çıxış kodunu (`docker ps -a`) yoxlaya bilərsiniz.
+    3. **Ən Vacib Çıxış Kodları (Exit Codes):**
+       - **Exit 0**: Uğurlu tamamlanma (məsələn: gündəlik batch ETL işini bitirdi).
+       - **Exit 1**: Kodda xəta baş verdi (məsələn: Python sintaksis xətası və ya bazaya qoşulma uğursuz oldu).
+       - **Exit 137**: Ən məşhur DE xətası! Linux OOM Killer (Yaddaş Çatışmazlığı) konteyneri məhv etdi (`SIGKILL`), çünki icazə verilən RAM limitini aşdı!
+
+    ### Gündəlik İş Əmrləri
+    - `docker run -d -p 5432:5432 --name pg postgres:16`: Postgres bazasını arxa fonda (`-d`) qaldırır və 5432 portunu xaricə açır.
+    - `docker logs -f <ad>`: Konteynerin daxilində yazılan bütün loqları canlı olaraq ekrana axıdır.
+    - `docker exec -it <ad> bash`: İşləyən konteynerin içinə terminal ilə daxil olub araşdırma aparmaq.
+    - `docker stop` və `docker kill` fərqi: `stop` konteynerə `SIGTERM` göndərib açıq qalan baza əlaqələrini təhlükəsiz bağlamaq üçün 10 saniyə vaxt verir; `kill` isə dərhal `SIGKILL` ilə prosesi kəsir.
+quick_recap:
+  en: "Containers are instances of images bound to PID 1. Use `docker logs` to debug and recognize Exit 137 as an Out-Of-Memory (OOM) kill."
+  az: "Konteynerlər imiclərin canlı nüsxələridir. Xətaları `docker logs` ilə tapın və Exit 137-nin yaddaş çatışmazlığı (OOM Kill) olduğunu yadda saxlayın."
+what_it_does:
+  en: "Manages the creation, startup, execution, log inspection, and destruction of isolated container environments."
+  az: "Təcrid olunmuş konteyner mühitlərinin yaradılmasını, işə salınmasını, loqlarının oxunmasını və ləğv edilməsini idarə edir."
+real_world_use:
+  en: "Spinning up a temporary PostgreSQL instance for running pipeline integration tests, checking logs, and destroying it automatically via `--rm`."
+  az: "Pipeline testləri üçün müvəqqəti PostgreSQL qaldırmaq, loqları yoxlamaq və test bitdikdən sonra `--rm` ilə avtomatik təmizləmək."
+common_mistakes:
+  en: "Accumulating hundreds of stopped containers and dangling images on the host disk because of running without `--rm` or omitting periodic `docker prune`."
+  az: "`--rm` bayrağını unutmaq və serverin diskini dayandırılmış yüzlərlə köhnə konteyner və lazımsız imiclə doldurmaq."
+code: |
+  # ==============================================================================
+  # DOCKER CLI LIFECYCLE CHEAT SHEET FOR DATA ENGINEERS
+  # ==============================================================================
+
+  # 1. Pull the official PostgreSQL 16 image from Docker Hub
+  docker pull postgres:16-alpine
+
+  # 2. Run a container with environment variables, port mapping, and name
+  docker run -d \
+      --name local-warehouse \
+      -p 5432:5432 \
+      -e POSTGRES_DB=analytics_db \
+      -e POSTGRES_USER=data_engineer \
+      -e POSTGRES_PASSWORD=secure_dev_pass \
+      --restart unless-stopped \
+      postgres:16-alpine
+
+  # 3. Stream real-time logs to verify database is ready to accept connections
+  docker logs -f local-warehouse
+
+  # 4. Jump inside the container to test PSQL client connectivity
+  docker exec -it local-warehouse psql -U data_engineer -d analytics_db -c "SELECT version();"
+
+  # 5. Inspect container health and port bindings
+  docker port local-warehouse
+
+  # 6. Graceful shutdown and cleanup
+  docker stop local-warehouse
+  docker rm local-warehouse
+code_explanation:
+  en: |
+    - `postgres:16-alpine`: Lightweight Alpine Linux variant (~80MB) ideal for fast development environments.
+    - `-p 5432:5432`: Binds port 5432 on the host machine to port 5432 inside the container, allowing Python/Spark scripts on the host to connect.
+    - `-e POSTGRES_...`: Injects runtime configuration and credentials into the container environment.
+    - `docker exec -it ... psql`: Runs the native PostgreSQL client directly inside the container without installing Postgres on the host laptop.
+  az: |
+    - `postgres:16-alpine`: Tez qaldırılan və cəmi ~80MB yer tutan yüngül Alpine Linux variantıdır.
+    - `-p 5432:5432`: Əsas kompüterin 5432 portunu konteynerin 5432 portuna bağlayır, beləliklə noutbukunuzdakı Python və Spark skriptləri bazaya qoşula bilir.
+    - `-e POSTGRES_...`: Baza adı və şifrəni konteynerə parametr kimi ötürür.
+    - `docker exec -it ... psql`: Kompüterinizə Postgres quraşdırmadan, birbaşa konteynerin içindəki `psql` proqramı ilə bazaya sorğu göndərir.
+visual_output: |
+  ========================= DOCKER CONTAINER RUN & LOGS =========================
+  $ docker run -d --name local-warehouse -p 5432:5432 -e POSTGRES_DB=analytics_db ...
+  b5a19c72e04f  [Container started]
+
+  $ docker logs local-warehouse
+  PostgreSQL Database directory appears to contain a database; Skipping initialization
+  2026-10-16 12:00:03.112 UTC [1] LOG:  starting PostgreSQL 16.2 on x86_64-pc-linux-musl
+  2026-10-16 12:00:03.114 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+  2026-10-16 12:00:03.115 UTC [1] LOG:  database system is ready to accept connections
+
+  $ docker exec -it local-warehouse psql -U data_engineer -d analytics_db -c "SELECT version();"
+                                                     version                                                     
+  ---------------------------------------------------------------------------------------------------------------
+   PostgreSQL 16.2 on x86_64-pc-linux-musl, compiled by gcc (Alpine 13.2.1) 13.2.1 20231014, 64-bit
+  (1 row)
+output_description:
+  en: "Shows the detached PostgreSQL container starting, broadcasting readiness on port 5432, and responding to a psql query."
+  az: "PostgreSQL konteynerinin arxa fonda qalxmasını, 5432 portunda hazır olmasını və psql sorğusuna dərhal cavab verməsini göstərir."
+interview_question:
+  question:
+    en: "What does an Exit Code 137 mean when investigating a failed data pipeline container in Docker or Kubernetes? How do you diagnose and fix it?"
+    az: "Docker və ya Kubernetes-də sıradan çıxmış pipeline konteynerini yoxlayarkən 'Exit Code 137' nə deməkdir? Bunu necə araşdırıb həll edirsiniz?"
+  answer:
+    en: "Exit Code 137 means the container was abruptly terminated by a SIGKILL signal (128 + 9 = 137), almost universally caused by the Linux Kernel's Out-Of-Memory (OOM) Killer. The container exceeded its configured memory limit (e.g. attempting to load an unpartitioned 10GB dataset into a container limited to 2GB RAM). You diagnose this by running `docker inspect <container>` and checking `State.OOMKilled: true`, or checking `dmesg | grep -i oom`. You fix it by: (1) chunking/streaming the data payload (e.g. streaming processing or Spark partitioning), or (2) increasing the container's memory limit via `--memory` or Kubernetes pod resource limits."
+    az: "Exit Code 137 konteynerin Linux Nüvəsinin OOM Killer (Out-Of-Memory) tərəfindən `SIGKILL` siqnalı ilə (128 + 9 = 137) məhv edildiyini bildirir. Bu o deməkdir ki, konteyner təyin edilmiş RAM limitini aşıb (məsələn: 2GB RAM limiti olan konteynerə 10GB-lıq böyük dataset yüklənməyə cəhd edilib). Bunu `docker inspect <ad>` edərək `OOMKilled: true` olub-olmaması ilə və ya `dmesg | grep -i oom` əmri ilə təsdiq edirsiniz. Həlli yolu: (1) datanı birbaşa yaddaşa yığmaq əvəzinə hissə-hissə (chunk/stream) emal etmək, və ya (2) konteynerə verilən RAM limitini (`--memory`) artırmaqdır."
+  interviewer_tips:
+    en: "Explaining the formula '128 + Signal 9 (SIGKILL) = 137' and mentioning the kernel OOM Killer immediately proves your deep infrastructure debugging experience."
+    az: "'128 + Siqnal 9 (SIGKILL) = 137' riyazi məntiqini və Linux OOM Killer mexanizmini qeyd etmək müsahibədə sistem səviyyəli biliklərinizi nümayiş etdirir."
+flashcards:
+  - front:
+      en: "What is the difference between `docker stop` and `docker kill`?"
+      az: "`docker stop` ilə `docker kill` arasındakı fərq nədir?"
+    back:
+      en: "`stop` sends SIGTERM giving 10 seconds for graceful shutdown; `kill` sends SIGKILL terminating the process instantly."
+      az: "`stop` konteynerə SIGTERM göndərib təhlükəsiz bağlanması üçün 10 saniyə verir; `kill` dərhal SIGKILL ilə prosesi kəsir."
+  - front:
+      en: "What does Exit Code 137 signify in Docker and Kubernetes?"
+      az: "Docker və Kubernetes-də Exit Code 137 nəyi bildirir?"
+    back:
+      en: "Out-Of-Memory (OOM) Killed. The container exceeded its memory limit and was terminated by the Linux kernel."
+      az: "Yaddaş Çatışmazlığı (OOM Killed). Konteyner ayrılmış RAM limitini aşıb və Linux nüvəsi tərəfindən dayandırılıb."
+  - front:
+      en: "What does the `-p 5432:5432` flag do in `docker run`?"
+      az: "`docker run` əmrindəki `-p 5432:5432` bayrağı nə edir?"
+    back:
+      en: "Maps host port 5432 to container port 5432, enabling external applications to connect."
+      az: "Əsas maşının 5432 portunu konteynerin 5432 portuna bağlayır və xarici tətbiqlərin qoşulmasını təmin edir."
+  - front:
+      en: "What command lets you enter an interactive shell inside a running container?"
+      az: "Aktiv işləyən konteynerin içinə interaktiv terminal ilə daxil olmaq üçün hansı əmr istifadə olunur?"
+    back:
+      en: "`docker exec -it <container_name> bash` (or `sh`)."
+      az: "`docker exec -it <konteyner_adı> bash` (və ya `sh`)."
+  - front:
+      en: "What does the `--rm` flag do when executing `docker run`?"
+      az: "`docker run` icra edərkən `--rm` bayrağı nə işə yarayır?"
+    back:
+      en: "Automatically deletes the container and its temporary filesystem as soon as it exits, preventing disk clutter."
+      az: "Konteyner işini bitirən kimi onu və müvəqqəti fayl sistemini avtomatik silərək diski təmiz saxlayır."

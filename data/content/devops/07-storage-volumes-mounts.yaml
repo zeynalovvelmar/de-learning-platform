@@ -1,0 +1,199 @@
+id: "07-storage-volumes-mounts"
+order: 7
+level: "intermediate"
+title:
+  en: "Persistent Storage: Named Volumes & Bind Mounts"
+  az: "Davamlı Yaddaş: Docker Named Volumes və Bind Mounts"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  THE DANGER: CONTAINERS ARE EPHEMERAL (Stateless by Default!)          │
+    │  If you write 50 million rows into Postgres without a Volume:          │
+    │  $ docker rm -f postgres ──► 💥 BOOM! All 50 million rows are GONE!    │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         THE SOLUTION: DOCKER STORAGE
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            ▼                                                   ▼
+    ┌───────────────────────────────┐   ┌───────────────────────────────┐
+    │ NAMED VOLUMES (Production Best│   │ BIND MOUNTS (Dev Best Practice│
+    │ • Managed by Docker           │   │ • Mounts exact host path      │
+    │ • High I/O performance        │   │ • Ideal for live-code reload  │
+    │ • Safe from accidental deletes│   │ • e.g. Mount ./dags into      │
+    │ • Best for databases (Postgres│   │   Airflow container!          │
+    │   ClickHouse, MinIO, Kafka)   │   │                               │
+    └───────────────────────────────┘   └───────────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TƏHLÜKƏ: KONTEYNERLƏR MÜVƏQQƏTİDİR (EPHEMERAL / VƏZİYYƏTSİZ)          │
+    │  Əgər Postgres-ə Volume qoşmadan 50 milyon sətir data yazsanız:        │
+    │  $ docker rm -f postgres ──► 💥 FƏLAKƏT! Bütün data həmişəlik SİLİNDİ! │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         HƏLL YOLU: DOCKER STORAGE
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            ▼                                                   ▼
+    ┌───────────────────────────────┐   ┌───────────────────────────────┐
+    │ NAMED VOLUMES (İstehsalat DWH)│   │ BIND MOUNTS (Development Üçün)│
+    │ • Docker tərəfindən idarə olun│   │ • Kompüterdəki dəqiq qovluğu  │
+    │ • Yüksək I/O sürəti           │   │   konteynerə bağlayır         │
+    │ • Konteyner silinsə də QALIR  │   │ • Canlı kod yenilənməsi üçün  │
+    │ • Bazalar üçün idealdır       │   │ • Məs: ./dags qovluğunu       │
+    │   (Postgres, Kafka, MinIO)    │   │   Airflow-a bağlamaq          │
+    └───────────────────────────────┘   └───────────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### The Ephemeral Nature of Containers
+    By design, Docker containers are disposable. When a container runs, any changes, logs, or new files are written to a temporary, thin **read-write container layer**.
+    - As soon as the container is removed (`docker rm`), that layer is permanently destroyed.
+    - For data applications (PostgreSQL, MySQL, Kafka logs, ClickHouse, MinIO), **data loss is unacceptable**.
+
+    ### 1. Named Volumes (Production Gold Standard)
+    - **How it works**: Docker creates and manages a dedicated storage directory on the host machine (e.g. `/var/lib/docker/volumes/<name>/_data`).
+    - **Advantages**: Completely decoupled from the container lifecycle. You can delete, rebuild, or upgrade your Postgres container from version 15 to 16, reattach the volume, and all tables and indexes remain 100% intact!
+    - **Performance**: High I/O throughput, immune to host OS file permission issues.
+
+    ### 2. Bind Mounts (Local Development Standard)
+    - **How it works**: Maps an exact physical path on your host machine directly into the container filesystem (e.g. `-v $(pwd)/dags:/opt/airflow/dags`).
+    - **Use Case in Data Engineering**: Mounting your local Airflow DAG directory. When you edit a Python file in VS Code on your laptop, the Airflow scheduler running inside the container detects the change instantly without rebuilding the Docker image!
+  az: |
+    ### Konteynerlərin Müvəqqəti Təbiəti (Ephemeral Storage)
+    Docker konteynerləri fəlsəfə etibarilə atıla bilən (müvəqqəti) vahidlərdir. Konteyner işləyərkən yaradılan bütün yeni fayllar müvəqqəti oxu-yaz layında saxlanılır.
+    - Konteyner silinən kimi (`docker rm`), həmin lay və içindəki hər şey **birdəfəlik məhv olur**.
+    - Data mühəndisliyində (PostgreSQL, Kafka loqları, ClickHouse, MinIO) **datanın itirilməsi yolverilməzdir**.
+
+    ### 1. Named Volumes (İstehsalat Standartı)
+    - **İş prinsipi**: Docker host maşında xüsusi bir saxlanc qovluğu açır və onu idarə edir (`/var/lib/docker/volumes/...`).
+    - **Ən böyük üstünlüyü**: Konteynerin ömründən tamamilə müstəqildir! Siz Postgres konteynerini silə, versiyasını 15-dən 16-ya qaldıra və həmin volume-u yenidən qoşa bilərsiniz — bazadakı bütün cədvəllər və məlumatlar olduğu kimi qalacaq.
+    - **Təyinatı**: Bütün istehsalat verilənlər bazaları və dövlətli (stateful) sistemlər üçün şərtdir.
+
+    ### 2. Bind Mounts (Development üçün Ən Rahat Yol)
+    - **İş prinsipi**: Kompüterinizdəki istənilən dəqiq qovluğu birbaşa konteynerin daxilinə bağlayır (məsələn: `-v $(pwd)/dags:/opt/airflow/dags`).
+    - **DE-də Ən Geniş İstifadəsi**: Airflow DAG qovluğu! Siz noutbukunuzda VS Code ilə Python kodunu dəyişib yaddaşa verən kimi, Docker konteynerinin içindəki Airflow Scheduler dəyişikliyi 1 saniyədə görür; imici təzədən qurmağa ehtiyac qalmır!
+quick_recap:
+  en: "Containers are stateless by default. Use Named Volumes for durable databases (Postgres, Kafka) and Bind Mounts for live local development code (Airflow DAGs)."
+  az: "Konteynerlər susmaya görə vəziyyətsizdir. Bazalar üçün Named Volume, canlı inkişaf kodu üçün isə Bind Mount istifadə edin."
+what_it_does:
+  en: "Decouples data storage from container lifecycles, enabling databases to persist data across container destruction, restarts, and upgrades."
+  az: "Məlumat saxlancını konteynerin ömründən ayıraraq, konteyner silinsə belə bazaların və loqların qorunub saxlanmasını təmin edir."
+real_world_use:
+  en: "Running a local PostgreSQL warehouse with a Named Volume so test data survives reboots, while bind-mounting the `./dags` folder into Airflow for instant code reloading."
+  az: "Lokal Postgres anbarını Named Volume ilə saxlayıb datanı qorumaq, eyni zamanda Airflow `./dags` qovluğunu Bind Mount ilə bağlayaraq kodları dərhal sınaqdan keçirmək."
+common_mistakes:
+  en: "Destroying a database container without attaching a volume, permanently losing all tables, seed data, and schema definitions."
+  az: "Volume qoşmadan verilənlər bazası konteynerini silmək və bütün cədvəlləri və toplanmış məlumatları həmişəlik itirmək."
+code: |
+  # ==============================================================================
+  # DOCKER STORAGE: NAMED VOLUMES VS BIND MOUNTS FOR DATA TEAMS
+  # ==============================================================================
+
+  # 1. Create a dedicated Named Volume for PostgreSQL data
+  docker volume create pg_warehouse_data
+
+  # 2. Run PostgreSQL attaching the Named Volume
+  docker run -d \
+      --name postgres-dwh \
+      -p 5432:5432 \
+      -e POSTGRES_PASSWORD=postgres_pass \
+      -e POSTGRES_DB=analytics \
+      -v pg_warehouse_data:/var/lib/postgresql/data \
+      postgres:16-alpine
+
+  # 3. Insert some test transactional data
+  docker exec -i postgres-dwh psql -U postgres -d analytics <<EOF
+  CREATE TABLE pipeline_runs (id SERIAL PRIMARY KEY, run_date DATE, status TEXT);
+  INSERT INTO pipeline_runs (run_date, status) VALUES ('2026-10-16', 'SUCCESS');
+  EOF
+
+  # 4. SIMULATE CONTAINER DESTRUCTION: Delete the container completely!
+  docker rm -f postgres-dwh
+
+  # 5. RESURRECT: Spin up a brand new container re-using the SAME volume!
+  docker run -d \
+      --name postgres-dwh-new \
+      -p 5432:5432 \
+      -e POSTGRES_PASSWORD=postgres_pass \
+      -v pg_warehouse_data:/var/lib/postgresql/data \
+      postgres:16-alpine
+
+  # 6. Verify data survived 100% intact!
+  docker exec -i postgres-dwh-new psql -U postgres -d analytics -c "SELECT * FROM pipeline_runs;"
+code_explanation:
+  en: |
+    - `docker volume create pg_warehouse_data`: Creates an isolated, managed volume on the host filesystem.
+    - `-v pg_warehouse_data:/var/lib/postgresql/data`: Instructs PostgreSQL to write its internal database files directly to the safe external volume.
+    - Even after `docker rm -f postgres-dwh` completely destroys the container process, launching a brand new container `postgres-dwh-new` attached to the same volume restores all tables immediately.
+  az: |
+    - `docker volume create pg_warehouse_data`: Əsas serverdə müstəqil və təhlükəsiz bir saxlanc sahəsi açır.
+    - `-v pg_warehouse_data:/var/lib/postgresql/data`: Postgres-ə bütün cədvəlləri və indeksləri bu etibarlı xarici volume-a yazmağı tapşırır.
+    - Hətta `docker rm -f` ilə köhnə konteyner tamamilə məhv edilsə belə, yeni konteyner həmin volume-a qoşulan kimi bütün cədvəllər və sətirlər 100% yerində qalır.
+visual_output: |
+  ========================= VOLUME PERSISTENCE VERIFICATION =========================
+  $ docker volume ls
+  DRIVER    VOLUME NAME
+  local     pg_warehouse_data
+
+  # Container deleted!
+  $ docker rm -f postgres-dwh
+  postgres-dwh
+
+  # New container launched with the same volume...
+  $ docker run -d --name postgres-dwh-new -v pg_warehouse_data:/var/lib/postgresql/data ...
+  a7e8b912f0c4
+
+  # Verifying records survived container destruction:
+  $ docker exec -i postgres-dwh-new psql -U postgres -d analytics -c "SELECT * FROM pipeline_runs;"
+   id |  run_date  | status  
+  ----+------------+---------
+    1 | 2026-10-16 | SUCCESS
+  (1 row)  [ZERO DATA LOSS - VOLUME PERSISTED CLEANLY]
+output_description:
+  en: "Demonstrates deleting a database container and recreating it from scratch with zero data loss using Docker Named Volumes."
+  az: "Konteynerin tamamilə silinməsinə baxmayaraq, Named Volume sayəsində bütün məlumatların heç bir itki olmadan bərpa edildiyini sübut edir."
+interview_question:
+  question:
+    en: "What is the difference between a Docker Named Volume and a Bind Mount? When would you use each in a Data Engineering architecture?"
+    az: "Docker Named Volume ilə Bind Mount arasındakı fərq nədir? Data Mühəndisliyi arxitekturasında hansını nə vaxt istifadə edərdiniz?"
+  answer:
+    en: "A Named Volume is managed entirely by Docker within a dedicated storage directory on the host (e.g. `/var/lib/docker/volumes/`). It is decoupled from the host directory structure, delivers optimal I/O performance, avoids host permission issues, and persists even when containers are removed. In Data Engineering, Named Volumes are mandatory for databases (PostgreSQL, ClickHouse, MinIO) and messaging systems (Kafka topic logs). A Bind Mount directly mounts a specific, user-defined path on the host machine into the container. It is best used during local development, such as mounting your local `./dags` folder into an Apache Airflow container so that DAG code changes reflect instantly without requiring an image rebuild."
+    az: "Named Volume tamamilə Docker tərəfindən idarə olunan və əsas serverin xüsusi saxlanc sahəsində (`/var/lib/docker/volumes/`) yerləşən müstəqil disk vahididir. Əsas maşının fayl icazələrindən asılı deyil, yüksək I/O sürətinə malikdir və konteyner silinsə belə məlumatı qoruyur. Data Mühəndisliyində Named Volumes verilənlər bazaları (Postgres, ClickHouse, MinIO) və Kafka log faylları üçün məcburidir. Bind Mount isə kompüterinizdəki konkret bir qovluğu birbaşa konteynerə bağlayır. Bu ən çox lokal inkişaf (development) zamanı istifadə olunur; məsələn: lokal kompüterinizdəki `./dags` qovluğunu Airflow konteynerinə bağlamaqla siz imici yenidən qurmadan kodu yazan kimi Airflow-da dəyişikliyi dərhal görə bilərsiniz."
+  interviewer_tips:
+    en: "Highlight the specific mapping: Named Volumes -> Databases / State; Bind Mounts -> Live code editing / Configuration files. This clarity demonstrates practical operational experience."
+    az: "Dəqiq təyinatı qeyd edin: Named Volume -> Verilənlər bazaları və data saxlanc; Bind Mount -> Canlı kod və konfiqurasiyalar."
+flashcards:
+  - front:
+      en: "What happens to data stored in a container's writable layer when the container is deleted?"
+      az: "Konteyner silindikdə onun daxili oxu-yazı layında saxlanılan məlumatla nə baş verir?"
+    back:
+      en: "It is permanently deleted and lost because the writable layer is bound to the container's lifecycle."
+      az: "Həmişəlik silinir və itir, çünki oxu-yazı layı yalnız konteynerin ömrünə bağlıdır."
+  - front:
+      en: "What is a Docker Named Volume?"
+      az: "Docker Named Volume nədir?"
+    back:
+      en: "A Docker-managed persistent storage location on the host filesystem that survives container destruction."
+      az: "Konteynerin silinməsindən asılı olmayan və Docker tərəfindən idarə edilən daimi saxlanc sahəsidir."
+  - front:
+      en: "What is a Docker Bind Mount?"
+      az: "Docker Bind Mount nədir?"
+    back:
+      en: "Directly mounting an exact directory from the host machine into a container path."
+      az: "Kompüterdəki konkret bir qovluğun birbaşa konteynerin daxili yoluna bağlanmasıdır."
+  - front:
+      en: "Which storage type is best for storing local Apache Airflow DAG files?"
+      az: "Lokal Apache Airflow DAG fayllarını saxlamaq üçün ən yaxşı saxlanc növü hansıdır?"
+    back:
+      en: "Bind Mount, allowing real-time code edits on the host to reflect immediately inside the running container."
+      az: "Bind Mount; beləliklə kompüterdə kodu dəyişən kimi dərhal işləyən konteynerdə əks olunur."
+  - front:
+      en: "Which command removes all unused Docker volumes to free disk space?"
+      az: "İstifadə olunmayan bütün Docker volume-larını təmizləyib diskdə yer açan əmr hansıdır?"
+    back:
+      en: "`docker volume prune`."
+      az: "`docker volume prune`."

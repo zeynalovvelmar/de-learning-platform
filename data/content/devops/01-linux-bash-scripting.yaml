@@ -1,0 +1,199 @@
+id: "01-linux-bash-scripting"
+order: 1
+level: "junior"
+title:
+  en: "Linux Fundamentals & Production Bash Scripting for DE"
+  az: "Linux Əsasları və Data Mühəndisləri Üçün İstehsalat Bash Skriptləri"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LINUX: THE OPERATING SYSTEM OF BIG DATA INFRASTRUCTURE                │
+    │  99% of Spark nodes, Kafka brokers, and Airflow workers run on Linux!  │
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        ▼                             ▼                             ▼
+    ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+    │ STREAMS & PIPES      │   │ PRODUCTION SAFETY    │   │ DE TEXT TOOLKIT      │
+    │ • 0: stdin           │   │ `set -euo pipefail`  │   │ • `grep`: Pattern找  │
+    │ • 1: stdout (`>`)    │   │ • -e: Exit on error  │   │ • `awk`: Column math │
+    │ • 2: stderr (`2>&1`) │   │ • -u: Error on unset │   │ • `sed`: Stream edit │
+    │ • `|`: Pipe output   │   │ • -o pipefail: Catch │   │ • `jq`: JSON parse   │
+    │   to next command    │   │   hidden pipe errors │   │ • `tail -f`: Live log│
+    └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  LINUX: BÖYÜK MƏLUMAT (BIG DATA) İNFRASTRUKTURUNUN NƏBZİ               │
+    │  Spark nodları, Kafka brokerləri və Airflow 99% Linux üzərində işləyir!│
+    └────────────────────────────────────────────────────────────────────────┘
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        ▼                             ▼                             ▼
+    ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+    │ AXINLAR VƏ BORULAR   │   │ TƏHLÜKƏSİZLİK BAYRAĞI│   │ DE MƏTN ALƏTLƏRİ     │
+    │ • 0: stdin (giriş)   │   │ `set -euo pipefail`  │   │ • `grep`: Mətn axtar │
+    │ • 1: stdout (`>`)    │   │ • -e: Xətada dərhal  │   │ • `awk`: Sütun emalı │
+    │ • 2: stderr (`2>&1`) │   │   skripti dayandır   │   │ • `sed`: Mətn dəyiş  │
+    │ • `|`: Bir əmrin     │   │ • -u: Boş dəyişəndə  │   │ • `jq`: JSON parsing │
+    │   çıxışını digərinə  │   │   xəta qaldır        │   │ • `tail -f`: Canlı   │
+    │   ötürən boru (pipe) │   │ • -o pipefail: Boruda│   │   loq izləmə         │
+    │                      │   │   gizli xətanı tut   │   │                      │
+    └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
+    ```
+explanation:
+  en: |
+    ### Why Linux is Mandatory for Data Engineers
+    In the real world, big data workloads do not run on Windows or macOS desktops. Distributed clusters (Spark, Kafka, Hadoop, Trino) and containerized workflows (Docker, Kubernetes) run on **Linux** (Ubuntu, Debian, RHEL, Alpine).
+    
+    A Data Engineer must be fluent in the Linux command line to:
+    1. Inspect gigabytes of log files on remote worker nodes without opening heavy GUIs.
+    2. Write automated deployment and cron data extraction wrapper scripts.
+    3. Configure permissions, environment variables, and manage memory/CPU processes.
+
+    ### Standard Streams & Redirection
+    - **`stdin (0)`**: Standard input stream.
+    - **`stdout (1)`**: Standard output stream. `>` overwrites a file, `>>` appends.
+    - **`stderr (2)`**: Error stream. `2>&1` redirects error messages to the same destination as stdout.
+    - **Pipes (`|`)**: Sends the stdout of one program directly into the stdin of another in-memory without writing intermediate files to disk.
+
+    ### The Golden Production Bash Directive: `set -euo pipefail`
+    By default, naive Bash scripts continue executing even if a critical command fails, leading to silent data corruption.
+    - **`-e`**: Immediately exits if any command returns a non-zero exit code.
+    - **`-u`**: Fails immediately if an undeclared environment variable is used (prevents accidental `rm -rf /$UNDEFINED_VAR`).
+    - **`-o pipefail`**: If `cmd1 | cmd2` fails at `cmd1`, Bash treats the whole pipeline as failed (normally, Bash only checks the exit code of the last command `cmd2`).
+  az: |
+    ### Linux Niyə Data Mühəndisi Üçün Məcburidir?
+    Real istehsalat mühitində Big Data kəmərləri Windows və ya macOS üzərində işləmir. Bütün paylanmış klasterlər (Spark, Kafka, Hadoop) və konteyner platformaları (Docker, Kubernetes) **Linux** əməliyyat sistemi (Ubuntu, Debian, RHEL, Alpine) üzərində qurulur.
+
+    Data mühəndisi Linux terminalını dərindən bilməlidir ki:
+    1. Qrafik interfeysi (GUI) olmayan uzaq serverlərdə (remote servers) gigabaytlarla loqları saniyələr içində axtarıb xətanı tapsın.
+    2. Gündəlik işləri avtomatlaşdıran etibarlı Bash skriptləri yazsın.
+    3. İstifadəçi icazələrini (`chmod`, `chown`), mühit dəyişənlərini (`export`) və yaddaş/CPU proseslərini (`htop`, `ps`, `kill`) idarə etsin.
+
+    ### Standart Axınlar və Yönləndirmə (Streams & Redirection)
+    - **`stdin (0)`**: Giriş axını.
+    - **`stdout (1)`**: Normal çıxış axını. `>` faylın üzərinə yazar, `>>` isə faylın sonuna əlavə edər.
+    - **`stderr (2)`**: Xəta axını. `2>&1` xətaları normal çıxış axını ilə eyni yerə yönləndirir.
+    - **Pipes (`|` Boru)**: Bir əmrin çıxışını diskinə yazmadan, birbaşa yaddaşda (RAM) növbəti əmrə giriş kimi ötürür.
+
+    ### İstehsalatın Qızıl Qaydası: `set -euo pipefail`
+    Adi Bash skriptlərində bir sətr xəta versə belə, skript dayanmır və sonrakı sətrləri işlətməyə davam edir; bu isə datanı səssizcə korlayır.
+    - **`-e`**: Hər hansı bir əmr xəta versə, skripti dərhal dayandırır.
+    - **`-u`**: Təyin olunmamış (boş) dəyişən istifadə edildikdə xəta qaldırır (məsələn: `rm -rf /$DIR` səhvinin qarşısını alır).
+    - **`-o pipefail`**: Əgər `əməliyyat1 | əməliyyat2` zəncirində birinci əmr çöksə, bütün kəməri uğursuz elan edir.
+quick_recap:
+  en: "Linux is the foundation of all Big Data engines. Always start production Bash scripts with `set -euo pipefail` and use pipes (`|`) for in-memory stream processing."
+  az: "Linux bütün Big Data sistemlərinin təməlidir. İstehsalat Bash skriptlərini həmişə `set -euo pipefail` ilə başladın və məlumatı `|` boruları ilə axın şəklində emal edin."
+what_it_does:
+  en: "Provides low-level OS management, automation scripting, log diagnostics, and text stream manipulation across data nodes."
+  az: "Data serverlərində aşağı səviyyəli ƏS idarəetməsini, avtomatlaşdırma skriptlərini, loq analizini və mətn axınlarının emalını təmin edir."
+real_world_use:
+  en: "Cleaning dirty CSV files via `awk`/`sed` before loading, archiving log files, and triggering ETL pipelines through cron or orchestration agents."
+  az: "Baza yüklənməsindən əvvəl xammal CSV fayllarını `awk`/`sed` ilə süzmək, loqları arxivləşdirmək və pipeline-ları avtomatlaşdırmaq."
+common_mistakes:
+  en: "Writing Bash scripts without `set -euo pipefail`, leading to cascading silent failures where corrupted data gets processed downstream."
+  az: "Bash skriptlərində `set -euo pipefail` yazmamaq və kəmərdə əvvəlki addım çöksə belə sonrakı addımların səhv məlumatla davam etməsi."
+code: |
+  #!/usr/bin/env bash
+  # ==============================================================================
+  # PRODUCTION DATA INGESTION WRAPPER SCRIPT
+  # Demonstrates: set -euo pipefail, argument checks, piping, and error handling
+  # ==============================================================================
+  set -euo pipefail
+
+  readonly LOG_FILE="/tmp/de_pipeline_$(date +%Y%m%d).log"
+  readonly RAW_DIR="/data/landing"
+  readonly TARGET_DIR="/data/processed"
+
+  echo "[$(date -u)] Starting automated daily ingestion job..." | tee -a "${LOG_FILE}"
+
+  # Step 1: Verify landing directory exists
+  if [[ ! -d "${RAW_DIR}" ]]; then
+      echo "ERROR: Landing directory ${RAW_DIR} does not exist!" >&2
+      exit 1
+  fi
+
+  # Step 2: Stream process dirty sales file using Linux Text Toolkit (awk + grep)
+  # - Excludes header rows starting with '#'
+  # - Filters transactions where price > 50
+  # - Formats: order_id, customer_id, total_price
+  echo "[$(date -u)] Processing raw orders CSV..." | tee -a "${LOG_FILE}"
+
+  grep -v '^#' "${RAW_DIR}/raw_orders.csv" \
+      | awk -F',' '$3 > 50.00 { print $1 "," $2 "," $3 }' \
+      > "${TARGET_DIR}/filtered_orders.csv"
+
+  ORDER_COUNT=$(wc -l < "${TARGET_DIR}/filtered_orders.csv" | tr -d ' ')
+  echo "[$(date -u)] Pipeline SUCCESS! Processed ${ORDER_COUNT} qualified records." | tee -a "${LOG_FILE}"
+code_explanation:
+  en: |
+    - `set -euo pipefail`: Guarantees script safety by stopping immediately if any directory is missing or a command in the pipe fails.
+    - `tee -a "${LOG_FILE}"`: Simultaneously prints output to the terminal and appends it to the log file.
+    - `grep -v '^#'`: Invert match to strip comment/header lines.
+    - `awk -F',' '$3 > 50.00'`: Fast in-memory parsing without Python or Pandas overhead, streaming directly into the filtered output file.
+  az: |
+    - `set -euo pipefail`: Hər hansı qovluq tapılmadıqda və ya boruda bir əmr xəta verdikdə skripti dərhal dayandıraraq səssiz korlanmanın qarşısını alır.
+    - `tee -a "${LOG_FILE}"`: Nəticəni həm ekrana çıxarır, həm də loq faylına yazır.
+    - `grep -v '^#'`: '#' ilə başlayan şərh və başlıq sətirlərini təmizləyir.
+    - `awk -F',' '$3 > 50.00'`: Python və ya Pandas işə salmadan, birbaşa Linux nüvəsində 3-cü sütunun (qiymət) 50-dən böyük olmasını filtr edir.
+visual_output: |
+  ========================= BASH PIPELINE TERMINAL OUTPUT =========================
+  $ ./scripts/ingest_sales.sh
+  [2026-10-16 12:00:01 UTC] Starting automated daily ingestion job...
+  [2026-10-16 12:00:02 UTC] Processing raw orders CSV...
+  [2026-10-16 12:00:04 UTC] Pipeline SUCCESS! Processed 48250 qualified records.
+
+  $ ls -lh /data/processed/filtered_orders.csv
+  -rw-r--r-- 1 airflow dataops 2.4M Oct 16 12:00 /data/processed/filtered_orders.csv
+
+  $ head -n 3 /data/processed/filtered_orders.csv
+  ORD-99102,CUST-410,129.50
+  ORD-99105,CUST-102,89.00
+  ORD-99108,CUST-883,450.25
+output_description:
+  en: "Shows the production Bash script safely executing, streaming millions of rows through awk/grep, and generating the clean partition file."
+  az: "İstehsalat Bash skriptinin təhlükəsiz icrasını, awk/grep ilə faylı süzməsini və təmiz partisiya faylını yaratmasını göstərir."
+interview_question:
+  question:
+    en: "What does `set -euo pipefail` do at the top of a Bash script, and why is it considered a mandatory best practice in Data Engineering?"
+    az: "Bash skriptinin başında yazılan `set -euo pipefail` nə edir və niyə Data Mühəndisliyində məcburi standart hesab olunur?"
+  answer:
+    en: "By default, Bash continues running even if commands fail or undefined variables are accessed. `set -euo pipefail` hardens the script: (1) `-e` exits immediately if any command returns a non-zero exit status; (2) `-u` treats unset variables as an error and exits, preventing catastrophic accidents like `rm -rf /$UNDEFINED_VAR`; (3) `-o pipefail` ensures that if any command in a pipeline (`cmd1 | cmd2 | cmd3`) fails, the entire pipeline returns that failure status rather than masked by the final command. In Data Engineering, this prevents corrupt, partial, or missing data from silently progressing into downstream production databases."
+    az: "Susmaya görə Bash skriptində bir əmr xəta versə belə, icra dayanmır və sonrakı sətirlərə keçir. `set -euo pipefail` skripti gücləndirir: (1) `-e` hər hansı bir əmr xəta verdikdə skripti dərhal dayandırır; (2) `-u` boş (təyin olunmamış) dəyişəndən istifadə edildikdə xəta verir və `rm -rf /$DIR` kimi fəlakətli silinmələrin qarşısını alır; (3) `-o pipefail` boru (`cmd1 | cmd2 | cmd3`) zəncirində əvvəlki əmrlərdən biri çöksə, bütün kəməri xətalı elan edir. Data mühəndisliyində bu, natamam və ya xarab məlumatın səssizcə növbəti istehsalat bazalarına yazılmasının qarşısını alır."
+  interviewer_tips:
+    en: "Senior interviewers test your operational rigor with this question. Explaining each flag (`-e`, `-u`, `-o pipefail`) and mentioning 'silent data corruption' instantly sets you apart from junior candidates."
+    az: "Müsahibəçilər sizin istehsalat ciddiyyətinizi bu sualla yoxlayır. Hər bayrağı (`-e`, `-u`, `-o pipefail`) ayrı-ayrı izah etmək və 'məlumatın səssiz korlanması' arqumentini gətirmək sizə yüksək xal qazandıracaq."
+flashcards:
+  - front:
+      en: "What does the `-e` flag do in `set -e` in Bash?"
+      az: "Bash-da `set -e` əmrindəki `-e` bayrağı nə edir?"
+    back:
+      en: "Instructs the shell to exit immediately if any command exits with a non-zero (error) status."
+      az: "Hər hansı bir əmr sıfırdan fərqli (xəta) statusu ilə bitdikdə skriptin dərhal dayanmasını təmin edir."
+  - front:
+      en: "Why is `-o pipefail` critical when chaining commands with `|` (pipes)?"
+      az: "Əmrləri `|` (boru) ilə birləşdirərkən `-o pipefail` niyə həyati əhəmiyyət daşıyır?"
+    back:
+      en: "Without it, the exit status of the pipeline is only that of the last command, masking failures that occurred in earlier steps."
+      az: "Bu olmadan yalnız ən sonuncu əmrin çıxış statusu yoxlanılır və əvvəlki mərhələlərdə baş verən xətalar gizli qalır."
+  - front:
+      en: "What are the standard file descriptor numbers for stdin, stdout, and stderr in Linux?"
+      az: "Linux-da stdin, stdout və stderr üçün standart deskriptor nömrələri hansılardır?"
+    back:
+      en: "0 is stdin (standard input), 1 is stdout (standard output), and 2 is stderr (standard error)."
+      az: "0 - stdin (giriş), 1 - stdout (çıxış), və 2 - stderr (xəta axını)."
+  - front:
+      en: "What is the difference between `>` and `>>` when redirecting command output to a file?"
+      az: "Çıxışı fayla yönləndirərkən `>` ilə `>>` arasındakı fərq nədir?"
+    back:
+      en: "`>` overwrites the target file, while `>>` appends to the end of the file."
+      az: "`>` hədəf faylın üzərinə yazır (təmizləyir), `>>` isə faylın sonuna əlavə edir."
+  - front:
+      en: "Which Linux command is best for real-time monitoring of actively written pipeline log files?"
+      az: "Data kəmərinin canlı yazılan loq fayllarını real vaxtda izləmək üçün ən yaxşı Linux əmri hansıdır?"
+    back:
+      en: "`tail -f <logfile>` (or `tail -n 100 -f <logfile>`)."
+      az: "`tail -f <loq_faylı>` (və ya `tail -n 100 -f <loq_faylı>`)."

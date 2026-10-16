@@ -386,10 +386,65 @@ WHERE p.product_id IS NULL;
     assert not at_airflow.exception
     print(" [PASS] Airflow Master Deck flashcard navigation cycled successfully.")
 
+    # 28. Switch to DevOps Module
+    print("\n--- TEST CASE 28: Switch to DevOps Module ---")
+    at_devops = AppTest.from_file("app.py", default_timeout=30)
+    at_devops.run()
+    # Switch to AZ
+    at_devops.sidebar.button[0].click().run()
+    assert at_devops.session_state['lang'] == 'az'
+    # Select DevOps
+    at_devops.sidebar.radio[0].set_value("devops").run()
+    assert not at_devops.exception
+    print(" [PASS] Switched sidebar module to 'DevOps'.")
+
+    # 29. Verify DevOps Lesson Selector (12 Lessons)
+    print("\n--- TEST CASE 29: DevOps Lesson Selector & 12 Lessons Discovery ---")
+    devops_selector = at_devops.selectbox[0]
+    print(f" [PASS] DevOps Lesson options count: {len(devops_selector.options)}")
+    for i, opt in enumerate(devops_selector.options, 1):
+        print(f"   DevOps Lesson {i}: {opt}")
+    assert len(devops_selector.options) == 12, f"Expected 12 DevOps lessons, got {len(devops_selector.options)}"
+
+    # 30. Verify DevOps Lesson 01 Content, Infographic & Visual Output
+    print("\n--- TEST CASE 30: DevOps Lesson 01 Theory, Infographic & Visual Output QA ---")
+    at_devops.selectbox[0].select("01-linux-bash-scripting").run()
+    assert not at_devops.exception
+    # Check tabs
+    devops_tabs = [t.label for t in at_devops.tabs]
+    print(f" [PASS] DevOps Tabs: {devops_tabs}")
+    assert "Nəzəriyyə" in devops_tabs
+    assert "DevOps Kodu və Nəticəsi" in devops_tabs
+    assert "Müsahibə Kartları" in devops_tabs
+    assert "Fleşkartlar" in devops_tabs
+    print(" [PASS] Verified Lesson 01 loaded cleanly with Infographic, Code, and Visual Output.")
+
+    # 31. Verify DevOps Flashcards & 60-Card Master Deck
+    print("\n--- TEST CASE 31: DevOps Flashcards & 60-Card Master Deck QA ---")
+    at_devops.selectbox[0].select("12-kubernetes-monitoring-observability").run()
+    assert not at_devops.exception
+    deck_radio = at_devops.radio(key="devops_deck_mode_12-kubernetes-monitoring-observability")
+    assert deck_radio is not None
+    deck_radio.set_value("master").run()
+    assert not at_devops.exception
+
+    # Verify 60 flashcards in caption
+    captions = [c.value for c in at_devops.caption]
+    assert any("60" in c for c in captions), f"Master deck should show 60 cards, got captions: {captions}"
+    print(" [PASS] DevOps Master Deck loaded all 60 flashcards across 12 lessons.")
+
+    # Cycle flashcard with next button
+    do_next_btn = at_devops.button(key="devops_btn_next_12-kubernetes-monitoring-observability_master")
+    assert do_next_btn is not None
+    do_next_btn.click().run()
+    assert not at_devops.exception
+    print(" [PASS] DevOps Master Deck flashcard navigation cycled successfully.")
+
     print("\n=====================================================================")
-    print("🎉 ALL 27 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
+    print("🎉 ALL 31 QA TEST CASES COMPLETED SUCCESSFULLY (100% PASS)")
     print("=====================================================================")
 
 if __name__ == "__main__":
     run_qa_suite()
+
 

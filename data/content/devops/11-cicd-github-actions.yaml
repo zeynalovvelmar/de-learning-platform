@@ -1,0 +1,220 @@
+id: "11-cicd-github-actions"
+order: 11
+level: "advanced"
+title:
+  en: "CI/CD Pipelines: Automated Testing & GitHub Actions for DE"
+  az: "CI/CD Kəmərləri: Data Kəmərlərinin Avtomatlaşdırılmış Testi və GitHub Actions"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  WHAT IS CI/CD IN DATA ENGINEERING? (Continuous Integration/Deployment)│
+    └────────────────────────────────────────────────────────────────────────┘
+    Engineer opens Pull Request (PR) ──► Triggers Automated GitHub Actions CI
+                                                   │
+        ┌──────────────────┬───────────────────────┴──────────────────┬──────────────────┐
+        ▼                  ▼                                          ▼                  ▼
+    ┌──────────────┐ ┌──────────────┐                           ┌──────────────┐   ┌──────────────┐
+    │ 1. LINTING   │ │ 2. TYPES     │                           │ 3. UNIT TEST │   │ 4. DOCKER    │
+    │ • flake8     │ │ • mypy       │                           │ • pytest     │   │ • build test │
+    │ • black      │ │ • catches type│                          │ • 100% pass  │   │ • trivy scan │
+    │   formatting │   mismatches   │                           │   required   │   │   no CVEs    │
+    └──────────────┘ └──────────────┘                           └──────────────┘   └──────────────┘
+                                                   │
+                                                   ▼
+                                     ┌───────────────────────────┐
+                                     │ ALL CHECKS PASSED (GREEN) │
+                                     │ Pull Request Merge to main│
+                                     │ Auto-deploy to Production │
+                                     └───────────────────────────┘
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DATA MÜHƏNDİSLİYİNDƏ CI/CD NƏDİR? (Davamlı İnteqrasiya və Yerləşdirmə)│
+    └────────────────────────────────────────────────────────────────────────┘
+    Mühəndis Pull Request (PR) açır ──► Avtomatik GitHub Actions CI işə düşür
+                                                   │
+        ┌──────────────────┬───────────────────────┴──────────────────┬──────────────────┐
+        ▼                  ▼                                          ▼                  ▼
+    ┌──────────────┐ ┌──────────────┐                           ┌──────────────┐   ┌──────────────┐
+    │ 1. LİNTİNQ   │ │ 2. TİPLƏR    │                           │ 3. TESTLƏR   │   │ 4. DOCKER    │
+    │ • flake8     │ │ • mypy       │                           │ • pytest     │   │ • imici qur  │
+    │ • black      │ │ • tip səhvini│                           │ • 100% uğur  │   │ • təhlükəsiz │
+    │   formatlama │   kodda tapır  │                           │   tələb olunur│   skan et        │
+    └──────────────┘ └──────────────┘                           └──────────────┘   └──────────────┘
+                                                   │
+                                                   ▼
+                                     ┌───────────────────────────┐
+                                     │ BÜTÜN TESTLƏR KEÇDİ (YAŞIL)│
+                                     │ Kod main budağına birləşir│
+                                     │ İstehsalata avtomatik çıxır│
+                                     └───────────────────────────┘
+    ```
+explanation:
+  en: |
+    ### Why CI/CD is Critical in Modern Data Teams
+    In traditional legacy teams, engineers wrote Airflow DAGs or Spark scripts and manually copied files via SSH to production servers.
+    - If a developer had a Python syntax error, an uninstalled library, or an unclosed SQL quote, the nightly batch pipeline crashed in the middle of the night.
+    - **CI/CD eliminates human error**: Every single line of code must pass an automated battery of quality, type, and unit tests before it can ever be merged into `main`.
+
+    ### Continuous Integration (CI) vs Continuous Delivery (CD)
+    - **CI (Continuous Integration)**: Automates building and testing. Whenever a developer pushes a branch or opens a Pull Request, an automated virtual machine (a GitHub Runner) spins up, checks out the code, and runs linters (`flake8`), formatters (`black`), and tests (`pytest`).
+    - **CD (Continuous Delivery / Deployment)**: If and only if CI succeeds and the PR is approved, CD packages the pipeline into a Docker container, pushes it to an image registry (e.g. AWS ECR / Docker Hub), and automatically updates production Airflow or Kubernetes.
+
+    ### The 4 Stages of a Data Engineering CI Workflow
+    1. **Code Quality & Formatting**: `flake8` and `black --check` verify readability and detect unused variables.
+    2. **Static Type Checking**: `mypy` verifies type annotations, catching bugs like passing a string to a function expecting an integer DataFrame row count.
+    3. **Automated Unit Tests**: `pytest` executes unit tests against mocked databases (e.g. SQLite or Docker test containers).
+    4. **Container Build Verification**: Builds the Dockerfile to verify that dependencies compile cleanly without errors.
+  az: |
+    ### Müasir Data Komandalarında CI/CD Niyə Şərtdir?
+    Köhnə sistemlərdə mühəndislər yazdığı Airflow və ya Spark kodlarını əllə (SSH vasitəsilə) istehsalat serverinə atırdılar.
+    - Əgər kodda bircə sintaksis xətası, unudulmuş kitabxana və ya bağlanmamış dırnaq işarəsi olsaydı, gecə saat 03:00-da bütün şirkətin kəmərləri iflic olurdu.
+    - **CI/CD insan faktorunu aradan qaldırır**: Yazılan hər bir sətir kod əsas `main` budağına birləşməzdən əvvəl avtomatlaşdırılmış robotlar tərəfindən hərtərəfli test olunur.
+
+    ### CI (Davamlı İnteqrasiya) və CD (Davamlı Çatdırılma) Fərqi
+    - **CI (Continuous Integration)**: Hər dəfə yeni kod yazıb Pull Request açanda, GitHub arxa planda müvəqqəti bir virtual server (Runner) açır, kodu yükləyir, formatı (`black`), sintaksisi (`flake8`) və vahid testləri (`pytest`) icra edir. Əgər bircə test belə kəsilsə, kodun birləşməsinə icazə vermir (Qırmızı bayraq).
+    - **CD (Continuous Delivery / Deployment)**: Yalnız bütün CI testləri yaşıl keçdikdən və komanda kodu təsdiqlədikdən sonra, sistem avtomatik olaraq kodu Docker imicinə yığır, AWS ECR reyestrinə göndərir və istehsalat Airflow klasterini yeniləyir.
+
+    ### Data Kəmərləri Üçün 4 Əsas CI Mərhələsi
+    1. **Format və Kod Keyfiyyəti**: `flake8` və `black --check` kodun səliqəsini və istifadəsiz dəyişənləri yoxlayır.
+    2. **Statik Tip Yoxlaması**: `mypy` tiplərin düzgünlüyünü yoxlayır (məsələn: funksiya int gözlədiyi yerdə string ötürülməsini aşkar edir).
+    3. **Avtomatlaşdırılmış Vahid Testlər**: `pytest` bütün data transformasiyalarını sınaqdan keçirir.
+    4. **Docker Qurma Yoxlaması**: Dockerfile-ın xətasız kompilyasiya olunduğunu təsdiqləyir.
+quick_recap:
+  en: "CI/CD automates code validation. GitHub Actions runs linters, type checks, and pytest on every Pull Request, blocking broken code from entering production."
+  az: "CI/CD kodun keyfiyyətini avtomatlaşdırır. GitHub Actions hər PR-da linter, mypy və pytest işə salaraq xətalı kodun istehsalata keçməsinin qarşısını alır."
+what_it_does:
+  en: "Executes automated testing, code linting, security scanning, and container packaging on every Git push or pull request."
+  az: "Hər bir Git push və ya PR zamanı avtomatlaşdırılmış testləri, kod yoxlamasını və konteyner paketlənməsini icra edir."
+real_world_use:
+  en: "Triggering a GitHub Actions workflow that executes 50 unit tests on a PySpark transformations module whenever an engineer opens a PR against `main`."
+  az: "Mühəndis `main` budağına PR açan kimi GitHub Actions ilə PySpark transformasiyalarının 50 testini 30 saniyədə avtomatik icra edib yoxlamaq."
+common_mistakes:
+  en: "Merging directly into `main` without enabling branch protection rules, bypassing CI checks and pushing broken dependencies to live pipelines."
+  az: "Budaq qorunma qaydalarını (Branch Protection) aktiv etməmək və testdən keçməmiş xətalı kodu birbaşa `main` budağına atıb istehsalatı dayandırmaq."
+code: |
+  # ==============================================================================
+  # ENTERPRISE DATA PIPELINE CI WORKFLOW (.github/workflows/data-ci.yml)
+  # Automatically runs linting, type checking, pytest, and Docker builds on PRs
+  # ==============================================================================
+  name: "Data Platform CI"
+
+  on:
+    pull_request:
+      branches: ["main"]
+    push:
+      branches: ["main"]
+
+  jobs:
+    validate-and-test:
+      name: "Lint, Typecheck & Test"
+      runs-on: ubuntu-latest
+
+      steps:
+        # Step 1: Checkout repository code
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+
+        # Step 2: Set up deterministic Python environment
+        - name: "Set up Python 3.11"
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
+            cache: "pip"
+
+        # Step 3: Install testing tools and dependencies
+        - name: "Install Dependencies"
+          run: |
+            python -m pip install --upgrade pip
+            pip install flake8 black mypy pytest
+            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+        # Step 4: Run code style and formatting checks
+        - name: "Code Style & Formatting (Flake8 & Black)"
+          run: |
+            black --check --line-length 100 src/ tests/
+            flake8 src/ tests/ --max-line-length=100
+
+        # Step 5: Run unit tests with Pytest
+        - name: "Execute Automated Unit Tests"
+          run: |
+            pytest tests/ -v
+
+        # Step 6: Verify Dockerfile builds cleanly
+        - name: "Verify Docker Image Build"
+          run: |
+            docker build -t pipeline-test:latest .
+code_explanation:
+  en: |
+    - `on: pull_request: branches: ["main"]`: Triggers automatically whenever any team member proposes changes to `main`.
+    - `actions/setup-python@v5 with cache: "pip"`: Caches Python packages across workflow runs for fast 15-second execution times.
+    - `black --check`: Guarantees uniform code formatting across all data engineers on the team.
+    - `pytest tests/ -v`: Runs all pipeline verification assertions; if even one test fails, GitHub marks the PR red (❌) and blocks merging.
+    - `docker build`: Confirms the Dockerfile builds cleanly without broken dependencies before deploying.
+  az: |
+    - `on: pull_request`: Hər hansı komanda üzvü `main` budağına dəyişiklik göndərəndə skript avtomatik işə düşür.
+    - `actions/setup-python with cache: "pip"`: Kitabxanaları keşləyərək testlərin cəmi 15 saniyə ərzində ildırım kimi bitməsini təmin edir.
+    - `black --check`: Bütün data mühəndislərinin vahid kod formatına əməl etməsini məcburi edir.
+    - `pytest tests/ -v`: Bütün kəmər testlərini yoxlayır; bircə xəta olarsa, PR qırmızı (❌) olur və koda icazə verilmir.
+    - `docker build`: İmicin xətasız qurulduğunu təsdiqləyir.
+visual_output: |
+  ====================== GITHUB ACTIONS RUNNER SUMMARY ======================
+  Workflow: Data Platform CI  |  Branch: feature/spark-dedup  |  Commit: 4b8c91a
+  ---------------------------------------------------------------------------
+  ✔ 1. Checkout Code                                      0.2s
+  ✔ 2. Set up Python 3.11                                 1.1s (Pip Cache restored)
+  ✔ 3. Install Dependencies                               3.4s
+  ✔ 4. Code Style & Formatting (Flake8 & Black)           1.2s [All 14 files clean]
+  ✔ 5. Execute Automated Unit Tests (Pytest)              2.8s
+     ├── test_spark_transformations.py::test_dedup        PASSED
+     ├── test_sql_queries.py::test_incremental_load       PASSED
+     └── test_data_validation.py::test_null_check         PASSED (37/37 PASSED)
+  ✔ 6. Verify Docker Image Build                          4.1s [Image built cleanly]
+
+  Result: ALL CHECKS PASSED (GREEN)  |  Time: 12.8s  |  PR Approved for Merge!
+output_description:
+  en: "Shows the GitHub Actions CI pipeline running on an Ubuntu runner, executing style checks, passing 37 unit tests, and approving the Pull Request."
+  az: "GitHub Actions bulud serverində testlərin, formatlamanın və Docker qurulmasının 12 saniyədə uğurla (yaşıl) tamamlanmasını göstərir."
+interview_question:
+  question:
+    en: "What is CI/CD in the context of Data Engineering, and what automated checks should run before a Pull Request is allowed to merge into production?"
+    az: "Data Mühəndisliyi kontekstində CI/CD nədir və bir Pull Request-in istehsalata birləşməsinə icazə verilməzdən əvvəl hansı avtomatlaşdırılmış yoxlamalar işləməlidir?"
+  answer:
+    en: "CI/CD in Data Engineering automates the validation, testing, packaging, and deployment of data pipelines (DAGs, Spark jobs, dbt models, and Dockerfiles). Before any Pull Request is permitted to merge into the production `main` branch, an automated CI pipeline (e.g. GitHub Actions or GitLab CI) should enforce four gates: (1) Linting & Formatting (`flake8`, `black`, `sqlfluff` for SQL formatting) to ensure syntax correctness; (2) Static Type Checking (`mypy`) to catch data type contract mismatches; (3) Unit and Integration Tests (`pytest`) testing transformation logic against deterministic mock datasets; and (4) Container Build and Vulnerability Scanning (`docker build` and `trivy`) to verify that Docker images build without dependency breakages and contain no critical CVE security vulnerabilities. Only when all status checks pass 100% does Branch Protection allow merging."
+    az: "Data Mühəndisliyində CI/CD data kəmərlərinin (Airflow DAG-ları, Spark işləri, dbt modelləri və Docker imicləri) yoxlanmasını, test edilməsini və istehsalata çıxarılmasını avtomatlaşdıran sistemdir. Hər hansı bir Pull Request-in `main` budağına birləşməsinə icazə verilməzdən əvvəl avtomatlaşdırılmış CI kəməri 4 əsas mərhələni yoxlamalıdır: (1) Formatlama və Sintaksis (`flake8`, `black`, və SQL üçün `sqlfluff`); (2) Statik Tip Yoxlaması (`mypy`) ilə tip səhvlərinin tapılması; (3) Vahid və İnteqrasiya Testləri (`pytest`) ilə data transformasiyalarının nümunə məlumatlar üzərində düzgün işlədiyinin təsdiqi; (4) Docker Qurulması və Təhlükəsizlik Skanı (`docker build` və `trivy`) ilə imicin asılılıqlarının salamat olduğunu və heç bir təhlükəsizlik boşluğu daşımadığını təsdiqləmək. Yalnız bütün bu yoxlamalar 100% yaşıl keçdikdən sonra GitHub Branch Protection kodun birləşməsinə icazə verir."
+  interviewer_tips:
+    en: "Mention `sqlfluff` for SQL linting and `trivy` for container CVE scanning alongside `pytest`. This proves you understand data-specific CI/CD beyond standard web development."
+    az: "SQL kodlarının formatlanması üçün `sqlfluff` və imic skanı üçün `trivy` alətlərini qeyd etmək Data Mühəndisliyi üzrə yüksək səviyyəli DevOps bacarığınızı göstərir."
+flashcards:
+  - front:
+      en: "What is the primary objective of Continuous Integration (CI) in Data Engineering?"
+      az: "Data Mühəndisliyində Davamlı İnteqrasiyanın (CI) əsas məqsədi nədir?"
+    back:
+      en: "To automatically detect syntax bugs, broken dependencies, and test regressions before code merges into production."
+      az: "Kod istehsalata getməzdən əvvəl sintaksis xətalarını, xarab asılılıqları və xətaları avtomatik aşkar etmək."
+  - front:
+      en: "Where are GitHub Actions workflows configured in a repository?"
+      az: "GitHub Actions konfiqurasiya faylları layihədə hansı qovluqda yerləşir?"
+    back:
+      en: "In the `.github/workflows/` directory as YAML files (e.g. `.github/workflows/ci.yml`)."
+      az: "Layihənin `.github/workflows/` qovluğunda YAML faylları kimi (məs: `ci.yml`)."
+  - front:
+      en: "What is the purpose of Branch Protection rules in GitHub?"
+      az: "GitHub-da Budaq Qorunma (Branch Protection) qaydalarının məqsədi nədir?"
+    back:
+      en: "To prevent direct pushes to `main` and require all CI checks to pass and PRs to be reviewed before merging."
+      az: "`main` budağına birbaşa kod atılmasının qarşısını almaq və bütün CI testlərinin keçməsini məcburi etmək."
+  - front:
+      en: "Which popular Python tool is used for automated unit testing in data pipeline CI workflows?"
+      az: "Data kəmərlərinin CI kəmərlərində avtomatlaşdırılmış vahid testlər üçün hansı məşhur Python aləti istifadə olunur?"
+    back:
+      en: "`pytest`."
+      az: "`pytest`."
+  - front:
+      en: "What tool is commonly used to automatically lint and enforce standard style in SQL models?"
+      az: "SQL modellərində standart formatı və qaydaları avtomatik yoxlamaq üçün hansı məşhur linter istifadə olunur?"
+    back:
+      en: "`sqlfluff`."
+      az: "`sqlfluff`."
