@@ -6,22 +6,21 @@ import { useProgress } from '@/context/progress-context';
 import { ModuleSummary, LessonSummary } from '@/types';
 import { 
   Database, 
-  Code2, 
+  Terminal, 
   Zap, 
-  Radio, 
-  Wind, 
-  Server, 
   Layers, 
+  Wind, 
   Box, 
+  Cpu, 
+  GitBranch, 
   CheckCircle2, 
   Circle, 
   ChevronDown, 
   ChevronRight, 
   Search, 
-  Code,
-  X,
-  Trophy,
-  GraduationCap
+  Home,
+  Clock,
+  X
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,19 +29,21 @@ interface SidebarProps {
   activeLessonId: string;
   moduleLessons: Record<string, LessonSummary[]>;
   onSelectLesson: (moduleId: string, lessonId: string) => void;
+  onGoHome: () => void;
+  isHome: boolean;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
 }
 
-const MODULE_ICONS: Record<string, React.ReactNode> = {
-  python: <Code2 className="h-4 w-4 text-emerald-500" />,
-  sql: <Database className="h-4 w-4 text-blue-500" />,
-  spark: <Zap className="h-4 w-4 text-amber-500" />,
-  kafka: <Radio className="h-4 w-4 text-purple-500" />,
-  airflow: <Wind className="h-4 w-4 text-teal-500" />,
-  devops: <Server className="h-4 w-4 text-rose-500" />,
-  data_architecture: <Layers className="h-4 w-4 text-cyan-500" />,
-  dbt: <Box className="h-4 w-4 text-orange-500" />,
+const MODULE_ICONS: Record<string, React.ElementType> = {
+  python: Terminal,
+  sql: Database,
+  spark: Zap,
+  kafka: Layers,
+  airflow: Wind,
+  devops: Box,
+  data_architecture: Cpu,
+  dbt: GitBranch,
 };
 
 export function Sidebar({
@@ -51,6 +52,8 @@ export function Sidebar({
   activeLessonId,
   moduleLessons,
   onSelectLesson,
+  onGoHome,
+  isHome,
   isOpenMobile,
   onCloseMobile,
 }: SidebarProps) {
@@ -61,6 +64,8 @@ export function Sidebar({
   });
   const [searchQuery, setSearchQuery] = useState('');
 
+  const isAz = language === 'az';
+
   const toggleModule = (modId: string) => {
     setExpandedModules((prev) => ({
       ...prev,
@@ -68,10 +73,9 @@ export function Sidebar({
     }));
   };
 
-  const totalPlatformLessons = modules.reduce((acc, m) => acc + m.total_lessons, 0);
-  const completionPercentage = totalPlatformLessons > 0 
-    ? Math.round((completedLessons.size / totalPlatformLessons) * 100) 
-    : 0;
+  const totalLessons = modules.reduce((acc, m) => acc + m.total_lessons, 0);
+  const completedCount = completedLessons.size;
+  const progressPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   return (
     <>
@@ -85,92 +89,110 @@ export function Sidebar({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-16 bottom-0 z-40 flex w-80 flex-col border-r border-zinc-200/80 bg-zinc-50/95 transition-transform duration-300 ease-in-out dark:border-zinc-800 dark:bg-zinc-950/95 lg:static lg:translate-x-0 ${
+        className={`fixed top-14 bottom-0 z-40 flex w-72 flex-col border-r border-zinc-200/80 bg-zinc-50/70 dark:border-zinc-800/80 dark:bg-zinc-950/80 backdrop-blur-md transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           isOpenMobile ? 'left-0 translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Top: Progress and Search */}
-        <div className="border-b border-zinc-200/80 p-4 dark:border-zinc-800">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
-              <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span>{language === 'az' ? 'Platforma Tərəqqisi' : 'Curriculum Progress'}</span>
+        {/* Top: Home Link & Search Input */}
+        <div className="border-b border-zinc-200/80 p-3.5 dark:border-zinc-800/80">
+          {/* Quick Home / Overview Link */}
+          <button
+            onClick={() => {
+              onGoHome();
+              onCloseMobile();
+            }}
+            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
+              isHome 
+                ? 'bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50 shadow-2xs' 
+                : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Home className="h-4 w-4 text-zinc-500" />
+              <span>{isAz ? 'İcmal & Yol Xəritəsi' : 'Overview & Roadmap'}</span>
             </div>
-            <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
-              {completionPercentage}% ({completedLessons.size}/{totalPlatformLessons})
-            </span>
-          </div>
+            <span className="font-mono text-[10px] text-zinc-400">HUB</span>
+          </button>
 
-          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200/90 dark:bg-zinc-800 shadow-inner">
-            <div 
-              className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 transition-all duration-500 rounded-full"
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
-
-          {/* Search box */}
-          <div className="relative mt-3">
+          {/* Minimalist Search Box */}
+          <div className="relative mt-2.5">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-400" />
             <input
               type="text"
-              placeholder={language === 'az' ? 'Dərs mövzusu və ya açar söz...' : 'Search lessons...'}
+              placeholder={isAz ? 'Dərs və ya mövzu axtar...' : 'Search lessons...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200/90 bg-white py-1.5 pl-8 pr-7 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 transition shadow-2xs"
+              className="w-full rounded-lg border border-zinc-200/90 bg-white py-1.5 pl-8 pr-7 text-xs text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 transition"
             />
             {searchQuery && (
-              <button 
+              <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                className="absolute right-2 top-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
+
+          {/* Subtle Progress Bar */}
+          <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-500">
+            <span>{isAz ? 'Ümumi tərəqqi' : 'Total Progress'}</span>
+            <span className="font-mono font-semibold text-zinc-700 dark:text-zinc-300">
+              {progressPct}% ({completedCount}/{totalLessons})
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/80 dark:bg-zinc-800">
+            <div 
+              className="h-full bg-zinc-900 dark:bg-zinc-100 rounded-full transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
         </div>
 
-        {/* Modules & Lessons List */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-          {modules.map((mod) => {
-            const isExpanded = expandedModules[mod.id] || searchQuery.length > 0;
+        {/* Middle: Modules and Lessons Hierarchical List */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {modules.map((mod, modIdx) => {
+            const Icon = MODULE_ICONS[mod.id] || Database;
+            const isExpanded = expandedModules[mod.id] ?? (mod.id === activeModuleId);
             const lessons = moduleLessons[mod.id] || [];
-            
-            // Filter lessons by search query if present
-            const filteredLessons = searchQuery.trim() === ''
-              ? lessons
-              : lessons.filter((l) => {
-                  const title = t(l.title).toLowerCase();
-                  return title.includes(searchQuery.toLowerCase());
-                });
 
-            // If searching and no match, skip module
-            if (searchQuery.trim() !== '' && filteredLessons.length === 0) {
+            // Filter lessons if search query is active
+            const filteredLessons = searchQuery.trim()
+              ? lessons.filter((l) => 
+                  t(l.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  l.id.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+              : lessons;
+
+            if (searchQuery.trim() && filteredLessons.length === 0) {
               return null;
             }
 
-            const moduleCompletedCount = lessons.filter((l) => isLessonCompleted(l.id)).length;
+            const modCompletedCount = lessons.filter((l) => isLessonCompleted(l.id)).length;
+            const isCurrentModule = !isHome && mod.id === activeModuleId;
 
             return (
               <div key={mod.id} className="rounded-xl overflow-hidden">
-                {/* Module Header Button */}
+                {/* Module Header Accordion Item */}
                 <button
                   onClick={() => toggleModule(mod.id)}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs font-semibold rounded-xl transition ${
-                    activeModuleId === mod.id
-                      ? 'bg-blue-50/90 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/40'
-                      : 'text-zinc-700 hover:bg-zinc-200/50 dark:text-zinc-300 dark:hover:bg-zinc-900/60'
+                  className={`flex w-full items-center justify-between px-2.5 py-2 text-left text-xs font-semibold transition ${
+                    isCurrentModule
+                      ? 'text-zinc-900 dark:text-zinc-100 font-bold'
+                      : 'text-zinc-700 hover:bg-zinc-100/70 dark:text-zinc-300 dark:hover:bg-zinc-900/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <span className="p-1 rounded-lg bg-white shadow-xs dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80">
-                      {MODULE_ICONS[mod.id] || <Box className="h-4 w-4" />}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-zinc-400 font-mono text-[11px]">
+                      {modIdx < 9 ? `0${modIdx + 1}` : modIdx + 1}
                     </span>
-                    <span className="truncate font-bold">{t(mod.title)}</span>
+                    <Icon className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                    <span className="truncate">{t(mod.title)}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    <span className="text-[10px] font-mono font-medium text-zinc-400 dark:text-zinc-500">
-                      {moduleCompletedCount}/{mod.total_lessons}
+                    <span className="font-mono text-[10px] text-zinc-400">
+                      {modCompletedCount > 0 ? `${modCompletedCount}/${lessons.length}` : lessons.length}
                     </span>
                     {isExpanded ? (
                       <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
@@ -180,70 +202,38 @@ export function Sidebar({
                   </div>
                 </button>
 
-                {/* Lessons list */}
+                {/* Sub Lessons List */}
                 {isExpanded && (
-                  <div className="mt-1 ml-4 pl-2 border-l border-zinc-200/80 dark:border-zinc-800 space-y-0.5 py-1">
-                    {filteredLessons.map((lesson) => {
-                      const isActive = activeLessonId === lesson.id;
-                      const completed = isLessonCompleted(lesson.id);
+                  <div className="ml-5 border-l border-zinc-200/80 dark:border-zinc-800/80 pl-2 my-1 space-y-0.5">
+                    {filteredLessons.map((les) => {
+                      const isActive = !isHome && mod.id === activeModuleId && les.id === activeLessonId;
+                      const done = isLessonCompleted(les.id);
 
                       return (
                         <button
-                          key={lesson.id}
+                          key={les.id}
                           onClick={() => {
-                            onSelectLesson(mod.id, lesson.id);
+                            onSelectLesson(mod.id, les.id);
                             onCloseMobile();
                           }}
                           className={`group flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition ${
                             isActive
-                              ? 'bg-blue-600 font-semibold text-white shadow-sm shadow-blue-500/25'
-                              : 'text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-200'
+                              ? 'bg-zinc-200/90 text-zinc-900 dark:bg-zinc-800/90 dark:text-zinc-50 font-semibold shadow-2xs'
+                              : 'text-zinc-600 hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900/60 dark:hover:text-zinc-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            {completed ? (
-                              <CheckCircle2
-                                className={`h-3.5 w-3.5 shrink-0 ${
-                                  isActive ? 'text-white' : 'text-emerald-500'
-                                }`}
-                              />
+                          <div className="flex items-center gap-2 min-w-0">
+                            {done ? (
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             ) : (
-                              <Circle
-                                className={`h-3.5 w-3.5 shrink-0 ${
-                                  isActive ? 'text-white/60' : 'text-zinc-300 dark:text-zinc-700'
-                                }`}
-                              />
+                              <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700 shrink-0 group-hover:bg-zinc-400" />
                             )}
-                            <span className="text-[11px] font-mono opacity-60">
-                              {lesson.order < 10 ? `0${lesson.order}` : lesson.order}
-                            </span>
-                            <span className="truncate">{t(lesson.title)}</span>
+                            <span className="truncate">{t(les.title)}</span>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0 ml-1">
-                            {lesson.has_exercise && (
-                              <span title="Interactive Sandbox Exercise">
-                                <Code
-                                  className={`h-3 w-3 ${
-                                    isActive ? 'text-white/80' : 'text-amber-500'
-                                  }`}
-                                />
-                              </span>
-                            )}
-                            <span
-                              className={`rounded-md px-1 py-0.2 text-[9px] font-black uppercase ${
-                                isActive
-                                  ? 'bg-white/20 text-white'
-                                  : lesson.level === 'junior'
-                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
-                                  : lesson.level === 'mid' || lesson.level === 'intermediate'
-                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
-                                  : 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400'
-                              }`}
-                            >
-                              {lesson.level === 'junior' ? 'JR' : lesson.level === 'mid' || lesson.level === 'intermediate' ? 'MID' : 'SR'}
-                            </span>
-                          </div>
+                          <span className="font-mono text-[10px] text-zinc-400 shrink-0 ml-1">
+                            {les.order < 10 ? `0${les.order}` : les.order}
+                          </span>
                         </button>
                       );
                     })}

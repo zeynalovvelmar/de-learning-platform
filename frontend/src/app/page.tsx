@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Navbar } from '@/components/Navbar';
-import { Sidebar } from '@/components/Sidebar';
-import { LessonView } from '@/components/LessonView';
-import { FlashcardModal } from '@/components/FlashcardModal';
+import { useLanguage } from '@/context/language-context';
 import { 
   fetchModules, 
   fetchModuleLessons, 
@@ -12,17 +9,27 @@ import {
   fetchModuleFlashcards 
 } from '@/lib/api';
 import { ModuleSummary, LessonSummary, LessonDetail, Flashcard } from '@/types';
-import { useLanguage } from '@/context/language-context';
+import { Navbar } from '@/components/Navbar';
+import { Sidebar } from '@/components/Sidebar';
+import { LessonView } from '@/components/LessonView';
+import { HomeHub } from '@/components/HomeHub';
+import { FlashcardModal } from '@/components/FlashcardModal';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function Home() {
   const { language, t } = useLanguage();
+
   const [modules, setModules] = useState<ModuleSummary[]>([]);
   const [moduleLessons, setModuleLessons] = useState<Record<string, LessonSummary[]>>({});
+  
+  // Navigation states
+  const [isHome, setIsHome] = useState<boolean>(true);
   const [activeModuleId, setActiveModuleId] = useState<string>('data_architecture');
-  const [activeLessonId, setActiveLessonId] = useState<string>('01-oltp-vs-olap-columnar');
+  const [activeLessonId, setActiveLessonId] = useState<string>('');
   const [lessonDetail, setLessonDetail] = useState<LessonDetail | null>(null);
+  const [lastLesson, setLastLesson] = useState<{ moduleId: string; lessonId: string } | null>(null);
 
+  // Loading & error states
   const [loading, setLoading] = useState<boolean>(true);
   const [lessonLoading, setLessonLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,17 +61,17 @@ export default function Home() {
         );
         setModuleLessons(lessonsMap);
 
-        // Set default active module & lesson
-        const defaultMod = mods.find((m) => m.id === 'data_architecture') || mods[0];
-        if (defaultMod) {
-          const modLessons = lessonsMap[defaultMod.id] || [];
-          const firstLesson = modLessons[0];
-          if (firstLesson) {
-            setActiveModuleId(defaultMod.id);
-            setActiveLessonId(firstLesson.id);
-            const detail = await fetchLessonDetail(defaultMod.id, firstLesson.id);
-            setLessonDetail(detail);
+        // Read last visited lesson from localStorage if available
+        try {
+          const saved = localStorage.getItem('dataeng_last_lesson');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.moduleId && parsed.lessonId) {
+              setLastLesson(parsed);
+            }
           }
+        } catch {
+          // Ignore
         }
       } catch (err: any) {
         console.error('Failed to load initial data', err);
@@ -79,15 +86,20 @@ export default function Home() {
 
   // 2. Select Lesson handler
   const handleSelectLesson = async (moduleId: string, lessonId: string) => {
-    if (moduleId === activeModuleId && lessonId === activeLessonId && lessonDetail) {
-      return;
-    }
-
+    setIsHome(false);
     setActiveModuleId(moduleId);
     setActiveLessonId(lessonId);
     setLessonLoading(true);
 
     try {
+      // Save last visited lesson
+      try {
+        localStorage.setItem('dataeng_last_lesson', JSON.stringify({ moduleId, lessonId }));
+        setLastLesson({ moduleId, lessonId });
+      } catch {
+        // Ignore
+      }
+
       const detail = await fetchLessonDetail(moduleId, lessonId);
       setLessonDetail(detail);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -102,6 +114,7 @@ export default function Home() {
   useEffect(() => {
     (window as any).__selectLesson = handleSelectLesson;
   }, [modules, activeModuleId, activeLessonId, lessonDetail]);
+
   const handleOpenLessonFlashcards = () => {
     if (lessonDetail?.flashcards && lessonDetail.flashcards.length > 0) {
       setModalCards(lessonDetail.flashcards);
@@ -110,7 +123,6 @@ export default function Home() {
     }
   };
 
-  // 4. Open Master Flashcards for Current Module
   const handleOpenModuleFlashcards = async () => {
     try {
       const cards = await fetchModuleFlashcards(activeModuleId);
@@ -128,11 +140,22 @@ export default function Home() {
   const currentModule = modules.find((m) => m.id === activeModuleId);
   const currentModuleLessons = moduleLessons[activeModuleId] || [];
 
+  // Compute Prev and Next lessons
+  const currentLessonIndex = currentModuleLessons.findIndex((l) => l.id === activeLessonId);
+  const prevLesson = currentLessonIndex > 0 ? currentModuleLessons[currentLessonIndex - 1] : null;
+  const nextLesson = currentLessonIndex >= 0 && currentLessonIndex < currentModuleLessons.length - 1 
+    ? currentModuleLessons[currentLessonIndex + 1] 
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
       {/* Top Navbar */}
       <Navbar
         onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        onGoHome={() => setIsHome(true)}
+        isHome={isHome}
+        activeModuleTitle={currentModule ? t(currentModule.title) : undefined}
+        activeLessonTitle={lessonDetail ? t(lessonDetail.title) : undefined}
         onOpenFlashcards={handleOpenModuleFlashcards}
       />
 
@@ -145,6 +168,8 @@ export default function Home() {
           activeLessonId={activeLessonId}
           moduleLessons={moduleLessons}
           onSelectLesson={(modId, lesId) => handleSelectLesson(modId, lesId)}
+          onGoHome={() => setIsHome(true)}
+          isHome={isHome}
           isOpenMobile={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
@@ -171,6 +196,14 @@ export default function Home() {
                 FastAPI backend-in <code>http://127.0.0.1:8000</code> ünvanında işlədiyindən əmin olun.
               </p>
             </div>
+          ) : isHome ? (
+            /* Dedicated Professional Entry / Overview Landing Page */
+            <HomeHub
+              modules={modules}
+              moduleLessons={moduleLessons}
+              lastLessonId={lastLesson}
+              onSelectLesson={(modId, lesId) => handleSelectLesson(modId, lesId)}
+            />
           ) : lessonLoading ? (
             <div className="flex h-96 flex-col items-center justify-center gap-3 text-zinc-500">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
@@ -183,9 +216,11 @@ export default function Home() {
               moduleId={activeModuleId}
               moduleTitle={t(currentModule.title)}
               lesson={lessonDetail}
-              lessonsList={currentModuleLessons}
-              onSelectLesson={(lesId) => handleSelectLesson(activeModuleId, lesId)}
               onOpenFlashcards={handleOpenLessonFlashcards}
+              onPrevLesson={prevLesson ? () => handleSelectLesson(activeModuleId, prevLesson.id) : undefined}
+              onNextLesson={nextLesson ? () => handleSelectLesson(activeModuleId, nextLesson.id) : undefined}
+              prevLessonTitle={prevLesson ? t(prevLesson.title) : undefined}
+              nextLessonTitle={nextLesson ? t(nextLesson.title) : undefined}
             />
           ) : (
             <div className="p-8 text-center text-zinc-500">
