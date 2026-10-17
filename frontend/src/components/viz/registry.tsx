@@ -5,6 +5,8 @@ import { ColumnarScanViz } from './ColumnarScanViz';
 import { JoinVenn } from './JoinVenn';
 import { PartitionLogViz } from './PartitionLogViz';
 import { ShuffleViz } from './ShuffleViz';
+import { MedallionViz } from './MedallionViz';
+import { ContainerVsVmViz } from './ContainerVsVmViz';
 import { L } from './shared';
 
 /**
@@ -633,7 +635,7 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'data_architecture:02-what-is-dwh-why-needed': flow(dwhWhy),
   'data_architecture:03-evolution-dwh-lake-lakehouse': flow(evolution),
   'data_architecture:06-star-vs-snowflake-schema': hub(starSchema),
-  'data_architecture:08-medallion-architecture-layers': flow(medallion),
+  'data_architecture:08-medallion-architecture-layers': () => <MedallionViz />,
   'data_architecture:11-etl-vs-elt-evolution': flow(etlVsElt),
 
   'kafka:01-what-is-kafka': flow(kafkaWhat),
@@ -651,7 +653,7 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'airflow:02-architecture-components': hub(airflowArch),
   'airflow:03-operators-tasks-dependencies': flow(airflowDeps),
 
-  'devops:03-containers-docker-vs-vm': flow(containersVsVm),
+  'devops:03-containers-docker-vs-vm': () => <ContainerVsVmViz />,
   'devops:05-dockerfile-builds': flow(dockerBuild),
   'devops:09-docker-compose-stack': hub(composeStack),
   'devops:11-cicd-github-actions': flow(cicd),

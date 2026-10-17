@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Pause, Play, Sparkles } from 'lucide-react';
+import { Pause, Play, Layers } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
 import type { LText } from './shared';
@@ -105,17 +105,17 @@ export function VizFrame({ title, subtitle, badge, footer, actions, className, c
         <div className="pointer-events-none absolute inset-0 bg-dots opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent_70%)]" />
         <div className="relative flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface-2/60 px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
-              <Sparkles className="h-3.5 w-3.5" />
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-line bg-surface text-ink-2 shadow-2xs">
+              <Layers className="h-3.5 w-3.5" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[0.8125rem] font-semibold text-ink">
-                {title ? lt(title) : az ? 'İnteraktiv Diaqram' : 'Interactive Diagram'}
+              <p className="truncate text-xs font-bold uppercase tracking-wider text-ink">
+                {title ? lt(title) : (az ? 'Arxitektura Sxemi' : 'Architecture Blueprint')}
               </p>
-              {subtitle && <p className="truncate text-[0.6875rem] text-muted">{lt(subtitle)}</p>}
+              {subtitle && <p className="truncate text-[11px] text-muted">{lt(subtitle)}</p>}
             </div>
             {badge && (
-              <span className="hidden shrink-0 rounded-full border border-accent/25 bg-accent-soft px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider text-accent sm:inline">
+              <span className="hidden shrink-0 rounded-md border border-line bg-surface-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink-2 sm:inline">
                 {lt(badge)}
               </span>
             )}
@@ -133,7 +133,7 @@ export function VizFrame({ title, subtitle, badge, footer, actions, className, c
             </button>
           </div>
         </div>
-        <div className="relative px-4 py-6 sm:px-6">{children}</div>
+        <div className="relative px-2 py-5 sm:px-3">{children}</div>
         {footer && (
           <figcaption className="relative border-t border-line bg-surface-2/50 px-4 py-2.5 text-[0.75rem] leading-relaxed text-muted">
             {lt(footer)}

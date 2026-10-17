@@ -1,235 +1,298 @@
 'use client';
 
-import React, { useId, useState } from 'react';
+import React, { useState } from 'react';
 import { VizFrame, useViz } from './VizFrame';
 import { L, type LText } from './shared';
 import { cn } from '@/lib/utils';
+import { ArrowRight, Table2, Layers, Check, X } from 'lucide-react';
 
 type JoinType = 'inner' | 'left' | 'right' | 'full' | 'leftAnti';
 
-const USERS = [
+interface UserRow {
+  id: number;
+  name: string;
+}
+
+interface OrderRow {
+  orderId: number;
+  userId: number;
+  amount: string;
+}
+
+interface ResultRow {
+  userId: number | null;
+  name: string | null;
+  orderId: number | null;
+  amount: string | null;
+  status: 'matched' | 'left_null' | 'right_null';
+}
+
+const USERS: UserRow[] = [
   { id: 1, name: 'Aysel' },
   { id: 2, name: 'Murad' },
   { id: 3, name: 'Leyla' },
-  { id: 4, name: 'Vusal' },
-];
-const ORDERS = [
-  { id: 101, userId: 2 },
-  { id: 102, userId: 3 },
-  { id: 103, userId: 5 },
 ];
 
-type Row = { user: string | null; order: number | null };
+const ORDERS: OrderRow[] = [
+  { orderId: 101, userId: 1, amount: '50 AZN' },
+  { orderId: 102, userId: 1, amount: '120 AZN' },
+  { orderId: 103, userId: 2, amount: '35 AZN' },
+  { orderId: 104, userId: 9, amount: '80 AZN' }, // Unmatched user
+];
 
-function resultFor(type: JoinType): Row[] {
-  const matched: Row[] = ORDERS.filter((o) => USERS.some((u) => u.id === o.userId)).map((o) => ({
-    user: USERS.find((u) => u.id === o.userId)!.name,
-    order: o.id,
-  }));
-  const leftOnly: Row[] = USERS.filter((u) => !ORDERS.some((o) => o.userId === u.id)).map((u) => ({
-    user: u.name,
-    order: null,
-  }));
-  const rightOnly: Row[] = ORDERS.filter((o) => !USERS.some((u) => u.id === o.userId)).map((o) => ({
-    user: null,
-    order: o.id,
-  }));
+function computeJoinResult(type: JoinType): ResultRow[] {
   switch (type) {
     case 'inner':
-      return matched;
+      return [
+        { userId: 1, name: 'Aysel', orderId: 101, amount: '50 AZN', status: 'matched' },
+        { userId: 1, name: 'Aysel', orderId: 102, amount: '120 AZN', status: 'matched' },
+        { userId: 2, name: 'Murad', orderId: 103, amount: '35 AZN', status: 'matched' },
+      ];
     case 'left':
-      return [...leftOnly.slice(0, 1), ...matched, ...leftOnly.slice(1)];
+      return [
+        { userId: 1, name: 'Aysel', orderId: 101, amount: '50 AZN', status: 'matched' },
+        { userId: 1, name: 'Aysel', orderId: 102, amount: '120 AZN', status: 'matched' },
+        { userId: 2, name: 'Murad', orderId: 103, amount: '35 AZN', status: 'matched' },
+        { userId: 3, name: 'Leyla', orderId: null, amount: null, status: 'right_null' },
+      ];
     case 'right':
-      return [...matched, ...rightOnly];
+      return [
+        { userId: 1, name: 'Aysel', orderId: 101, amount: '50 AZN', status: 'matched' },
+        { userId: 1, name: 'Aysel', orderId: 102, amount: '120 AZN', status: 'matched' },
+        { userId: 2, name: 'Murad', orderId: 103, amount: '35 AZN', status: 'matched' },
+        { userId: null, name: null, orderId: 104, amount: '80 AZN', status: 'left_null' },
+      ];
     case 'full':
-      return [...leftOnly.slice(0, 1), ...matched, ...leftOnly.slice(1), ...rightOnly];
+      return [
+        { userId: 1, name: 'Aysel', orderId: 101, amount: '50 AZN', status: 'matched' },
+        { userId: 1, name: 'Aysel', orderId: 102, amount: '120 AZN', status: 'matched' },
+        { userId: 2, name: 'Murad', orderId: 103, amount: '35 AZN', status: 'matched' },
+        { userId: 3, name: 'Leyla', orderId: null, amount: null, status: 'right_null' },
+        { userId: null, name: null, orderId: 104, amount: '80 AZN', status: 'left_null' },
+      ];
     case 'leftAnti':
-      return leftOnly;
+      return [
+        { userId: 3, name: 'Leyla', orderId: null, amount: null, status: 'right_null' },
+      ];
   }
 }
 
-const SQL: Record<JoinType, string[]> = {
-  inner: ['FROM users u', 'INNER JOIN orders o', '  ON u.id = o.user_id;'],
-  left: ['FROM users u', 'LEFT JOIN orders o', '  ON u.id = o.user_id;'],
-  right: ['FROM users u', 'RIGHT JOIN orders o', '  ON u.id = o.user_id;'],
-  full: ['FROM users u', 'FULL OUTER JOIN orders o', '  ON u.id = o.user_id;'],
-  leftAnti: ['FROM users u', 'LEFT JOIN orders o', '  ON u.id = o.user_id', 'WHERE o.user_id IS NULL;'],
+const SQL_QUERIES: Record<JoinType, string> = {
+  inner: `SELECT u.id, u.name, o.order_id, o.amount
+FROM users u
+INNER JOIN orders o ON u.id = o.user_id;`,
+  left: `SELECT u.id, u.name, o.order_id, o.amount
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id;`,
+  right: `SELECT u.id, u.name, o.order_id, o.amount
+FROM users u
+RIGHT JOIN orders o ON u.id = o.user_id;`,
+  full: `SELECT u.id, u.name, o.order_id, o.amount
+FROM users u
+FULL OUTER JOIN orders o ON u.id = o.user_id;`,
+  leftAnti: `SELECT u.id, u.name
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE o.order_id IS NULL;`,
 };
 
-const LABELS: Record<JoinType, { name: string; desc: LText }> = {
+const JOIN_DESCRIPTIONS: Record<JoinType, { title: string; desc: LText }> = {
   inner: {
-    name: 'INNER',
-    desc: L('Yalnız hər iki cədvəldə uyğunluğu olan sətirlər.', 'Only rows that match in both tables.'),
+    title: 'INNER JOIN',
+    desc: L(
+      'Yalnız hər iki cədvəldə açar uyğunluğu olan sətirlər (u.id = o.user_id). Leyla və Order 104 nəticəyə daxil olmur.',
+      'Only rows where keys match in both tables (u.id = o.user_id). Leyla and Order 104 are excluded.'
+    ),
   },
   left: {
-    name: 'LEFT',
-    desc: L('Soldakı bütün sətirlər; uyğunluq yoxdursa sağ tərəf NULL.', 'Every left row; right side is NULL when there is no match.'),
+    title: 'LEFT JOIN',
+    desc: L(
+      'Sol cədvəldəki (users) bütün sətirlər mütləq saxlanılır. Leyla sifariş etmədiyi üçün sifariş sütunları NULL olur.',
+      'All rows from the left table (users) are preserved. Since Leyla has no orders, order columns become NULL.'
+    ),
   },
   right: {
-    name: 'RIGHT',
-    desc: L('Sağdakı bütün sətirlər; uyğunluq yoxdursa sol tərəf NULL.', 'Every right row; left side is NULL when there is no match.'),
+    title: 'RIGHT JOIN',
+    desc: L(
+      'Sağ cədvəldəki (orders) bütün sətirlər saxlanılır. Order 104 mövcud olmayan istifadəçiyə (id=9) aid olduğu üçün user sütunları NULL olur.',
+      'All rows from the right table (orders) are preserved. Order 104 belongs to non-existent user 9, so user columns become NULL.'
+    ),
   },
   full: {
-    name: 'FULL',
-    desc: L('Hər iki tərəfin bütün sətirləri; uyğunsuzlar NULL ilə.', 'All rows from both sides; unmatched sides become NULL.'),
+    title: 'FULL OUTER JOIN',
+    desc: L(
+      'Hər iki tərəfin bütün sətirləri birləşir. Uyğunluğu olmayan hər iki tərəf üçün çatışmayan tərəf NULL ilə doldurulur.',
+      'Combines all rows from both tables. Missing data on either side is filled with NULL.'
+    ),
   },
   leftAnti: {
-    name: 'LEFT ANTI',
-    desc: L('Soldakı, sağda qarşılığı olmayan sətirlər (WHERE ... IS NULL).', 'Left rows that have no partner on the right (WHERE ... IS NULL).'),
+    title: 'LEFT ANTI JOIN',
+    desc: L(
+      'Yalnız sağ cədvəldə qarşılığı OLMAYAN sol sətirlər tapılır (heç vaxt sifariş etməyən müştərilər).',
+      'Filters for left rows that have ZERO matching rows on the right (customers who never placed an order).'
+    ),
   },
 };
 
-function Venn({ type }: { type: JoinType }) {
-  const uid = useId().replace(/:/g, '');
-  const A = { cx: 128, cy: 105, r: 72 };
-  const B = { cx: 202, cy: 105, r: 72 };
-  const fill = 'rgb(16 185 129 / 0.55)';
-
-  const highlight = (() => {
-    switch (type) {
-      case 'inner':
-        return <circle {...B} fill={fill} clipPath={`url(#a-${uid})`} />;
-      case 'left':
-        return <circle {...A} fill={fill} />;
-      case 'right':
-        return <circle {...B} fill={fill} />;
-      case 'full':
-        return (
-          <>
-            <circle {...A} fill={fill} />
-            <circle {...B} fill={fill} />
-          </>
-        );
-      case 'leftAnti':
-        return <circle {...A} fill={fill} mask={`url(#notb-${uid})`} />;
-    }
-  })();
-
-  return (
-    <svg viewBox="0 0 330 210" className="mx-auto w-full max-w-[22rem]" role="img" aria-label="Venn diagram of SQL join">
-      <defs>
-        <clipPath id={`a-${uid}`}>
-          <circle {...A} />
-        </clipPath>
-        <mask id={`notb-${uid}`}>
-          <rect width="330" height="210" fill="white" />
-          <circle {...B} fill="black" />
-        </mask>
-      </defs>
-
-      <g key={type} style={{ animation: 'vz-fade-in .45s ease both' }}>
-        {highlight}
-      </g>
-
-      <circle {...A} fill="rgb(59 130 246 / 0.07)" stroke="rgb(59 130 246)" strokeWidth={2.5} />
-      <circle {...B} fill="rgb(245 158 11 / 0.07)" stroke="rgb(245 158 11)" strokeWidth={2.5} />
-
-      <text x={A.cx - 40} y={34} textAnchor="middle" className="fill-[rgb(59,130,246)] text-[12px] font-bold">
-        users (A)
-      </text>
-      <text x={B.cx + 40} y={34} textAnchor="middle" className="fill-[rgb(217,119,6)] text-[12px] font-bold">
-        orders (B)
-      </text>
-
-      <g className="fill-ink font-mono text-[13px] font-bold" textAnchor="middle">
-        <text x={A.cx - 38} y={110}>1 · 4</text>
-        <text x={165} y={110}>2 · 3</text>
-        <text x={B.cx + 38} y={110}>5</text>
-      </g>
-      <g className="fill-muted text-[9px] font-semibold uppercase tracking-wider" textAnchor="middle">
-        <text x={A.cx - 38} y={128}>only A</text>
-        <text x={165} y={128}>match</text>
-        <text x={B.cx + 38} y={128}>only B</text>
-      </g>
-    </svg>
-  );
-}
-
 export function JoinVenn() {
-  const [type, setType] = useState<JoinType>('inner');
-  const rows = resultFor(type);
+  const [activeType, setActiveType] = useState<JoinType>('inner');
+  const { lt } = useViz();
+
+  const results = computeJoinResult(activeType);
+  const sql = SQL_QUERIES[activeType];
+  const meta = JOIN_DESCRIPTIONS[activeType];
 
   return (
     <VizFrame
-      title={L('SQL JOIN-lər: Venn diaqramı və nəticə', 'SQL JOINs: Venn diagram & result')}
-      subtitle={L('JOIN növünü seçin və nəticəni izləyin', 'Pick a join type and watch the result change')}
-      badge="Interactive"
-      footer={LABELS[type].desc}
+      title={L('SQL Birləşmələri: Cədvəl Səviyyəsində Fiziki Birləşmə', 'SQL Joins: Row-Level Physical Table Matching')}
+      subtitle={L('Venn dairələri əvəzinə real sətir birləşməsi və NULL davranışı', 'Real row matching & NULL propagation instead of abstract Venn')}
+      badge="SQL Engine"
+      footer={meta.desc}
     >
-      <JoinTabs type={type} onChange={setType} />
-      <div className="mt-5 grid items-center gap-6 md:grid-cols-[1.05fr_1fr]">
-        <Venn type={type} />
-        <div className="min-w-0 space-y-3">
-          <pre className="overflow-x-auto rounded-lg border border-line bg-surface-2 px-3 py-2 font-mono text-[0.75rem] leading-6 text-ink">
-            <span className="text-violet-500">SELECT</span> u.name, o.id
-            {'\n'}
-            {SQL[type].map((l, i) => (
-              <React.Fragment key={i}>
-                {l.replace(/(FROM|JOIN|INNER|LEFT|RIGHT|FULL|OUTER|ON|WHERE|IS NULL)/g, '\u0001$1\u0002')
-                  .split(/\u0001|\u0002/)
-                  .map((part, k) =>
-                    k % 2 === 1 ? (
-                      <span key={k} className="text-violet-500">{part}</span>
-                    ) : (
-                      <span key={k}>{part}</span>
-                    ),
-                  )}
-                {'\n'}
-              </React.Fragment>
-            ))}
-          </pre>
+      {/* 1. Join Type Tabs */}
+      <div className="flex flex-wrap items-center justify-center gap-1.5 border-b border-line pb-4">
+        {(['inner', 'left', 'right', 'full', 'leftAnti'] as JoinType[]).map((jt) => {
+          const isActive = activeType === jt;
+          return (
+            <button
+              key={jt}
+              onClick={() => setActiveType(jt)}
+              className={cn(
+                'rounded-lg px-3 py-1.5 font-mono text-xs font-bold transition',
+                isActive
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-surface-2 text-muted hover:bg-surface hover:text-ink border border-line'
+              )}
+            >
+              {JOIN_DESCRIPTIONS[jt].title}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="overflow-hidden rounded-lg border border-line">
-            <table className="w-full text-left font-mono text-[0.75rem]">
-              <thead className="bg-surface-2 text-muted">
-                <tr>
-                  <th className="px-3 py-1.5 font-semibold">u.name</th>
-                  <th className="px-3 py-1.5 font-semibold">o.id</th>
-                </tr>
-              </thead>
-              <tbody key={type}>
-                {rows.map((r, i) => (
-                  <tr
-                    key={i}
-                    className="border-t border-line"
-                    style={{ animation: `vz-slot-in .4s cubic-bezier(.2,.8,.2,1) ${i * 70}ms both` }}
-                  >
-                    <td className={cn('px-3 py-1.5', r.user === null ? 'italic text-rose-500' : 'text-ink')}>{r.user ?? 'NULL'}</td>
-                    <td className={cn('px-3 py-1.5', r.order === null ? 'italic text-rose-500' : 'text-ink')}>{r.order ?? 'NULL'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="border-t border-line bg-surface-2 px-3 py-1.5 text-[0.6875rem] text-muted">
-              {rows.length} rows
+      {/* 2. Visual Table Row Matching Layout */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto_1.1fr] items-start">
+        {/* Left Side: Input Tables A and B */}
+        <div className="space-y-4">
+          {/* Table A: users */}
+          <div className="rounded-xl border border-line bg-surface p-3 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-line text-xs font-bold font-mono text-blue-600 dark:text-blue-400">
+              <span className="flex items-center gap-1.5">
+                <Table2 className="h-3.5 w-3.5" />
+                table: users (A)
+              </span>
+              <span className="text-[10px] text-muted">Primary: id</span>
             </div>
+            <div className="mt-2 divide-y divide-line/60 font-mono text-xs">
+              {USERS.map((u) => {
+                const isMatched = activeType === 'leftAnti' ? u.id === 3 : u.id === 1 || u.id === 2 || (activeType !== 'inner' && activeType !== 'right' && u.id === 3);
+                return (
+                  <div
+                    key={u.id}
+                    className={cn(
+                      'flex items-center justify-between py-1.5 px-2 rounded-md transition-colors',
+                      isMatched ? 'bg-blue-500/10 text-ink font-semibold' : 'text-muted opacity-60'
+                    )}
+                  >
+                    <span>id: <b className="text-blue-600 dark:text-blue-400">{u.id}</b></span>
+                    <span>name: &apos;{u.name}&apos;</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Table B: orders */}
+          <div className="rounded-xl border border-line bg-surface p-3 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-line text-xs font-bold font-mono text-amber-600 dark:text-amber-400">
+              <span className="flex items-center gap-1.5">
+                <Table2 className="h-3.5 w-3.5" />
+                table: orders (B)
+              </span>
+              <span className="text-[10px] text-muted">FK: user_id</span>
+            </div>
+            <div className="mt-2 divide-y divide-line/60 font-mono text-xs">
+              {ORDERS.map((o) => {
+                const isMatched = o.userId === 1 || o.userId === 2 || ((activeType === 'right' || activeType === 'full') && o.userId === 9);
+                return (
+                  <div
+                    key={o.orderId}
+                    className={cn(
+                      'flex items-center justify-between py-1.5 px-2 rounded-md transition-colors',
+                      isMatched ? 'bg-amber-500/10 text-ink font-semibold' : 'text-muted opacity-60'
+                    )}
+                  >
+                    <span>order: <b>{o.orderId}</b></span>
+                    <span>user_id: <b className="text-amber-600 dark:text-amber-400">{o.userId}</b></span>
+                    <span>{o.amount}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Arrow Indicator */}
+        <div className="hidden lg:flex flex-col items-center justify-center self-center px-2 text-muted">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1">JOIN ON</span>
+          <ArrowRight className="h-6 w-6 text-blue-500 animate-pulse" />
+        </div>
+
+        {/* Right Side: Output Result Table + Generated SQL */}
+        <div className="space-y-4">
+          {/* Result Table */}
+          <div className="rounded-xl border border-blue-500/40 bg-surface p-3.5 shadow-xs">
+            <div className="flex items-center justify-between pb-2.5 border-b border-line text-xs font-bold font-mono text-ink">
+              <span className="flex items-center gap-1.5">
+                <Layers className="h-4 w-4 text-emerald-500" />
+                Nəticə Cədvəli ({results.length} sətir)
+              </span>
+              <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                OUTPUT
+              </span>
+            </div>
+
+            <div className="mt-2.5 overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-line text-muted text-[11px]">
+                    <th className="pb-1.5">u.id</th>
+                    <th className="pb-1.5">u.name</th>
+                    <th className="pb-1.5">o.order_id</th>
+                    <th className="pb-1.5">o.amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/40">
+                  {results.map((r, i) => (
+                    <tr key={i} className="hover:bg-surface-2/60 transition-colors">
+                      <td className="py-1.5 text-blue-600 dark:text-blue-400 font-bold">
+                        {r.userId !== null ? r.userId : <span className="rounded bg-amber-500/15 px-1 py-0.2 text-[10px] text-amber-600 dark:text-amber-400 font-bold">NULL</span>}
+                      </td>
+                      <td className="py-1.5 text-ink">
+                        {r.name !== null ? r.name : <span className="rounded bg-amber-500/15 px-1 py-0.2 text-[10px] text-amber-600 dark:text-amber-400 font-bold">NULL</span>}
+                      </td>
+                      <td className="py-1.5 text-amber-600 dark:text-amber-400 font-bold">
+                        {r.orderId !== null ? r.orderId : <span className="rounded bg-amber-500/15 px-1 py-0.2 text-[10px] text-amber-600 dark:text-amber-400 font-bold">NULL</span>}
+                      </td>
+                      <td className="py-1.5 text-ink">
+                        {r.amount !== null ? r.amount : <span className="rounded bg-amber-500/15 px-1 py-0.2 text-[10px] text-amber-600 dark:text-amber-400 font-bold">NULL</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Generated SQL snippet */}
+          <div className="rounded-xl border border-line bg-zinc-950 p-3 font-mono text-xs text-zinc-200 shadow-2xs">
+            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1.5">İcra Edilən SQL:</div>
+            <pre className="text-zinc-300 leading-relaxed overflow-x-auto whitespace-pre">
+              {sql}
+            </pre>
           </div>
         </div>
       </div>
     </VizFrame>
-  );
-}
-
-function JoinTabs({ type, onChange }: { type: JoinType; onChange: (t: JoinType) => void }) {
-  return (
-    <div role="tablist" className="flex flex-wrap justify-center gap-1.5">
-      {(Object.keys(LABELS) as JoinType[]).map((k) => (
-        <button
-          key={k}
-          type="button"
-          role="tab"
-          aria-selected={type === k}
-          onClick={() => onChange(k)}
-          className={cn(
-            'rounded-lg border px-3 py-1.5 font-mono text-[0.75rem] font-bold transition',
-            type === k
-              ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600 shadow-sm dark:text-emerald-400'
-              : 'border-line bg-surface text-ink-2 hover:border-accent/40 hover:text-accent',
-          )}
-        >
-          {LABELS[k].name}
-        </button>
-      ))}
-    </div>
   );
 }

@@ -54,7 +54,8 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
       )}
       <div
         className={cn(
-          'flex flex-col items-center gap-2.5 md:flex-row md:items-center md:justify-center md:gap-1.5 w-fit mx-auto px-1',
+          'flex flex-col items-center gap-2.5 md:flex-row md:items-center md:justify-center w-fit mx-auto px-1',
+          dense ? 'md:gap-1' : 'md:gap-2',
         )}
       >
         {row.stages.map((stage, sIdx) => {
@@ -92,9 +93,9 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
                       <span className="vz-icon">
                         <Icon className="h-[0.95rem] w-[0.95rem]" strokeWidth={2} />
                       </span>
-                      <span className="min-w-0">
-                        <span className="vz-label block truncate">{lt(node.label)}</span>
-                        {node.sub && <span className="vz-sub block truncate">{lt(node.sub)}</span>}
+                      <span className="min-w-0 pr-1">
+                        <span className="vz-label block whitespace-nowrap">{lt(node.label)}</span>
+                        {node.sub && <span className="vz-sub block whitespace-nowrap">{lt(node.sub)}</span>}
                       </span>
                     </div>
                   );

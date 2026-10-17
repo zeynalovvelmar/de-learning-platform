@@ -11,8 +11,8 @@
 | **Mərhələ 1: Peşəkar Giriş Səhifəsi (Overview Hub & Landing)** | ✅ **TAMAMLANDI** | Sayt açıldıqda birbaşa dərslərə deyil, möhtəşəm bir İcmal Hub səhifəsinə daxil olur: 8 modulun vizual xəritəsi, Data Pipeline axını, statistika və "Son dərsi davam et" seçimi. |
 | **Mərhələ 2: Minimalist Header & 3-Sütunlu Qlobal Shell** | ✅ **TAMAMLANDI** | Yuxarı paneldən XP/streak/oyun elementləri çıxarıldı; Stripe/Geist standartında loqo, dil və tema seçimi, sol naviqasiyada sakit monoxrom iyerarxiya quruldu. |
 | **Mərhələ 3: Oxu Zonasının 0-dan Yenidən Qurulması (Reader UI)** | ✅ **TAMAMLANDI** | 65-75 simvol optimal oxu eni ($700\text{px}$), $1.75$ sətir hündürlüyü, sakit monoxrom/slate palitra, sağ tərəfdə dinamik "Bu səhifədə" (TOC) menyusu və şəxsi dərs konspekti (Notes) sahəsi. |
-| **Mərhələ 4: Diaqramların ByteByteGo Üslubuna Keçirilməsi** | ⏳ **HAL-HAZIRDA BURADAYIQ** | Oyuncaq CSS qutucuqlarının ləğvi; hər mövzu üçün baxdıqda məlumat axınını anında başa salan aydın, yüksək keyfiyyətli texniki vektor sxemləri (SVG). |
-| **Mərhələ 5: Qlobal Axtarış (`Ctrl + K` Command Palette)** | 📋 GÖZLƏYİR | `Ctrl + K` ilə modal əmr palitrası açılması və 87 dərs/mövzu üzrə anında axtarış və sürətli keçid. |
+| **Mərhələ 4: Diaqramların ByteByteGo Üslubuna Keçirilməsi** | ✅ **TAMAMLANDI** | Oyuncaq CSS qutucuqları ləğv edildi; SQL Joins, Lakehouse Medallion, Docker vs VM, Spark Shuffle, Kafka Partition Logs və dbt Lineage peşəkar, yüksək keyfiyyətli vektor/interaktiv sxemlərlə əvəzləndi. |
+| **Mərhələ 5: Qlobal Axtarış (`Ctrl + K` Command Palette)** | ⏳ **NÖVBƏTİ ADDIM (TƏSDİQ GÖZLƏYİR)** | `Ctrl + K` ilə modal əmr palitrası açılması və 87 dərs/mövzu üzrə anında axtarış və sürətli keçid. |
 
 ---
 
@@ -38,18 +38,15 @@
 - [x] **Fərdi Qeydlər (Konspekt)**: Hər dərsin altında istifadəçinin öz sözləri ilə qeyd yaza biləcəyi və avtomatik saxlanan sahə.
 - [x] **Dərslər Arası Naviqasiya**: Dərsin sonunda "Əvvəlki Dərs" və "Növbəti Dərs" düymələri.
 
-### 4. Diaqramlar və Qrafiklər (ByteByteGo Standartı) [⏳ NÖVBƏTİ ADDIM]
-- [ ] Mövcud animasiyalı kiçik qutucuqların ləğvi.
-- [ ] Əsas dərslər üçün baxanda mövzunu anında izah edən peşəkar, yüksək dəqiqlikli SVG arxitektura diaqramlarının qurulması:
-  - **DWH & Lakehouse**: Mənbələr ➔ Ingestion ➔ DWH / Data Lake ➔ Marts ➔ BI axını.
-  - **Medallion Arxitekturası**: Bronze (Raw append-only) ➔ Silver (Cleaned/Deduplicated) ➔ Gold (Aggregated Star Schema).
-  - **Apache Kafka**: Producer ➔ Broker Klasteri (Leader/Follower ISR) ➔ Partisiyalar & Offset-lər ➔ Consumer Groups.
-  - **Apache Spark**: Driver ➔ Cluster Manager ➔ Worker Executors; Narrow vs Wide Dependency və Shuffle mexanizmi.
-  - **Apache Airflow**: DAG arxitekturası, Scheduler, Meta DB, Worker növbəsi və tapşırıq vəziyyətləri.
-  - **dbt**: Sources ➔ Staging ➔ Intermediate ➔ Marts DAG zənciri və Keyfiyyət Test Qapıları.
-  - **DevOps**: Hypervisor (VM) vs Docker Engine (Shared Kernel) təbəqələri; Docker Compose şəbəkəsi.
-  - **SQL**: Real cədvəl sətirlərinin birləşməsi (Inner, Left, Full, Cross).
+### 4. Diaqramlar və Qrafiklər (ByteByteGo Standartı) [✅ TAMAMLANDI]
+- [x] **SQL Birləşmələri (`JoinVenn.tsx`)**: Venn dairələri ləğv edildi; `users` və `orders` cədvəlləri, sətir-sətir uyğunluq rəngləri, icra edilən SQL və `<NULL>` göstəricili nəticə cədvəli yaradıldı (INNER, LEFT, RIGHT, FULL, LEFT ANTI).
+- [x] **Medallion Arxitekturası (`MedallionViz.tsx`)**: Ingestion ➔ Bronze ➔ Silver ➔ Gold ➔ BI/ML axını; hər təbəqə üçün interaktiv klikləmə, Sxem qaydası (Strict vs Schema-on-read), Saxlanma müddəti və real production SQL transformasiyası (`MERGE INTO`).
+- [x] **Virtual Machine vs Docker (`ContainerVsVmViz.tsx`)**: ByteByteGo standartında şaquli yığılmış laylar (Apps ➔ Bins/Libs ➔ Guest OS 10-20GB vs Docker Engine / Shared Kernel ➔ Hardware) və Performans/Resurs müqayisə matrisi.
+- [x] **Columnar vs Row Storage (`ColumnarScanViz.tsx`)**: OLTP vs OLAP fiziki disk oxuma fərqi, analitik sorğu vs tək sətir axtarışı və disk müraciəti faiz göstəriciləri.
+- [x] **Apache Kafka Partisiyaları (`PartitionLogViz.tsx`)**: Dynamic `murmur2(key) % 3` Producer axını və real-vaxtda P0, P1, P2 append-only offset yuvalarının dolması.
+- [x] **Apache Spark Shuffle (`ShuffleViz.tsx`)**: Narrow dependency (eyni stage daxilində filtrasiya) vs Wide dependency (şəbəkə və disk üzərindən shuffle axını).
+- [x] **dbt Lineage & Testlər (`FlowDiagram.tsx` + `globals.css`)**: 5 mərhələli dbt axınında kəsilmələrin ləğvi, tam model adları (`int_orders_joined`, `dim_customers`) və oxlar üzərində təmiz `ref()` nişanları.
 
-### 5. Qlobal Axtarış (`Ctrl + K` Command Palette) [📋 GÖZLƏYİR]
+### 5. Qlobal Axtarış (`Ctrl + K` Command Palette) [📋 NÖVBƏTİ ADDIM — TƏSDİQ GÖZLƏYİR]
 - [ ] İstənilən yerdən klaviatura qısayolu ilə açılan axtarış pəncərəsi.
 - [ ] Bütün 87 dərs, əsas açar sözlər və diaqramlar üzrə dərhal axtarış və bir kliklə keçid.
