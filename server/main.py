@@ -22,6 +22,7 @@ app.include_router(modules.router)
 app.include_router(execute.router)
 app.include_router(i18n.router)
 
+@app.get("/healthz")
 @app.get("/api/health")
 def health_check():
     return {
