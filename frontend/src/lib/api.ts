@@ -10,7 +10,13 @@ import {
   Language
 } from '@/types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const getApiBase = () => {
+  const url = process.env.NEXT_PUBLIC_API_URL?.trim() || 'http://127.0.0.1:8000';
+  const clean = url.replace(/\/+$/, '');
+  return clean.endsWith('/api') ? clean : `${clean}/api`;
+};
+
+const API_BASE = getApiBase();
 
 export async function fetchModules(): Promise<ModuleSummary[]> {
   const res = await fetch(`${API_BASE}/modules/`, { next: { revalidate: 60 } });

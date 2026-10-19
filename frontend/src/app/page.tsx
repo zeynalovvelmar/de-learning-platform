@@ -189,7 +189,6 @@ export default function Home() {
         onOpenInterviews={handleOpenInterviews}
         activeModuleTitle={currentModule ? t(currentModule.title) : undefined}
         activeLessonTitle={lessonDetail ? t(lessonDetail.title) : undefined}
-        onOpenFlashcards={handleOpenModuleFlashcards}
       />
 
       {/* Main Learning Workspace */}

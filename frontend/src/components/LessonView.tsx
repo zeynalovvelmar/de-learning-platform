@@ -204,22 +204,6 @@ export function LessonView({
             <div className="text-xs sm:text-sm text-ink-2 leading-relaxed">
               <Markdown source={t(lesson.quick_recap)} idScope="tldr-" />
             </div>
-
-            {/* Performance Trade-Offs Specs Bar */}
-            <div className="pt-3 border-t border-line/60 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center font-mono text-[11px]">
-              <div className="bg-surface p-2 rounded-lg border border-line">
-                <div className="text-muted text-[10px] uppercase">Gecikmə (Latency)</div>
-                <div className="text-ink font-semibold mt-0.5">Sub-second / Stream</div>
-              </div>
-              <div className="bg-surface p-2 rounded-lg border border-line">
-                <div className="text-muted text-[10px] uppercase">Saxlanc Formatı</div>
-                <div className="text-ink font-semibold mt-0.5">Parquet + Snappy</div>
-              </div>
-              <div className="bg-surface p-2 rounded-lg border border-line">
-                <div className="text-muted text-[10px] uppercase">Read SLA</div>
-                <div className="text-secondary font-bold mt-0.5">&lt; 150ms p95</div>
-              </div>
-            </div>
           </section>
         )}
 

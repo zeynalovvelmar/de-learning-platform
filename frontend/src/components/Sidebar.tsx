@@ -17,10 +17,6 @@ import {
   ChevronDown, 
   ChevronRight, 
   Home,
-  Sliders,
-  Keyboard,
-  BookOpen,
-  PlayCircle,
   HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,7 +31,6 @@ interface SidebarProps {
   isHome: boolean;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
-  onOpenSandbox?: () => void;
   isInterviews?: boolean;
   onOpenInterviews?: () => void;
 }
@@ -61,7 +56,6 @@ export function Sidebar({
   isHome,
   isOpenMobile,
   onCloseMobile,
-  onOpenSandbox,
   isInterviews,
   onOpenInterviews,
 }: SidebarProps) {
@@ -244,36 +238,15 @@ export function Sidebar({
               );
             })}
           </div>
-
-          {/* Sandbox Action Button */}
-          <div className="pt-2 px-1">
-            <button
-              onClick={onOpenSandbox}
-              className="w-full py-2 px-3 rounded-lg bg-surface border border-line hover:border-primary text-ink text-xs font-semibold flex items-center justify-center gap-2 transition group cursor-pointer shadow-2xs"
-            >
-              <PlayCircle className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-              <span>{isAz ? 'Sandbox-ı Aç' : 'Open Sandbox Runner'}</span>
-            </button>
-          </div>
         </div>
 
-        {/* Rail Footer */}
-        <div className="p-3 border-t border-line space-y-1 font-sans text-xs text-muted">
-          <div className="flex items-center gap-2 px-2 py-1 text-[11px] hover:text-ink cursor-pointer transition">
-            <Sliders className="h-3.5 w-3.5" />
-            <span>{isAz ? 'Sistem Parametrləri' : 'Documentation Settings'}</span>
-          </div>
-          <div className="flex items-center justify-between px-2 py-1 text-[11px] hover:text-ink cursor-pointer transition">
-            <div className="flex items-center gap-2">
-              <Keyboard className="h-3.5 w-3.5" />
-              <span>{isAz ? 'Qısayollar' : 'Keyboard Shortcuts'}</span>
-            </div>
-            <kbd className="font-mono text-[9px] bg-surface-2 px-1.5 py-0.5 rounded border border-line text-muted">?</kbd>
-          </div>
-          <div className="flex items-center gap-2 px-2 py-1 text-[11px] hover:text-ink cursor-pointer transition">
-            <BookOpen className="h-3.5 w-3.5" />
-            <span>{isAz ? 'API və Mənbələr' : 'API Reference'}</span>
-          </div>
+        {/* Rail Footer: Minimal status badge */}
+        <div className="p-3 border-t border-line flex items-center justify-between font-mono text-[10.5px] text-muted select-none">
+          <span className="font-semibold text-ink-2">DataForge Curriculum</span>
+          <span className="text-secondary font-bold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block animate-pulse" />
+            <span>87 Dərs Hazır</span>
+          </span>
         </div>
       </aside>
     </>
