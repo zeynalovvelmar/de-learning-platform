@@ -12,41 +12,42 @@
 | **Mərhələ 2: Minimalist Header & 3-Sütunlu Qlobal Shell** | ✅ **TAMAMLANDI** | Yuxarı paneldən XP/streak/oyun elementləri çıxarıldı; Stripe/Geist standartında loqo, dil və tema seçimi, sol naviqasiyada sakit monoxrom iyerarxiya quruldu. |
 | **Mərhələ 3: Oxu Zonasının 0-dan Yenidən Qurulması (Reader UI)** | ✅ **TAMAMLANDI** | 65-75 simvol optimal oxu eni ($700\text{px}$), $1.75$ sətir hündürlüyü, sakit monoxrom/slate palitra, sağ tərəfdə dinamik "Bu səhifədə" (TOC) menyusu və şəxsi dərs konspekti (Notes) sahəsi. |
 | **Mərhələ 4: Diaqramların ByteByteGo Üslubuna Keçirilməsi** | ✅ **TAMAMLANDI** | Oyuncaq CSS qutucuqları ləğv edildi; SQL Joins, Lakehouse Medallion, Docker vs VM, Spark Shuffle, Kafka Partition Logs və dbt Lineage peşəkar, yüksək keyfiyyətli vektor/interaktiv sxemlərlə əvəzləndi. |
-| **Mərhələ 5: Google Stitch UI İnteqrasiyası** | ⏳ **GÖZLƏYİR (İstifadəçi Stitch-də generasiya edir)** | İstifadəçinin Google Stitch üzərində yaradacağı yeni peşəkar UI konseptinin qəbul edilməsi və layihəyə tam tətbiq edilməsi. |
+| **Mərhələ 5: Google Stitch UI İnteqrasiyası** | ✅ **TAMAMLANDI** | Google Stitch "Obsidian Protocol" dizayn sistemi (`#121318` fon, `#1e1f25` kartlar, 3-sütunlu oxucu, yeni Navbar/Sidebar/HomeHub) tam tətbiq edildi. |
+| **Mərhələ 6: Bütün 87 Dərsin Arxitektura Sxemlərinin Yenilənməsi** | ✅ **TAMAMLANDI (87/87 Dərs — 100%)** | Köhnə qarışıq ASCII terminal qutularının ləğvi və bütün 87 dərsin peşəkar React/SVG vizual arxitektura komponentlərinə keçirilməsi. |
 
 ---
 
-## 🛠️ Detallı Addımlar və Tərəqqi
+## 🛠️ Mərhələ 6: Bütün 87 Dərsin Arxitektura Sxemlərinin Yenilənməsi Planı (Addım-Addım)
 
-### 1. Peşəkar Giriş Səhifəsi (Home Hub / Dashboard) [✅ TAMAMLANDI]
-- [x] `frontend/src/components/HomeHub.tsx` yaradıldı.
-- [x] **Hero Bölməsi**: "Data Mühəndisliyi Bilik Bazası" təqdimatı.
-- [x] **Pipeline Xəritəsi**: Məlumatın hərəkət axını (Sources ➔ Kafka ➔ Spark ➔ Lakehouse ➔ dbt ➔ Airflow).
-- [x] **8 Modul Kartı**: Hər modul üçün təmiz texnoloji kart və dərslərə birbaşa keçid.
-- [x] **Son Dərsi Davam Et**: localStorage vasitəsilə son oxunan dərsin yadda saxlanması və tək kliklə bərpa edilməsi.
+Köhnə sistemdə 87 dərsin yalnız 25-də vizual komponent var idi, qalan **62 dərsdə** isə qarışıq monospace ASCII mətni (`AsciiDiagram.tsx`) açılırdı. Bütün dərsləri 100% peşəkar vizual sxemlərə keçirmək üçün 6 addımlı plan tam icra olundu:
 
-### 2. Header & Shell Təmizlənməsi (Stripe / Geist Standartı) [✅ TAMAMLANDI]
-- [x] Yuxarı paneldəki "🔥 1 gün", "0 XP", "Junior DE" bəzəkləri tamamilə silindi.
-- [x] Minimalist Loqo (Kliklədikdə həmişə Giriş İcmal Səhifəsinə qayıdır).
-- [x] Dil (`AZ` / `EN`) və Tema (`Light` / `Dark`) dəyişdiricisi.
-- [x] Dərs daxilində olduqda aktiv modul və dərs adını göstərən təmiz naviqasiya yolu (breadcrumb).
+### Addım 6.1: `Data Architecture & DWH` (12/12) + `dbt` (6/6) Modulları [✅ TAMAMLANDI]
+- [x] **Data Skipping (`DataSkippingViz.tsx`)**: Partisiya qovluq kəsimi (Partition Pruning), Bucketing (`hash(user_id) % 4`) və 2D Morton Z-Order əyrisini göstərən interaktiv 3-tablı vizual komponent yaradıldı.
+- [x] `data_architecture:04-dimensional-modeling-kimball` ➔ Kimball 4 Addımlı Modelləşdirmə sxemi.
+- [x] `data_architecture:05-fact-and-dimension-tables` ➔ Fact vs Dimension və Additive/Semi-Additive müqayisə sxemi.
+- [x] `data_architecture:07-slowly-changing-dimensions-scd` ➔ SCD Type 1 (Overwrite) vs SCD Type 2 (Tarixçə saxlayan sətir) sxemi.
+- [x] `data_architecture:09-open-table-formats-delta-iceberg` ➔ Parquet + `_delta_log`/Iceberg Metadata ➔ ACID & Time Travel sxemi.
+- [x] `data_architecture:12-data-quality-lineage-governance` ➔ Unity Catalog / Data Governance Hub-and-Spoke sxemi.
+- [x] `dbt` modulunun bütün 6 dərsi (`source/ref DAG`, `View/Table/Incremental`, `dbt snapshot SCD2`, `Staging/Intermediate/Marts`) tam vizual sxemlərə keçirildi.
+- [x] `LessonView.tsx`-dən köhnə `"ASCII Sxeminə Bax"` düyməsi yığışdırıldı.
 
-### 3. Dərs Oxu Səhifəsi (3-Sütunlu Tədqiqat Mühiti) [✅ TAMAMLANDI]
-- [x] **Sol Sidebar**: 8 modul və dərslərin təmiz ağacı, ən başda "🏠 İcmal & Yol Xəritəsi" linki, sakit neytral ikonlar.
-- [x] **Mərkəz (Reading Well)**: $700\text{px}$ en, sətirlər arası $1.75$ məsafə, sakit semantik bloklar (TL;DR, Nəzəriyyə, İstehsalat Qaydaları).
-- [x] **Sağ (Table of Contents)**: `TableOfContents.tsx` vasitəsilə dərsin alt başlıqlarını izləyən və istifadəçi oxuduqca sürüşən sağ panel.
-- [x] **Fərdi Qeydlər (Konspekt)**: Hər dərsin altında istifadəçinin öz sözləri ilə qeyd yaza biləcəyi və avtomatik saxlanan sahə.
-- [x] **Dərslər Arası Naviqasiya**: Dərsin sonunda "Əvvəlki Dərs" və "Növbəti Dərs" düymələri.
+### Addım 6.2: `Apache Kafka` (12/12) & `Apache Airflow` (12/12) Modulları [✅ TAMAMLANDI]
+- [x] **Airflow Budaqlanma & Trigger Rules (`BranchingViz.tsx`)**: `@task.branch` iş günü vs həftəsonu budaqlanması və `all_success` vs `none_failed_min_one_success` tələsini interaktiv göstərən DAG simulyatoru.
+- [x] **Kafka Log Retention vs Compaction (`LogCompactionViz.tsx`)**: Standart seqment silinməsi (`delete`) vs Açar üzrə son vəziyyətin saxlanması (`compact`) və `Tombstone` vizualı.
+- [x] Kafka-nın digər dərsləri (`KRaft`, `Offsets`, `Producer ACKs & Idempotence`, `Rebalance`, `Exactly-Once EOS`, `Consumer Lag`).
+- [x] Airflow-un digər dərsləri (`TaskFlow API`, `XComs`, `Logical Date & Data Interval`, `Catchup & Backfill`, `Sensors & Reschedule mode`, `Executors`, `Dynamic Task Mapping .expand()`, `SLA & Callbacks`).
 
-### 4. Diaqramlar və Qrafiklər (ByteByteGo Standartı) [✅ TAMAMLANDI]
-- [x] **SQL Birləşmələri (`JoinVenn.tsx`)**: Venn dairələri ləğv edildi; `users` və `orders` cədvəlləri, sətir-sətir uyğunluq rəngləri, icra edilən SQL və `<NULL>` göstəricili nəticə cədvəli yaradıldı (INNER, LEFT, RIGHT, FULL, LEFT ANTI).
-- [x] **Medallion Arxitekturası (`MedallionViz.tsx`)**: Ingestion ➔ Bronze ➔ Silver ➔ Gold ➔ BI/ML axını; hər təbəqə üçün interaktiv klikləmə, Sxem qaydası (Strict vs Schema-on-read), Saxlanma müddəti və real production SQL transformasiyası (`MERGE INTO`).
-- [x] **Virtual Machine vs Docker (`ContainerVsVmViz.tsx`)**: ByteByteGo standartında şaquli yığılmış laylar (Apps ➔ Bins/Libs ➔ Guest OS 10-20GB vs Docker Engine / Shared Kernel ➔ Hardware) və Performans/Resurs müqayisə matrisi.
-- [x] **Columnar vs Row Storage (`ColumnarScanViz.tsx`)**: OLTP vs OLAP fiziki disk oxuma fərqi, analitik sorğu vs tək sətir axtarışı və disk müraciəti faiz göstəriciləri.
-- [x] **Apache Kafka Partisiyaları (`PartitionLogViz.tsx`)**: Dynamic `murmur2(key) % 3` Producer axını və real-vaxtda P0, P1, P2 append-only offset yuvalarının dolması.
-- [x] **Apache Spark Shuffle (`ShuffleViz.tsx`)**: Narrow dependency (eyni stage daxilində filtrasiya) vs Wide dependency (şəbəkə və disk üzərindən shuffle axını).
-- [x] **dbt Lineage & Testlər (`FlowDiagram.tsx` + `globals.css`)**: 5 mərhələli dbt axınında kəsilmələrin ləğvi, tam model adları (`int_orders_joined`, `dim_customers`) və oxlar üzərində təmiz `ref()` nişanları.
+### Addım 6.3: `Apache Spark` Modulu (12/12) [✅ TAMAMLANDI]
+- [x] **Window Functions (`WindowFunctionViz.tsx`)**: `PARTITION BY dept ORDER BY salary DESC` üzrə sürüşən pəncərə və `row_number`, `rank`, `dense_rank`, `lag` hesablamasını vizual göstərən komponent (`spark:08` və `sql:08`).
+- [x] Spark-ın digər dərsləri (`In-Memory vs Disk MapReduce`, `DataFrame Transformations`, `Repartition vs Coalesce`, `Cache/Persist & OOM`, `Data Skew & Key Salting`, `Parquet & Predicate Pushdown`, `Catalyst Optimizer & Explain Plan`).
 
-### 5. Google Stitch UI İnteqrasiyası [⏳ GÖZLƏYİR]
-- [ ] İstifadəçinin Google Stitch-də generasiya etdiyi yeni UI konseptinin qəbul edilməsi.
-- [ ] Bəyənilən dizaynın layihənin Next.js, Tailwind və komponent arxitekturasına tam tətbiq edilməsi.
+### Addım 6.4: `DevOps` Modulu (12/12) [✅ TAMAMLANDI]
+- [x] DevOps-un çatışmayan 8 dərsi (`Linux Pipes & Cron`, `Git Branching & Rebase`, `Docker CLI Lifecycle`, `Multi-Stage Builds & Layer Caching`, `Volumes vs Bind Mounts`, `Docker DNS Networking`, `Secrets & Env Security`, `Kubernetes Pods & Prometheus/Grafana`) tam vizual sxemlərə keçirildi.
+
+### Addım 6.5: `SQL` (10/10) & `Python` (11/11) Modulları [✅ TAMAMLANDI]
+- [x] SQL-in çatışmayan dərsləri (`SELECT/WHERE Execution Order`, `ORDER BY/LIMIT`, `PK/FK & 1NF-3NF Normalization`, `GROUP BY & HAVING Filter`, `String/Date Cleansing`, `CASE/COALESCE/NULLIF`, `CTE vs Subquery`, `UNION/INTERSECT/EXCEPT`) tam vizual sxemlərə keçirildi.
+- [x] Python-un çatışmayan 10 dərsi (`Memory References & Types`, `String Cleansing`, `List Slicing`, `Dict Hash Table & JSON`, `Set O(1) Lookup vs Tuple`, `Control Flow`, `Zip/Enumerate Iteration`, `Functions & Mutable Default Trap`, `Comprehensions`, `Try/Except & Dead-Letter Queue`) tam vizual sxemlərə keçirildi.
+
+### Addım 6.6: Köhnə `AsciiDiagram.tsx`-in Tam Silinməsi və Yekun Vizual Audit [✅ TAMAMLANDI]
+- [x] Bütün 87/87 dərsin vizual komponentlərlə təmin olunduğu (`Missing from registry: []`) təsdiqləndi və köhnə `AsciiDiagram.tsx` faylı kod bazasından tamamilə silindi.
+

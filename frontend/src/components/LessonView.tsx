@@ -26,7 +26,6 @@ import {
 import { Markdown } from './Markdown';
 import { CodeBlock } from './CodeBlock';
 import { CodeSandbox } from './CodeSandbox';
-import { AsciiDiagram } from './AsciiDiagram';
 import { AnimatedInfographic, hasAnimatedInfographic } from './viz/registry';
 import { TableOfContents } from './TableOfContents';
 import { CodeLang } from '@/lib/highlight';
@@ -84,7 +83,6 @@ export function LessonView({
   const isAz = language === 'az';
 
   const completed = isLessonCompleted(lesson.id);
-  const [showRawAscii, setShowRawAscii] = useState(false);
   const [diagramTab, setDiagramTab] = useState<'blueprint' | 'interactive'>('blueprint');
 
   // Personal notes state per lesson (stored in localStorage)
@@ -250,7 +248,7 @@ export function LessonView({
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
             <span className="font-mono text-[11px] font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-primary" />
-              <span>{isAz ? 'Lakehouse Arxitektura Sxemi' : 'Architecture Blueprint'}</span>
+              <span>{isAz ? 'Arxitektura Sxemi' : 'Architecture Blueprint'}</span>
             </span>
 
             {/* View tabs if Medallion or has both */}
@@ -305,36 +303,7 @@ export function LessonView({
               </div>
             </div>
           ) : hasViz ? (
-            <div className="space-y-3">
-              <AnimatedInfographic moduleId={moduleId} lessonId={lesson.id} />
-              {lesson.infographic && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowRawAscii((v) => !v)}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-mono transition"
-                  >
-                    <FileCode className="h-3.5 w-3.5" />
-                    <span>
-                      {showRawAscii
-                        ? (isAz ? 'ASCII Diaqramı Gizlət' : 'Hide ASCII Blueprint')
-                        : (isAz ? 'ASCII Sxeminə Bax' : 'View ASCII Blueprint')}
-                    </span>
-                  </button>
-                </div>
-              )}
-              {showRawAscii && lesson.infographic && (
-                <AsciiDiagram
-                  diagramText={t(lesson.infographic)}
-                  title={isAz ? 'ARXİTEKTURA SXEMİ (ASCII)' : 'ARCHITECTURE DIAGRAM (ASCII)'}
-                />
-              )}
-            </div>
-          ) : lesson.infographic ? (
-            <AsciiDiagram
-              diagramText={t(lesson.infographic)}
-              title={isAz ? 'ARXİTEKTURA SXEMİ' : 'ARCHITECTURE DIAGRAM'}
-            />
+            <AnimatedInfographic moduleId={moduleId} lessonId={lesson.id} />
           ) : null}
         </section>
 
