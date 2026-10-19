@@ -27,7 +27,6 @@ import { Markdown } from './Markdown';
 import { CodeBlock } from './CodeBlock';
 import { CodeSandbox } from './CodeSandbox';
 import { AnimatedInfographic, hasAnimatedInfographic } from './viz/registry';
-import { TableOfContents } from './TableOfContents';
 import { CodeLang } from '@/lib/highlight';
 import { cn } from '@/lib/utils';
 
@@ -131,34 +130,10 @@ export function LessonView({
   const isMedallionLesson = moduleId === 'data_architecture' && lesson.id === '08-medallion-architecture-layers';
   const codeLang = detectLanguage(lesson.code || '', moduleId);
 
-  // Build Table of Contents items
-  const tocItems = useMemo(() => {
-    const items = [
-      { id: 'sec-header', label: { az: 'Dərs Başlığı', en: 'Lesson Title' } },
-    ];
-    if (lesson.quick_recap) {
-      items.push({ id: 'sec-tldr', label: { az: 'Arxitektura TL;DR', en: 'Architecture TL;DR' } });
-    }
-    if (hasViz || isMedallionLesson || lesson.infographic) {
-      items.push({ id: 'sec-diagram', label: { az: 'Arxitektura Sxemi', en: 'Architecture Blueprint' } });
-    }
-    if (lesson.explanation) {
-      items.push({ id: 'sec-theory', label: { az: 'Əsas Nəzəriyyə', en: 'Core Theory & Mechanics' } });
-    }
-    if (lesson.code) {
-      items.push({ id: 'sec-code', label: { az: 'İnteraktiv Sandbox & Kod', en: 'Interactive Code Sandbox' } });
-    }
-    if (lesson.real_world_use || lesson.common_mistakes) {
-      items.push({ id: 'sec-rules', label: { az: 'İstehsalat Qaydaları', en: 'Production Rules & Gotchas' } });
-    }
-    items.push({ id: 'sec-notes', label: { az: 'Tələbə Konspekti', en: 'Technical Scratchpad' } });
-    return items;
-  }, [lesson, hasViz, isMedallionLesson]);
-
   return (
     <div className="flex w-full justify-center">
-      {/* Central Reading Column (constrained to 780px, max 65-75 chars per line) */}
-      <main className="w-full max-w-[800px] px-4 sm:px-8 lg:px-12 py-8 flex flex-col gap-8 font-sans">
+      {/* Central Reading Column — wide layout for spacious architecture diagrams & code */}
+      <main className="w-full max-w-[1040px] px-4 sm:px-8 py-8 flex flex-col gap-8 font-sans">
         
         {/* 1. Header & Breadcrumb Bar */}
         <div id="sec-header" className="space-y-3 border-b border-line pb-4">
@@ -471,9 +446,6 @@ export function LessonView({
           )}
         </div>
       </main>
-
-      {/* Right Sticky Table of Contents */}
-      <TableOfContents items={tocItems} progressPercent={completed ? 100 : 65} />
     </div>
   );
 }

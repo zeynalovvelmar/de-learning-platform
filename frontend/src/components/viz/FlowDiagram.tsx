@@ -54,8 +54,8 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
       )}
       <div
         className={cn(
-          'flex flex-col items-center gap-2.5 md:flex-row md:items-center md:justify-center w-fit mx-auto px-1',
-          dense ? 'md:gap-1' : 'md:gap-2',
+          'flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-center w-fit mx-auto px-2',
+          dense ? 'gap-3 md:gap-3.5 lg:gap-4' : 'gap-4 md:gap-5 lg:gap-7',
         )}
       >
         {row.stages.map((stage, sIdx) => {
@@ -65,7 +65,11 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
             <React.Fragment key={sIdx}>
               {sIdx > 0 && (
                 <div
-                  className={cn('vz-connector', 'tone-' + tone)}
+                  className={cn(
+                    'vz-connector',
+                    'tone-' + tone,
+                    stage.arrowLabel && 'vz-conn-with-label'
+                  )}
                   style={{ '--i': stageIdx } as React.CSSProperties}
                   aria-hidden
                 >
@@ -94,8 +98,8 @@ function FlowRow({ row, rowIndex }: { row: FlowRowSpec; rowIndex: number }) {
                         <Icon className="h-[0.95rem] w-[0.95rem]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 pr-1">
-                        <span className="vz-label block whitespace-nowrap">{lt(node.label)}</span>
-                        {node.sub && <span className="vz-sub block whitespace-nowrap">{lt(node.sub)}</span>}
+                        <span className="vz-label block leading-snug">{lt(node.label)}</span>
+                        {node.sub && <span className="vz-sub block leading-snug mt-0.5">{lt(node.sub)}</span>}
                       </span>
                     </div>
                   );

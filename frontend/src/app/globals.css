@@ -222,40 +222,52 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  min-width: 7.75rem;
-  max-width: 11rem;
-  padding: 0.55rem 0.75rem 0.55rem 0.6rem;
-  border-radius: 0.75rem;
+  gap: 0.65rem;
+  min-width: 8rem;
+  max-width: 16rem;
+  padding: 0.6rem 0.85rem 0.6rem 0.7rem;
+  border-radius: 0.85rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-left: 3.5px solid rgb(var(--tone, 59 130 246));
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .vz-card:hover {
   transform: translateY(-1px);
   border-color: rgb(var(--tone, 59 130 246) / 0.5);
-  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.12);
+  box-shadow: 0 6px 16px -4px rgb(0 0 0 / 0.14);
 }
 .vz-icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 0.5rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.55rem;
   color: var(--ink);
   background: var(--surface-2);
   border: 1px solid var(--line);
 }
-.vz-label { font-size: 0.75rem; font-weight: 700; line-height: 1.25; color: var(--ink); }
-.vz-sub { margin-top: 0.1rem; font-size: 0.625rem; line-height: 1.2; color: var(--muted); }
+.vz-label { 
+  font-size: 0.75rem; 
+  font-weight: 700; 
+  line-height: 1.25; 
+  color: var(--ink); 
+  word-break: break-word; 
+}
+.vz-sub { 
+  margin-top: 0.15rem; 
+  font-size: 0.625rem; 
+  line-height: 1.25; 
+  color: var(--muted); 
+  word-break: break-word; 
+}
 .vz-badge {
   position: absolute;
   top: -0.45rem;
-  right: 0.5rem;
-  padding: 0.05rem 0.4rem;
+  left: 0.75rem;
+  padding: 0.06rem 0.45rem;
   border-radius: 99px;
   font-family: var(--font-mono);
   font-size: 0.55rem;
@@ -264,6 +276,7 @@ body {
   color: #fff;
   background: rgb(var(--tone));
   box-shadow: 0 1px 4px -1px rgb(var(--tone) / 0.5);
+  z-index: 15;
 }
 
 @keyframes vz-pop {
@@ -279,40 +292,45 @@ body {
 }
 
 .vz-stage-title {
-  font-size: 0.6rem;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
   text-align: center;
+  padding-bottom: 0.2rem;
 }
 
 /* connectors: vertical on small screens, horizontal from md */
 .vz-connector {
   position: relative;
   flex: none;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+}
+.vz-connector::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border: 4px solid transparent;
+  border-top-color: rgb(var(--tone, 100 116 139) / 0.95);
+  border-bottom: 0;
 }
 .vz-line {
   position: relative;
   overflow: hidden;
   width: 2px;
-  height: 2.1rem;
-  border-radius: 2px;
-  background: rgb(var(--tone, 100 116 139) / 0.28);
-}
-.vz-line::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -1px;
-  width: 0;
-  height: 0;
-  transform: translateX(-50%);
-  border: 4px solid transparent;
-  border-top-color: rgb(var(--tone, 100 116 139) / 0.9);
-  border-bottom: 0;
+  height: calc(100% - 4px);
+  margin-bottom: 4px;
+  border-radius: 99px;
+  background: rgb(var(--tone, 100 116 139) / 0.32);
 }
 .vz-comet {
   position: absolute;
@@ -326,13 +344,14 @@ body {
   position: absolute;
   white-space: nowrap;
   font-size: 0.625rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--muted);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 99px;
-  padding: 0.05rem 0.45rem;
+  padding: 0.08rem 0.5rem;
   left: calc(100% + 0.5rem);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 @keyframes vz-run-y {
   from { transform: translateY(-100%); }
@@ -343,34 +362,55 @@ body {
   to { transform: translateX(100%); }
 }
 @media (min-width: 768px) {
-  .vz-line { width: 2.25rem; height: 2px; }
-  .vz-dense .vz-line { width: 0.85rem; }
-  .vz-dense .vz-card {
-    min-width: 5.2rem;
-    max-width: none;
-    padding: 0.3rem 0.5rem 0.3rem 0.45rem;
-    gap: 0.25rem;
+  .vz-connector {
+    min-width: 3.25rem;
+    height: 100%;
   }
-  .vz-dense .vz-icon {
-    width: 1.35rem;
-    height: 1.35rem;
-    border-radius: 0.35rem;
-  }
-  .vz-dense .vz-label {
-    font-size: 0.7rem;
-  }
-  .vz-dense .vz-sub {
-    font-size: 0.58rem;
-  }
-  .vz-line::after {
+  .vz-connector::after {
     left: auto;
-    right: -1px;
-    bottom: 50%;
-    transform: translateY(50%);
+    right: 0;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
     border: 4px solid transparent;
-    border-left-color: rgb(var(--tone, 100 116 139) / 0.9);
+    border-left-color: rgb(var(--tone, 100 116 139) / 0.95);
     border-right: 0;
     border-top-color: transparent;
+    border-bottom-color: transparent;
+  }
+  .vz-conn-with-label {
+    min-width: 5.5rem;
+  }
+  .vz-line { 
+    width: calc(100% - 4px);
+    margin-right: 4px;
+    margin-bottom: 0;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 99px;
+  }
+  .vz-dense .vz-connector {
+    min-width: 2.25rem;
+  }
+  .vz-dense .vz-conn-with-label {
+    min-width: 4.5rem;
+  }
+  .vz-dense .vz-card {
+    min-width: 6.5rem;
+    max-width: 13rem;
+    padding: 0.45rem 0.65rem 0.45rem 0.55rem;
+    gap: 0.4rem;
+  }
+  .vz-dense .vz-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.45rem;
+  }
+  .vz-dense .vz-label {
+    font-size: 0.725rem;
+  }
+  .vz-dense .vz-sub {
+    font-size: 0.6rem;
   }
   .vz-comet {
     background: linear-gradient(90deg, transparent, rgb(var(--tone, 99 102 241)), transparent);

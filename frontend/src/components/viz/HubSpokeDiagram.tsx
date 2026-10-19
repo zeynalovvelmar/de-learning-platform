@@ -32,20 +32,20 @@ function NodeCard({ node, big = false, index = 0 }: { node: HubNodeSpec; big?: b
         'vz-card shadow-md backdrop-blur-xs',
         'tone-' + (node.tone ?? 'indigo'),
         big 
-          ? 'px-4 py-3 min-w-[9.5rem] border-2 bg-surface/95' 
-          : 'px-2.5 py-1.5 min-w-[7.5rem] max-w-[9.5rem] text-xs bg-surface/90'
+          ? 'px-4 py-3 min-w-[10rem] border-2 bg-surface/95' 
+          : 'px-3 py-2 min-w-[8.5rem] max-w-[11.5rem] text-xs bg-surface/95'
       )}
       style={{ '--i': index } as React.CSSProperties}
     >
       <span className={cn('vz-icon', big ? 'h-9 w-9 rounded-xl' : 'h-7 w-7 rounded-lg')}>
         <Icon className={big ? 'h-4 w-4' : 'h-3.5 w-3.5'} strokeWidth={2} />
       </span>
-      <span className="min-w-0">
-        <span className={cn('vz-label block truncate', big ? 'text-[0.85rem]' : 'text-[0.75rem]')}>
+      <span className="min-w-0 pr-0.5">
+        <span className={cn('vz-label block leading-snug', big ? 'text-[0.85rem]' : 'text-[0.75rem]')}>
           {lt(node.label)}
         </span>
         {node.sub && (
-          <span className={cn('vz-sub block truncate', big ? 'text-[0.6875rem]' : 'text-[0.625rem]')}>
+          <span className={cn('vz-sub block leading-snug mt-0.5 text-muted', big ? 'text-[0.6875rem]' : 'text-[0.625rem]')}>
             {lt(node.sub)}
           </span>
         )}
