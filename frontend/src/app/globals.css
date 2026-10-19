@@ -3,42 +3,69 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ *
- * Design tokens
+ * Design tokens (Obsidian Protocol from Stitch)
  * ------------------------------------------------------------------ */
 :root {
-  --bg: #fafafc;
+  --bg: #f8f9fc;
   --surface: #ffffff;
-  --surface-2: #f3f4f8;
-  --line: #e4e6ee;
-  --ink: #12131a;
-  --ink-2: #3a3d4d;
-  --muted: #70748a;
+  --surface-lowest: #f1f2f7;
+  --surface-low: #f4f5fa;
+  --surface-2: #edf0f7;
+  --surface-high: #e2e6f0;
+  --surface-highest: #d5d9e5;
+  --line: #d8dce8;
+  --outline: #6b7280;
+  --ink: #11131a;
+  --ink-2: #343746;
+  --muted: #646b82;
+  --primary: #4f46e5;
+  --primary-container: #6366f1;
+  --secondary: #059669;
+  --tertiary: #d97706;
   --accent: #4f46e5;
-  --accent-soft: rgb(79 70 229 / 0.09);
+  --accent-soft: rgb(79 70 229 / 0.08);
   color-scheme: light;
 }
 
 .dark {
-  --bg: #08090d;
-  --surface: #0f1117;
-  --surface-2: #151822;
-  --line: #222638;
-  --ink: #eceef6;
-  --ink-2: #c2c6d6;
-  --muted: #8b90a8;
-  --accent: #8b93ff;
-  --accent-soft: rgb(139 147 255 / 0.12);
+  --bg: #121318;
+  --surface: #121318;
+  --surface-lowest: #0d0e13;
+  --surface-low: #1a1b21;
+  --surface-2: #1e1f25;
+  --surface-high: #292a2f;
+  --surface-highest: #34343a;
+  --line: #3b3c46;
+  --outline: #908fa0;
+  --ink: #e3e1e9;
+  --ink-2: #c7c4d7;
+  --muted: #908fa0;
+  --primary: #c0c1ff;
+  --primary-container: #8083ff;
+  --secondary: #4edea3;
+  --tertiary: #ffb783;
+  --accent: #c0c1ff;
+  --accent-soft: rgb(192 193 255 / 0.12);
   color-scheme: dark;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
   --color-surface-2: var(--surface-2);
+  --color-surface-high: var(--surface-high);
+  --color-surface-highest: var(--surface-highest);
   --color-line: var(--line);
+  --color-outline: var(--outline);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;

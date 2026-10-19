@@ -9,9 +9,13 @@ import {
   Menu, 
   Database,
   Search,
-  Home,
-  BookOpen
+  Terminal,
+  Play,
+  Layers,
+  Sparkles,
+  Bookmark
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -20,6 +24,7 @@ interface NavbarProps {
   activeModuleTitle?: string;
   activeLessonTitle?: string;
   onOpenSearch?: () => void;
+  onOpenSandbox?: () => void;
   onOpenFlashcards?: () => void;
 }
 
@@ -30,6 +35,7 @@ export function Navbar({
   activeModuleTitle, 
   activeLessonTitle,
   onOpenSearch,
+  onOpenSandbox,
   onOpenFlashcards
 }: NavbarProps) {
   const { theme, setTheme } = useTheme();
@@ -43,14 +49,14 @@ export function Navbar({
   const isAz = language === 'az';
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/80 backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-950/80 transition-colors">
-      <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 w-full border-b border-line bg-surface/90 backdrop-blur-md transition-colors">
+      <div className="flex h-14 items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1720px] mx-auto">
         {/* Left: Mobile Toggle & Brand Logo */}
         <div className="flex items-center gap-3">
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="inline-flex items-center justify-center rounded-lg p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 lg:hidden transition"
+              className="inline-flex items-center justify-center rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-ink lg:hidden transition"
               aria-label="Toggle Navigation"
             >
               <Menu className="h-5 w-5" />
@@ -61,100 +67,127 @@ export function Navbar({
           <button
             onClick={onGoHome}
             className="group flex items-center gap-2.5 text-left focus:outline-none"
-            title={isAz ? 'Ana Səhifəyə Qayıt' : 'Back to Home'}
+            title={isAz ? 'Giriş İcmal Səhifəsinə Qayıt' : 'Back to Architecture Hub'}
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white shadow-xs dark:bg-zinc-100 dark:text-zinc-900 transition-transform group-hover:scale-105">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-container/20 border border-primary/30 text-primary transition-transform group-hover:scale-105">
               <Database className="h-4 w-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-                <span className="text-sm font-extrabold tracking-tight">DataEng</span>
-                <span className="rounded bg-zinc-100 px-1 py-0.2 font-mono text-[10px] font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                  HUB
-                </span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-[15px] tracking-tight text-ink font-sans">DataForge</span>
+              <span className="text-[14px] text-muted font-medium">Docs</span>
             </div>
           </button>
 
-          {/* Breadcrumb indicator in header if reading a lesson */}
-          {!isHome && activeModuleTitle && (
-            <div className="hidden md:flex items-center gap-2 ml-4 pl-4 border-l border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500">
-              <span className="text-zinc-400">/</span>
-              <span className="font-medium text-zinc-600 dark:text-zinc-300 truncate max-w-[140px]">
-                {activeModuleTitle}
-              </span>
-              {activeLessonTitle && (
-                <>
-                  <span className="text-zinc-400">/</span>
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[200px]">
-                    {activeLessonTitle}
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+          {/* Breadcrumb path */}
+          <div className="hidden md:flex items-center gap-2 ml-3 pl-3 border-l border-line text-xs font-mono text-muted">
+            {isHome ? (
+              <>
+                <span className="text-ink-2 font-medium">{isAz ? 'Kurrikulum' : 'Curriculum'}</span>
+                <span className="text-outline/60">&gt;</span>
+                <span className="text-primary font-semibold">{isAz ? 'Arxitektura Xəritəsi' : 'Architecture Roadmap'}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-ink-2 font-medium truncate max-w-[150px]">{activeModuleTitle}</span>
+                {activeLessonTitle && (
+                  <>
+                    <span className="text-outline/60">&gt;</span>
+                    <span className="text-primary font-semibold truncate max-w-[220px]">{activeLessonTitle}</span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Right: Search, Home, Language, Theme */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Quick Home navigation button if currently inside a lesson */}
-          {!isHome && (
-            <button
+        {/* Center: Search pill */}
+        <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
+          <button
+            onClick={onOpenSearch}
+            className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg border border-line bg-surface-lowest hover:border-outline text-muted text-xs transition"
+          >
+            <span className="flex items-center gap-2">
+              <Search className="h-3.5 w-3.5" />
+              <span>{isAz ? '87 dərs, sxem və mövzular üzrə axtar…' : 'Search 87 lessons, schemas, topics…'}</span>
+            </span>
+            <kbd className="font-mono text-[10px] bg-surface-2 px-1.5 py-0.5 rounded border border-line text-muted">
+              Ctrl K
+            </kbd>
+          </button>
+        </div>
+
+        {/* Right: Section Tabs, Language, Theme, Action Button */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Section links */}
+          <nav className="hidden xl:flex items-center gap-4 text-xs font-medium text-muted mr-1">
+            <button 
               onClick={onGoHome}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50/80 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition"
-              title={isAz ? 'Giriş İcmalına Qayıt' : 'Back to Overview'}
+              className={cn(
+                'transition hover:text-ink',
+                isHome ? 'text-primary border-b-2 border-primary pb-0.5' : 'text-muted'
+              )}
             >
-              <Home className="h-3.5 w-3.5 text-zinc-500" />
-              <span className="hidden sm:inline">{isAz ? 'İcmal' : 'Overview'}</span>
+              {isAz ? 'Modullar' : 'Modules'}
             </button>
-          )}
+            <button 
+              onClick={onOpenSandbox}
+              className="hover:text-ink transition"
+            >
+              Sandbox
+            </button>
+            <button 
+              onClick={onGoHome}
+              className="hover:text-ink transition"
+            >
+              {isAz ? 'Arxitektura' : 'Architecture'}
+            </button>
+          </nav>
 
-          {/* Flashcards Modal trigger if inside lesson with cards */}
-          {onOpenFlashcards && !isHome && (
-            <button
-              onClick={onOpenFlashcards}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition"
-            >
-              <BookOpen className="h-3.5 w-3.5 text-zinc-500" />
-              <span>{isAz ? 'Kartlar' : 'Cards'}</span>
-            </button>
-          )}
+          {/* Language Switcher */}
+          <button
+            onClick={() => setLanguage(isAz ? 'en' : 'az')}
+            className="px-2 py-1 rounded border border-line bg-surface-low text-ink font-mono text-[11px] font-bold hover:bg-surface-2 transition"
+            title={isAz ? 'Switch to English' : 'Azərbaycan dilinə keç'}
+          >
+            {isAz ? 'AZ' : 'EN'}
+          </button>
 
-          {/* Language Toggle: AZ / EN */}
-          <div className="flex items-center rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
-            <button
-              onClick={() => setLanguage('az')}
-              className={`rounded-md px-2 py-0.5 text-xs font-bold transition ${
-                isAz
-                  ? 'bg-white text-zinc-900 shadow-2xs dark:bg-zinc-800 dark:text-white'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
-              }`}
-            >
-              AZ
-            </button>
-            <button
-              onClick={() => setLanguage('en')}
-              className={`rounded-md px-2 py-0.5 text-xs font-bold transition ${
-                !isAz
-                  ? 'bg-white text-zinc-900 shadow-2xs dark:bg-zinc-800 dark:text-white'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
-              }`}
-            >
-              EN
-            </button>
-          </div>
-
-          {/* Theme Toggle (Light / Dark) */}
+          {/* Theme Switcher */}
           {mounted && (
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition"
-              aria-label="Toggle Theme"
-              title={theme === 'dark' ? (isAz ? 'İşıqlı rejim' : 'Light Mode') : (isAz ? 'Qaranlıq rejim' : 'Dark Mode')}
+              className="p-1.5 rounded-lg border border-line bg-surface-low text-muted hover:text-ink hover:bg-surface-2 transition"
+              title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-zinc-600" />}
             </button>
           )}
+
+          {/* Interactive Terminal / Sandbox Icon */}
+          <button
+            onClick={onOpenSandbox}
+            className="hidden sm:flex p-1.5 rounded-lg border border-line bg-surface-low text-muted hover:text-ink hover:bg-surface-2 transition"
+            title={isAz ? 'İnteraktiv Kod Terminalı' : 'Interactive Terminal'}
+          >
+            <Terminal className="h-4 w-4" />
+          </button>
+
+          <div className="hidden sm:block h-4 w-px bg-line" />
+
+          {/* Primary Action Button: Run Query / Open Sandbox */}
+          <button
+            onClick={onOpenSandbox}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-container text-zinc-950 font-bold text-xs shadow-xs hover:opacity-90 transition cursor-pointer"
+          >
+            <Play className="h-3.5 w-3.5 fill-current" />
+            <span className="hidden sm:inline">{isAz ? 'Sorğunu İcra Et' : 'Run Query'}</span>
+            <span className="sm:hidden">{isAz ? 'İcra' : 'Run'}</span>
+          </button>
+
+          {/* Personal Study Avatar / Badge */}
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-surface-high font-mono text-[10px] font-extrabold text-primary">
+            DE
+          </div>
         </div>
       </div>
     </header>

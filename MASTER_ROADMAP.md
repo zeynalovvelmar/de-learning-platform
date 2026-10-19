@@ -12,7 +12,7 @@
 | **Mərhələ 2: Minimalist Header & 3-Sütunlu Qlobal Shell** | ✅ **TAMAMLANDI** | Yuxarı paneldən XP/streak/oyun elementləri çıxarıldı; Stripe/Geist standartında loqo, dil və tema seçimi, sol naviqasiyada sakit monoxrom iyerarxiya quruldu. |
 | **Mərhələ 3: Oxu Zonasının 0-dan Yenidən Qurulması (Reader UI)** | ✅ **TAMAMLANDI** | 65-75 simvol optimal oxu eni ($700\text{px}$), $1.75$ sətir hündürlüyü, sakit monoxrom/slate palitra, sağ tərəfdə dinamik "Bu səhifədə" (TOC) menyusu və şəxsi dərs konspekti (Notes) sahəsi. |
 | **Mərhələ 4: Diaqramların ByteByteGo Üslubuna Keçirilməsi** | ✅ **TAMAMLANDI** | Oyuncaq CSS qutucuqları ləğv edildi; SQL Joins, Lakehouse Medallion, Docker vs VM, Spark Shuffle, Kafka Partition Logs və dbt Lineage peşəkar, yüksək keyfiyyətli vektor/interaktiv sxemlərlə əvəzləndi. |
-| **Mərhələ 5: Qlobal Axtarış (`Ctrl + K` Command Palette)** | ⏳ **NÖVBƏTİ ADDIM (TƏSDİQ GÖZLƏYİR)** | `Ctrl + K` ilə modal əmr palitrası açılması və 87 dərs/mövzu üzrə anında axtarış və sürətli keçid. |
+| **Mərhələ 5: Google Stitch UI İnteqrasiyası** | ⏳ **GÖZLƏYİR (İstifadəçi Stitch-də generasiya edir)** | İstifadəçinin Google Stitch üzərində yaradacağı yeni peşəkar UI konseptinin qəbul edilməsi və layihəyə tam tətbiq edilməsi. |
 
 ---
 
@@ -47,6 +47,6 @@
 - [x] **Apache Spark Shuffle (`ShuffleViz.tsx`)**: Narrow dependency (eyni stage daxilində filtrasiya) vs Wide dependency (şəbəkə və disk üzərindən shuffle axını).
 - [x] **dbt Lineage & Testlər (`FlowDiagram.tsx` + `globals.css`)**: 5 mərhələli dbt axınında kəsilmələrin ləğvi, tam model adları (`int_orders_joined`, `dim_customers`) və oxlar üzərində təmiz `ref()` nişanları.
 
-### 5. Qlobal Axtarış (`Ctrl + K` Command Palette) [📋 NÖVBƏTİ ADDIM — TƏSDİQ GÖZLƏYİR]
-- [ ] İstənilən yerdən klaviatura qısayolu ilə açılan axtarış pəncərəsi.
-- [ ] Bütün 87 dərs, əsas açar sözlər və diaqramlar üzrə dərhal axtarış və bir kliklə keçid.
+### 5. Google Stitch UI İnteqrasiyası [⏳ GÖZLƏYİR]
+- [ ] İstifadəçinin Google Stitch-də generasiya etdiyi yeni UI konseptinin qəbul edilməsi.
+- [ ] Bəyənilən dizaynın layihənin Next.js, Tailwind və komponent arxitekturasına tam tətbiq edilməsi.

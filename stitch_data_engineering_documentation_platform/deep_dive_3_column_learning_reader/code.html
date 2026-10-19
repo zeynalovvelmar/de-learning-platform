@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DataForge Docs - Medallion Architecture &amp; Delta Lake Layering</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed": "#07006c",
+            "on-background": "#e3e1e9",
+            "on-error": "#690005",
+            "inverse-primary": "#494bd6",
+            "on-error-container": "#ffdad6",
+            "surface-container-low": "#1a1b21",
+            "on-primary": "#1000a9",
+            "outline": "#908fa0",
+            "error": "#ffb4ab",
+            "secondary-container": "#00a572",
+            "secondary": "#4edea3",
+            "on-secondary-container": "#00311f",
+            "tertiary-fixed-dim": "#ffb783",
+            "surface-dim": "#121318",
+            "surface-variant": "#34343a",
+            "inverse-on-surface": "#2f3036",
+            "inverse-surface": "#e3e1e9",
+            "primary-container": "#8083ff",
+            "outline-variant": "#464554",
+            "surface-container": "#1e1f25",
+            "surface-container-highest": "#34343a",
+            "primary-fixed-dim": "#c0c1ff",
+            "secondary-fixed-dim": "#4edea3",
+            "tertiary-fixed": "#ffdcc5",
+            "background": "#121318",
+            "on-tertiary-fixed": "#301400",
+            "tertiary-container": "#d97721",
+            "on-surface": "#e3e1e9",
+            "primary-fixed": "#e1e0ff",
+            "on-tertiary": "#4f2500",
+            "tertiary": "#ffb783",
+            "on-surface-variant": "#c7c4d7",
+            "surface-bright": "#38393f",
+            "on-tertiary-fixed-variant": "#703700",
+            "on-primary-container": "#0d0096",
+            "surface-container-lowest": "#0d0e13",
+            "primary": "#c0c1ff",
+            "surface-container-high": "#292a2f",
+            "on-secondary": "#003824",
+            "on-secondary-fixed-variant": "#005236",
+            "surface": "#121318",
+            "on-tertiary-container": "#452000",
+            "secondary-fixed": "#6ffbbe",
+            "on-secondary-fixed": "#002113",
+            "error-container": "#93000a",
+            "on-primary-fixed-variant": "#2f2ebe",
+            "surface-tint": "#c0c1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1.5rem",
+            "margin": "2rem",
+            "space-md": "1rem",
+            "space-xl": "2.5rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            "gutter-mobile": "1rem"
+          },
+          "fontFamily": {
+            "label-ui": ["Geist"],
+            "display-lg": ["Geist"],
+            "headline-lg": ["Geist"],
+            "code-block": ["JetBrains Mono"],
+            "headline-xl": ["Geist"],
+            "headline-xl-mobile": ["Geist"],
+            "body-md": ["Geist"],
+            "body-sm": ["Geist"],
+            "display-lg-mobile": ["Geist"],
+            "headline-md": ["Geist"],
+            "body-lg": ["Geist"],
+            "code-inline": ["JetBrains Mono"],
+            "label-caps": ["JetBrains Mono"]
+          },
+          "fontSize": {
+            "label-ui": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }],
+            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.03em", "fontWeight": "600" }],
+            "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+            "code-block": ["13px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+            "headline-xl-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "body-sm": ["13px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-md": ["18px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "body-lg": ["16px", { "lineHeight": "28px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+            "code-inline": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }],
+            "label-caps": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Technical scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d0e13;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #464554;
+    }
+    .custom-selection::selection {
+      background: rgba(192, 193, 255, 0.25);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md antialiased custom-selection overflow-x-hidden">
+<!-- TOP APP BAR (Shared Component Execution) -->
+<header class="bg-surface-container-lowest dark:bg-surface-container-lowest docked full-width top-0 sticky z-50 h-14 border-b border-outline-variant dark:border-outline-variant flat no shadows">
+<div class="flex justify-between items-center w-full px-4 h-14">
+<!-- Brand & Global Search -->
+<div class="flex items-center space-x-6">
+<a class="flex items-center gap-2.5" href="#">
+<div class="w-6 h-6 rounded bg-primary-container/20 border border-primary/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[16px]">terminal</span>
+</div>
+<span class="text-headline-md font-headline-md font-semibold text-on-surface dark:text-on-surface tracking-tight">DataForge Docs</span>
+</a>
+<!-- Search Bar (on_left as specified) -->
+<div class="relative hidden sm:flex items-center">
+<span class="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-[16px]">search</span>
+<input class="bg-surface-dim border border-outline-variant/60 rounded px-8 py-1 text-body-sm font-body-sm text-on-surface placeholder:text-outline w-64 md:w-80 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-primary transition-all duration-150" placeholder="Search documentation, patterns, kernels..." type="text"/>
+<div class="absolute right-2 flex items-center gap-1">
+<kbd class="text-[10px] font-code-inline text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded border border-outline-variant">⌘K</kbd>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden lg:flex items-center space-x-6 h-full">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-surface-container hover:text-on-surface dark:hover:text-on-surface transition-colors duration-150 h-full flex items-center px-1 text-label-ui font-label-ui" href="#">Modules</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-surface-container hover:text-on-surface dark:hover:text-on-surface transition-colors duration-150 h-full flex items-center px-1 text-label-ui font-label-ui" href="#">Sandboxes</a>
+<a class="text-primary dark:text-primary font-medium border-b border-primary dark:border-primary h-full flex items-center px-1 text-label-ui font-label-ui" href="#">Architecture</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-surface-container hover:text-on-surface dark:hover:text-on-surface transition-colors duration-150 h-full flex items-center px-1 text-label-ui font-label-ui" href="#">Reference</a>
+</nav>
+<!-- Trailing Action Cluster -->
+<div class="flex items-center space-x-2 md:space-x-3">
+<!-- Language selector -->
+<button class="px-2 py-1 text-label-caps font-label-caps text-on-surface-variant border border-outline-variant/60 rounded hover:bg-surface-container transition-colors duration-150">
+          AZ / EN
+        </button>
+<!-- Trailing Icon Actions -->
+<div class="flex items-center space-x-1 border-x border-outline-variant/50 px-2">
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" title="Dark Mode Active">
+<span class="material-symbols-outlined text-[18px]">dark_mode</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" title="Terminal">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" title="Bookmark">
+<span class="material-symbols-outlined text-[18px]">bookmark</span>
+</button>
+</div>
+<!-- Primary Action -->
+<button class="bg-primary hover:bg-primary-fixed-dim text-on-primary font-label-ui text-label-ui px-3.5 py-1.5 rounded flex items-center gap-1.5 transition-colors duration-150">
+<span class="material-symbols-outlined text-[15px]">play_arrow</span>
+<span>Run Query</span>
+</button>
+<!-- Profile Avatar -->
+<img class="w-7 h-7 rounded border border-outline-variant/80 object-cover" data-alt="Technical workspace user avatar showing a high-contrast geometric minimalist monogram in deep charcoal and violet tones with clean vector lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJGu5O0JrOgquPSRiQPLaifHzrgrl29WfKrvAHryCiiNZnx7ykONeoDkrTQPrVFiw0rQ_hB_wN3qBRSj9dl-i39jxb7qpdHtCB8YS2e-oZAVLZhd0zWvuNOFRUrvvDc2o-f2iSJKZdgLYnteTH4va3F_jTkk8SyTpBm3RwH-ILc0jt6EiJH2eaR_zTFmHevEIAKEHSiDDJdcj00gG42kArCZ9N-gNLgWnclHHJcomIUHr7z1k5o_yK"/>
+</div>
+</div>
+</header>
+<!-- MAIN 3-COLUMN WRAPPER -->
+<div class="flex w-full min-h-[calc(100vh-3.5rem)] relative">
+<!-- LEFT NAVIGATION TREE (260px Fixed) -->
+<aside class="fixed top-14 left-0 h-[calc(100vh-3.5rem)] w-[260px] bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline-variant flex flex-col justify-between py-4 px-3 overflow-y-auto z-40">
+<!-- Curriculum Hierarchy Header -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-2.5 px-2 pb-3 border-b border-outline-variant/40">
+<div class="w-8 h-8 rounded bg-surface-container border border-outline-variant flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+</div>
+<div>
+<div class="text-body-sm font-body-sm font-medium text-on-surface leading-snug">Data Engineering Curriculum</div>
+<div class="text-label-caps font-label-caps text-on-surface-variant text-[10px]">87 Lessons • v2.4 LTS</div>
+</div>
+</div>
+<!-- Module Accordion Tree -->
+<div class="space-y-0.5 mt-1">
+<!-- Module 01 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">database</span>
+<span class="truncate">01: SQL Engine &amp; Optimization</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+<!-- Module 02 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">code</span>
+<span class="truncate">02: Python Core for Data</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+<!-- Module 03 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">sync_alt</span>
+<span class="truncate">03: Apache Kafka</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+<!-- Module 04 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">bolt</span>
+<span class="truncate">04: Apache Spark</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+<!-- Module 05: Expanded State -->
+<div class="pt-1">
+<div class="text-primary font-medium flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer bg-surface-container/60">
+<div class="flex items-center gap-2 truncate">
+<span class="material-symbols-outlined text-[16px] text-primary">layers</span>
+<span class="truncate">05: Storage Engines &amp; Lakehouse</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-primary">expand_more</span>
+</div>
+<!-- Lessons Subtree -->
+<div class="pl-4 pr-1 py-1 space-y-0.5 border-l border-outline-variant/50 ml-3.5 my-1 text-body-sm font-body-sm">
+<a class="block px-2 py-1 text-on-surface-variant hover:text-on-surface rounded text-[13px] truncate" href="#">
+                01: Parquet Columnar Format
+              </a>
+<a class="block px-2 py-1 text-on-surface-variant hover:text-on-surface rounded text-[13px] truncate" href="#">
+                02: Delta ACID Log &amp; Transactions
+              </a>
+<!-- ACTIVE LESSON (Mandatory Match) -->
+<a class="block px-2 py-1 bg-surface-container text-primary font-medium border-l-2 border-primary -ml-[17px] pl-[15px] rounded-r text-[13px] truncate" href="#">
+                03: Medallion Architecture
+              </a>
+<a class="block px-2 py-1 text-on-surface-variant hover:text-on-surface rounded text-[13px] truncate" href="#">
+                04: Iceberg Hidden Partitioning
+              </a>
+<a class="block px-2 py-1 text-on-surface-variant hover:text-on-surface rounded text-[13px] truncate" href="#">
+                05: Compaction &amp; Vacuum Policies
+              </a>
+</div>
+</div>
+<!-- Module 06 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="truncate">06: Apache Airflow</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+<!-- Module 07 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">layers</span>
+<span class="truncate">07: dbt &amp; Transformation</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+<!-- Module 08 -->
+<div class="text-on-surface-variant hover:text-on-surface flex items-center justify-between px-2 py-1.5 text-body-sm font-body-sm rounded cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">deployed_code</span>
+<span class="truncate">08: DevOps &amp; Docker</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+</div>
+</div>
+<!-- Sandbox CTA from JSON -->
+<div class="pt-2 px-1">
+<button class="w-full py-1.5 px-2 bg-surface-container border border-outline-variant/70 text-on-surface text-label-ui font-label-ui rounded flex items-center justify-center gap-1.5 hover:border-primary/50 transition-colors duration-150">
+<span class="material-symbols-outlined text-[14px] text-primary">play_circle</span>
+<span>Open Sandbox Runner</span>
+</button>
+</div>
+</div>
+<!-- Left Rail Footer -->
+<div class="pt-4 border-t border-outline-variant/40 space-y-1">
+<a class="flex items-center gap-2 px-2 py-1 text-on-surface-variant hover:text-on-surface text-body-sm font-body-sm rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[15px]">settings</span>
+<span class="text-[12px]">Documentation Settings</span>
+</a>
+<a class="flex items-center justify-between px-2 py-1 text-on-surface-variant hover:text-on-surface text-body-sm font-body-sm rounded transition-colors duration-150" href="#">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[15px]">keyboard</span>
+<span class="text-[12px]">Keyboard Shortcuts</span>
+</div>
+<span class="text-label-caps font-label-caps text-[10px] text-outline">?</span>
+</a>
+<a class="flex items-center gap-2 px-2 py-1 text-on-surface-variant hover:text-on-surface text-body-sm font-body-sm rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[15px]">menu_book</span>
+<span class="text-[12px]">API Reference</span>
+</a>
+</div>
+</aside>
+<!-- CENTER READING WELL + RIGHT RAIL WRAPPER (Offset by 260px) -->
+<div class="flex-1 ml-[260px] flex justify-between pr-0 lg:pr-[240px]">
+<!-- CENTER READING WELL (Constrained ~780px, max 65-75 chars per line) -->
+<main class="w-full max-w-[800px] mx-auto px-6 lg:px-12 py-8 flex flex-col gap-8">
+<!-- Breadcrumb & Status -->
+<div class="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/40 pb-3">
+<div class="flex items-center space-x-2 text-label-caps font-label-caps text-[11px] text-on-surface-variant">
+<span>Storage Engines</span>
+<span>/</span>
+<span>Medallion Storage Stack</span>
+<span>/</span>
+<span class="text-primary font-semibold">Lesson 03</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded text-label-caps font-label-caps text-[10px] bg-secondary-container/20 text-secondary border border-secondary-container/40">
+              Verified v2.4
+            </span>
+<span class="text-label-caps font-label-caps text-[11px] text-outline">6 min read</span>
+</div>
+</div>
+<!-- Article Headline -->
+<div class="space-y-3">
+<h1 class="text-headline-xl font-headline-xl text-on-surface tracking-tight">
+            Medallion Architecture &amp; Delta Lake Layering
+          </h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant leading-relaxed">
+            The medallion architecture is a multi-hop data design pattern that logically structures data within an ACID-compliant Lakehouse into progressive quality tiers: Bronze (Raw), Silver (Curated), and Gold (Aggregated).
+          </p>
+</div>
+<!-- ARCHITECTURE TL;DR CARD -->
+<section class="rounded-lg bg-surface-container border border-outline-variant/80 p-5 space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-label-ui font-label-ui text-primary uppercase tracking-wider text-[11px]">
+<span class="material-symbols-outlined text-[16px]">summarize</span>
+<span>Architecture TL;DR &amp; Design Invariants</span>
+</div>
+<span class="text-label-caps font-label-caps text-[10px] text-outline">SPEC-0841</span>
+</div>
+<ul class="space-y-2 text-body-sm font-body-sm text-on-surface">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-secondary text-[16px] mt-0.5 shrink-0">check_circle</span>
+<span><strong>Bronze Invariant:</strong> Raw immutable append-only ingestion with source schema preservation. Never drop columns or fail raw batch streams.</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-secondary text-[16px] mt-0.5 shrink-0">check_circle</span>
+<span><strong>Silver Invariant:</strong> Validated, conformed types, single-source-of-truth enterprise data models with stateful UPSERT/MERGE semantics.</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-secondary text-[16px] mt-0.5 shrink-0">check_circle</span>
+<span><strong>Gold Invariant:</strong> High-performance read-optimized dimensional marts with sub-second OLAP scan rates for BI dashboards and feature stores.</span>
+</li>
+</ul>
+<!-- Trade-off specs bar -->
+<div class="pt-3 border-t border-outline-variant/40 grid grid-cols-3 gap-2 text-center text-label-caps font-label-caps text-[11px]">
+<div class="bg-surface-container-lowest p-2 rounded border border-outline-variant/40">
+<div class="text-outline">Bronze Latency</div>
+<div class="text-on-surface font-medium mt-0.5">Sub-second / Stream</div>
+</div>
+<div class="bg-surface-container-lowest p-2 rounded border border-outline-variant/40">
+<div class="text-outline">Silver Storage Cost</div>
+<div class="text-on-surface font-medium mt-0.5">Parquet + Snappy</div>
+</div>
+<div class="bg-surface-container-lowest p-2 rounded border border-outline-variant/40">
+<div class="text-outline">Gold Read SLA</div>
+<div class="text-secondary font-medium mt-0.5">&lt; 150ms p95</div>
+</div>
+</div>
+</section>
+<!-- EDITORIAL PROSE SECTION 1 -->
+<article class="space-y-4 text-body-md font-body-md text-on-surface-variant leading-[1.75]">
+<h2 class="text-headline-lg font-headline-lg text-on-surface pt-2">
+            The Three-Tier Lakehouse Mechanics
+          </h2>
+<p>
+            Traditional data warehouses forced a premature serialization of business logic during ingestion. Any upstream schema change broke daily ETL pipelines, causing cascade anomalies across downstream reporting tools. Lakehouse architectures utilizing the <strong>Medallion Pattern</strong> decouple raw retention from schema validation and dimensional aggregation.
+          </p>
+<p>
+            By relying on open table specifications—most notably <span class="font-code-inline text-code-inline text-primary bg-surface-container px-1 py-0.5 rounded border border-outline-variant/40">Delta Lake</span> and <span class="font-code-inline text-code-inline text-primary bg-surface-container px-1 py-0.5 rounded border border-outline-variant/40">Apache Iceberg</span>—each layer executes atomic ACID transactions directly against inexpensive object storage like S3 or GCS, avoiding proprietary database lock-in.
+          </p>
+</article>
+<!-- EMBEDDED ARCHITECTURE DIAGRAM (From Prompt Assets) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-on-surface text-[12px] flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary">account_tree</span>
+<span>Lakehouse End-to-End Pipeline Blueprint</span>
+</span>
+<!-- Tab Switcher -->
+<div class="inline-flex p-0.5 bg-surface-container-lowest border border-outline-variant/70 rounded">
+<button class="px-2.5 py-1 text-label-caps font-label-caps text-[11px] rounded bg-surface-container text-on-surface">Architectural View</button>
+<button class="px-2.5 py-1 text-label-caps font-label-caps text-[11px] text-on-surface-variant hover:text-on-surface">Data Flow Path</button>
+<button class="px-2.5 py-1 text-label-caps font-label-caps text-[11px] text-on-surface-variant hover:text-on-surface">Schema Evolution</button>
+</div>
+</div>
+<!-- Framed Diagram Container -->
+<div class="rounded-lg border border-outline-variant/80 bg-surface-container-lowest overflow-hidden">
+<div class="w-full flex items-center justify-center p-2 bg-[#090a0f]">
+<img alt="Medallion Storage Architecture Data Lakehouse Pattern" class="w-full h-auto object-contain rounded max-h-[460px]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm5osKA3p6qA-IbCiq-F4CfhuyfX2V0114WenBSEef-QBc2HsCTMxgoIwxdNWoOXjL-dBeBVNZF4ou73_9Xbu8_xNKVGkb2cGPhGUh47IK5FoelSefKPu4g96DdWPrgw-ajHHcy9-lYYYwaYae4FeUXr6qh9HUr0xsgj6WuQu4StSQoib-WbTxi4jrxU8hWNFl4eCKiZBSXFCXPbFMg6uUCVFnU9SXEyxvUj6G31KDVgp3_gka4lMh"/>
+</div>
+<div class="px-4 py-2.5 bg-surface-container-low border-t border-outline-variant/50 flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant text-[12px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[15px] text-secondary">verified</span>
+<span>ByteByteGo &amp; AWS Reference Pattern: Delta Lake transactional layers with Spark / dbt execution.</span>
+</div>
+<button class="flex items-center gap-1 text-primary hover:underline font-label-ui text-[12px]">
+<span class="material-symbols-outlined text-[14px]">fullscreen</span>
+<span>Zoom Diagram</span>
+</button>
+</div>
+</div>
+</section>
+<!-- CALLOUT 1: Production Rule (Amber/Warning Style Guidance) -->
+<div class="rounded-lg p-4 bg-tertiary-container/10 border border-tertiary-container/30 border-l-[3px] border-l-tertiary-container text-body-sm font-body-sm space-y-1">
+<div class="flex items-center gap-2 font-medium text-tertiary">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+<span class="font-label-ui text-label-ui">Production Rule: Schema Enforcement vs Schema Evolution</span>
+</div>
+<p class="text-on-surface-variant leading-relaxed">
+            Delta Lake enforces schema on write by default. In the <strong>Bronze layer</strong>, you must explicitly pass <code class="font-code-inline text-code-inline text-on-surface bg-surface-container px-1 py-0.5 rounded">.option("mergeSchema", "true")</code> to safely handle upstream API payload alterations without dropping unmapped attributes.
+          </p>
+</div>
+<!-- LAYER BREAKDOWNS (Bento Style Breakdown Cards) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Bronze Tier -->
+<div class="bg-surface-container rounded-lg p-4 border border-outline-variant/70 flex flex-col justify-between space-y-3">
+<div>
+<div class="flex items-center justify-between pb-2 border-b border-outline-variant/40">
+<span class="text-label-caps font-label-caps text-[#ffdcc5] font-semibold text-[11px]">BRONZE LAYER</span>
+<span class="px-1.5 py-0.5 text-[9px] font-code-inline rounded bg-[#ffdcc5]/10 text-[#ffdcc5]">RAW STORAGE</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface mt-2 text-[15px]">Append-Only Log</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
+                Retains 100% of the ingested state verbatim. Retains original payload timestamp and ingestion metadata.
+              </p>
+</div>
+<div class="space-y-1 text-label-caps font-label-caps text-[10px] text-outline pt-2 border-t border-outline-variant/30">
+<div>Partition: <code class="text-on-surface font-code-inline">date=YYYY-MM-DD</code></div>
+<div>Retention: <code class="text-on-surface font-code-inline">Infinite / Cold S3</code></div>
+</div>
+</div>
+<!-- Silver Tier -->
+<div class="bg-surface-container rounded-lg p-4 border border-outline-variant/70 flex flex-col justify-between space-y-3">
+<div>
+<div class="flex items-center justify-between pb-2 border-b border-outline-variant/40">
+<span class="text-label-caps font-label-caps text-[#c7c4d7] font-semibold text-[11px]">SILVER LAYER</span>
+<span class="px-1.5 py-0.5 text-[9px] font-code-inline rounded bg-[#c7c4d7]/10 text-on-surface">CLEANSED</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface mt-2 text-[15px]">Conformed &amp; Filtered</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
+                Deduplication via primary keys, strict type casting, timestamp normalization, and data validation rules.
+              </p>
+</div>
+<div class="space-y-1 text-label-caps font-label-caps text-[10px] text-outline pt-2 border-t border-outline-variant/30">
+<div>Write Pattern: <code class="text-on-surface font-code-inline">MERGE INTO (UPSERT)</code></div>
+<div>Quality: <code class="text-on-surface font-code-inline">Great Expectations</code></div>
+</div>
+</div>
+<!-- Gold Tier -->
+<div class="bg-surface-container rounded-lg p-4 border border-outline-variant/70 flex flex-col justify-between space-y-3">
+<div>
+<div class="flex items-center justify-between pb-2 border-b border-outline-variant/40">
+<span class="text-label-caps font-label-caps text-secondary font-semibold text-[11px]">GOLD LAYER</span>
+<span class="px-1.5 py-0.5 text-[9px] font-code-inline rounded bg-secondary-container/20 text-secondary">BI &amp; ML READY</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface mt-2 text-[15px]">Dimensional Marts</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
+                Aggregated business logic, Star/Snowflake schemas, and pre-calculated feature tables for BI and LLMs.
+              </p>
+</div>
+<div class="space-y-1 text-label-caps font-label-caps text-[10px] text-outline pt-2 border-t border-outline-variant/30">
+<div>Layout: <code class="text-on-surface font-code-inline">Z-Order Clustered</code></div>
+<div>Latency: <code class="text-secondary font-code-inline">&lt; 150ms Pre-Agg</code></div>
+</div>
+</div>
+</section>
+<!-- CALLOUT 2: Small File Problem (Info / Indigo Style Guidance) -->
+<div class="rounded-lg p-4 bg-primary-container/10 border border-primary-container/30 border-l-[3px] border-l-primary text-body-sm font-body-sm space-y-1">
+<div class="flex items-center gap-2 font-medium text-primary">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<span class="font-label-ui text-label-ui">Gotcha: Small File Problem &amp; Auto-Compaction</span>
+</div>
+<p class="text-on-surface-variant leading-relaxed">
+            Streaming micro-batches into Bronze generates thousands of 1-5MB Parquet slices. Always trigger 
+            <code class="font-code-inline text-code-inline text-primary bg-surface-container px-1 py-0.5 rounded">OPTIMIZE silver_events ZORDER BY (user_id)</code>
+            nightly to coalesce small segments into standard 128MB-512MB columnar files.
+          </p>
+</div>
+<!-- INTERACTIVE MONACO-STYLE CODE SANDBOX -->
+<section class="space-y-3" id="interactive-code-runner">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-on-surface text-[12px] flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary">code</span>
+<span>Interactive Kernel Sandbox</span>
+</span>
+<div class="flex items-center gap-2 text-label-caps font-label-caps text-[11px] text-on-surface-variant">
+<span>Kernel:</span>
+<span class="text-primary font-medium">DuckDB v0.10.0 (WASM)</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+</div>
+</div>
+<!-- Code Editor Well -->
+<div class="rounded-lg border border-outline-variant/80 bg-surface-container-lowest overflow-hidden">
+<!-- Editor Tab Bar -->
+<div class="flex items-center justify-between bg-surface-container-low border-b border-outline-variant/60 px-3 h-9">
+<div class="flex items-center h-full space-x-1">
+<button class="px-3 h-full text-label-caps font-label-caps text-[11px] text-primary bg-surface-container border-b-2 border-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[13px]">code_blocks</span>
+<span>bronze_to_silver.sql</span>
+</button>
+<button class="px-3 h-full text-label-caps font-label-caps text-[11px] text-on-surface-variant hover:text-on-surface flex items-center gap-1.5">
+<span>silver_to_gold.py</span>
+</button>
+<button class="px-3 h-full text-label-caps font-label-caps text-[11px] text-on-surface-variant hover:text-on-surface flex items-center gap-1.5">
+<span>schema_check.sql</span>
+</button>
+</div>
+<!-- Action icons -->
+<div class="flex items-center space-x-2 text-on-surface-variant">
+<button class="hover:text-on-surface p-1" title="Copy code snippet">
+<span class="material-symbols-outlined text-[15px]">content_copy</span>
+</button>
+<button class="hover:text-on-surface p-1" title="Reset default query">
+<span class="material-symbols-outlined text-[15px]">restart_alt</span>
+</button>
+</div>
+</div>
+<!-- Editor Lines & Syntax -->
+<div class="p-4 font-code-block text-code-block text-[13px] leading-relaxed flex overflow-x-auto bg-[#0d0e15]">
+<!-- Line Numbers -->
+<div class="select-none text-outline-variant/60 pr-4 text-right border-r border-outline-variant/30 space-y-0.5">
+<div>01</div>
+<div>02</div>
+<div>03</div>
+<div>04</div>
+<div>05</div>
+<div>06</div>
+<div>07</div>
+<div>08</div>
+<div>09</div>
+<div>10</div>
+<div>11</div>
+<div>12</div>
+</div>
+<!-- Code Content -->
+<pre class="pl-4 text-on-surface whitespace-pre overflow-x-auto"><span class="text-primary font-medium">MERGE INTO</span> delta.`s3://lakehouse/silver/user_events` <span class="text-primary font-medium">AS</span> target
+<span class="text-primary font-medium">USING</span> (
+  <span class="text-primary font-medium">SELECT</span> 
+    event_id,
+    user_id,
+    CAST(raw_payload:timestamp <span class="text-primary font-medium">AS</span> TIMESTAMP) <span class="text-primary font-medium">AS</span> conformed_timestamp,
+    raw_payload:action::STRING <span class="text-primary font-medium">AS</span> status,
+    sha256(raw_payload::STRING) <span class="text-primary font-medium">AS</span> row_sha256
+  <span class="text-primary font-medium">FROM</span> delta.`s3://lakehouse/bronze/events`
+  <span class="text-primary font-medium">WHERE</span> ingestion_date = CURRENT_DATE()
+) <span class="text-primary font-medium">AS</span> source
+<span class="text-primary font-medium">ON</span> target.event_id = source.event_id
+<span class="text-primary font-medium">WHEN MATCHED AND</span> target.row_sha256 != source.row_sha256 <span class="text-primary font-medium">THEN</span>
+  <span class="text-primary font-medium">UPDATE SET</span> *
+<span class="text-primary font-medium">WHEN NOT MATCHED THEN</span>
+  <span class="text-primary font-medium">INSERT</span> *;</pre>
+</div>
+<!-- Execution Control Bar -->
+<div class="flex items-center justify-between px-3 py-2 bg-surface-container border-t border-outline-variant/60">
+<div class="flex items-center space-x-3 text-label-caps font-label-caps text-[11px] text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">check_circle</span>
+<span>Syntax Validated</span>
+</span>
+<span>•</span>
+<span>Target: 1.2M rows scanned</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-label-caps font-label-caps text-[10px] text-outline">Shift + Enter</span>
+<button class="bg-primary hover:bg-primary-fixed-dim text-on-primary font-label-ui text-label-ui px-3 py-1 rounded flex items-center gap-1.5 transition-colors duration-150">
+<span class="material-symbols-outlined text-[14px]">play_arrow</span>
+<span>Execute Plan</span>
+</button>
+</div>
+</div>
+<!-- Tabular Query Output Pane -->
+<div class="border-t border-outline-variant/60 bg-surface-container-lowest p-3">
+<div class="flex items-center justify-between pb-2 mb-2 border-b border-outline-variant/30 text-label-caps font-label-caps text-[11px]">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[14px] text-secondary">table_rows</span>
+<span>Query Output (5 of 12,400 Rows)</span>
+</div>
+<div class="text-outline">Execution Time: <span class="text-on-surface font-code-inline">41.8ms</span></div>
+</div>
+<!-- Output Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left font-code-block text-[11px] border-collapse">
+<thead>
+<tr class="text-outline border-b border-outline-variant/40">
+<th class="py-1 px-2 font-medium">event_id</th>
+<th class="py-1 px-2 font-medium">user_id</th>
+<th class="py-1 px-2 font-medium">conformed_timestamp</th>
+<th class="py-1 px-2 font-medium">status</th>
+<th class="py-1 px-2 font-medium">row_sha256</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20 text-on-surface-variant">
+<tr class="hover:bg-surface-container/40">
+<td class="py-1 px-2 text-primary">evt_9401a82</td>
+<td class="py-1 px-2">usr_8829</td>
+<td class="py-1 px-2">2025-02-23T14:10:02Z</td>
+<td class="py-1 px-2"><span class="text-secondary bg-secondary/10 px-1 py-0.5 rounded">AUTHENTICATED</span></td>
+<td class="py-1 px-2 font-mono text-outline">e3b0c44298fc1c14...</td>
+</tr>
+<tr class="hover:bg-surface-container/40">
+<td class="py-1 px-2 text-primary">evt_9401a83</td>
+<td class="py-1 px-2">usr_1042</td>
+<td class="py-1 px-2">2025-02-23T14:10:04Z</td>
+<td class="py-1 px-2"><span class="text-secondary bg-secondary/10 px-1 py-0.5 rounded">CHECKOUT_COMPLETED</span></td>
+<td class="py-1 px-2 font-mono text-outline">8f434346648f6b96...</td>
+</tr>
+<tr class="hover:bg-surface-container/40">
+<td class="py-1 px-2 text-primary">evt_9401a84</td>
+<td class="py-1 px-2">usr_7721</td>
+<td class="py-1 px-2">2025-02-23T14:10:09Z</td>
+<td class="py-1 px-2"><span class="text-tertiary bg-tertiary/10 px-1 py-0.5 rounded">CART_MODIFIED</span></td>
+<td class="py-1 px-2 font-mono text-outline">ca978112ca1bbdcaf...</td>
+</tr>
+<tr class="hover:bg-surface-container/40">
+<td class="py-1 px-2 text-primary">evt_9401a85</td>
+<td class="py-1 px-2">usr_0441</td>
+<td class="py-1 px-2">2025-02-23T14:10:11Z</td>
+<td class="py-1 px-2"><span class="text-secondary bg-secondary/10 px-1 py-0.5 rounded">PAYMENT_RECEIVED</span></td>
+<td class="py-1 px-2 font-mono text-outline">b5123d6a9712a2...</td>
+</tr>
+<tr class="hover:bg-surface-container/40">
+<td class="py-1 px-2 text-primary">evt_9401a86</td>
+<td class="py-1 px-2">usr_5592</td>
+<td class="py-1 px-2">2025-02-23T14:10:14Z</td>
+<td class="py-1 px-2"><span class="text-secondary bg-secondary/10 px-1 py-0.5 rounded">SESSION_RENEW</span></td>
+<td class="py-1 px-2 font-mono text-outline">f6e0a1e2ac41945...</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<!-- STUDENT MARKDOWN SCRATCHPAD / NOTES CARD -->
+<section class="rounded-lg border border-outline-variant/70 bg-surface-container p-4 space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-label-ui font-label-ui text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-primary">edit_note</span>
+<span>Student Technical Scratchpad</span>
+</div>
+<div class="flex items-center space-x-3 text-label-caps font-label-caps text-[11px] text-on-surface-variant">
+<span class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-[13px]">cloud_done</span>
+<span>Auto-saved locally</span>
+</span>
+<button class="hover:text-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">download</span>
+<span>Export Markdown</span>
+</button>
+</div>
+</div>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded p-3 text-body-sm font-code-inline text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-primary transition-all duration-150 resize-y" placeholder="Type notes on partition pruning, vacuum policies, or schema evolution..." rows="3">- Note: Silver layer merges MUST use deterministic row SHA hashes to avoid duplicate historical updates.
+- Gold marts: Always cluster by date &amp; region for quick Metabase scans.</textarea>
+</section>
+<!-- BOTTOM LESSON NAVIGATION -->
+<nav class="flex items-center justify-between pt-6 pb-12 border-t border-outline-variant/60">
+<a class="px-4 py-2 rounded bg-surface-container hover:bg-surface-container-high border border-outline-variant/60 text-body-sm font-body-sm text-on-surface flex items-center gap-2 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span>Prev: Delta ACID Log</span>
+</a>
+<a class="px-4 py-2 rounded bg-primary hover:bg-primary-fixed-dim text-on-primary font-label-ui text-label-ui flex items-center gap-2 transition-colors duration-150" href="#">
+<span>Next: Iceberg Partitioning</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</nav>
+</main>
+<!-- RIGHT STICKY SIDEBAR (220px Fixed, Desktop) -->
+<aside class="hidden lg:block fixed top-14 right-0 w-[240px] h-[calc(100vh-3.5rem)] py-8 px-4 border-l border-outline-variant/40 overflow-y-auto">
+<div class="space-y-6">
+<!-- Reading Progress -->
+<div class="space-y-2 pb-4 border-b border-outline-variant/40">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-[11px] text-on-surface-variant">
+<span>Progress</span>
+<span class="text-primary font-medium">45%</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded overflow-hidden">
+<div class="bg-primary h-full w-[45%]"></div>
+</div>
+</div>
+<!-- On This Page TOC -->
+<div class="space-y-2.5">
+<span class="text-label-caps font-label-caps text-outline text-[11px] uppercase tracking-wider">On this page</span>
+<ul class="space-y-1.5 text-body-sm font-body-sm border-l border-outline-variant/40 ml-1">
+<li>
+<a class="block pl-3 text-primary font-medium border-l-2 border-primary -ml-[1px] text-[13px]" href="#">
+                  Architecture TL;DR
+                </a>
+</li>
+<li>
+<a class="block pl-3 text-on-surface-variant hover:text-on-surface text-[13px] transition-colors" href="#">
+                  Medallion Principles
+                </a>
+</li>
+<li>
+<a class="block pl-3 text-on-surface-variant hover:text-on-surface text-[13px] transition-colors" href="#">
+                  Bronze: Raw Append
+                </a>
+</li>
+<li>
+<a class="block pl-3 text-on-surface-variant hover:text-on-surface text-[13px] transition-colors" href="#">
+                  Silver: Clean &amp; Conformed
+                </a>
+</li>
+<li>
+<a class="block pl-3 text-on-surface-variant hover:text-on-surface text-[13px] transition-colors" href="#">
+                  Gold: Dimensional Marts
+                </a>
+</li>
+<li>
+<a class="block pl-3 text-on-surface-variant hover:text-on-surface text-[13px] transition-colors" href="#interactive-code-runner">
+                  Interactive Code Runner
+                </a>
+</li>
+<li>
+<a class="block pl-3 text-on-surface-variant hover:text-on-surface text-[13px] transition-colors" href="#">
+                  Benchmarks &amp; Latency
+                </a>
+</li>
+</ul>
+</div>
+<!-- Quick citation & export tools -->
+<div class="pt-4 border-t border-outline-variant/40 space-y-2">
+<button class="w-full py-1.5 px-2 bg-surface-container border border-outline-variant/60 rounded text-label-ui font-label-ui text-on-surface-variant hover:text-on-surface hover:border-outline flex items-center justify-center gap-1.5 transition-colors duration-150">
+<span class="material-symbols-outlined text-[14px]">link</span>
+<span>Copy Page Link</span>
+</button>
+<button class="w-full py-1.5 px-2 bg-surface-container border border-outline-variant/60 rounded text-label-ui font-label-ui text-on-surface-variant hover:text-on-surface hover:border-outline flex items-center justify-center gap-1.5 transition-colors duration-150">
+<span class="material-symbols-outlined text-[14px]">share</span>
+<span>Share Lesson</span>
+</button>
+</div>
+<!-- Publication stamp -->
+<div class="pt-4 text-label-caps font-label-caps text-[10px] text-outline leading-tight">
+            Published under MIT by DataForge Docs Engineering Core.
+          </div>
+</div>
+</aside>
+</div>
+</div>
+<!-- FOOTER (Shared Component Execution) -->
+<footer class="bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-variant dark:border-outline-variant w-full relative z-40">
+<div class="w-full py-6 px-8 flex flex-col md:flex-row justify-between items-center max-w-[1440px] mx-auto text-on-surface-variant dark:text-on-surface-variant gap-4">
+<!-- Brand & Copyright -->
+<div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+<span class="text-headline-sm font-headline-sm font-semibold text-on-surface dark:text-on-surface">DataForge</span>
+<span class="hidden sm:inline text-outline">•</span>
+<span class="text-body-sm font-body-sm">© 2025 DataForge System Architecture. Publication-Grade Technical Documentation.</span>
+</div>
+<!-- Footer Links Array from Shared Component -->
+<div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-label-ui font-label-ui">
+<a class="hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Architecture Specs</a>
+<a class="hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Sandbox Schema</a>
+<a class="hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Kernel Execution</a>
+<a class="hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">System Status</a>
+<a class="hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Changelog</a>
+<a class="hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Privacy &amp; Telemetry</a>
+</div>
+</div>
+</footer>
+</body></html>

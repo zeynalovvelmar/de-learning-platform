@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DataForge Docs - Architecture Roadmap</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Geist and JetBrains Mono Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed": "#07006c",
+            "on-background": "#e3e1e9",
+            "on-error": "#690005",
+            "inverse-primary": "#494bd6",
+            "on-error-container": "#ffdad6",
+            "surface-container-low": "#1a1b21",
+            "on-primary": "#1000a9",
+            "outline": "#908fa0",
+            "error": "#ffb4ab",
+            "secondary-container": "#00a572",
+            "secondary": "#4edea3",
+            "on-secondary-container": "#00311f",
+            "tertiary-fixed-dim": "#ffb783",
+            "surface-dim": "#121318",
+            "surface-variant": "#34343a",
+            "inverse-on-surface": "#2f3036",
+            "inverse-surface": "#e3e1e9",
+            "primary-container": "#8083ff",
+            "outline-variant": "#464554",
+            "surface-container": "#1e1f25",
+            "surface-container-highest": "#34343a",
+            "primary-fixed-dim": "#c0c1ff",
+            "secondary-fixed-dim": "#4edea3",
+            "tertiary-fixed": "#ffdcc5",
+            "background": "#121318",
+            "on-tertiary-fixed": "#301400",
+            "tertiary-container": "#d97721",
+            "on-surface": "#e3e1e9",
+            "primary-fixed": "#e1e0ff",
+            "on-tertiary": "#4f2500",
+            "tertiary": "#ffb783",
+            "on-surface-variant": "#c7c4d7",
+            "surface-bright": "#38393f",
+            "on-tertiary-fixed-variant": "#703700",
+            "on-primary-container": "#0d0096",
+            "surface-container-lowest": "#0d0e13",
+            "primary": "#c0c1ff",
+            "surface-container-high": "#292a2f",
+            "on-secondary": "#003824",
+            "on-secondary-fixed-variant": "#005236",
+            "surface": "#121318",
+            "on-tertiary-container": "#452000",
+            "secondary-fixed": "#6ffbbe",
+            "on-secondary-fixed": "#002113",
+            "error-container": "#93000a",
+            "on-primary-fixed-variant": "#2f2ebe",
+            "surface-tint": "#c0c1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1.5rem",
+            "margin": "2rem",
+            "space-md": "1rem",
+            "space-xl": "2.5rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            "gutter-mobile": "1rem"
+          },
+          "fontFamily": {
+            "label-ui": ["Geist"],
+            "display-lg": ["Geist"],
+            "headline-lg": ["Geist"],
+            "code-block": ["JetBrains Mono"],
+            "headline-xl": ["Geist"],
+            "headline-xl-mobile": ["Geist"],
+            "body-md": ["Geist"],
+            "body-sm": ["Geist"],
+            "display-lg-mobile": ["Geist"],
+            "headline-md": ["Geist"],
+            "body-lg": ["Geist"],
+            "code-inline": ["JetBrains Mono"],
+            "label-caps": ["JetBrains Mono"]
+          },
+          "fontSize": {
+            "label-ui": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }],
+            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.03em", "fontWeight": "600" }],
+            "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+            "code-block": ["13px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+            "headline-xl-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "body-sm": ["13px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-md": ["18px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "body-lg": ["16px", { "lineHeight": "28px", "letterSpacing": "-0.05em", "fontWeight": "400" }],
+            "code-inline": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }],
+            "label-caps": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    ::selection {
+      background: #8083ff;
+      color: #0d0096;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col font-body-md text-body-md">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface-container-lowest dark:bg-surface-container-lowest docked full-width top-0 sticky z-50 h-14 border-b border-outline-variant dark:border-outline-variant">
+<div class="flex justify-between items-center w-full px-4 h-14 max-w-[1720px] mx-auto">
+<!-- Left: Brand + Breadcrumbs + Search Bar -->
+<div class="flex items-center space-x-4 flex-1">
+<div class="flex items-center space-x-3">
+<div class="w-6 h-6 rounded bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined font-semibold text-[16px]" data-icon="deployed_code">deployed_code</span>
+</div>
+<a class="text-headline-md font-headline-md font-semibold text-on-surface dark:text-on-surface tracking-tight" href="#">
+            DataForge Docs
+          </a>
+</div>
+<div class="h-4 w-px bg-outline-variant hidden sm:block"></div>
+<!-- Breadcrumb Tracker -->
+<nav class="hidden md:flex items-center space-x-1.5 text-label-ui font-label-ui text-on-surface-variant">
+<span class="hover:text-on-surface transition-colors cursor-pointer">Curriculum</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+<span class="text-on-surface font-medium">Architecture Roadmap</span>
+</nav>
+<!-- Search Bar (on_left in TopNavBar spec) -->
+<div class="relative w-72 max-w-xs hidden lg:block ml-2">
+<div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[16px]" data-icon="search">search</span>
+</div>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded pl-8 pr-3 py-1 text-code-inline font-code-inline text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-primary transition-all duration-150 h-8" placeholder="Search 87 lessons, schemas, DAGs... ⌘K" type="text"/>
+</div>
+</div>
+<!-- Navigation Links (Exact from JSON: Modules, Sandboxes, Architecture, Reference) -->
+<nav class="hidden xl:flex items-center space-x-6 mr-6">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors duration-150 text-body-sm font-body-sm" href="#">Modules</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors duration-150 text-body-sm font-body-sm" href="#">Sandboxes</a>
+<!-- Active link: Architecture -->
+<a class="text-primary dark:text-primary font-medium border-b border-primary dark:border-primary pb-0.5 text-body-sm font-body-sm" href="#">Architecture</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors duration-150 text-body-sm font-body-sm" href="#">Reference</a>
+</nav>
+<!-- Trailing Actions & Icons -->
+<div class="flex items-center space-x-2">
+<!-- Secondary Action: AZ / EN -->
+<button class="px-2 py-1 text-label-caps font-label-caps rounded border border-outline-variant bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors duration-150">
+          AZ / EN
+        </button>
+<!-- Trailing Icons: dark_mode, terminal, bookmark -->
+<div class="flex items-center space-x-1 text-on-surface-variant">
+<button class="p-1.5 rounded hover:bg-surface-container dark:hover:bg-surface-container hover:text-on-surface transition-colors duration-150" title="Toggle Mode">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container dark:hover:bg-surface-container hover:text-on-surface transition-colors duration-150" title="Interactive Terminal">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container dark:hover:bg-surface-container hover:text-on-surface transition-colors duration-150" title="Bookmarks">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span>
+</button>
+</div>
+<div class="h-4 w-px bg-outline-variant"></div>
+<!-- Trailing Primary Action: Run Query -->
+<button class="bg-primary-container text-on-primary-container px-3 py-1.5 rounded text-label-ui font-label-ui font-medium flex items-center space-x-1.5 hover:bg-opacity-90 transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-primary">
+<span class="material-symbols-outlined text-[15px]" data-icon="play_arrow">play_arrow</span>
+<span>Run Query</span>
+</button>
+<!-- User Profile Avatar -->
+<div class="w-7 h-7 rounded border border-outline-variant overflow-hidden bg-surface-container-high flex items-center justify-center cursor-pointer ml-1">
+<span class="text-label-caps font-label-caps text-primary font-bold">DF</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Tripartite Layout Frame -->
+<div class="flex-1 flex max-w-[1720px] w-full mx-auto">
+<!-- SideNavBar (Shared Component) - Fixed Rail Left -->
+<aside class="hidden lg:flex flex-col justify-between w-[272px] shrink-0 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline-variant sticky top-14 h-[calc(100vh-3.5rem)] py-4 px-3 overflow-y-auto">
+<!-- Rail Header -->
+<div class="space-y-4">
+<div class="flex items-start space-x-3 px-2 pb-3 border-b border-outline-variant">
+<div class="p-2 rounded bg-surface-container border border-outline-variant text-primary">
+<span class="material-symbols-outlined text-[20px]" data-icon="schema">schema</span>
+</div>
+<div>
+<h2 class="text-headline-sm font-headline-sm font-semibold text-on-surface tracking-tight">Data Engineering Curriculum</h2>
+<p class="text-label-caps font-label-caps text-on-surface-variant mt-0.5">87 Lessons • v2.4 LTS</p>
+</div>
+</div>
+<!-- Main Curriculum Navigation Tabs (Exact from JSON) -->
+<div class="space-y-0.5">
+<div class="px-2.5 py-1 text-label-caps font-label-caps text-outline uppercase tracking-wider">Core Tracks</div>
+<!-- Tab 1: SQL Engine & Optimization -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="database">database</span>
+<span class="truncate">SQL Engine &amp; Optimization</span>
+</a>
+<!-- Tab 2: Python Core for Data -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="code">code</span>
+<span class="truncate">Python Core for Data</span>
+</a>
+<!-- Tab 3: Data Architecture (ACTIVE MATCH) -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm bg-surface-container dark:bg-surface-container text-primary dark:text-primary border-l-2 border-primary dark:border-primary font-medium rounded-r transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="account_tree">account_tree</span>
+<span class="truncate">Data Architecture</span>
+</a>
+<!-- Tab 4: Apache Kafka -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="sync_alt">sync_alt</span>
+<span class="truncate">Apache Kafka</span>
+</a>
+<!-- Tab 5: Apache Spark -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bolt">bolt</span>
+<span class="truncate">Apache Spark</span>
+</a>
+<!-- Tab 6: Apache Airflow -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+<span class="truncate">Apache Airflow</span>
+</a>
+<!-- Tab 7: dbt & Transformation -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="layers">layers</span>
+<span class="truncate">dbt &amp; Transformation</span>
+</a>
+<!-- Tab 8: DevOps & Docker -->
+<a class="flex items-center space-x-2.5 px-2.5 py-2 text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="deployed_code">deployed_code</span>
+<span class="truncate">DevOps &amp; Docker</span>
+</a>
+</div>
+<!-- Rail Primary CTA (Exact from JSON: Open Sandbox Runner) -->
+<div class="pt-2 px-1">
+<button class="w-full py-2 px-3 rounded bg-surface-container-high border border-outline-variant hover:border-primary text-on-surface text-label-ui font-label-ui font-medium flex items-center justify-center space-x-2 transition-all duration-150 group">
+<span class="material-symbols-outlined text-[16px] text-primary group-hover:scale-110 transition-transform" data-icon="terminal">terminal</span>
+<span>Open Sandbox Runner</span>
+</button>
+</div>
+</div>
+<!-- Rail Footer Tabs (Exact from JSON: Documentation Settings, Keyboard Shortcuts, API Reference) -->
+<div class="pt-4 border-t border-outline-variant space-y-0.5">
+<a class="flex items-center space-x-2 px-2.5 py-1.5 text-label-ui font-label-ui text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="settings">settings</span>
+<span>Documentation Settings</span>
+</a>
+<a class="flex items-center space-x-2 px-2.5 py-1.5 text-label-ui font-label-ui text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="keyboard">keyboard</span>
+<span>Keyboard Shortcuts</span>
+</a>
+<a class="flex items-center space-x-2 px-2.5 py-1.5 text-label-ui font-label-ui text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="menu_book">menu_book</span>
+<span>API Reference</span>
+</a>
+</div>
+</aside>
+<!-- Center Canvas + Right Rail Container -->
+<main class="flex-1 flex flex-col min-w-0 bg-background px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-[1240px] w-full mx-auto space-y-10">
+<!-- 1. Editorial Hero Section -->
+<section class="space-y-6">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
+<div class="max-w-2xl space-y-3">
+<div class="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded border border-outline-variant bg-surface-container-low text-label-caps font-label-caps text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span>SYSTEM ROADMAP 2025</span>
+</div>
+<h1 class="text-headline-xl font-headline-xl text-on-surface tracking-tight leading-tight">
+                Data Engineering Knowledge Base &amp; Systems Architecture
+              </h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant leading-relaxed">
+                Production patterns, distributed processing kernels, and storage engines for scale. Zero fluff, publication-grade engineering rigor.
+              </p>
+</div>
+<!-- Resume Last Lesson Interactive Card -->
+<div class="w-full lg:w-96 bg-surface-container-low border border-outline-variant rounded p-4 space-y-3 hover:border-primary-fixed-dim transition-all duration-150">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-primary uppercase font-semibold">Resume Active Journey</span>
+<span class="text-label-caps font-label-caps text-secondary font-medium flex items-center space-x-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span>
+<span>82% complete</span>
+</span>
+</div>
+<div>
+<p class="text-body-md font-body-md font-medium text-on-surface">Module 05: Lakehouse Engines</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant line-clamp-1 mt-0.5">Lesson 3: Medallion Architecture Partitioning</p>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[82%]"></div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="text-label-caps font-label-caps text-outline">Cluster session ready (0.12s)</span>
+<button class="px-2.5 py-1 bg-surface-container-high border border-outline-variant hover:border-primary text-on-surface text-label-ui font-label-ui rounded flex items-center space-x-1.5 transition-colors">
+<span>Open Sandbox</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Interactive Architecture Pipeline Banner -->
+<section class="space-y-4">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<div class="flex items-center space-x-3">
+<span class="text-label-caps font-label-caps text-outline uppercase font-semibold">Reference Diagram</span>
+<span class="h-3.5 w-px bg-outline-variant"></span>
+<h2 class="text-headline-md font-headline-md text-on-surface">Distributed End-to-End Pipeline Map</h2>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-label-caps font-label-caps text-on-surface-variant">Architecture: Medallion Lakehouse v2.4</span>
+<button class="p-1 hover:text-on-surface text-on-surface-variant transition-colors" title="Expand schematic">
+<span class="material-symbols-outlined text-[18px]" data-icon="open_in_full">open_in_full</span>
+</button>
+</div>
+</div>
+<!-- Diagram Display Frame -->
+<div class="relative bg-surface-container-lowest border border-outline-variant rounded overflow-hidden">
+<div class="absolute top-3 left-3 z-10 flex items-center space-x-2 bg-surface-container-low/90 backdrop-blur px-2.5 py-1 rounded border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-label-caps font-label-caps text-on-surface">TOPOLOGY VIEW: DISTRIBUTED DATA MAP</span>
+</div>
+<!-- Image Asset from user prompt: https://lh3.googleusercontent.com/aida-public/AB6AXuCqvrsZY7AifWTJiCljv_LwDWbTaFswj16ukLC7LR3jX_fRUw0e1h6CWcqo6qTcWtwehYHuSaW4LlA_GXcR7h4x67aIl2hppGplSVbKaz8oWucoExnMx8yGcG1w-X8dmJnhsP8Ot4knMJztxabcMKMmfsu5Mvpu4wAO1FHghIIK266nZ_EVJjpNVkbdVjWrYEyLmJJDjc6p4Q_6D-lOepd5GWaoiSqQAO-xzQ3gBkytGPwG7ipneOu9 -->
+<div class="w-full flex items-center justify-center p-3 bg-surface-container-lowest">
+<img alt="Distributed Data Pipeline Map and Medallion Storage Architecture" class="w-full max-h-[460px] object-contain rounded" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqvrsZY7AifWTJiCljv_LwDWbTaFswj16ukLC7LR3jX_fRUw0e1h6CWcqo6qTcWtwehYHuSaW4LlA_GXcR7h4x67aIl2hppGplSVbKaz8oWucoExnMx8yGcG1w-X8dmJnhsP8Ot4knMJztxabcMKMmfsu5Mvpu4wAO1FHghIIK266nZ_EVJjpNVkbdVjWrYEyLmJJDjc6p4Q_6D-lOepd5GWaoiSqQAO-xzQ3gBkytGPwG7ipneOu9"/>
+</div>
+<!-- Pipeline Stage Interactive Segmented Navigator -->
+<div class="bg-surface-container-low border-t border-outline-variant p-3 flex flex-wrap items-center justify-between gap-3">
+<div class="text-label-caps font-label-caps text-outline flex items-center space-x-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="alt_route">alt_route</span>
+<span>DATA FLOW STAGES:</span>
+</div>
+<div class="flex flex-wrap items-center gap-2">
+<!-- Pill 1: Ingestion -->
+<div class="flex items-center space-x-2 px-3 py-1.5 rounded bg-surface-container border border-outline-variant hover:border-primary cursor-pointer transition-all">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-label-ui font-label-ui text-on-surface">Ingestion (Kafka)</span>
+<span class="text-label-caps font-label-caps text-outline bg-surface-container-high px-1.5 py-0.5 rounded">14.2M msgs/s</span>
+</div>
+<span class="text-outline text-label-caps font-label-caps">→</span>
+<!-- Pill 2: Stream Processing -->
+<div class="flex items-center space-x-2 px-3 py-1.5 rounded bg-surface-container border border-outline-variant hover:border-primary cursor-pointer transition-all">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-label-ui font-label-ui text-on-surface">Stream Processing (Spark)</span>
+<span class="text-label-caps font-label-caps text-outline bg-surface-container-high px-1.5 py-0.5 rounded">128 Partitions</span>
+</div>
+<span class="text-outline text-label-caps font-label-caps">→</span>
+<!-- Pill 3: Lakehouse Storage -->
+<div class="flex items-center space-x-2 px-3 py-1.5 rounded bg-surface-container-high border border-primary text-primary cursor-pointer transition-all shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+<span class="text-label-ui font-label-ui font-semibold">Lakehouse Storage (Delta)</span>
+<span class="text-label-caps font-label-caps text-primary-container bg-surface-dim px-1.5 py-0.5 rounded">Bronze/Silver/Gold</span>
+</div>
+<span class="text-outline text-label-caps font-label-caps">→</span>
+<!-- Pill 4: Transformation -->
+<div class="flex items-center space-x-2 px-3 py-1.5 rounded bg-surface-container border border-outline-variant hover:border-primary cursor-pointer transition-all">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span class="text-label-ui font-label-ui text-on-surface">Transformation (dbt)</span>
+<span class="text-label-caps font-label-caps text-outline bg-surface-container-high px-1.5 py-0.5 rounded">42 Models</span>
+</div>
+<span class="text-outline text-label-caps font-label-caps">→</span>
+<!-- Pill 5: Serving -->
+<div class="flex items-center space-x-2 px-3 py-1.5 rounded bg-surface-container border border-outline-variant hover:border-primary cursor-pointer transition-all">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-label-ui font-label-ui text-on-surface">Serving (Trino / BI)</span>
+<span class="text-label-caps font-label-caps text-secondary bg-surface-container-high px-1.5 py-0.5 rounded">99.99% SLA</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Comprehensive 8-Module Grid -->
+<section class="space-y-4">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Curriculum Modules &amp; Engine Internals</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Systematic breakdown of distributed data kernels, streaming runtime, and modeling frameworks.</p>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-label-caps font-label-caps text-outline">FILTER:</span>
+<button class="px-2.5 py-1 text-label-caps font-label-caps rounded bg-surface-container-high text-primary border border-outline-variant">ALL (8)</button>
+<button class="px-2.5 py-1 text-label-caps font-label-caps rounded bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant">STREAMING</button>
+<button class="px-2.5 py-1 text-label-caps font-label-caps rounded bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant">STORAGE</button>
+</div>
+</div>
+<!-- 8-Card Bento Responsive Grid (4x2 on large screens) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Module 01: SQL Engine & Query Optimization -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 01</span>
+<span class="text-label-caps font-label-caps text-secondary font-medium bg-surface-container px-2 py-0.5 rounded border border-outline-variant">COMPLETED</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="database">database</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">SQL Engine &amp; Query Optimization</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">EXPLAIN ANALYZE, B-Trees, Window Functions, and query execution plans under parallel load.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>12 of 12 Lessons</span>
+<span>100%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full w-full"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Engine: PostgreSQL 16</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Review <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 02: Python Core for Data Engineering -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 02</span>
+<span class="text-label-caps font-label-caps text-primary font-medium bg-surface-container px-2 py-0.5 rounded border border-outline-variant">IN PROGRESS</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="code">code</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Python Core for Data</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Generators, Polars memory profiling, AsyncIO streaming loops, and GIL-free concurrency.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>9 of 10 Lessons</span>
+<span>90%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[90%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Kernel: Python 3.12</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Continue <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 03: Distributed Systems Architecture -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 03</span>
+<span class="text-label-caps font-label-caps text-on-surface-variant bg-surface-container px-2 py-0.5 rounded border border-outline-variant">THEORY &amp; RFC</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="account_tree">account_tree</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Distributed Architecture</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">CAP theorem in action, Raft consensus, exactly-once delivery guarantees, and vector clocks.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>8 Lessons Total</span>
+<span>45%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[45%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Specs: 4 Architecture RFCs</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Open <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 04: Apache Kafka & Event Streaming -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 04</span>
+<span class="text-label-caps font-label-caps text-secondary font-medium bg-surface-container px-2 py-0.5 rounded border border-outline-variant">STREAMING BUS</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="sync_alt">sync_alt</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Apache Kafka</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Partitioning strategies, rebalance protocols, Schema Registry, and producer idempotency.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>11 Lessons Total</span>
+<span>72%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[72%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Cluster: KRaft v3.7</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Explore <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 05: Apache Spark Internals & DAGs -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 05</span>
+<span class="text-label-caps font-label-caps text-primary font-medium bg-surface-container px-2 py-0.5 rounded border border-outline-variant">PROCESSING</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="bolt">bolt</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Apache Spark Internals</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Catalyst Optimizer, Shuffle Partitions tuning, Tungsten memory management, and Spill mitigation.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>14 Lessons Total</span>
+<span>82%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[82%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Spark 3.5 Engine</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Continue <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 06: Apache Airflow & Orchestration -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 06</span>
+<span class="text-label-caps font-label-caps text-on-surface-variant bg-surface-container px-2 py-0.5 rounded border border-outline-variant">ORCHESTRATION</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Apache Airflow</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Dynamic DAG generator patterns, TaskFlow API decorators, deferred sensors, and Celery workers.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>9 Lessons Total</span>
+<span>30%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[30%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Airflow 2.9 LTS</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Open <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 07: dbt Core & Data Modeling -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 07</span>
+<span class="text-label-caps font-label-caps text-secondary font-medium bg-surface-container px-2 py-0.5 rounded border border-outline-variant">TRANSFORM</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="layers">layers</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">dbt Core &amp; Modeling</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Incremental materializations, Kimball Star Schema models, contract testing, and lineage graph generation.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>11 Lessons Total</span>
+<span>60%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[60%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">dbt Core v1.8</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Open <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+<!-- Module 08: DevOps, Docker & K8s for Data -->
+<div class="bg-surface-container-low border border-outline-variant hover:border-outline rounded p-4 flex flex-col justify-between space-y-4 transition-all duration-150 group">
+<div class="space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-caps font-label-caps text-outline">TRACK 08</span>
+<span class="text-label-caps font-label-caps text-outline bg-surface-container px-2 py-0.5 rounded border border-outline-variant">INFRASTRUCTURE</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="deployed_code">deployed_code</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm font-semibold text-on-surface group-hover:text-primary transition-colors">DevOps &amp; Containers</h3>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Containerized data pipelines, Helm deployment charts, CI/CD schema validation, and Spark on K8s.</p>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant">
+<div class="flex items-center justify-between text-label-caps font-label-caps text-outline">
+<span>12 Lessons Total</span>
+<span>15%</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[15%]"></div>
+</div>
+<div class="flex items-center justify-between text-label-ui font-label-ui pt-1">
+<span class="text-outline">Stack: K8s / Helm</span>
+<span class="text-primary hover:underline cursor-pointer flex items-center">Start <span class="material-symbols-outlined text-[14px] ml-0.5" data-icon="chevron_right">chevron_right</span></span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Quick Architecture Spec Code Block Preview -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded p-5 space-y-3">
+<div class="flex items-center justify-between border-b border-outline-variant pb-3">
+<div class="flex items-center space-x-2">
+<span class="text-label-caps font-label-caps text-outline bg-surface-container px-2 py-0.5 rounded">CONFIG PREVIEW</span>
+<span class="text-code-inline font-code-inline text-on-surface">pipeline-manifest.hcl</span>
+</div>
+<div class="flex items-center space-x-3 text-label-caps font-label-caps text-on-surface-variant">
+<span>Target: AWS / EKS / Delta Lakehouse</span>
+<button class="hover:text-primary transition-colors flex items-center space-x-1" onclick="navigator.clipboard.writeText('module lakehouse_pipeline { ... }'); this.querySelector('span:last-child').innerText = 'Copied!';">
+<span class="material-symbols-outlined text-[14px]" data-icon="content_copy">content_copy</span>
+<span>Copy Manifest</span>
+</button>
+</div>
+</div>
+<pre class="text-code-block font-code-block text-on-surface-variant overflow-x-auto p-2 leading-relaxed"><span class="text-primary">pipeline</span> <span class="text-secondary">"medallion_clickstream"</span> {
+  engine       = <span class="text-tertiary">"SPARK_3_5"</span>
+  source_topic = <span class="text-tertiary">"telemetry.events.raw"</span>
+  
+  <span class="text-primary">storage_tier</span> <span class="text-secondary">"bronze"</span> {
+    format      = <span class="text-tertiary">"DELTA"</span>
+    partition_by = [<span class="text-tertiary">"date"</span>, <span class="text-tertiary">"tenant_id"</span>]
+    retention   = <span class="text-tertiary">"90d"</span>
+  }
+
+  <span class="text-primary">compaction</span> {
+    strategy    = <span class="text-tertiary">"AUTO_OPTIMIZE"</span>
+    target_size = <span class="text-tertiary">"128MB"</span>
+  }
+}</pre>
+</section>
+</div>
+</main>
+</div>
+<!-- Footer (Shared Component) -->
+<footer class="bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-variant dark:border-outline-variant mt-auto">
+<div class="w-full py-6 px-8 flex flex-col md:flex-row justify-between items-center max-w-[1440px] mx-auto text-on-surface-variant dark:text-on-surface-variant gap-4">
+<!-- Left Copyright & Tagline -->
+<div class="flex items-center space-x-3">
+<div class="flex items-center space-x-1.5 text-headline-sm font-headline-sm font-semibold text-on-surface dark:text-on-surface">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="terminal">terminal</span>
+<span>DataForge</span>
+</div>
+<span class="text-outline">·</span>
+<span class="text-body-sm font-body-sm">
+          © 2025 DataForge System Architecture. Publication-Grade Technical Documentation.
+        </span>
+</div>
+<!-- Links (Exact from JSON: Architecture Specs, Sandbox Schema, Kernel Execution, System Status, Changelog, Privacy & Telemetry) -->
+<nav class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-label-ui font-label-ui">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Architecture Specs</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Sandbox Schema</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Kernel Execution</a>
+<!-- System Status with active telemetry indicator -->
+<a class="text-primary dark:text-primary font-medium hover:text-primary dark:hover:text-primary transition-colors duration-150 flex items-center space-x-1.5" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+<span>Kernel Runner: Online (18ms)</span>
+</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Changelog</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors duration-150" href="#">Privacy &amp; Telemetry</a>
+</nav>
+</div>
+</footer>
+</body></html>
