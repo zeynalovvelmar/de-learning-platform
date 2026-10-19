@@ -42,6 +42,18 @@ export interface InterviewQA {
   interviewer_tips?: LocalizedText;
 }
 
+export interface FullInterviewQuestion {
+  module_id: string;
+  module_title: LocalizedText;
+  lesson_id: string;
+  lesson_order: number;
+  lesson_title: LocalizedText;
+  level: string;
+  question: LocalizedText;
+  answer: LocalizedText;
+  interviewer_tips?: LocalizedText;
+}
+
 export interface LessonDetail {
   id: string;
   order: number;

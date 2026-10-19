@@ -20,7 +20,8 @@ import {
   Sliders,
   Keyboard,
   BookOpen,
-  PlayCircle
+  PlayCircle,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,8 @@ interface SidebarProps {
   isOpenMobile: boolean;
   onCloseMobile: () => void;
   onOpenSandbox?: () => void;
+  isInterviews?: boolean;
+  onOpenInterviews?: () => void;
 }
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -59,6 +62,8 @@ export function Sidebar({
   isOpenMobile,
   onCloseMobile,
   onOpenSandbox,
+  isInterviews,
+  onOpenInterviews,
 }: SidebarProps) {
   const { language, t } = useLanguage();
   const { isLessonCompleted, completedLessons } = useProgress();
@@ -118,7 +123,7 @@ export function Sidebar({
             }}
             className={cn(
               'w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg transition',
-              isHome 
+              isHome && !isInterviews
                 ? 'bg-surface text-primary border border-line shadow-2xs font-semibold' 
                 : 'text-muted hover:text-ink hover:bg-surface-2'
             )}
@@ -126,6 +131,30 @@ export function Sidebar({
             <Home className="h-4 w-4 shrink-0 text-primary" />
             <span>{isAz ? 'İcmal & Yol Xəritəsi' : 'Roadmap Overview Hub'}</span>
           </button>
+
+          {/* Quick Technical Interview Questions Hub */}
+          {onOpenInterviews && (
+            <button
+              onClick={() => {
+                onOpenInterviews();
+                onCloseMobile();
+              }}
+              className={cn(
+                'w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium rounded-lg transition',
+                isInterviews
+                  ? 'bg-surface text-primary border border-line shadow-2xs font-semibold' 
+                  : 'text-muted hover:text-ink hover:bg-surface-2'
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <HelpCircle className={cn('h-4 w-4 shrink-0', isInterviews ? 'text-primary' : 'text-amber-500')} />
+                <span className="truncate">{isAz ? 'Müsahibə Sualları' : 'Interview Hub'}</span>
+              </div>
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
+                87
+              </span>
+            </button>
+          )}
 
           {/* Core Tracks Navigation */}
           <div className="space-y-1">

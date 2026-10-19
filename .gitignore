@@ -6,3 +6,4 @@ frontend/.next/
 frontend/out/
 tests/screenshots/
 tests/diagram_audit/
+brain/

@@ -6,13 +6,15 @@ import {
   fetchModules, 
   fetchModuleLessons, 
   fetchLessonDetail, 
-  fetchModuleFlashcards 
+  fetchModuleFlashcards,
+  fetchInterviewQuestions
 } from '@/lib/api';
-import { ModuleSummary, LessonSummary, LessonDetail, Flashcard } from '@/types';
+import { ModuleSummary, LessonSummary, LessonDetail, Flashcard, FullInterviewQuestion } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar } from '@/components/Sidebar';
 import { LessonView } from '@/components/LessonView';
 import { HomeHub } from '@/components/HomeHub';
+import { InterviewHub } from '@/components/InterviewHub';
 import { FlashcardModal } from '@/components/FlashcardModal';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -24,10 +26,15 @@ export default function Home() {
   
   // Navigation states
   const [isHome, setIsHome] = useState<boolean>(true);
+  const [isInterviews, setIsInterviews] = useState<boolean>(false);
   const [activeModuleId, setActiveModuleId] = useState<string>('data_architecture');
   const [activeLessonId, setActiveLessonId] = useState<string>('');
   const [lessonDetail, setLessonDetail] = useState<LessonDetail | null>(null);
   const [lastLesson, setLastLesson] = useState<{ moduleId: string; lessonId: string } | null>(null);
+
+  // Interview Hub state
+  const [interviewQuestions, setInterviewQuestions] = useState<FullInterviewQuestion[]>([]);
+  const [interviewsLoading, setInterviewsLoading] = useState<boolean>(false);
 
   // Loading & error states
   const [loading, setLoading] = useState<boolean>(true);
@@ -87,6 +94,7 @@ export default function Home() {
   // 2. Select Lesson handler
   const handleSelectLesson = async (moduleId: string, lessonId: string) => {
     setIsHome(false);
+    setIsInterviews(false);
     setActiveModuleId(moduleId);
     setActiveLessonId(lessonId);
     setLessonLoading(true);
@@ -110,10 +118,33 @@ export default function Home() {
     }
   };
 
-  // Expose select lesson helper for automated testing / live auditing
+  const handleGoHome = () => {
+    setIsInterviews(false);
+    setIsHome(true);
+  };
+
+  const handleOpenInterviews = async () => {
+    setIsHome(false);
+    setIsInterviews(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (interviewQuestions.length === 0) {
+      try {
+        setInterviewsLoading(true);
+        const data = await fetchInterviewQuestions();
+        setInterviewQuestions(data);
+      } catch (err) {
+        console.error('Failed to load interview questions', err);
+      } finally {
+        setInterviewsLoading(false);
+      }
+    }
+  };
+
+  // Expose helpers for automated testing / live auditing
   useEffect(() => {
     (window as any).__selectLesson = handleSelectLesson;
-  }, [modules, activeModuleId, activeLessonId, lessonDetail]);
+    (window as any).__openInterviews = handleOpenInterviews;
+  }, [modules, activeModuleId, activeLessonId, lessonDetail, interviewQuestions]);
 
   const handleOpenLessonFlashcards = () => {
     if (lessonDetail?.flashcards && lessonDetail.flashcards.length > 0) {
@@ -152,8 +183,10 @@ export default function Home() {
       {/* Top Navbar */}
       <Navbar
         onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-        onGoHome={() => setIsHome(true)}
+        onGoHome={handleGoHome}
         isHome={isHome}
+        isInterviews={isInterviews}
+        onOpenInterviews={handleOpenInterviews}
         activeModuleTitle={currentModule ? t(currentModule.title) : undefined}
         activeLessonTitle={lessonDetail ? t(lessonDetail.title) : undefined}
         onOpenFlashcards={handleOpenModuleFlashcards}
@@ -168,8 +201,10 @@ export default function Home() {
           activeLessonId={activeLessonId}
           moduleLessons={moduleLessons}
           onSelectLesson={(modId, lesId) => handleSelectLesson(modId, lesId)}
-          onGoHome={() => setIsHome(true)}
+          onGoHome={handleGoHome}
           isHome={isHome}
+          isInterviews={isInterviews}
+          onOpenInterviews={handleOpenInterviews}
           isOpenMobile={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
@@ -196,6 +231,13 @@ export default function Home() {
                 FastAPI backend-in <code>http://127.0.0.1:8000</code> ünvanında işlədiyindən əmin olun.
               </p>
             </div>
+          ) : isInterviews ? (
+            <InterviewHub
+              questions={interviewQuestions}
+              modules={modules}
+              loading={interviewsLoading}
+              onSelectLesson={(modId, lesId) => handleSelectLesson(modId, lesId)}
+            />
           ) : isHome ? (
             /* Dedicated Professional Entry / Overview Landing Page */
             <HomeHub

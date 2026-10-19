@@ -13,7 +13,8 @@ import {
   Play,
   Layers,
   Sparkles,
-  Bookmark
+  Bookmark,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,8 @@ interface NavbarProps {
   onToggleSidebar?: () => void;
   onGoHome: () => void;
   isHome: boolean;
+  isInterviews?: boolean;
+  onOpenInterviews?: () => void;
   activeModuleTitle?: string;
   activeLessonTitle?: string;
   onOpenSearch?: () => void;
@@ -32,6 +35,8 @@ export function Navbar({
   onToggleSidebar, 
   onGoHome, 
   isHome, 
+  isInterviews,
+  onOpenInterviews,
   activeModuleTitle, 
   activeLessonTitle,
   onOpenSearch,
@@ -80,7 +85,13 @@ export function Navbar({
 
           {/* Breadcrumb path */}
           <div className="hidden md:flex items-center gap-2 ml-3 pl-3 border-l border-line text-xs font-mono text-muted">
-            {isHome ? (
+            {isInterviews ? (
+              <>
+                <span className="text-ink-2 font-medium">{isAz ? 'Karyera' : 'Career'}</span>
+                <span className="text-outline/60">&gt;</span>
+                <span className="text-primary font-semibold">{isAz ? 'Texniki Müsahibə Sualları' : 'Technical Interview Hub'}</span>
+              </>
+            ) : isHome ? (
               <>
                 <span className="text-ink-2 font-medium">{isAz ? 'Kurrikulum' : 'Curriculum'}</span>
                 <span className="text-outline/60">&gt;</span>
@@ -124,10 +135,22 @@ export function Navbar({
               onClick={onGoHome}
               className={cn(
                 'transition hover:text-ink',
-                isHome ? 'text-primary border-b-2 border-primary pb-0.5' : 'text-muted'
+                isHome && !isInterviews ? 'text-primary border-b-2 border-primary pb-0.5' : 'text-muted'
               )}
             >
               {isAz ? 'Modullar' : 'Modules'}
+            </button>
+            <button 
+              onClick={onOpenInterviews}
+              className={cn(
+                'transition hover:text-ink flex items-center gap-1.5',
+                isInterviews ? 'text-primary border-b-2 border-primary pb-0.5' : 'text-muted'
+              )}
+            >
+              <span>{isAz ? 'Müsahibə' : 'Interviews'}</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-500 font-mono font-bold border border-amber-500/20">
+                87
+              </span>
             </button>
             <button 
               onClick={onOpenSandbox}

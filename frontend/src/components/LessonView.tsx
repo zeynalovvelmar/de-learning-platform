@@ -21,7 +21,10 @@ import {
   Terminal,
   Layers,
   Sparkles,
-  Info
+  Info,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Markdown } from './Markdown';
 import { CodeBlock } from './CodeBlock';
@@ -83,12 +86,14 @@ export function LessonView({
 
   const completed = isLessonCompleted(lesson.id);
   const [diagramTab, setDiagramTab] = useState<'blueprint' | 'interactive'>('blueprint');
+  const [showInterviewAnswer, setShowInterviewAnswer] = useState(false);
 
   // Personal notes state per lesson (stored in localStorage)
   const [noteText, setNoteText] = useState('');
   const [noteSaved, setNoteSaved] = useState(false);
 
   useEffect(() => {
+    setShowInterviewAnswer(false);
     try {
       const saved = localStorage.getItem(`dataeng_note_${lesson.id}`);
       setNoteText(saved || '');
@@ -356,6 +361,80 @@ export function LessonView({
             {lesson.code_explanation && (
               <div className="text-xs text-muted leading-relaxed font-sans mt-2">
                 <Markdown source={t(lesson.code_explanation)} idScope="code-expl-" />
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 7. Technical Interview Question & Active Recall Card */}
+        {lesson.interview_question && (
+          <section id="sec-interview" className="rounded-2xl border border-line bg-surface-low overflow-hidden shadow-2xs">
+            <div className="p-5 sm:p-6 space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+                <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-primary">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  <span>{isAz ? 'İSTEHSALAT MÜSAHİBƏ SUALI (TECHNICAL INTERVIEW)' : 'TECHNICAL INTERVIEW QUESTION'}</span>
+                </div>
+                <span className="font-mono text-[10px] text-muted bg-surface-2 px-2 py-0.5 rounded border border-line uppercase">
+                  {lesson.level} LEVEL
+                </span>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface border border-line text-primary font-mono text-xs font-bold">
+                  Q
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-ink leading-snug">
+                  {t(lesson.interview_question.question)}
+                </h3>
+              </div>
+
+              {/* Active Recall toggle */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowInterviewAnswer(!showInterviewAnswer)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-surface-2 text-xs font-mono font-medium text-ink transition cursor-pointer shadow-2xs"
+                >
+                  {showInterviewAnswer ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5 text-primary" />
+                      <span>{isAz ? 'Cavabı Gizlət' : 'Hide Answer'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5 text-muted" />
+                      <span>{isAz ? 'Cavabı Göstər (Özünü Sına)' : 'Reveal Answer (Self-Test)'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Expandable Answer */}
+            {showInterviewAnswer && (
+              <div className="border-t border-line/80 bg-surface/40 p-5 sm:p-6 space-y-4 animate-in fade-in duration-150">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-secondary">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-secondary" />
+                    <span>{isAz ? 'DƏRİN TEXNİKİ İZAH VƏ CAVAB' : 'AUTHORITATIVE TECHNICAL ANSWER'}</span>
+                  </div>
+                  <div className="text-xs sm:text-[13px] leading-relaxed text-ink-2 font-sans space-y-3 bg-surface-lowest p-4 rounded-xl border border-line">
+                    <Markdown source={t(lesson.interview_question.answer)} idScope="lesson-iq-ans-" />
+                  </div>
+                </div>
+
+                {lesson.interview_question.interviewer_tips && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                      <span>{isAz ? 'SENIOR MÜSAHİBƏÇİ İPUCU' : 'SENIOR INTERVIEWER TIP'}</span>
+                    </div>
+                    <p className="text-xs text-amber-100/90 leading-relaxed font-sans">
+                      {t(lesson.interview_question.interviewer_tips)}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </section>

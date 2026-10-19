@@ -49,3 +49,14 @@ class LessonSummary(BaseModel):
     title: Dict[str, str]
     has_exercise: bool = False
     flashcard_count: int = 0
+
+class InterviewQuestionItem(BaseModel):
+    module_id: str
+    module_title: Dict[str, str]
+    lesson_id: str
+    lesson_order: int
+    lesson_title: Dict[str, str]
+    level: str
+    question: Dict[str, str]
+    answer: Dict[str, str]
+    interviewer_tips: Optional[Dict[str, str]] = None

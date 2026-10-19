@@ -3,6 +3,7 @@ import {
   LessonSummary, 
   LessonDetail, 
   Flashcard, 
+  FullInterviewQuestion,
   SQLExecutionResult, 
   CheckAnswerResult, 
   PythonExecutionResult,
@@ -32,6 +33,12 @@ export async function fetchLessonDetail(moduleId: string, lessonId: string): Pro
 export async function fetchModuleFlashcards(moduleId: string): Promise<Flashcard[]> {
   const res = await fetch(`${API_BASE}/modules/${moduleId}/flashcards`, { next: { revalidate: 60 } });
   if (!res.ok) throw new Error(`Failed to fetch flashcards for ${moduleId}`);
+  return res.json();
+}
+
+export async function fetchInterviewQuestions(): Promise<FullInterviewQuestion[]> {
+  const res = await fetch(`${API_BASE}/modules/interview-questions`, { next: { revalidate: 60 } });
+  if (!res.ok) throw new Error('Failed to fetch interview questions');
   return res.json();
 }
 

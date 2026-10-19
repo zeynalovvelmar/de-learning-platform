@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pathlib import Path
 import yaml
 from typing import List, Dict, Any
-from server.schemas import ModuleSummary, LessonSummary
+from server.schemas import ModuleSummary, LessonSummary, InterviewQuestionItem
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
@@ -61,6 +61,28 @@ def list_modules() -> List[ModuleSummary]:
             levels=levels
         ))
     return summaries
+
+@router.get("/interview-questions", response_model=List[InterviewQuestionItem])
+def get_all_interview_questions() -> List[InterviewQuestionItem]:
+    """Returns all 87 curated interview questions with answers, tips and lesson references."""
+    items = []
+    for mod_id in MODULE_ORDER:
+        lessons = load_lessons_from_dir(mod_id)
+        for l in lessons:
+            iq = l.get("interview_question")
+            if iq and "question" in iq and "answer" in iq:
+                items.append(InterviewQuestionItem(
+                    module_id=mod_id,
+                    module_title=MODULE_TITLES.get(mod_id, {"en": mod_id, "az": mod_id}),
+                    lesson_id=l["id"],
+                    lesson_order=l.get("order", 0),
+                    lesson_title=l.get("title", {}),
+                    level=l.get("level", "junior"),
+                    question=iq["question"],
+                    answer=iq["answer"],
+                    interviewer_tips=iq.get("interviewer_tips")
+                ))
+    return items
 
 @router.get("/{module_id}/lessons", response_model=List[LessonSummary])
 def get_module_lessons(module_id: str) -> List[LessonSummary]:
