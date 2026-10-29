@@ -57,9 +57,13 @@ export function Navbar({
           )}
 
           {/* Logo - clicking navigates to Home Hub */}
-          <button
-            onClick={onGoHome}
-            className="group flex items-center gap-2.5 text-left focus:outline-none"
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onGoHome();
+            }}
+            className="group flex items-center gap-2.5 text-left focus:outline-none select-none cursor-pointer"
             title={isAz ? 'Giriş İcmal Səhifəsinə Qayıt' : 'Back to Architecture Hub'}
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-container/20 border border-primary/30 text-primary transition-transform group-hover:scale-105">
@@ -69,7 +73,7 @@ export function Navbar({
               <span className="font-extrabold text-[15px] tracking-tight text-ink font-sans">DataForge</span>
               <span className="text-[14px] text-muted font-medium">Docs</span>
             </div>
-          </button>
+          </a>
 
           {/* Breadcrumb path */}
           <div className="hidden md:flex items-center gap-2 ml-3 pl-3 border-l border-line text-xs font-mono text-muted">
@@ -103,19 +107,27 @@ export function Navbar({
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Main Navigation tabs */}
           <nav className="flex items-center gap-2 sm:gap-4 text-xs font-medium text-muted">
-            <button 
-              onClick={onGoHome}
+            <a 
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                onGoHome();
+              }}
               className={cn(
-                'px-2.5 py-1 rounded-md transition hover:text-ink cursor-pointer',
+                'px-2.5 py-1 rounded-md transition hover:text-ink cursor-pointer select-none',
                 isHome && !isInterviews ? 'bg-surface text-primary font-bold border border-line shadow-2xs' : 'text-muted hover:bg-surface-2'
               )}
             >
               {isAz ? 'Modullar & Sxemlər' : 'Curriculum & Maps'}
-            </button>
-            <button 
-              onClick={onOpenInterviews}
+            </a>
+            <a 
+              href="/interviews"
+              onClick={(e) => {
+                e.preventDefault();
+                onOpenInterviews?.();
+              }}
               className={cn(
-                'px-2.5 py-1 rounded-md transition hover:text-ink flex items-center gap-1.5 cursor-pointer',
+                'px-2.5 py-1 rounded-md transition hover:text-ink flex items-center gap-1.5 cursor-pointer select-none',
                 isInterviews ? 'bg-surface text-primary font-bold border border-line shadow-2xs' : 'text-muted hover:bg-surface-2'
               )}
             >
@@ -123,7 +135,7 @@ export function Navbar({
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-500 font-mono font-bold border border-amber-500/20">
                 87
               </span>
-            </button>
+            </a>
           </nav>
 
           <div className="h-4 w-px bg-line" />

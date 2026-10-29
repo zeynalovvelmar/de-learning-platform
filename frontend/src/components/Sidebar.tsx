@@ -110,13 +110,15 @@ export function Sidebar({
           </div>
 
           {/* Quick Home / Roadmap Action */}
-          <button
-            onClick={() => {
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
               onGoHome();
               onCloseMobile();
             }}
             className={cn(
-              'w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg transition',
+              'w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg transition select-none',
               isHome && !isInterviews
                 ? 'bg-surface text-primary border border-line shadow-2xs font-semibold' 
                 : 'text-muted hover:text-ink hover:bg-surface-2'
@@ -124,17 +126,19 @@ export function Sidebar({
           >
             <Home className="h-4 w-4 shrink-0 text-primary" />
             <span>{isAz ? 'İcmal & Yol Xəritəsi' : 'Roadmap Overview Hub'}</span>
-          </button>
+          </a>
 
           {/* Quick Technical Interview Questions Hub */}
           {onOpenInterviews && (
-            <button
-              onClick={() => {
+            <a
+              href="/interviews"
+              onClick={(e) => {
+                e.preventDefault();
                 onOpenInterviews();
                 onCloseMobile();
               }}
               className={cn(
-                'w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium rounded-lg transition',
+                'w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium rounded-lg transition select-none',
                 isInterviews
                   ? 'bg-surface text-primary border border-line shadow-2xs font-semibold' 
                   : 'text-muted hover:text-ink hover:bg-surface-2'
@@ -147,7 +151,7 @@ export function Sidebar({
               <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
                 87
               </span>
-            </button>
+            </a>
           )}
 
           {/* Core Tracks Navigation */}
@@ -205,14 +209,16 @@ export function Sidebar({
                           const completed = isLessonCompleted(les.id);
 
                           return (
-                            <button
+                            <a
                               key={les.id}
-                              onClick={() => {
+                              href={`/${mod.id}/${les.id}`}
+                              onClick={(e) => {
+                                e.preventDefault();
                                 onSelectLesson(mod.id, les.id);
                                 onCloseMobile();
                               }}
                               className={cn(
-                                'w-full text-left flex items-center justify-between px-2 py-1.5 rounded transition text-[12px] truncate',
+                                'w-full text-left flex items-center justify-between px-2 py-1.5 rounded transition text-[12px] truncate select-none',
                                 isActiveLesson
                                   ? 'bg-surface text-primary font-semibold border-l-2 border-primary -ml-[17px] pl-[15px] rounded-r'
                                   : 'text-muted hover:text-ink hover:bg-surface-2'
@@ -228,7 +234,7 @@ export function Sidebar({
                               {completed && (
                                 <CheckCircle2 className="h-3 w-3 shrink-0 text-secondary ml-1" />
                               )}
-                            </button>
+                            </a>
                           );
                         })
                       )}
