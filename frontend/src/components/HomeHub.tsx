@@ -129,6 +129,28 @@ const MODULE_TRACKS: Record<string, {
     },
     icon: Layers,
   },
+  ms_sql: {
+    track: 'TRACK 09',
+    badge: { az: 'MS SQL & T-SQL', en: 'MS SQL & T-SQL' },
+    badgeColor: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+    engine: 'Engine: Microsoft SQL Server',
+    desc: {
+      az: 'T-SQL sintaksisi, dəyişənlər və idarəetmə, Stored Procedure-lar, Scalar/Table Funksiyalar və tranzaksiya bütövlüyü.',
+      en: 'T-SQL syntax, variables & control flow, Stored Procedures, Scalar/Table Functions, and transaction ACID integrity.'
+    },
+    icon: Database,
+  },
+  modern_lakehouse: {
+    track: 'TRACK 10',
+    badge: { az: 'LAKEHOUSE ARCHITECTURE', en: 'LAKEHOUSE STACK' },
+    badgeColor: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+    engine: 'Stack: Iceberg / Nessie / Trino',
+    desc: {
+      az: 'Açıq cədvəl formatı (Iceberg), Git kataloqu və WAP (Nessie), paylanmış in-memory sorğu mühərriki (Trino) və dbt.',
+      en: 'Open table format (Iceberg), Git catalog & WAP (Nessie), distributed query engine (Trino), and dbt.'
+    },
+    icon: Layers,
+  },
 };
 
 const SAMPLE_HCL = `pipeline "medallion_clickstream" {
@@ -183,7 +205,7 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
 
   const filteredModules = modules.filter(m => {
     if (filter === 'streaming') return ['python', 'devops', 'spark', 'airflow', 'kafka'].includes(m.id);
-    if (filter === 'storage') return ['sql', 'data_architecture', 'dbt'].includes(m.id);
+    if (filter === 'storage') return ['sql', 'ms_sql', 'data_architecture', 'dbt', 'modern_lakehouse'].includes(m.id);
     return true;
   });
 

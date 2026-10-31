@@ -1,0 +1,410 @@
+id: 04-user-defined-functions
+order: 4
+level: intermediate
+title:
+  az: 'User-Defined Functions (UDF): Scalar və Table-Valued Funksiyalar'
+  en: 'User-Defined Functions (UDF): Scalar və Table-Valued Funksiyalar'
+quick_recap:
+  az: '- User-Defined Function (UDF) — T-SQL-də istifadəçinin özü tərəfindən yazılan
+    və bir və ya bir neçə parametr qəbul edib mütləq bir nəticə qaytaran obyektdir.
+
+    - İki əsas növü var: Scalar Functions (tək bir qiymət qaytarır) və Table-Valued
+    Functions (nəticəni cədvəl kimi qaytarır).
+
+    - ƏN VACİB FƏRQ: Funksiyalar cədvəldəki datanı dəyişə BİLMƏZ (INSERT/UPDATE/DELETE
+    qadağandır, no side-effects). Stored Procedure isə datanı dəyişə bilər.
+
+    - Funksiyaları birbaşa SELECT, WHERE və JOIN daxilində işlətmək olar: SELECT dbo.fn_GetDiscount(Premium)
+    FROM Policies.
+
+    - Müsahibələrin ən populyar sualı: ''Stored Procedure ilə Function arasındakı
+    fərq nədir?'''
+  en: '- User-Defined Function (UDF) — T-SQL-də istifadəçinin özü tərəfindən yazılan
+    və bir və ya bir neçə parametr qəbul edib mütləq bir nəticə qaytaran obyektdir.
+
+    - İki əsas növü var: Scalar Functions (tək bir qiymət qaytarır) və Table-Valued
+    Functions (nəticəni cədvəl kimi qaytarır).
+
+    - ƏN VACİB FƏRQ: Funksiyalar cədvəldəki datanı dəyişə BİLMƏZ (INSERT/UPDATE/DELETE
+    qadağandır, no side-effects). Stored Procedure isə datanı dəyişə bilər.
+
+    - Funksiyaları birbaşa SELECT, WHERE və JOIN daxilində işlətmək olar: SELECT dbo.fn_GetDiscount(Premium)
+    FROM Policies.
+
+    - Müsahibələrin ən populyar sualı: ''Stored Procedure ilə Function arasındakı
+    fərq nədir?'''
+explanation:
+  az: "### Niyə Funksiyalara Ehtiyac Var?\nÖtən dərsdə gördük ki, **Stored Procedure**\
+    \ biznes proseslərini icra etmək (məsələn, zərəri təsdiqləmək və cədvəlləri yeniləmək)\
+    \ üçün idealdır. Lakin Stored Procedure-u birbaşa `SELECT` və ya `WHERE` daxilində\
+    \ çağıra bilməzsiniz:\n`SELECT col1, EXEC usp_GetRate -- BU İŞLƏMİR!`\n\nƏgər\
+    \ sizə hər bir sığorta polisi üçün xüsusi riyazi və ya məntiqi hesablama aparıb\
+    \ sətirbəsətir göstərmək lazımdırsa, **User-Defined Function (UDF)** köməyə çatır.\n\
+    \n---\n\n### 1. Scalar Functions (Skalyar Funksiyalar)\nTək bir dəyər (ədəd, mətn,\
+    \ tarix) qaytaran funksiyalardır.\nMəsələn: Sığorta şirkətində ödənilən zərərlər\
+    \ ilə toplanmış sığorta haqqı əsasında **Zərərlilik Dərəcəsini (Loss Ratio %)**\
+    \ hesablayan funksiya:\n\n```sql\nCREATE OR ALTER FUNCTION [dbo].[fn_CalculateLossRatio]\
+    \ (\n    @TotalClaimsPaid DECIMAL(12, 2),\n    @EarnedPremium DECIMAL(12, 2)\n\
+    )\nRETURNS DECIMAL(5, 2)\nAS\nBEGIN\n    IF @EarnedPremium IS NULL OR @EarnedPremium\
+    \ <= 0\n        RETURN 0.00;\n\n    -- Loss Ratio = (Zərərlər / Sığorta Haqqı)\
+    \ * 100\n    RETURN ROUND((@TotalClaimsPaid / @EarnedPremium) * 100.0, 2);\nEND;\n\
+    ```\nİstifadəsi:\n```sql\nSELECT \n    BranchOffice,\n    dbo.fn_CalculateLossRatio(TotalPaid,\
+    \ TotalPremium) AS LossRatioPct\nFROM BranchSummary;\n```\n*(Diqqət: MS SQL-də\
+    \ skalyar funksiyanı çağırarkən mütləq sxem adını yazmaq lazımdır: `dbo.fn_Name`).*\n\
+    \n---\n\n### 2. Table-Valued Functions (Cədvəl Qaytaran Funksiyalar - TVF)\nBəzən\
+    \ funksiyanın tək bir rəqəm yox, bütöv bir sətir və ya cədvəl qaytarması lazımdır.\
+    \ Bunlara **Table-Valued Function (TVF)** deyilir.\n\nƏn sürətli növü **Inline\
+    \ Table-Valued Function (iTVF)**-dir:\n```sql\nCREATE OR ALTER FUNCTION [dbo].[fn_GetActivePoliciesByBranch]\
+    \ (\n    @BranchName NVARCHAR(50)\n)\nRETURNS TABLE\nAS\nRETURN (\n    SELECT\
+    \ PolicyID, PolicyNumber, CustomerName, PremiumAZN\n    FROM [dbo].[InsurancePolicies]\n\
+    \    WHERE BranchOffice = @BranchName AND IsActive = 1\n);\n```\nİstifadəsi: Cədvəl\
+    \ kimi birbaşa `FROM` və ya `CROSS APPLY` daxilində işlədilir:\n```sql\nSELECT\
+    \ * FROM dbo.fn_GetActivePoliciesByBranch(N'Bakı Mərkəz');\n```\n\n---\n\n###\
+    \ MÜSAHİBƏ QIZIL STANDARTI: Stored Procedure vs Function\nBu cədvəli əzbər bilmək\
+    \ hər bir Data Engineer intern-i üçün 100% zəruridir:\n\n| Meyar | Stored Procedure\
+    \ (`PROCEDURE`) | User-Defined Function (`FUNCTION`) |\n| :--- | :--- | :--- |\n\
+    | **Dəyər Qaytarma** | Məcburi deyil (0, 1 və ya OUTPUT parametrləri qaytara bilər)\
+    \ | **MÜTLƏQDİR** (Scalar dəyər və ya `TABLE` qaytarmalıdır) |\n| **SELECT-də\
+    \ istifadə** | `SELECT`, `WHERE`, `JOIN` daxilində istifadə **EDİLƏ BİLMƏZ** |\
+    \ `SELECT`, `WHERE`, `JOIN`, `HAVING`-də birbaşa istifadə edilir |\n| **Datanı\
+    \ Dəyişmək (DML)** | `INSERT`, `UPDATE`, `DELETE`, `DROP` edə **BİLƏR** | Bazadakı\
+    \ məlumatı dəyişə **BİLMƏZ** (Side-effects qadağandır) |\n| **Tranzaksiya İdarəsi**\
+    \ | `BEGIN TRANSACTION`, `COMMIT`, `ROLLBACK` dəstəkləyir | Tranzaksiya aça **BİLMƏZ**\
+    \ |\n| **Xətaların İdarəsi** | `TRY...CATCH` blokları istifadə edə bilir | `TRY...CATCH`\
+    \ istifadə edə **BİLMƏZ** |\n| **Çağırılma forması** | `EXEC procedure_name @param\
+    \ = 1` | `SELECT dbo.function_name(@param)` |\n"
+  en: "### Niyə Funksiyalara Ehtiyac Var?\nÖtən dərsdə gördük ki, **Stored Procedure**\
+    \ biznes proseslərini icra etmək (məsələn, zərəri təsdiqləmək və cədvəlləri yeniləmək)\
+    \ üçün idealdır. Lakin Stored Procedure-u birbaşa `SELECT` və ya `WHERE` daxilində\
+    \ çağıra bilməzsiniz:\n`SELECT col1, EXEC usp_GetRate -- BU İŞLƏMİR!`\n\nƏgər\
+    \ sizə hər bir sığorta polisi üçün xüsusi riyazi və ya məntiqi hesablama aparıb\
+    \ sətirbəsətir göstərmək lazımdırsa, **User-Defined Function (UDF)** köməyə çatır.\n\
+    \n---\n\n### 1. Scalar Functions (Skalyar Funksiyalar)\nTək bir dəyər (ədəd, mətn,\
+    \ tarix) qaytaran funksiyalardır.\nMəsələn: Sığorta şirkətində ödənilən zərərlər\
+    \ ilə toplanmış sığorta haqqı əsasında **Zərərlilik Dərəcəsini (Loss Ratio %)**\
+    \ hesablayan funksiya:\n\n```sql\nCREATE OR ALTER FUNCTION [dbo].[fn_CalculateLossRatio]\
+    \ (\n    @TotalClaimsPaid DECIMAL(12, 2),\n    @EarnedPremium DECIMAL(12, 2)\n\
+    )\nRETURNS DECIMAL(5, 2)\nAS\nBEGIN\n    IF @EarnedPremium IS NULL OR @EarnedPremium\
+    \ <= 0\n        RETURN 0.00;\n\n    -- Loss Ratio = (Zərərlər / Sığorta Haqqı)\
+    \ * 100\n    RETURN ROUND((@TotalClaimsPaid / @EarnedPremium) * 100.0, 2);\nEND;\n\
+    ```\nİstifadəsi:\n```sql\nSELECT \n    BranchOffice,\n    dbo.fn_CalculateLossRatio(TotalPaid,\
+    \ TotalPremium) AS LossRatioPct\nFROM BranchSummary;\n```\n*(Diqqət: MS SQL-də\
+    \ skalyar funksiyanı çağırarkən mütləq sxem adını yazmaq lazımdır: `dbo.fn_Name`).*\n\
+    \n---\n\n### 2. Table-Valued Functions (Cədvəl Qaytaran Funksiyalar - TVF)\nBəzən\
+    \ funksiyanın tək bir rəqəm yox, bütöv bir sətir və ya cədvəl qaytarması lazımdır.\
+    \ Bunlara **Table-Valued Function (TVF)** deyilir.\n\nƏn sürətli növü **Inline\
+    \ Table-Valued Function (iTVF)**-dir:\n```sql\nCREATE OR ALTER FUNCTION [dbo].[fn_GetActivePoliciesByBranch]\
+    \ (\n    @BranchName NVARCHAR(50)\n)\nRETURNS TABLE\nAS\nRETURN (\n    SELECT\
+    \ PolicyID, PolicyNumber, CustomerName, PremiumAZN\n    FROM [dbo].[InsurancePolicies]\n\
+    \    WHERE BranchOffice = @BranchName AND IsActive = 1\n);\n```\nİstifadəsi: Cədvəl\
+    \ kimi birbaşa `FROM` və ya `CROSS APPLY` daxilində işlədilir:\n```sql\nSELECT\
+    \ * FROM dbo.fn_GetActivePoliciesByBranch(N'Bakı Mərkəz');\n```\n\n---\n\n###\
+    \ MÜSAHİBƏ QIZIL STANDARTI: Stored Procedure vs Function\nBu cədvəli əzbər bilmək\
+    \ hər bir Data Engineer intern-i üçün 100% zəruridir:\n\n| Meyar | Stored Procedure\
+    \ (`PROCEDURE`) | User-Defined Function (`FUNCTION`) |\n| :--- | :--- | :--- |\n\
+    | **Dəyər Qaytarma** | Məcburi deyil (0, 1 və ya OUTPUT parametrləri qaytara bilər)\
+    \ | **MÜTLƏQDİR** (Scalar dəyər və ya `TABLE` qaytarmalıdır) |\n| **SELECT-də\
+    \ istifadə** | `SELECT`, `WHERE`, `JOIN` daxilində istifadə **EDİLƏ BİLMƏZ** |\
+    \ `SELECT`, `WHERE`, `JOIN`, `HAVING`-də birbaşa istifadə edilir |\n| **Datanı\
+    \ Dəyişmək (DML)** | `INSERT`, `UPDATE`, `DELETE`, `DROP` edə **BİLƏR** | Bazadakı\
+    \ məlumatı dəyişə **BİLMƏZ** (Side-effects qadağandır) |\n| **Tranzaksiya İdarəsi**\
+    \ | `BEGIN TRANSACTION`, `COMMIT`, `ROLLBACK` dəstəkləyir | Tranzaksiya aça **BİLMƏZ**\
+    \ |\n| **Xətaların İdarəsi** | `TRY...CATCH` blokları istifadə edə bilir | `TRY...CATCH`\
+    \ istifadə edə **BİLMƏZ** |\n| **Çağırılma forması** | `EXEC procedure_name @param\
+    \ = 1` | `SELECT dbo.function_name(@param)` |\n"
+infographic:
+  az: '+----------------------------------------------------------------------------------------------------+
+
+    |                                STORED PROCEDURE VS FUNCTION MÜQAYİSƏSİ                             |
+
+    |                                                                                                    |
+
+    |   STORED PROCEDURE (İcra və Əməliyyat)                 FUNCTION (Hesablama və
+    Qiymət)              |
+
+    |   ------------------------------------                 ------------------------------              |
+
+    |   - EXEC ilə çağırılır                                 - SELECT / WHERE daxilində
+    çağırılır        |
+
+    |   - Datanı dəyişir (INSERT / UPDATE / DELETE)          - Datanı DƏYİŞƏ BİLMƏZ
+    (Yalnız oxuyur)      |
+
+    |   - Tranzaksiya idarə edir (COMMIT / ROLLBACK)         - Tranzaksiya aça BİLMƏZ                    |
+
+    |   - TRY...CATCH ilə xətaları tutur                     - TRY...CATCH dəstəkləmir                   |
+
+    |   - Nəticə qaytarmaya da bilər                         - Mütləq RETURN ilə qiymət
+    qaytarır         |
+
+    |                                                                                                    |
+
+    |   Nümunə:                                              Nümunə:                                     |
+
+    |   EXEC usp_PayInsuranceClaim @id=101;                  SELECT PolicyNo, dbo.fn_Tax(Price)          |
+
+    |   (Cədvəllərdə statusu və balansı dəyişir)             FROM Policies; (Yalnız
+    hesablayıb göstərir) |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+  en: '+----------------------------------------------------------------------------------------------------+
+
+    |                                STORED PROCEDURE VS FUNCTION MÜQAYİSƏSİ                             |
+
+    |                                                                                                    |
+
+    |   STORED PROCEDURE (İcra və Əməliyyat)                 FUNCTION (Hesablama və
+    Qiymət)              |
+
+    |   ------------------------------------                 ------------------------------              |
+
+    |   - EXEC ilə çağırılır                                 - SELECT / WHERE daxilində
+    çağırılır        |
+
+    |   - Datanı dəyişir (INSERT / UPDATE / DELETE)          - Datanı DƏYİŞƏ BİLMƏZ
+    (Yalnız oxuyur)      |
+
+    |   - Tranzaksiya idarə edir (COMMIT / ROLLBACK)         - Tranzaksiya aça BİLMƏZ                    |
+
+    |   - TRY...CATCH ilə xətaları tutur                     - TRY...CATCH dəstəkləmir                   |
+
+    |   - Nəticə qaytarmaya da bilər                         - Mütləq RETURN ilə qiymət
+    qaytarır         |
+
+    |                                                                                                    |
+
+    |   Nümunə:                                              Nümunə:                                     |
+
+    |   EXEC usp_PayInsuranceClaim @id=101;                  SELECT PolicyNo, dbo.fn_Tax(Price)          |
+
+    |   (Cədvəllərdə statusu və balansı dəyişir)             FROM Policies; (Yalnız
+    hesablayıb göstərir) |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+code: "-- 1. Skalyar Funksiya: KASKO zərərlilik dərəcəsinə görə Risk Kateqoriyasını\
+  \ təyin edir\nCREATE OR ALTER FUNCTION [dbo].[fn_GetRiskCategory] (\n    @LossRatio\
+  \ DECIMAL(5, 2)\n)\nRETURNS NVARCHAR(30)\nAS\nBEGIN\n    DECLARE @RiskCategory NVARCHAR(30);\n\
+  \n    IF @LossRatio IS NULL OR @LossRatio = 0.00\n        SET @RiskCategory = N'RİSKSİZ\
+  \ (İdeal)';\n    ELSE IF @LossRatio < 50.00\n        SET @RiskCategory = N'AŞAĞI\
+  \ RİSK (Gəlirli)';\n    ELSE IF @LossRatio BETWEEN 50.00 AND 80.00\n        SET\
+  \ @RiskCategory = N'ORTA RİSK (Qəbulolunan)';\n    ELSE\n        SET @RiskCategory\
+  \ = N'YÜKSƏK RİSK (Zərərli!)';\n\n    RETURN @RiskCategory;\nEND;\nGO\n\n-- 2. Table-Valued\
+  \ Funksiya (iTVF): Müəyyən risk həddindən yuxarı olan filialları cədvəl kimi qaytarır\n\
+  CREATE OR ALTER FUNCTION [dbo].[fn_GetHighRiskBranches] (\n    @MinLossRatio DECIMAL(5,\
+  \ 2)\n)\nRETURNS TABLE\nAS\nRETURN (\n    SELECT \n        [BranchName],\n     \
+  \   [TotalPremiumAZN],\n        [TotalPaidClaimsAZN],\n        ROUND(([TotalPaidClaimsAZN]\
+  \ / NULLIF([TotalPremiumAZN], 0)) * 100.0, 2) AS [LossRatioPct]\n    FROM [dbo].[BranchFinancials]\n\
+  \    WHERE ROUND(([TotalPaidClaimsAZN] / NULLIF([TotalPremiumAZN], 0)) * 100.0,\
+  \ 2) >= @MinLossRatio\n);\nGO\n\n-- 3. Hər iki funksiyanın birlikdə tək bir hesabat\
+  \ sorğusunda istifadəsi:\nSELECT \n    b.[BranchName],\n    b.[TotalPremiumAZN],\n\
+  \    b.[TotalPaidClaimsAZN],\n    b.[LossRatioPct],\n    [dbo].[fn_GetRiskCategory](b.[LossRatioPct])\
+  \ AS [RiskEvaluation]\nFROM [dbo].[fn_GetHighRiskBranches](60.00) b\nORDER BY b.[LossRatioPct]\
+  \ DESC;\n"
+code_explanation:
+  az: '* `CREATE OR ALTER FUNCTION [dbo].[fn_GetRiskCategory]`: Gələn rəqəmə əsasən
+    mətn (`NVARCHAR(30)`) qaytarır.
+
+    * `dbo.`: Skalyar funksiyaları çağırarkən `dbo.` prefiksi mütləq yazılmalıdır,
+    əks halda MS SQL onu daxili sistem funksiyası ilə qarışdırıb xəta verəcək.
+
+    * `fn_GetHighRiskBranches`: `RETURNS TABLE` ilə cədvəl qaytarır və `FROM` bəndində
+    sanki fiziki cədvəl kimi sorğulanır.
+
+    * `NULLIF([TotalPremiumAZN], 0)`: Sıfıra bölünmə xətasının (`Divide by zero error`)
+    qarşısını alır.
+
+    '
+  en: '* `CREATE OR ALTER FUNCTION [dbo].[fn_GetRiskCategory]`: Gələn rəqəmə əsasən
+    mətn (`NVARCHAR(30)`) qaytarır.
+
+    * `dbo.`: Skalyar funksiyaları çağırarkən `dbo.` prefiksi mütləq yazılmalıdır,
+    əks halda MS SQL onu daxili sistem funksiyası ilə qarışdırıb xəta verəcək.
+
+    * `fn_GetHighRiskBranches`: `RETURNS TABLE` ilə cədvəl qaytarır və `FROM` bəndində
+    sanki fiziki cədvəl kimi sorğulanır.
+
+    * `NULLIF([TotalPremiumAZN], 0)`: Sıfıra bölünmə xətasının (`Divide by zero error`)
+    qarşısını alır.
+
+    '
+visual_output: 'Hesabat Sorğusunun Nəticəsi:
+
+  +---------------+-----------------+--------------------+--------------+----------------------------+
+
+  | BranchName    | TotalPremiumAZN | TotalPaidClaimsAZN | LossRatioPct | RiskEvaluation             |
+
+  +---------------+-----------------+--------------------+--------------+----------------------------+
+
+  | Gəncə Qərb    | 120,000.00      | 105,600.00         | 88.00        | YÜKSƏK RİSK
+  (Zərərli!)     |
+
+  | Bakı Yasamal  | 350,000.00      | 238,000.00         | 68.00        | ORTA RİSK
+  (Qəbulolunan)    |
+
+  | Sumqayıt      | 180,000.00      | 111,600.00         | 62.00        | ORTA RİSK
+  (Qəbulolunan)    |
+
+  +---------------+-----------------+--------------------+--------------+----------------------------+
+
+  (3 rows affected)
+
+  '
+output_description:
+  az: 'Table-valued funksiya 60%-dən yuxarı zərərliliyi olan 3 filialı süzüb çıxardı,
+    Skalyar funksiya isə hər sətir üçün anlıq olaraq RiskEvaluation qiymətləndirməsini
+    hesabladı.
+
+    '
+  en: 'Table-valued funksiya 60%-dən yuxarı zərərliliyi olan 3 filialı süzüb çıxardı,
+    Skalyar funksiya isə hər sətir üçün anlıq olaraq RiskEvaluation qiymətləndirməsini
+    hesabladı.
+
+    '
+what_it_does:
+  az: '- MS SQL-də təkrar istifadə olunan hesablama məntiqlərini funksiyalar (UDF)
+    vasitəsilə mərkəzləşdirir.
+
+    - Scalar və Table-Valued funksiyaların fərqini və SELECT sorğularında necə işlədildiyini
+    nümayiş etdirir.
+
+    - Stored Procedure və Function arasındakı fundamental fərqləri dəqiq izah edir.'
+  en: '- MS SQL-də təkrar istifadə olunan hesablama məntiqlərini funksiyalar (UDF)
+    vasitəsilə mərkəzləşdirir.
+
+    - Scalar və Table-Valued funksiyaların fərqini və SELECT sorğularında necə işlədildiyini
+    nümayiş etdirir.
+
+    - Stored Procedure və Function arasındakı fundamental fərqləri dəqiq izah edir.'
+real_world_use:
+  az: '- İri sığorta və maliyyə şirkətlərində maliyyə və anderraytinq hesabatlarında zərərlilik əmsalı (Loss
+    Ratio), bonus faizləri və komissiyalar bu cür UDF-lər vasitəsilə vahid standartla
+    hesablanır.'
+  en: '- İri sığorta və maliyyə şirkətlərində maliyyə və anderraytinq hesabatlarında zərərlilik əmsalı (Loss
+    Ratio), bonus faizləri və komissiyalar bu cür UDF-lər vasitəsilə vahid standartla
+    hesablanır.'
+common_mistakes:
+  az: '- Skalyar funksiyanı çağırarkən sxem adını (`dbo.`) yazmamaq: `SELECT fn_GetRisk(50)`
+    yazsanız xəta alacaqsınız; mütləq `SELECT dbo.fn_GetRisk(50)` olmalıdır.
+
+    - Funksiya daxilində cədvələ `UPDATE` və ya `INSERT` etməyə çalışmaq: MS SQL buna
+    icazə vermir (`Invalid use of a side-effecting operator ''UPDATE'' within a function`).
+
+    - Çox böyük cədvəllərdə (milyonlarla sətir) hər sətir üçün ağır skalyar funksiya
+    çağırmaq: Bu ''row-by-row'' icraya gətirib çıxara bilər; belə hallarda Inline
+    TVF və ya birbaşa JOIN daha sürətlidir.'
+  en: '- Skalyar funksiyanı çağırarkən sxem adını (`dbo.`) yazmamaq: `SELECT fn_GetRisk(50)`
+    yazsanız xəta alacaqsınız; mütləq `SELECT dbo.fn_GetRisk(50)` olmalıdır.
+
+    - Funksiya daxilində cədvələ `UPDATE` və ya `INSERT` etməyə çalışmaq: MS SQL buna
+    icazə vermir (`Invalid use of a side-effecting operator ''UPDATE'' within a function`).
+
+    - Çox böyük cədvəllərdə (milyonlarla sətir) hər sətir üçün ağır skalyar funksiya
+    çağırmaq: Bu ''row-by-row'' icraya gətirib çıxara bilər; belə hallarda Inline
+    TVF və ya birbaşa JOIN daha sürətlidir.'
+interview_question:
+  question:
+    az: MS SQL Server-də Stored Procedure ilə User-Defined Function (Funksiya) arasındakı
+      əsas fərqlər hansılardır? Nə zaman hansını seçməliyik?
+    en: MS SQL Server-də Stored Procedure ilə User-Defined Function (Funksiya) arasındakı
+      əsas fərqlər hansılardır? Nə zaman hansını seçməliyik?
+  answer:
+    az: '"Əsas fərqlər bunlardır:
+
+      1. **Datanı Dəyişmək (Side-effects)**: Stored Procedure bazadakı datanı dəyişə
+      bilər (`INSERT`, `UPDATE`, `DELETE`). Funksiyalar isə datanı dəyişə BİLMƏZ,
+      onlar yalnız oxuyub hesablama aparır.
+
+      2. **İstifadə yeri**: Funksiyalar birbaşa `SELECT`, `WHERE`, `JOIN` daxilində
+      digər sütunlarla yanaşı istifadə oluna bilər. Stored Procedure isə yalnız `EXEC`
+      ilə ayrı bir əmr kimi işə salınır.
+
+      3. **Nəticə qaytarma**: Funksiya mütləq bir dəyər (skalyar) və ya cədvəl (`TABLE`)
+      qaytarmalıdır (`RETURNS`). Prosedur isə heç nə qaytarmaya da bilər və ya `OUTPUT`
+      parametrləri işlədə bilər.
+
+      4. **Tranzaksiyalar və Xətalar**: Stored Procedure daxilində `BEGIN TRANSACTION`,
+      `COMMIT`, `ROLLBACK` və `TRY...CATCH` istifadə oluna bildiyi halda, Funksiya
+      daxilində bunlar qadağandır.
+
+
+      Qayda: Əgər məqsəd məlumatı dəyişmək və ya çoxmərhələli biznes əməliyyatını
+      icra etməkdirsə — **Stored Procedure** seçilir. Əgər məqsəd təkrar istifadə
+      olunan bir hesablamanı `SELECT` sorğularına daxil etməkdirsə — **Function**
+      seçilir."'
+    en: '"Əsas fərqlər bunlardır:
+
+      1. **Datanı Dəyişmək (Side-effects)**: Stored Procedure bazadakı datanı dəyişə
+      bilər (`INSERT`, `UPDATE`, `DELETE`). Funksiyalar isə datanı dəyişə BİLMƏZ,
+      onlar yalnız oxuyub hesablama aparır.
+
+      2. **İstifadə yeri**: Funksiyalar birbaşa `SELECT`, `WHERE`, `JOIN` daxilində
+      digər sütunlarla yanaşı istifadə oluna bilər. Stored Procedure isə yalnız `EXEC`
+      ilə ayrı bir əmr kimi işə salınır.
+
+      3. **Nəticə qaytarma**: Funksiya mütləq bir dəyər (skalyar) və ya cədvəl (`TABLE`)
+      qaytarmalıdır (`RETURNS`). Prosedur isə heç nə qaytarmaya da bilər və ya `OUTPUT`
+      parametrləri işlədə bilər.
+
+      4. **Tranzaksiyalar və Xətalar**: Stored Procedure daxilində `BEGIN TRANSACTION`,
+      `COMMIT`, `ROLLBACK` və `TRY...CATCH` istifadə oluna bildiyi halda, Funksiya
+      daxilində bunlar qadağandır.
+
+
+      Qayda: Əgər məqsəd məlumatı dəyişmək və ya çoxmərhələli biznes əməliyyatını
+      icra etməkdirsə — **Stored Procedure** seçilir. Əgər məqsəd təkrar istifadə
+      olunan bir hesablamanı `SELECT` sorğularına daxil etməkdirsə — **Function**
+      seçilir."'
+  interviewer_tips:
+    az: '- Müsahibədə ''Funksiyalarda side-effect (əks-təsir) qadağandır'' ifadəsini
+      işlətsəniz, müsahibə götürən mühəndis sizin bazanın daxili fəlsəfəsini çox yaxşı
+      bildiyinizi görəcək.'
+    en: '- Müsahibədə ''Funksiyalarda side-effect (əks-təsir) qadağandır'' ifadəsini
+      işlətsəniz, müsahibə götürən mühəndis sizin bazanın daxili fəlsəfəsini çox yaxşı
+      bildiyinizi görəcək.'
+flashcards:
+- front:
+    az: MS SQL-də Scalar Function və Table-Valued Function (TVF) arasındakı fərq nədir?
+    en: MS SQL-də Scalar Function və Table-Valued Function (TVF) arasındakı fərq nədir?
+  back:
+    az: Scalar Function tək bir dəyər (ədəd, mətn, tarix) qaytarır; Table-Valued Function
+      isə sətir və sütunlardan ibarət bütöv bir cədvəl qaytarır.
+    en: Scalar Function tək bir dəyər (ədəd, mətn, tarix) qaytarır; Table-Valued Function
+      isə sətir və sütunlardan ibarət bütöv bir cədvəl qaytarır.
+- front:
+    az: Funksiya daxilində INSERT, UPDATE və ya DELETE yazmaq olarmı?
+    en: Funksiya daxilində INSERT, UPDATE və ya DELETE yazmaq olarmı?
+  back:
+    az: Xeyr! Funksiyalarda 'side-effects' (yan təsirlər) qadağandır; onlar bazadakı
+      mövcud cədvəlləri dəyişə bilməz, yalnız oxuyub hesablaya bilər.
+    en: Xeyr! Funksiyalarda 'side-effects' (yan təsirlər) qadağandır; onlar bazadakı
+      mövcud cədvəlləri dəyişə bilməz, yalnız oxuyub hesablaya bilər.
+- front:
+    az: Skalyar funksiyanı çağırarkən hansı prefiks mütləq yazılmalıdır?
+    en: Skalyar funksiyanı çağırarkən hansı prefiks mütləq yazılmalıdır?
+  back:
+    az: 'Mütləq sxem adı yazılmalıdır (məsələn: dbo.fn_Hesabla), əks halda sistem
+      xəta verəcək.'
+    en: 'Mütləq sxem adı yazılmalıdır (məsələn: dbo.fn_Hesabla), əks halda sistem
+      xəta verəcək.'
+- front:
+    az: Nə üçün Stored Procedure SELECT daxilində çağırıla bilməz, amma Funksiya çağırıla
+      bilər?
+    en: Nə üçün Stored Procedure SELECT daxilində çağırıla bilməz, amma Funksiya çağırıla
+      bilər?
+  back:
+    az: Çünki Stored Procedure tranzaksiya aça və cədvəlləri dəyişə bilər; SQL-in
+      oxuma sorğuları (SELECT) isə deterministik və təhlükəsiz olmalıdır.
+    en: Çünki Stored Procedure tranzaksiya aça və cədvəlləri dəyişə bilər; SQL-in
+      oxuma sorğuları (SELECT) isə deterministik və təhlükəsiz olmalıdır.
+- front:
+    az: Funksiya daxilində TRY...CATCH və ya ROLLBACK TRANSACTION istifadə edilə bilərmi?
+    en: Funksiya daxilində TRY...CATCH və ya ROLLBACK TRANSACTION istifadə edilə bilərmi?
+  back:
+    az: Xeyr, Funksiyalarda nə tranzaksiya idarəsinə (COMMIT/ROLLBACK), nə də TRY...CATCH
+      xəta bloklarına icazə verilir.
+    en: Xeyr, Funksiyalarda nə tranzaksiya idarəsinə (COMMIT/ROLLBACK), nə də TRY...CATCH
+      xəta bloklarına icazə verilir.

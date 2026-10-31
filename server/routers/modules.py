@@ -10,24 +10,28 @@ DATA_CONTENT_DIR = Path(__file__).parent.parent.parent / "data" / "content"
 
 MODULE_ORDER = [
     "sql",
+    "ms_sql",
     "python",
     "data_architecture",
     "devops",
     "spark",
     "airflow",
     "dbt",
-    "kafka"
+    "kafka",
+    "modern_lakehouse"
 ]
 
 MODULE_TITLES = {
     "sql": {"en": "SQL", "az": "SQL"},
+    "ms_sql": {"en": "MS SQL Server & T-SQL", "az": "MS SQL Server və T-SQL"},
     "python": {"en": "Python Core", "az": "Python Əsasları"},
     "data_architecture": {"en": "Data Architecture & DWH", "az": "Data Arxitekturası və DWH"},
     "devops": {"en": "DevOps & Docker", "az": "DevOps və Docker"},
     "spark": {"en": "Apache Spark", "az": "Apache Spark"},
     "airflow": {"en": "Apache Airflow", "az": "Apache Airflow"},
     "dbt": {"en": "dbt (Data Build Tool)", "az": "dbt (Data Build Tool)"},
-    "kafka": {"en": "Apache Kafka", "az": "Apache Kafka"}
+    "kafka": {"en": "Apache Kafka", "az": "Apache Kafka"},
+    "modern_lakehouse": {"en": "Modern Lakehouse (Iceberg, Nessie, Trino)", "az": "Modern Lakehouse (Iceberg, Nessie, Trino)"}
 }
 
 def load_lessons_from_dir(module_id: str) -> List[Dict[str, Any]]:

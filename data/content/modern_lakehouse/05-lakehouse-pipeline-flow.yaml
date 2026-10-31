@@ -1,0 +1,526 @@
+id: 05-lakehouse-pipeline-flow
+order: 5
+level: intermediate
+title:
+  az: 'Bütöv Lakehouse İş Axını: Spark, Nessie, Iceberg, Trino və dbt'
+  en: 'Bütöv Lakehouse İş Axını: Spark, Nessie, Iceberg, Trino və dbt'
+quick_recap:
+  az: '- Bu dərs öyrəndiyimiz bütün texnologiyaları vahid bir sığorta biznes ssenarisində
+    birləşdirir (End-to-End Pipeline).
+
+    - Memarlıq pillələri: Mənbə (MS SQL, Postgres) -> Spark (Ingestion) -> Nessie
+    & Iceberg (ACID Saxlanc & WAP) -> Trino & dbt (Transformasiya & Keyfiyyət) ->
+    Airflow (Orkestrasiya).
+
+    - Write-Audit-Publish (WAP): Yeni data əvvəlcə Nessie branch-ına yazılır, dbt
+    ilə yoxlanılır, yalnız hər şey düzdürsə main branch-a merge olunur.
+
+    - Data Engineering Intern kimi əsas işiniz: Airflow-da bu axının icrasını izləmək,
+    xətaları loqlardan tapmaq və dbt/SQL sorğularını təkmilləşdirməkdir.'
+  en: '- Bu dərs öyrəndiyimiz bütün texnologiyaları vahid bir sığorta biznes ssenarisində
+    birləşdirir (End-to-End Pipeline).
+
+    - Memarlıq pillələri: Mənbə (MS SQL, Postgres) -> Spark (Ingestion) -> Nessie
+    & Iceberg (ACID Saxlanc & WAP) -> Trino & dbt (Transformasiya & Keyfiyyət) ->
+    Airflow (Orkestrasiya).
+
+    - Write-Audit-Publish (WAP): Yeni data əvvəlcə Nessie branch-ına yazılır, dbt
+    ilə yoxlanılır, yalnız hər şey düzdürsə main branch-a merge olunur.
+
+    - Data Engineering Intern kimi əsas işiniz: Airflow-da bu axının icrasını izləmək,
+    xətaları loqlardan tapmaq və dbt/SQL sorğularını təkmilləşdirməkdir.'
+explanation:
+  az: "### Sığorta Şirkətində 24 Saatlıq Real Data Həyat Dövrü\nGəlin təsəvvür edək\
+    \ ki, **Enterprise Sığorta**-da gündəlik minlərlə yeni KASKO və İcbari avtomobil sığortası\
+    \ bağlanır, yüzlərlə qəza müraciəti (claims) daxil olur. Şirkətin rəhbərliyi hər\
+    \ səhər saat 08:30-da dünənki zərər-mənfəət nisbətini (Loss Ratio) Power BI dashboard-unda\
+    \ görməlidir.\n\nBu nəticə necə əldə edilir? Bütün stack necə bir orkestr kimi\
+    \ harmoniyada işləyir?\n\n---\n\n### Addım-addım Lakehouse Boru Xətti (Pipeline)\n\
+    \n#### 1. Mənbə Sistemlər (OLTP)\nGünün sonunda bütün müqavilələr və qəza müraciətləri\
+    \ operativ məlumat bazalarında qeyd olunur:\n* **MS SQL Server**: Sığorta polisləri,\
+    \ agentliklər, ödəniş cədvəlləri (`dbo.Policies`, `dbo.Agents`).\n* **PostgreSQL**:\
+    \ Müştəri mobil tətbiqi və CRM sorğuları (`crm.customer_profiles`).\n\n#### 2.\
+    \ Orkestrasiya: Apache Airflow İşi Başladır\nGecə saat 02:00-da Apache Airflow-da\
+    \ qurulmuş `daily_insurance_lakehouse_dag` avtomatik işə düşür. Airflow prosesi\
+    \ addım-addım idarə edir.\n\n#### 3. Çıxarılma və İlkin Emal: Apache Spark\nAirflow\
+    \ ilk task olaraq **Apache Spark** işini (`spark-submit`) işə salır:\n* Spark\
+    \ JDBC vasitəsilə MS SQL və PostgreSQL-dən dünən dəyişən (incremental) sətirləri\
+    \ oxuyur.\n* Məlumatı deduplikasiya edir, şəxsi məlumatları (FIN kod, telefon)\
+    \ anonimləşdirir.\n* Hədəf: MinIO/S3 üzərindəki **Apache Iceberg** cədvəlləri!\n\
+    \n#### 4. İcazəsiz Korlanmanın Qarşısını Almaq: Project Nessie Branching (WAP)\n\
+    Spark datanı birbaşa `main` (istehsalat) cədvəlinə yazmır!\n* Əvvəlcə Nessie-də\
+    \ `dev_daily_ingest_20261031` adlı təcrid olunmuş budaq (branch) açılır.\n* Spark\
+    \ təmizlənmiş datanı bu budaqdakı Iceberg cədvəlinə yazır (`Write` mərhələsi).\n\
+    * Əsas cədvələ heç bir zərər dəymir, canlı hesabatlar fasiləsiz işləyir.\n\n####\
+    \ 5. Transformasiya və Testlər: dbt + Trino\nNövbəti task dbt-dir (`dbt run` və\
+    \ `dbt test`):\n* dbt Trino vasitəsilə həmin Nessie budağına qoşulur.\n* dbt Data\
+    \ Quality testləri icra edir (`Audit` mərhələsi):\n  - *Polis nömrəsi NULL deyil\
+    \ ki?*\n  - *Zərər məbləği mənfi deyil ki?*\n  - *Polis tarixi bu gündən sonraya\
+    \ aid deyil ki?*\n* Bütün testlər 100% keçərsə, Nessie budağı `main` budağına\
+    \ **Fast-Forward Merge** olunur (`Publish` mərhələsi)!\n* Sonra dbt Trino-da Gold\
+    \ Mart cədvəlini yeniləyir: `mart_daily_loss_ratio`.\n\n#### 6. İstehlakçılar:\
+    \ Analitiklər və Rəhbərlik\nSəhər saat 08:00-da maliyyə analitikləri və rəhbərlik\
+    \ Power BI-ı açır. Power BI birbaşa **Trino**-ya sorğu göndərir və saniyələr içində\
+    \ ən son, keyfiyyəti yoxlanılmış hesabatı təqdim edir!\n\n---\n\n### Təcrübəçi\
+    \ (Intern) Olaraq Sizin Gündəlik Rolunuz\nVakansiya elanındakı tələblərə baxsanız,\
+    \ sizdən bütün bu arxitekturanı sıfırdan təkbaşına qurmaq tələb olunmur. Sizin\
+    \ öhdəlikləriniz:\n1. **Airflow Monitorinqi**: Səhər ilk iş kimi Airflow UI-a\
+    \ baxmaq: Bütün tasklar yaşıl rəngdədirmi? Qırmızı xəta varsa (məsələn dbt test\
+    \ fail olub və ya Spark yaddaş çatışmazlığı verib), loqları açıb səbəbi komandaya\
+    \ bildirmək.\n2. **SQL və T-SQL Dəstəyi**: MS SQL bazasında yeni sığorta məhsulu\
+    \ üçün Stored Procedure-ları sınaqdan keçirmək və Trino üçün zəruri SQL sorğularını\
+    \ hazırlamaq.\n3. **dbt Modellərinin Təkmilləşdirilməsi**: Analitiklərin istədiyi\
+    \ yeni metrikanın (məsələn: *filiallar üzrə orta təmir xərci*) dbt modelinə əlavə\
+    \ edilməsi.\n"
+  en: "### Sığorta Şirkətində 24 Saatlıq Real Data Həyat Dövrü\nGəlin təsəvvür edək\
+    \ ki, **Enterprise Sığorta**-da gündəlik minlərlə yeni KASKO və İcbari avtomobil sığortası\
+    \ bağlanır, yüzlərlə qəza müraciəti (claims) daxil olur. Şirkətin rəhbərliyi hər\
+    \ səhər saat 08:30-da dünənki zərər-mənfəət nisbətini (Loss Ratio) Power BI dashboard-unda\
+    \ görməlidir.\n\nBu nəticə necə əldə edilir? Bütün stack necə bir orkestr kimi\
+    \ harmoniyada işləyir?\n\n---\n\n### Addım-addım Lakehouse Boru Xətti (Pipeline)\n\
+    \n#### 1. Mənbə Sistemlər (OLTP)\nGünün sonunda bütün müqavilələr və qəza müraciətləri\
+    \ operativ məlumat bazalarında qeyd olunur:\n* **MS SQL Server**: Sığorta polisləri,\
+    \ agentliklər, ödəniş cədvəlləri (`dbo.Policies`, `dbo.Agents`).\n* **PostgreSQL**:\
+    \ Müştəri mobil tətbiqi və CRM sorğuları (`crm.customer_profiles`).\n\n#### 2.\
+    \ Orkestrasiya: Apache Airflow İşi Başladır\nGecə saat 02:00-da Apache Airflow-da\
+    \ qurulmuş `daily_insurance_lakehouse_dag` avtomatik işə düşür. Airflow prosesi\
+    \ addım-addım idarə edir.\n\n#### 3. Çıxarılma və İlkin Emal: Apache Spark\nAirflow\
+    \ ilk task olaraq **Apache Spark** işini (`spark-submit`) işə salır:\n* Spark\
+    \ JDBC vasitəsilə MS SQL və PostgreSQL-dən dünən dəyişən (incremental) sətirləri\
+    \ oxuyur.\n* Məlumatı deduplikasiya edir, şəxsi məlumatları (FIN kod, telefon)\
+    \ anonimləşdirir.\n* Hədəf: MinIO/S3 üzərindəki **Apache Iceberg** cədvəlləri!\n\
+    \n#### 4. İcazəsiz Korlanmanın Qarşısını Almaq: Project Nessie Branching (WAP)\n\
+    Spark datanı birbaşa `main` (istehsalat) cədvəlinə yazmır!\n* Əvvəlcə Nessie-də\
+    \ `dev_daily_ingest_20261031` adlı təcrid olunmuş budaq (branch) açılır.\n* Spark\
+    \ təmizlənmiş datanı bu budaqdakı Iceberg cədvəlinə yazır (`Write` mərhələsi).\n\
+    * Əsas cədvələ heç bir zərər dəymir, canlı hesabatlar fasiləsiz işləyir.\n\n####\
+    \ 5. Transformasiya və Testlər: dbt + Trino\nNövbəti task dbt-dir (`dbt run` və\
+    \ `dbt test`):\n* dbt Trino vasitəsilə həmin Nessie budağına qoşulur.\n* dbt Data\
+    \ Quality testləri icra edir (`Audit` mərhələsi):\n  - *Polis nömrəsi NULL deyil\
+    \ ki?*\n  - *Zərər məbləği mənfi deyil ki?*\n  - *Polis tarixi bu gündən sonraya\
+    \ aid deyil ki?*\n* Bütün testlər 100% keçərsə, Nessie budağı `main` budağına\
+    \ **Fast-Forward Merge** olunur (`Publish` mərhələsi)!\n* Sonra dbt Trino-da Gold\
+    \ Mart cədvəlini yeniləyir: `mart_daily_loss_ratio`.\n\n#### 6. İstehlakçılar:\
+    \ Analitiklər və Rəhbərlik\nSəhər saat 08:00-da maliyyə analitikləri və rəhbərlik\
+    \ Power BI-ı açır. Power BI birbaşa **Trino**-ya sorğu göndərir və saniyələr içində\
+    \ ən son, keyfiyyəti yoxlanılmış hesabatı təqdim edir!\n\n---\n\n### Təcrübəçi\
+    \ (Intern) Olaraq Sizin Gündəlik Rolunuz\nVakansiya elanındakı tələblərə baxsanız,\
+    \ sizdən bütün bu arxitekturanı sıfırdan təkbaşına qurmaq tələb olunmur. Sizin\
+    \ öhdəlikləriniz:\n1. **Airflow Monitorinqi**: Səhər ilk iş kimi Airflow UI-a\
+    \ baxmaq: Bütün tasklar yaşıl rəngdədirmi? Qırmızı xəta varsa (məsələn dbt test\
+    \ fail olub və ya Spark yaddaş çatışmazlığı verib), loqları açıb səbəbi komandaya\
+    \ bildirmək.\n2. **SQL və T-SQL Dəstəyi**: MS SQL bazasında yeni sığorta məhsulu\
+    \ üçün Stored Procedure-ları sınaqdan keçirmək və Trino üçün zəruri SQL sorğularını\
+    \ hazırlamaq.\n3. **dbt Modellərinin Təkmilləşdirilməsi**: Analitiklərin istədiyi\
+    \ yeni metrikanın (məsələn: *filiallar üzrə orta təmir xərci*) dbt modelinə əlavə\
+    \ edilməsi.\n"
+infographic:
+  az: '+-----------------------------------------------------------------------------------------------+
+
+    |                        Enterprise SIĞORTA MODERN DATA LAKEHOUSE AXINI                               |
+
+    |                                                                                               |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |  |                         APACHE AIRFLOW (ORKESTRASİYA VƏ MONİTORİNQ)                     |  |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |            |                                |                              |                  |
+
+    |    (1) Gecə 02:00 Spark Run        (2) 03:00 dbt Tests            (3) 04:00
+    Merge & Marts     |
+
+    |            v                                v                              v                  |
+
+    |  +-------------------+              +----------------+              +----------------------+  |
+
+    |  | 1. OPERATİV BAZA  |              | 2. İNGESTİON   |              | 3. NESSIE
+    (KATALOQ)  |  |
+
+    |  |  MS SQL Server    | ===JDBC===>  |  Apache Spark  | ===Parquet==>|  Branch:
+    dev_20261031|  |
+
+    |  |  PostgreSQL       |              |  (Deduplicate) |              |  (Təcrid
+    olunmuş)    |  |
+
+    |  +-------------------+              +----------------+              +----------------------+  |
+
+    |                                                                                |              |
+
+    |                                                                                v              |
+
+    |                                                                     +----------------------+  |
+
+    |                                                                     | 4. AUDIT
+    & TEST      |  |
+
+    |                                                                     |  dbt test
+    (Trino ilə)|  |
+
+    |                                                                     |  Not Null?
+    Valid?    |  |
+
+    |                                                                     +----------------------+  |
+
+    |                                                                                |              |
+
+    |                                              +---------------------------------+              |
+
+    |                                              | Uğurlu olduqda Merge                           |
+
+    |                                              v                                                |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |  | 5. APACHE ICEBERG (MinIO / S3) - MAIN BRANCH                                            |  |
+
+    |  |  - Raw Data (Bronze)  ->  Cleaned Data (Silver)  ->  Aggregated Marts (Gold)            |  |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |                                              ^                                                |
+
+    |                                              | Yüksək Sürətli In-Memory SQL                   |
+
+    |                                     +-----------------+                                       |
+
+    |                                     | 6. TRINO ENGINE |                                       |
+
+    |                                     +-----------------+                                       |
+
+    |                                              ^                                                |
+
+    |                                              | SQL Sorğusu                                    |
+
+    |                                     +-----------------+                                       |
+
+    |                                     | 7. POWER BI / BI|                                       |
+
+    |                                     |  Səhər 08:30    |                                       |
+
+    |                                     +-----------------+                                       |
+
+    +-----------------------------------------------------------------------------------------------+
+
+    '
+  en: '+-----------------------------------------------------------------------------------------------+
+
+    |                        Enterprise SIĞORTA MODERN DATA LAKEHOUSE AXINI                               |
+
+    |                                                                                               |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |  |                         APACHE AIRFLOW (ORKESTRASİYA VƏ MONİTORİNQ)                     |  |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |            |                                |                              |                  |
+
+    |    (1) Gecə 02:00 Spark Run        (2) 03:00 dbt Tests            (3) 04:00
+    Merge & Marts     |
+
+    |            v                                v                              v                  |
+
+    |  +-------------------+              +----------------+              +----------------------+  |
+
+    |  | 1. OPERATİV BAZA  |              | 2. İNGESTİON   |              | 3. NESSIE
+    (KATALOQ)  |  |
+
+    |  |  MS SQL Server    | ===JDBC===>  |  Apache Spark  | ===Parquet==>|  Branch:
+    dev_20261031|  |
+
+    |  |  PostgreSQL       |              |  (Deduplicate) |              |  (Təcrid
+    olunmuş)    |  |
+
+    |  +-------------------+              +----------------+              +----------------------+  |
+
+    |                                                                                |              |
+
+    |                                                                                v              |
+
+    |                                                                     +----------------------+  |
+
+    |                                                                     | 4. AUDIT
+    & TEST      |  |
+
+    |                                                                     |  dbt test
+    (Trino ilə)|  |
+
+    |                                                                     |  Not Null?
+    Valid?    |  |
+
+    |                                                                     +----------------------+  |
+
+    |                                                                                |              |
+
+    |                                              +---------------------------------+              |
+
+    |                                              | Uğurlu olduqda Merge                           |
+
+    |                                              v                                                |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |  | 5. APACHE ICEBERG (MinIO / S3) - MAIN BRANCH                                            |  |
+
+    |  |  - Raw Data (Bronze)  ->  Cleaned Data (Silver)  ->  Aggregated Marts (Gold)            |  |
+
+    |  +-----------------------------------------------------------------------------------------+  |
+
+    |                                              ^                                                |
+
+    |                                              | Yüksək Sürətli In-Memory SQL                   |
+
+    |                                     +-----------------+                                       |
+
+    |                                     | 6. TRINO ENGINE |                                       |
+
+    |                                     +-----------------+                                       |
+
+    |                                              ^                                                |
+
+    |                                              | SQL Sorğusu                                    |
+
+    |                                     +-----------------+                                       |
+
+    |                                     | 7. POWER BI / BI|                                       |
+
+    |                                     |  Səhər 08:30    |                                       |
+
+    |                                     +-----------------+                                       |
+
+    +-----------------------------------------------------------------------------------------------+
+
+    '
+code: "# 1. Apache Airflow DAG-da ardıcıllığın təyin edilməsi (Python)\nwith DAG(\n\
+  \    dag_id='insurance_lakehouse_daily_pipeline',\n    schedule_interval='0 2 *\
+  \ * *',\n    catchup=False\n) as dag:\n\n    # Task 1: Nessie-də gündəlik branch\
+  \ yaratmaq\n    create_branch = BashOperator(\n        task_id='nessie_create_branch',\n\
+  \        bash_command='nessie branch create dev_ingest_$(date +%Y%m%d) main'\n \
+  \   )\n\n    # Task 2: Spark ilə MS SQL-dən datanı çəkib həmin branch-dakı Iceberg-ə\
+  \ yazmaq\n    ingest_spark = SparkSubmitOperator(\n        task_id='spark_ingest_mssql_to_iceberg',\n\
+  \        application='/opt/spark/jobs/ingest_insurance_policies.py',\n        application_args=['--target-branch',\
+  \ 'dev_ingest_$(date +%Y%m%d)']\n    )\n\n    # Task 3: dbt testləri ilə həmin branch-dakı\
+  \ datanı audit etmək\n    audit_data = BashOperator(\n        task_id='dbt_audit_nessie_branch',\n\
+  \        bash_command='dbt test --target trino_dev'\n    )\n\n    # Task 4: Uğurlu\
+  \ auditdən sonra branch-ı main-ə merge etmək (WAP)\n    merge_to_main = BashOperator(\n\
+  \        task_id='nessie_merge_to_main',\n        bash_command='nessie branch merge\
+  \ dev_ingest_$(date +%Y%m%d) -b main --force'\n    )\n\n    # Task 5: Gold mart\
+  \ cədvəllərini dbt ilə yeniləmək\n    build_gold_marts = BashOperator(\n       \
+  \ task_id='dbt_run_gold_marts',\n        bash_command='dbt run --select marts.*\
+  \ --target trino_main'\n    )\n\n    # Boru xəttinin asılılıq zənciri:\n    create_branch\
+  \ >> ingest_spark >> audit_data >> merge_to_main >> build_gold_marts\n"
+code_explanation:
+  az: '* `create_branch`: İstehsalat (main) cədvəllərinə toxunmamaq üçün Nessie-də
+    günün tarixi ilə təcrid olunmuş budaq açılır.
+
+    * `ingest_spark`: Spark işi MS SQL-dən datanı çəkir və Iceberg formatında S3-ə
+    yazır, kataloq kimi həmin budağı göstərir.
+
+    * `audit_data`: `dbt test` vasitəsilə minlərlə sətir yoxlanılır. Əgər bircə dənə
+    belə kritik xəta olarsa (məsələn, zərər məbləği mənfi çıxarsa), bu task qırmızı
+    olur (Fail) və növbəti addım icra edilmir!
+
+    * `merge_to_main`: Yalnız testlər yaşıl olduqda Nessie branch-ı main-ə birləşdirilir
+    (Write-Audit-Publish bitir).
+
+    * `build_gold_marts`: Trino üzərindən dbt vasitəsilə ən son analitik hesabatlar
+    yenilənir.
+
+    '
+  en: '* `create_branch`: İstehsalat (main) cədvəllərinə toxunmamaq üçün Nessie-də
+    günün tarixi ilə təcrid olunmuş budaq açılır.
+
+    * `ingest_spark`: Spark işi MS SQL-dən datanı çəkir və Iceberg formatında S3-ə
+    yazır, kataloq kimi həmin budağı göstərir.
+
+    * `audit_data`: `dbt test` vasitəsilə minlərlə sətir yoxlanılır. Əgər bircə dənə
+    belə kritik xəta olarsa (məsələn, zərər məbləği mənfi çıxarsa), bu task qırmızı
+    olur (Fail) və növbəti addım icra edilmir!
+
+    * `merge_to_main`: Yalnız testlər yaşıl olduqda Nessie branch-ı main-ə birləşdirilir
+    (Write-Audit-Publish bitir).
+
+    * `build_gold_marts`: Trino üzərindən dbt vasitəsilə ən son analitik hesabatlar
+    yenilənir.
+
+    '
+visual_output: '[AIRFLOW DAG MONITOR]: insurance_lakehouse_daily_pipeline
+
+  +---------------------------------+------------+----------+-----------+
+
+  | Task ID                         | State      | Duration | Retries   |
+
+  +---------------------------------+------------+----------+-----------+
+
+  | nessie_create_branch            | SUCCESS    | 1.2s     | 0         |
+
+  | spark_ingest_mssql_to_iceberg   | SUCCESS    | 4m 18s   | 0         |
+
+  | dbt_audit_nessie_branch         | SUCCESS    | 42s      | 0 (PASS)  |
+
+  | nessie_merge_to_main            | SUCCESS    | 0.8s     | 0 (FAST)  |
+
+  | dbt_run_gold_marts              | SUCCESS    | 1m 15s   | 0         |
+
+  +---------------------------------+------------+----------+-----------+
+
+  Pipeline Finished at 02:07:37 UTC. All 5 tasks SUCCESS (Green).
+
+  Data quality assertion: 14 checks passed, 0 failures.
+
+  '
+output_description:
+  az: 'Gecəlik boru xətti cəmi 7 dəqiqə 37 saniyəyə tam uğurla başa çatdı. Heç bir
+    kirli data main branch-a buraxılmadı, Gold cədvəllər Trino və Power BI üçün hazırlandı.
+
+    '
+  en: 'Gecəlik boru xətti cəmi 7 dəqiqə 37 saniyəyə tam uğurla başa çatdı. Heç bir
+    kirli data main branch-a buraxılmadı, Gold cədvəllər Trino və Power BI üçün hazırlandı.
+
+    '
+what_it_does:
+  az: '- Fərqli sistemlərin (MS SQL, Spark, Iceberg, Nessie, Trino, dbt, Airflow)
+    bir-biri ilə necə əlaqələndiyini aydın göstərir.
+
+    - İntern mühəndisin təkcə ayrı-ayrı alətləri deyil, bütöv məlumat axınının arxitekturasını
+    dərk etməsini təmin edir.
+
+    - Data Quality və WAP modelinin istehsalat mühitində tətbiqini nümayiş etdirir.'
+  en: '- Fərqli sistemlərin (MS SQL, Spark, Iceberg, Nessie, Trino, dbt, Airflow)
+    bir-biri ilə necə əlaqələndiyini aydın göstərir.
+
+    - İntern mühəndisin təkcə ayrı-ayrı alətləri deyil, bütöv məlumat axınının arxitekturasını
+    dərk etməsini təmin edir.
+
+    - Data Quality və WAP modelinin istehsalat mühitində tətbiqini nümayiş etdirir.'
+real_world_use:
+  az: '- Enterprise Sığorta kimi aparıcı maliyyə təşkilatlarında məlumatların düzgünlüyü
+    birbaşa maliyyə hesabatlarına və auditə təsir edir; bu end-to-end axın zədəli
+    datanın heç vaxt hesabatlara düşməməsini zəmanət altına alır.'
+  en: '- Enterprise Sığorta kimi aparıcı maliyyə təşkilatlarında məlumatların düzgünlüyü
+    birbaşa maliyyə hesabatlarına və auditə təsir edir; bu end-to-end axın zədəli
+    datanın heç vaxt hesabatlara düşməməsini zəmanət altına alır.'
+common_mistakes:
+  az: '- Airflow-u məlumat transformasiyası üçün istifadə etmək: Airflow yalnız ''dirijor''dur,
+    datanı özündə emal etmir; o, sadəcə Spark, dbt və ya Bash əmrlərini tətikləyir.
+
+    - Nessie branch açmadan birbaşa `main` Iceberg cədvəlinə yazmaq: Əgər gecə saat
+    02:30-da Spark prosesi yarıda qırılsa, sabah hesabatlar yarımçıq data göstərəcək.
+
+    - dbt testlərini nəzərə almamaq: Transformasiyadan əvvəl və sonra unikal açarlar
+    və məntiqlər yoxlanılmalıdır.'
+  en: '- Airflow-u məlumat transformasiyası üçün istifadə etmək: Airflow yalnız ''dirijor''dur,
+    datanı özündə emal etmir; o, sadəcə Spark, dbt və ya Bash əmrlərini tətikləyir.
+
+    - Nessie branch açmadan birbaşa `main` Iceberg cədvəlinə yazmaq: Əgər gecə saat
+    02:30-da Spark prosesi yarıda qırılsa, sabah hesabatlar yarımçıq data göstərəcək.
+
+    - dbt testlərini nəzərə almamaq: Transformasiyadan əvvəl və sonra unikal açarlar
+    və məntiqlər yoxlanılmalıdır.'
+interview_question:
+  question:
+    az: Siz İri sığorta və maliyyə şirkətlərində Data Engineering intern-i olaraq işə başlasanız və səhər
+      tezdən gəldiyinizdə Airflow-da gecəlik lakehouse pipeline-ın qırmızı olduğunu
+      (fail etdiyini) görsəniz, problemin araşdırılması üçün hansı addımları atarsınız?
+    en: Siz İri sığorta və maliyyə şirkətlərində Data Engineering intern-i olaraq işə başlasanız və səhər
+      tezdən gəldiyinizdə Airflow-da gecəlik lakehouse pipeline-ın qırmızı olduğunu
+      (fail etdiyini) görsəniz, problemin araşdırılması üçün hansı addımları atarsınız?
+  answer:
+    az: '"İlk növbədə təşvişə düşmədən Airflow UI-da qırmızı rəngdə olan dəqiq tapşırığı
+      (Task ID) müəyyən edərəm:
+
+      1. Əgər **Spark Ingestion** taskı fail olubsa: Spark loqlarını açaram. Səbəb
+      MS SQL Server-ə qoşulma xətası (timeout/şəbəkə), yoxsa schema dəyişikliyi (source
+      bazada yeni sütun əlavə olunub) olub-olmadığını yoxlayaram.
+
+      2. Əgər **dbt Audit / Data Quality** taskı fail olubsa: Deməli, mənbədən kirli
+      data gəlib (məsələn, vacib sütun NULL gəlib və ya duplikat var). Burada Nessie-nin
+      WAP üstünlüyünü xatırladaram: çünki data dev branch-da saxlanılıb və hələ `main`
+      istehsalat cədvəlinə merge olunmayıb. Buna görə də Power BI hesabatları və istifadəçilər
+      zərər görməyib!
+
+      3. Xətanın növünü və konkret sətirləri sənədləşdirib komandaya / mentoruma bildirərəm,
+      zəruri düzəlişdən sonra həmin taskı Airflow-dan yenidən işə (Clear/Retry) salaram."'
+    en: '"İlk növbədə təşvişə düşmədən Airflow UI-da qırmızı rəngdə olan dəqiq tapşırığı
+      (Task ID) müəyyən edərəm:
+
+      1. Əgər **Spark Ingestion** taskı fail olubsa: Spark loqlarını açaram. Səbəb
+      MS SQL Server-ə qoşulma xətası (timeout/şəbəkə), yoxsa schema dəyişikliyi (source
+      bazada yeni sütun əlavə olunub) olub-olmadığını yoxlayaram.
+
+      2. Əgər **dbt Audit / Data Quality** taskı fail olubsa: Deməli, mənbədən kirli
+      data gəlib (məsələn, vacib sütun NULL gəlib və ya duplikat var). Burada Nessie-nin
+      WAP üstünlüyünü xatırladaram: çünki data dev branch-da saxlanılıb və hələ `main`
+      istehsalat cədvəlinə merge olunmayıb. Buna görə də Power BI hesabatları və istifadəçilər
+      zərər görməyib!
+
+      3. Xətanın növünü və konkret sətirləri sənədləşdirib komandaya / mentoruma bildirərəm,
+      zəruri düzəlişdən sonra həmin taskı Airflow-dan yenidən işə (Clear/Retry) salaram."'
+  interviewer_tips:
+    az: '- Bu cavab müsahibə götürən komandaya dərhal göstərir ki, siz təkcə nəzəriyyə
+      bilmirsiniz, real istehsalat problemlərini necə addım-addım debug etməyi başa
+      düşürsünüz.
+
+      - Nessie-nin Write-Audit-Publish mexanizminin istehsalatı necə qoruduğunu vurğulamaq
+      əla təsir bağışlayır.'
+    en: '- Bu cavab müsahibə götürən komandaya dərhal göstərir ki, siz təkcə nəzəriyyə
+      bilmirsiniz, real istehsalat problemlərini necə addım-addım debug etməyi başa
+      düşürsünüz.
+
+      - Nessie-nin Write-Audit-Publish mexanizminin istehsalatı necə qoruduğunu vurğulamaq
+      əla təsir bağışlayır.'
+flashcards:
+- front:
+    az: Müasir Data Lakehouse boru xəttində (pipeline) Apache Airflow-un rolu nədir?
+    en: Müasir Data Lakehouse boru xəttində (pipeline) Apache Airflow-un rolu nədir?
+  back:
+    az: Airflow bütöv prosesin dirijorudur (Orchestrator). O, datanı özündə saxlamır
+      və emal etmir; təyin olunmuş cədvəllə Spark, Nessie, dbt və Trino tapşırıqlarını
+      ardıcıl icra edir və xətaları monitorinq edir.
+    en: Airflow bütöv prosesin dirijorudur (Orchestrator). O, datanı özündə saxlamır
+      və emal etmir; təyin olunmuş cədvəllə Spark, Nessie, dbt və Trino tapşırıqlarını
+      ardıcıl icra edir və xətaları monitorinq edir.
+- front:
+    az: Lakehouse axınında niyə həm Spark, həm də Trino birgə işlədilir?
+    en: Lakehouse axınında niyə həm Spark, həm də Trino birgə işlədilir?
+  back:
+    az: Spark mənbələrdən (MS SQL) böyük həcmli xam datanı çıxarıb təmizləyərək Iceberg-ə
+      yazmaq (ingestion/heavy ETL) üçün, Trino isə dbt testləri və yüksək sürətli
+      analitik sorğular üçün istifadə olunur.
+    en: Spark mənbələrdən (MS SQL) böyük həcmli xam datanı çıxarıb təmizləyərək Iceberg-ə
+      yazmaq (ingestion/heavy ETL) üçün, Trino isə dbt testləri və yüksək sürətli
+      analitik sorğular üçün istifadə olunur.
+- front:
+    az: dbt bu boru xəttində hansı vəzifəni yerinə yetirir?
+    en: dbt bu boru xəttində hansı vəzifəni yerinə yetirir?
+  back:
+    az: dbt təmizlənmiş cədvəllərdən biznes yönümlü Data Marts (Gold Layer) modellərini
+      qurur və məlumatların düzgünlüyünü Data Quality testləri (Not Null, Unique və
+      s.) ilə yoxlayır.
+    en: dbt təmizlənmiş cədvəllərdən biznes yönümlü Data Marts (Gold Layer) modellərini
+      qurur və məlumatların düzgünlüyünü Data Quality testləri (Not Null, Unique və
+      s.) ilə yoxlayır.
+- front:
+    az: Write-Audit-Publish (WAP) axını xətaların qarşısını necə alır?
+    en: Write-Audit-Publish (WAP) axını xətaların qarşısını necə alır?
+  back:
+    az: Yeni məlumat birbaşa main cədvələ deyil, Nessie-nin müvəqqəti budağına yazılır.
+      dbt testləri uğurla keçdikdən sonra main-ə birləşdirilir (merge). Xəta olarsa,
+      heç kim kirli datanı görmür.
+    en: Yeni məlumat birbaşa main cədvələ deyil, Nessie-nin müvəqqəti budağına yazılır.
+      dbt testləri uğurla keçdikdən sonra main-ə birləşdirilir (merge). Xəta olarsa,
+      heç kim kirli datanı görmür.
+- front:
+    az: İntern olaraq Airflow-da task fail olduqda ilk nə etməlisiniz?
+    en: İntern olaraq Airflow-da task fail olduqda ilk nə etməlisiniz?
+  back:
+    az: Fail olan taskın loqlarını (Logs) açmalı, xətanın tipini (əlaqə kəsilməsi,
+      schema dəyişməsi, yoxsa data quality testi) tapmalı və WAP budağında qalan datanın
+      vəziyyətini yoxlamalıyıq.
+    en: Fail olan taskın loqlarını (Logs) açmalı, xətanın tipini (əlaqə kəsilməsi,
+      schema dəyişməsi, yoxsa data quality testi) tapmalı və WAP budağında qalan datanın
+      vəziyyətini yoxlamalıyıq.

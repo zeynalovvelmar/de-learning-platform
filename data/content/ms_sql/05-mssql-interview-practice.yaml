@@ -1,0 +1,430 @@
+id: 05-mssql-interview-practice
+order: 5
+level: intermediate
+title:
+  az: MS SQL Müsahibə Təcrübəsi və Praktiki T-SQL Tapşırıqları
+  en: MS SQL Müsahibə Təcrübəsi və Praktiki T-SQL Tapşırıqları
+quick_recap:
+  az: '- Bu dərs Böyük maliyyə, bank və sığorta şirkətlərinin Data Engineering Intern müsahibələrində
+    verilən ən populyar MS SQL suallarını və praktiki ssenarilərini əhatə edir.
+
+    - Stored Procedure necə test edilir? Datanı korlamadan tranzaksiya daxilində sınaqdan
+    keçirmək və ROLLBACK etmək sənəti.
+
+    - T-SQL Window Functions: Hər bir müştərinin ən son sığorta hadisəsini və ya ən
+    böyük zərərini tapmaq (ROW_NUMBER və PARTITION BY).
+
+    - S-ARG-able Sorğular (İndeks Dostu SQL): Niyə WHERE YEAR(Date) = 2026 yazmaq
+    indeksi öldürür və onu necə düzəltmək lazımdır?
+
+    - Müvəqqəti saxlanc: #TempTable (böyük həcm, indeks dəstəyi) vs @TableVariable
+    (kiçik həcm, RAM).'
+  en: '- Bu dərs Böyük maliyyə, bank və sığorta şirkətlərinin Data Engineering Intern müsahibələrində
+    verilən ən populyar MS SQL suallarını və praktiki ssenarilərini əhatə edir.
+
+    - Stored Procedure necə test edilir? Datanı korlamadan tranzaksiya daxilində sınaqdan
+    keçirmək və ROLLBACK etmək sənəti.
+
+    - T-SQL Window Functions: Hər bir müştərinin ən son sığorta hadisəsini və ya ən
+    böyük zərərini tapmaq (ROW_NUMBER və PARTITION BY).
+
+    - S-ARG-able Sorğular (İndeks Dostu SQL): Niyə WHERE YEAR(Date) = 2026 yazmaq
+    indeksi öldürür və onu necə düzəltmək lazımdır?
+
+    - Müvəqqəti saxlanc: #TempTable (böyük həcm, indeks dəstəyi) vs @TableVariable
+    (kiçik həcm, RAM).'
+explanation:
+  az: "### İntern Müsahibəsində MS SQL-dən Sizdən Nə Gözlənilir?\nBöyük sığorta və maliyyə şirkətlərinin\
+    \ vakansiya öhdəliklərində qeyd olunub:\n> *\"MS SQL Server və PostgreSQL məlumat\
+    \ bazalarında SQL sorğularının hazırlanması... Stored Procedure və Function-ların\
+    \ hazırlanması, test edilməsi və təkmilləşdirilməsinə dəstək göstərmək...\"*\n\
+    \nMüsahibədə heç kim sizdən 15 illik daxili mühərrik (storage engine / lock escalation)\
+    \ təfərrüatlarını soruşmayacaq. Komanda sizin:\n1. T-SQL-də təmiz və etibarlı\
+    \ sorğu yazmağınızı,\n2. Yazılan Stored Procedure-u test etməyi bacarmağınızı,\n\
+    3. Sadə performans xətalarına (məs. indeksləri sındıran funksiyalar) yol verməməyinizi\
+    \ yoxlayacaq.\n\n---\n\n### 1. Praktiki Sual: \"Stored Procedure-u Necə Test Edirsiniz?\"\
+    \nTəcrübəsiz namizədlər adətən belə cavab verir: *\"Sadəcə EXEC yazıb icra edirəm\"\
+    *. Bu səhvdir, çünki əgər prosedur bazaya yanlış data yazsa və ya real müştərinin\
+    \ statusunu korlasa, geriyə qayıtmaq çətin olar.\n\n**Peşəkar Təcrübəçi Yanaşması:**\n\
+    * Proseduru test skripti daxilində **`BEGIN TRANSACTION`** ilə işə salırıq.\n\
+    * Test üçün saxta (dummy) və ya nümunə parametrlər ötürürük.\n* Əməliyyatdan sonra\
+    \ cədvəldə nəticəni `SELECT` edib gözlənilən nəticə ilə tutuşdururuq.\n* Ən sonda\
+    \ mütləq **`ROLLBACK TRANSACTION`** edirik! Beləliklə, test tam aparılır, amma\
+    \ bazada heç bir zibil data qalmır!\n\n---\n\n### 2. Window Functions: Ən Son\
+    \ Sığorta Hadisələrinin Seçilməsi\nHər bir müştərinin ən son baş vermiş sığorta\
+    \ müraciətini tapmaq üçün `ROW_NUMBER()` ən çox verilən tapşırıqdır:\n```sql\n\
+    WITH RankedClaims AS (\n    SELECT \n        CustomerID,\n        ClaimID,\n \
+    \       ClaimAmount,\n        IncidentDate,\n        ROW_NUMBER() OVER (\n   \
+    \         PARTITION BY CustomerID \n            ORDER BY IncidentDate DESC\n \
+    \       ) AS rn\n    FROM [dbo].[InsuranceClaims]\n)\nSELECT CustomerID, ClaimID,\
+    \ ClaimAmount, IncidentDate\nFROM RankedClaims\nWHERE rn = 1; -- Yalnız hər müştərinin\
+    \ ən son hadisəsi\n```\n\n---\n\n### 3. S-ARG-able Sorğular (Search Argumentable):\
+    \ İndeksləri Sındırmayın!\nƏgər `[IncidentDate]` sütununda Non-Clustered Index\
+    \ varsa, bu sorğu indeksi İŞLƏTMİR (Table / Index Scan edir, 100x yavaş işləyir):\n\
+    ```sql\n-- SƏHV (Non-Sargable): Sütun funksiya daxilinə salınıb!\nSELECT * FROM\
+    \ [dbo].[InsuranceClaims] \nWHERE YEAR(IncidentDate) = 2026;\n```\nÇünki SQL Server\
+    \ hər bir sətri tək-tək oxuyub `YEAR()` funksiyasını hesablamalıdır.\n\n**DÜZGÜN\
+    \ YANAŞMA (S-ARG-able - Index Seek edir):**\n```sql\n-- DÜZGÜN: Sütun sərbəstdir,\
+    \ indeksdən dərhal aralıqla axtarır!\nSELECT * FROM [dbo].[InsuranceClaims] \n\
+    WHERE IncidentDate >= '2026-01-01' \n  AND IncidentDate < '2027-01-01';\n```\n\
+    \n---\n\n### 4. Müvəqqəti Cədvəllər: `#TempTable` vs `@TableVariable`\n* **`#TempTable`**:\
+    \ `tempdb` bazasında yaranır, statistikası və indeksləri var. Böyük həcmli (10,000+\
+    \ sətir) aralıq ETL dataları üçün idealdır.\n* **`@TableVariable`**: Yaddaşda\
+    \ saxlanılır, tranzaksiyalardan təsirlənmir (`ROLLBACK` olsa belə dəyəri silinmir).\
+    \ Çox kiçik (10-100 sətirlik) siyahılar üçün uyğundur.\n"
+  en: "### İntern Müsahibəsində MS SQL-dən Sizdən Nə Gözlənilir?\nBöyük sığorta və maliyyə şirkətlərinin\
+    \ vakansiya öhdəliklərində qeyd olunub:\n> *\"MS SQL Server və PostgreSQL məlumat\
+    \ bazalarında SQL sorğularının hazırlanması... Stored Procedure və Function-ların\
+    \ hazırlanması, test edilməsi və təkmilləşdirilməsinə dəstək göstərmək...\"*\n\
+    \nMüsahibədə heç kim sizdən 15 illik daxili mühərrik (storage engine / lock escalation)\
+    \ təfərrüatlarını soruşmayacaq. Komanda sizin:\n1. T-SQL-də təmiz və etibarlı\
+    \ sorğu yazmağınızı,\n2. Yazılan Stored Procedure-u test etməyi bacarmağınızı,\n\
+    3. Sadə performans xətalarına (məs. indeksləri sındıran funksiyalar) yol verməməyinizi\
+    \ yoxlayacaq.\n\n---\n\n### 1. Praktiki Sual: \"Stored Procedure-u Necə Test Edirsiniz?\"\
+    \nTəcrübəsiz namizədlər adətən belə cavab verir: *\"Sadəcə EXEC yazıb icra edirəm\"\
+    *. Bu səhvdir, çünki əgər prosedur bazaya yanlış data yazsa və ya real müştərinin\
+    \ statusunu korlasa, geriyə qayıtmaq çətin olar.\n\n**Peşəkar Təcrübəçi Yanaşması:**\n\
+    * Proseduru test skripti daxilində **`BEGIN TRANSACTION`** ilə işə salırıq.\n\
+    * Test üçün saxta (dummy) və ya nümunə parametrlər ötürürük.\n* Əməliyyatdan sonra\
+    \ cədvəldə nəticəni `SELECT` edib gözlənilən nəticə ilə tutuşdururuq.\n* Ən sonda\
+    \ mütləq **`ROLLBACK TRANSACTION`** edirik! Beləliklə, test tam aparılır, amma\
+    \ bazada heç bir zibil data qalmır!\n\n---\n\n### 2. Window Functions: Ən Son\
+    \ Sığorta Hadisələrinin Seçilməsi\nHər bir müştərinin ən son baş vermiş sığorta\
+    \ müraciətini tapmaq üçün `ROW_NUMBER()` ən çox verilən tapşırıqdır:\n```sql\n\
+    WITH RankedClaims AS (\n    SELECT \n        CustomerID,\n        ClaimID,\n \
+    \       ClaimAmount,\n        IncidentDate,\n        ROW_NUMBER() OVER (\n   \
+    \         PARTITION BY CustomerID \n            ORDER BY IncidentDate DESC\n \
+    \       ) AS rn\n    FROM [dbo].[InsuranceClaims]\n)\nSELECT CustomerID, ClaimID,\
+    \ ClaimAmount, IncidentDate\nFROM RankedClaims\nWHERE rn = 1; -- Yalnız hər müştərinin\
+    \ ən son hadisəsi\n```\n\n---\n\n### 3. S-ARG-able Sorğular (Search Argumentable):\
+    \ İndeksləri Sındırmayın!\nƏgər `[IncidentDate]` sütununda Non-Clustered Index\
+    \ varsa, bu sorğu indeksi İŞLƏTMİR (Table / Index Scan edir, 100x yavaş işləyir):\n\
+    ```sql\n-- SƏHV (Non-Sargable): Sütun funksiya daxilinə salınıb!\nSELECT * FROM\
+    \ [dbo].[InsuranceClaims] \nWHERE YEAR(IncidentDate) = 2026;\n```\nÇünki SQL Server\
+    \ hər bir sətri tək-tək oxuyub `YEAR()` funksiyasını hesablamalıdır.\n\n**DÜZGÜN\
+    \ YANAŞMA (S-ARG-able - Index Seek edir):**\n```sql\n-- DÜZGÜN: Sütun sərbəstdir,\
+    \ indeksdən dərhal aralıqla axtarır!\nSELECT * FROM [dbo].[InsuranceClaims] \n\
+    WHERE IncidentDate >= '2026-01-01' \n  AND IncidentDate < '2027-01-01';\n```\n\
+    \n---\n\n### 4. Müvəqqəti Cədvəllər: `#TempTable` vs `@TableVariable`\n* **`#TempTable`**:\
+    \ `tempdb` bazasında yaranır, statistikası və indeksləri var. Böyük həcmli (10,000+\
+    \ sətir) aralıq ETL dataları üçün idealdır.\n* **`@TableVariable`**: Yaddaşda\
+    \ saxlanılır, tranzaksiyalardan təsirlənmir (`ROLLBACK` olsa belə dəyəri silinmir).\
+    \ Çox kiçik (10-100 sətirlik) siyahılar üçün uyğundur.\n"
+infographic:
+  az: '+----------------------------------------------------------------------------------------------------+
+
+    |                                 T-SQL OPTİMİZASİYA VƏ TEST STANDARTI                               |
+
+    |                                                                                                    |
+
+    |  1. STORED PROCEDURE TƏHLÜKƏSİZ TEST STRUKTURU:                                                    |
+
+    |     BEGIN TRANSACTION;                                                                             |
+
+    |         EXEC dbo.usp_ApproveClaim @ClaimID = 9999, ...                                             |
+
+    |         SELECT * FROM dbo.Claims WHERE ClaimID = 9999; -- Dəyişikliyi yoxla!                       |
+
+    |     ROLLBACK TRANSACTION;  -- Heç bir real məlumat zədələnmədi! ✓                                  |
+
+    |                                                                                                    |
+
+    |  2. S-ARG-ABLE (İNDEKSLƏRİN DOSTU) QAYDASI:                                                        |
+
+    |     [SƏHV]:   WHERE DATEDIFF(day, CreatedAt, GETDATE()) < 30   ---> Bütün cədvəli
+    oxuyur (Scan)    |
+
+    |     [DÜZ]:    WHERE CreatedAt >= DATEADD(day, -30, GETDATE())  ---> İndeksdən
+    birbaşa tapır (Seek) |
+
+    |                                                                                                    |
+
+    |  3. WINDOW FUNCTION DƏRƏCƏLƏNDİRMƏSİ:                                                              |
+
+    |     ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY IncidentDate DESC)                         |
+
+    |     rn = 1  ---> Hər müştərinin ən sonuncu zərəri!                                                 |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+  en: '+----------------------------------------------------------------------------------------------------+
+
+    |                                 T-SQL OPTİMİZASİYA VƏ TEST STANDARTI                               |
+
+    |                                                                                                    |
+
+    |  1. STORED PROCEDURE TƏHLÜKƏSİZ TEST STRUKTURU:                                                    |
+
+    |     BEGIN TRANSACTION;                                                                             |
+
+    |         EXEC dbo.usp_ApproveClaim @ClaimID = 9999, ...                                             |
+
+    |         SELECT * FROM dbo.Claims WHERE ClaimID = 9999; -- Dəyişikliyi yoxla!                       |
+
+    |     ROLLBACK TRANSACTION;  -- Heç bir real məlumat zədələnmədi! ✓                                  |
+
+    |                                                                                                    |
+
+    |  2. S-ARG-ABLE (İNDEKSLƏRİN DOSTU) QAYDASI:                                                        |
+
+    |     [SƏHV]:   WHERE DATEDIFF(day, CreatedAt, GETDATE()) < 30   ---> Bütün cədvəli
+    oxuyur (Scan)    |
+
+    |     [DÜZ]:    WHERE CreatedAt >= DATEADD(day, -30, GETDATE())  ---> İndeksdən
+    birbaşa tapır (Seek) |
+
+    |                                                                                                    |
+
+    |  3. WINDOW FUNCTION DƏRƏCƏLƏNDİRMƏSİ:                                                              |
+
+    |     ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY IncidentDate DESC)                         |
+
+    |     rn = 1  ---> Hər müştərinin ən sonuncu zərəri!                                                 |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+code: "-- 1. Test Ssenarisi: Prosedurun təhlükəsiz sınaqdan keçirilməsi (ROLLBACK\
+  \ ilə)\nBEGIN TRANSACTION;\n\n-- Test üçün nəticə dəyişəni\nDECLARE @TestMsg NVARCHAR(100);\n\
+  \n-- Proseduru test edirik (ClaimID 101 üçün)\nEXEC [dbo].[usp_ApproveInsuranceClaim]\n\
+  \    @ClaimID = 101,\n    @ApproverID = 999, -- Test mühəndis İD-si\n    @ApprovedPayout\
+  \ = 1850.00,\n    @ResultStatus = @TestMsg OUTPUT;\n\n-- Nəticəni yoxlayırıq:\n\
+  PRINT N'Test Mesajı: ' + @TestMsg;\n\n-- Cədvəlin cari vəziyyətini yoxlayırıq:\n\
+  SELECT [ClaimID], [ClaimStatus], [ApprovedBy], [ApprovedAmount]\nFROM [dbo].[InsuranceClaims]\n\
+  WHERE [ClaimID] = 101;\n\n-- Ən vacib addım: Bazanı əvvəlki təmiz vəziyyətinə qaytarırıq!\n\
+  ROLLBACK TRANSACTION;\nPRINT N'Test tamamlandı. Bütün dəyişikliklər təhlükəsiz şəkildə\
+  \ geri alındı (Rollback).';\n\n-- 2. Praktiki Analitik Sorğu: Hər filial üzrə ən\
+  \ son 1 sığorta hadisəsi\nWITH LatestBranchClaims AS (\n    SELECT \n        c.[ClaimID],\n\
+  \        c.[BranchName],\n        c.[CustomerName],\n        c.[ApprovedAmount],\n\
+  \        c.[IncidentDate],\n        ROW_NUMBER() OVER (\n            PARTITION BY\
+  \ c.[BranchName] \n            ORDER BY c.[IncidentDate] DESC\n        ) AS [ClaimRank]\n\
+  \    FROM [dbo].[InsuranceClaims] c\n    WHERE c.[IncidentDate] >= '2026-01-01'\
+  \ -- S-ARG-able indeks axtarışı\n)\nSELECT \n    [BranchName],\n    [ClaimID],\n\
+  \    [CustomerName],\n    [ApprovedAmount],\n    [IncidentDate]\nFROM LatestBranchClaims\n\
+  WHERE [ClaimRank] = 1\nORDER BY [ApprovedAmount] DESC;\n"
+code_explanation:
+  az: '* `BEGIN TRANSACTION ... ROLLBACK TRANSACTION`: Test mühitində ən təhlükəsiz
+    test metodudur; prosedurun bütün məntiqləri real işləyir, amma heç bir qalıcı
+    iz buraxmır.
+
+    * `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: Hər filial üçün hadisələri
+    tarixə görə sıralayır və ən yenisinə 1 nömrəsini verir.
+
+    * `IncidentDate >= ''2026-01-01''`: Tarix sütunu funksiya daxilinə salınmayıb,
+    buna görə MS SQL mövcud B-Tree indeksindən birbaşa istifadə edə bilir (`Index
+    Seek`).
+
+    '
+  en: '* `BEGIN TRANSACTION ... ROLLBACK TRANSACTION`: Test mühitində ən təhlükəsiz
+    test metodudur; prosedurun bütün məntiqləri real işləyir, amma heç bir qalıcı
+    iz buraxmır.
+
+    * `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: Hər filial üçün hadisələri
+    tarixə görə sıralayır və ən yenisinə 1 nömrəsini verir.
+
+    * `IncidentDate >= ''2026-01-01''`: Tarix sütunu funksiya daxilinə salınmayıb,
+    buna görə MS SQL mövcud B-Tree indeksindən birbaşa istifadə edə bilir (`Index
+    Seek`).
+
+    '
+visual_output: '[TEST İCRA ÇIXARIŞI]:
+
+  Test Mesajı: UĞURLU: Zərər müraciəti təsdiqləndi və ödənişə yönəldildi.
+
+  +---------+-------------+------------+----------------+
+
+  | ClaimID | ClaimStatus | ApprovedBy | ApprovedAmount |
+
+  +---------+-------------+------------+----------------+
+
+  | 101     | APPROVED    | 999        | 1850.00        |
+
+  +---------+-------------+------------+----------------+
+
+  Test tamamlandı. Bütün dəyişikliklər təhlükəsiz şəkildə geri alındı (Rollback).
+
+
+  [HƏR FİLİAL ÜZRƏ ƏN SON HADİSƏ HESABATI]:
+
+  +---------------+---------+-------------------+----------------+---------------------+
+
+  | BranchName    | ClaimID | CustomerName      | ApprovedAmount | IncidentDate        |
+
+  +---------------+---------+-------------------+----------------+---------------------+
+
+  | Bakı Mərkəz   | 1084    | Tural Məmmədov    | 4,200.00       | 2026-10-30 18:45:00
+  |
+
+  | Gəncə         | 1079    | Nigar Əhmədova    | 1,650.00       | 2026-10-29 11:20:00
+  |
+
+  | Sumqayıt      | 1066    | Kənan Babayev     | 890.00         | 2026-10-28 14:10:00
+  |
+
+  +---------------+---------+-------------------+----------------+---------------------+
+
+  '
+output_description:
+  az: 'Test bloku proseduru yoxladı və dərhal dəyişiklikləri sildi. Növbəti Window
+    Function sorğusu isə hər filialın ən son zərər hadisəsini saniyənin onda birində
+    qaytardı.
+
+    '
+  en: 'Test bloku proseduru yoxladı və dərhal dəyişiklikləri sildi. Növbəti Window
+    Function sorğusu isə hər filialın ən son zərər hadisəsini saniyənin onda birində
+    qaytardı.
+
+    '
+what_it_does:
+  az: '- Data Engineering intern müsahibəsində veriləcək praktiki MS SQL suallarına
+    tam hazır edir.
+
+    - Stored Procedure-ların canlı bazanı korlamadan necə peşəkar test ediləcəyini
+    göstərir.
+
+    - Sorğu optimizasiyasının ən mühüm qaydası olan S-ARG-able axtarış prinsiplərini
+    öyrədir.'
+  en: '- Data Engineering intern müsahibəsində veriləcək praktiki MS SQL suallarına
+    tam hazır edir.
+
+    - Stored Procedure-ların canlı bazanı korlamadan necə peşəkar test ediləcəyini
+    göstərir.
+
+    - Sorğu optimizasiyasının ən mühüm qaydası olan S-ARG-able axtarış prinsiplərini
+    öyrədir.'
+real_world_use:
+  az: '- İri sığorta və maliyyə şirkətlərində yeni buraxılan Stored Procedure-lar istehsalat mühitində
+    tətbiq olunmazdan əvvəl bu qaydalarla test edilir və Airflow boru xətlərinə daxil
+    edilir.'
+  en: '- İri sığorta və maliyyə şirkətlərində yeni buraxılan Stored Procedure-lar istehsalat mühitində
+    tətbiq olunmazdan əvvəl bu qaydalarla test edilir və Airflow boru xətlərinə daxil
+    edilir.'
+common_mistakes:
+  az: '- Test edərkən real cədvəldə `UPDATE` edib geri almağı (ROLLBACK) unudaraq
+    canlı datanı zibilləmək.
+
+    - İndeksli sütunları `WHERE MONTH(date) = 10` kimi funksiyalara bürümək: Bu sorğunu
+    50-100 dəfə yavaşladır.
+
+    - Böyük həcmli datalar üçün `@TableVariable` istifadə etmək: Table variable-ın
+    statistikası olmur, buna görə SQL Server həmişə 1 sətir təxmin edir və planı korlayır
+    (10,000+ sətir üçün `#TempTable` seçilməlidir).'
+  en: '- Test edərkən real cədvəldə `UPDATE` edib geri almağı (ROLLBACK) unudaraq
+    canlı datanı zibilləmək.
+
+    - İndeksli sütunları `WHERE MONTH(date) = 10` kimi funksiyalara bürümək: Bu sorğunu
+    50-100 dəfə yavaşladır.
+
+    - Böyük həcmli datalar üçün `@TableVariable` istifadə etmək: Table variable-ın
+    statistikası olmur, buna görə SQL Server həmişə 1 sətir təxmin edir və planı korlayır
+    (10,000+ sətir üçün `#TempTable` seçilməlidir).'
+interview_question:
+  question:
+    az: Sizə bir Stored Procedure təhvil verilsə və onu test etməyiniz istənilsə,
+      hansı addımlarla test edərsiniz? Həmçinin sorğu yazarkən S-ARG-able nə deməkdir?
+    en: Sizə bir Stored Procedure təhvil verilsə və onu test etməyiniz istənilsə,
+      hansı addımlarla test edərsiniz? Həmçinin sorğu yazarkən S-ARG-able nə deməkdir?
+  answer:
+    az: '"Stored Procedure-u test edərkən:
+
+      1. Əvvəlcə prosedurun giriş və çıxış parametrlərini nəzərdən keçirərəm.
+
+      2. Testi mütləq `BEGIN TRANSACTION` bloku daxilində başladaram ki, sınaq bitdikdən
+      sonra `ROLLBACK TRANSACTION` ilə cədvəlləri əvvəlki ilkin vəziyyətinə qaytara
+      bilim.
+
+      3. Həm uğurlu (happy path), həm də sərhəd hallarını (boundary values: mənfi
+      rəqəmlər, NULL qiymətlər, mövcud olmayan İD-lər) yoxlayaram.
+
+      4. Nəticə çıxış parametrlərinin (`OUTPUT`) və `@@ROWCOUNT`-un gözlənilən kimi
+      olub-olmadığını `SELECT` ilə təsdiqləyərəm.
+
+
+      **S-ARG-able (Search Argumentable)** anlayışına gəldikdə: Bu, sorğunun `WHERE`
+      bəndində indekslərdən səmərəli istifadə edə bilməsi qabiliyyətidir. Əgər biz
+      sütunun özünü hər hansı funksiyanın içinə salsaq (məsələn, `WHERE YEAR(CreateDate)
+      = 2026`), SQL Server bütün sətirləri tək-tək oxumalı olur (Index Scan). Düzgün
+      forma sütunu təcrid etməkdir: `WHERE CreateDate >= ''2026-01-01'' AND CreateDate
+      < ''2027-01-01''`. Bu zaman mühərrik birbaşa B-Tree indeksindən faydalanaraq
+      sorğunu dərhal icra edir (Index Seek)."'
+    en: '"Stored Procedure-u test edərkən:
+
+      1. Əvvəlcə prosedurun giriş və çıxış parametrlərini nəzərdən keçirərəm.
+
+      2. Testi mütləq `BEGIN TRANSACTION` bloku daxilində başladaram ki, sınaq bitdikdən
+      sonra `ROLLBACK TRANSACTION` ilə cədvəlləri əvvəlki ilkin vəziyyətinə qaytara
+      bilim.
+
+      3. Həm uğurlu (happy path), həm də sərhəd hallarını (boundary values: mənfi
+      rəqəmlər, NULL qiymətlər, mövcud olmayan İD-lər) yoxlayaram.
+
+      4. Nəticə çıxış parametrlərinin (`OUTPUT`) və `@@ROWCOUNT`-un gözlənilən kimi
+      olub-olmadığını `SELECT` ilə təsdiqləyərəm.
+
+
+      **S-ARG-able (Search Argumentable)** anlayışına gəldikdə: Bu, sorğunun `WHERE`
+      bəndində indekslərdən səmərəli istifadə edə bilməsi qabiliyyətidir. Əgər biz
+      sütunun özünü hər hansı funksiyanın içinə salsaq (məsələn, `WHERE YEAR(CreateDate)
+      = 2026`), SQL Server bütün sətirləri tək-tək oxumalı olur (Index Scan). Düzgün
+      forma sütunu təcrid etməkdir: `WHERE CreateDate >= ''2026-01-01'' AND CreateDate
+      < ''2027-01-01''`. Bu zaman mühərrik birbaşa B-Tree indeksindən faydalanaraq
+      sorğunu dərhal icra edir (Index Seek)."'
+  interviewer_tips:
+    az: '- ROLLBACK ilə test yanaşmasını izah etdiyiniz an müsahibəçilər sizin istehsalat
+      intizamına (production discipline) sahib olduğunuzu görəcəklər.
+
+      - ''Index Scan vs Index Seek'' fərqini S-ARG-able ilə əlaqələndirmək intern
+      səviyyəsi üçün ən yüksək bal toplayan məqamdır.'
+    en: '- ROLLBACK ilə test yanaşmasını izah etdiyiniz an müsahibəçilər sizin istehsalat
+      intizamına (production discipline) sahib olduğunuzu görəcəklər.
+
+      - ''Index Scan vs Index Seek'' fərqini S-ARG-able ilə əlaqələndirmək intern
+      səviyyəsi üçün ən yüksək bal toplayan məqamdır.'
+flashcards:
+- front:
+    az: Stored Procedure-u bazadakı datanı korlamadan necə təhlükəsiz test etmək olar?
+    en: Stored Procedure-u bazadakı datanı korlamadan necə təhlükəsiz test etmək olar?
+  back:
+    az: Testi BEGIN TRANSACTION daxilində icra edib, nəticəni SELECT ilə yoxladıqdan
+      sonra mütləq ROLLBACK TRANSACTION etməklə.
+    en: Testi BEGIN TRANSACTION daxilində icra edib, nəticəni SELECT ilə yoxladıqdan
+      sonra mütləq ROLLBACK TRANSACTION etməklə.
+- front:
+    az: T-SQL-də S-ARG-able sorğu nə deməkdir?
+    en: T-SQL-də S-ARG-able sorğu nə deməkdir?
+  back:
+    az: WHERE bəndində indeksli sütunların funksiyaya bürünmədən təmiz saxlanmasıdır;
+      belə olduqda SQL Server cədvəli tam oxumaq (Scan) əvəzinə birbaşa indeks axtarışı
+      (Seek) apara bilir.
+    en: WHERE bəndində indeksli sütunların funksiyaya bürünmədən təmiz saxlanmasıdır;
+      belə olduqda SQL Server cədvəli tam oxumaq (Scan) əvəzinə birbaşa indeks axtarışı
+      (Seek) apara bilir.
+- front:
+    az: Niyə WHERE YEAR(IncidentDate) = 2026 əvəzinə aralıq (>= və <) yazmaq lazımdır?
+    en: Niyə WHERE YEAR(IncidentDate) = 2026 əvəzinə aralıq (>= və <) yazmaq lazımdır?
+  back:
+    az: Çünki YEAR() funksiyası hər sətir üçün təkrar hesablanaraq indeksi sındırır;
+      aralıq yazdıqda isə indeks dərhal 2026-cı ilin əvvəlinə yönəlir.
+    en: Çünki YEAR() funksiyası hər sətir üçün təkrar hesablanaraq indeksi sındırır;
+      aralıq yazdıqda isə indeks dərhal 2026-cı ilin əvvəlinə yönəlir.
+- front:
+    az: Hər müştərinin ən son sığorta hadisəsini tapmaq üçün hansı Window Function
+      istifadə olunur?
+    en: Hər müştərinin ən son sığorta hadisəsini tapmaq üçün hansı Window Function
+      istifadə olunur?
+  back:
+    az: ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY IncidentDate DESC) — ən
+      son hadisəyə 1 nömrəsi verilir və WHERE rn = 1 ilə süzülür.
+    en: ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY IncidentDate DESC) — ən
+      son hadisəyə 1 nömrəsi verilir və WHERE rn = 1 ilə süzülür.
+- front:
+    az: '#TempTable və @TableVariable arasındakı əsas fərq nədir?'
+    en: '#TempTable və @TableVariable arasındakı əsas fərq nədir?'
+  back:
+    az: '#TempTable tempdb-də saxlanılır, statistikaya və indeksə malikdir (böyük
+      ETL dataları üçün idealdır); @TableVariable isə kiçik həcmlər üçündür və tranzaksiya
+      rollback-indən təsirlənmir.'
+    en: '#TempTable tempdb-də saxlanılır, statistikaya və indeksə malikdir (böyük
+      ETL dataları üçün idealdır); @TableVariable isə kiçik həcmlər üçündür və tranzaksiya
+      rollback-indən təsirlənmir.'

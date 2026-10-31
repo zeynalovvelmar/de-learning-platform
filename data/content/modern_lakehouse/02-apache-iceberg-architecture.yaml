@@ -1,0 +1,297 @@
+id: 02-apache-iceberg-architecture
+order: 2
+level: intermediate
+title:
+  en: 'Apache Iceberg Architecture: Snapshots, Manifests & ACID on Object Storage'
+  az: 'Apache Iceberg Arxitekturası: Snapshot-lar, Manifest-lər və ACID Saxlanc'
+infographic:
+  en: "```text\n┌────────────────────────────────────────────────────────────────────────┐\n\
+    │              APACHE ICEBERG 3-TIER METADATA TREE ARCHITECTURE          │\n└────────────────────────────────────────────────────────────────────────┘\n\
+    1. ICEBERG CATALOG (Nessie / Hive Metastore / AWS Glue):\n   └── Current Table\
+    \ Metadata Pointer: \"s3://lake/metadata/v3.metadata.json\"\n                \
+    \               │\n                               ▼\n2. METADATA LAYER (Zero S3\
+    \ LIST calls needed!):\n   ┌─────────────────────────────────────────────────────────────────┐\n\
+    \   │ v3.metadata.json (Schema, Partition Spec, Snapshot History)     │\n   └─────────────────────────────┬───────────────────────────────────┘\n\
+    \                                 │ Current Snapshot ID: 902148\n            \
+    \                     ▼\n   ┌─────────────────────────────────────────────────────────────────┐\n\
+    \   │ snap-902148.avro (Manifest List: Points to active manifests)    │\n   └───────────────┬───────────────────────────────┬─────────────────┘\n\
+    \                   │                               │\n                   ▼  \
+    \                             ▼\n   ┌───────────────────────────────┐ ┌───────────────────────────────┐\n\
+    \   │ manifest-01.avro              │ │ manifest-02.avro              │\n   │\
+    \ Stats: issue_date [Jan - Mar] │ │ Stats: issue_date [Apr - Jun] │\n   │ Min/Max\
+    \ stats per column      │ │ Min/Max stats per column      │\n   └───────────────┬───────────────┘\
+    \ └───────────────┬───────────────┘\n                   │                    \
+    \           │\n                   ▼                               ▼\n3. DATA LAYER\
+    \ (Immutable Parquet Files in S3 / MinIO):\n   [data_01.parquet] [data_02.parquet]\
+    \  [data_03.parquet] [data_04.parquet]\n\n✨ Superpowers: Time Travel, Hidden Partitioning,\
+    \ Schema Evolution, Data Skipping!\n```\n"
+  az: "```text\n┌────────────────────────────────────────────────────────────────────────┐\n\
+    │          APACHE ICEBERG 3-TƏBƏQƏLİ METADATA AĞACI ARXİTEKTURASI        │\n└────────────────────────────────────────────────────────────────────────┘\n\
+    1. ICEBERG KATALOQU (Project Nessie / AWS Glue):\n   └── Cari Cədvəl Metadata\
+    \ Göstəricisi: \"s3://lake/metadata/v3.metadata.json\"\n                     \
+    \          │\n                               ▼\n2. METADATA TƏBƏQƏSİ (S3 LIST\
+    \ əməliyyatına sıfır ehtiyac!):\n   ┌─────────────────────────────────────────────────────────────────┐\n\
+    \   │ v3.metadata.json (Sxem, Partisiya Qaydası, Snapshot Tarixçəsi)  │\n   └─────────────────────────────┬───────────────────────────────────┘\n\
+    \                                 │ Cari Snapshot ID: 902148\n               \
+    \                  ▼\n   ┌─────────────────────────────────────────────────────────────────┐\n\
+    \   │ snap-902148.avro (Manifest Siyahısı: Aktiv manifestləri saxlayır│\n   └───────────────┬───────────────────────────────┬─────────────────┘\n\
+    \                   │                               │\n                   ▼  \
+    \                             ▼\n   ┌───────────────────────────────┐ ┌───────────────────────────────┐\n\
+    \   │ manifest-01.avro              │ │ manifest-02.avro              │\n   │\
+    \ Min/Max: issue_date [Yan-Mar] │ │ Min/Max: issue_date [Apr-İyun]│\n   │ Hər\
+    \ sütun üzrə statistika     │ │ Hər sütun üzrə statistika     │\n   └───────────────┬───────────────┘\
+    \ └───────────────┬───────────────┘\n                   │                    \
+    \           │\n                   ▼                               ▼\n3. MƏLUMAT\
+    \ TƏBƏQƏSİ (S3 / MinIO daxilində Dəyişməz Parquet Faylları):\n   [data_01.parquet]\
+    \ [data_02.parquet]  [data_03.parquet] [data_04.parquet]\n\n✨ Super Güclər: Time\
+    \ Travel, Gizli Partisiya, Sxem Təkamülü, Fayl Atlaması!\n```\n"
+explanation:
+  en: "### What is Apache Iceberg?\nOriginally developed at Netflix to solve the massive\
+    \ scalability failures of the Apache Hive metastore, **Apache Iceberg** is an\
+    \ open-source table format for huge analytic datasets.\n- **Iceberg is NOT an\
+    \ engine**: It doesn't run queries. It is a specification and set of libraries\
+    \ that describe how data files are tracked as a single, transactional table.\n\
+    - **Engine Independent**: Any engine—Spark, Trino, Flink, DuckDB, Snowflake—can\
+    \ read and write to the same Iceberg table without converting formats.\n\n###\
+    \ 1. The 3-Tier Metadata Architecture\nUnlike traditional lakes that rely on scanning\
+    \ S3 directory paths, Iceberg tracks data using an explicit tree of metadata:\n\
+    1. **Catalog (e.g. Nessie)**: Stores a single pointer to the latest `metadata.json`.\
+    \ Updating this pointer is the atomic commit.\n2. **Table Metadata (`metadata.json`)**:\
+    \ Contains the table's complete schema, partition specification, and a historical\
+    \ list of all snapshots.\n3. **Manifest List (`snap-*.avro`)**: For each snapshot,\
+    \ lists all manifest files that compose that version, along with summary partition\
+    \ boundaries.\n4. **Manifest Files (`*.avro`)**: Lists the actual data files (`.parquet`),\
+    \ their physical S3 paths, record counts, and **lower/upper bounds (min/max statistics)\
+    \ for every single column**.\n\n### 2. Four Superpowers Every Intern Must Understand:\n\
+    1. **Fast Data Skipping (Pruning)**:\n   When you run `WHERE issue_date >= '2026-05-01'`,\
+    \ the query engine reads the tiny manifest files first. If a manifest says `max_issue_date\
+    \ = '2026-03-31'`, it discards that entire branch. Over **90% of S3 Parquet files\
+    \ are never touched**, saving massive CPU and network I/O.\n2. **Time Travel**:\n\
+    \   Every commit creates a new immutable Snapshot. You can query past data effortlessly:\n\
+    \   `SELECT * FROM policies FOR SYSTEM_TIME AS OF '2026-10-31 00:00:00';`\n3.\
+    \ **Hidden Partitioning**:\n   In older systems (Hive), users had to know the\
+    \ physical folder layout: `WHERE year=2026 AND month=10`. In Iceberg, you query\
+    \ normal timestamp columns (`WHERE event_time >= ...`). Iceberg translates this\
+    \ to partitions automatically under the hood. If you change partitioning from\
+    \ daily to monthly later, old and new data coexist seamlessly (**Partition Evolution**).\n\
+    4. **In-place Schema Evolution**:\n   Adding, renaming, or dropping columns is\
+    \ a pure metadata change that completes in 1 millisecond with zero risk of corrupting\
+    \ existing Parquet files.\n"
+  az: "### Apache Iceberg Nədir?\nİlkin olaraq Netflix tərəfindən köhnə Apache Hive\
+    \ sisteminin nəhəng fayl həcmlərində çökməsi problemini həll etmək üçün yaradılan\
+    \ **Apache Iceberg**, böyük analitik cədvəllər üçün açıq mənbəli cədvəl formatıdır.\n\
+    - **Iceberg mühərrik deyil**: O, sorğuları icra etmir. O sadəcə Parquet fayllarının\
+    \ vahid, tranzaksional SQL cədvəli kimi necə idarə olunacağını müəyyənləşdirən\
+    \ metadata qaydaları toplusudur.\n- **Bütün mühərriklərlə işləyir**: Spark, Trino,\
+    \ Flink, DuckDB və ya Snowflake eyni Iceberg cədvəlinə heç bir çevirmə olmadan\
+    \ qoşulub yaza və oxuya bilir.\n\n### 1. 3-Təbəqəli Metadata Ağacı Arxitekturası\n\
+    Ənənəvi data lake-lərdəki kimi S3 qovluqlarını tək-tək axtarmaq (və dəqiqələrlə\
+    \ vaxt itirmək) əvəzinə, Iceberg dəqiq bir ağac strukturundan istifadə edir:\n\
+    1. **Kataloq (məs. Project Nessie)**: Ən sonuncu `metadata.json` faylının ünvanını\
+    \ saxlayır. Bu göstəricinin dəyişdirilməsi atomik təsdiqdir (commit).\n2. **Cədvəl\
+    \ Metadata Faylı (`metadata.json`)**: Cədvəlin cari sxemini, partisiya qaydasını\
+    \ və bütün keçmiş snapshot-ların siyahısını saxlayır.\n3. **Manifest Siyahısı\
+    \ (`snap-*.avro`)**: Hər snapshot üçün aktiv olan manifest fayllarını və onların\
+    \ partisiya aralıqlarını göstərir.\n4. **Manifest Faylları (`*.avro`)**: Fiziki\
+    \ S3 Parquet fayllarının dəqiq ünvanlarını, sətir sayını və **hər sütunun ən kiçik\
+    \ və ən böyük (min/max) qiymətlərini** saxlayır.\n\n### 2. Hər Bir Təcrübəçinin\
+    \ Bilməli Olduğu 4 Əsas Üstünlük:\n1. **Sürətli Məlumat Atlaması (Data Skipping)**:\n\
+    \   Siz `WHERE issue_date >= '2026-05-01'` sorğusu atanda, Trino əvvəlcə kiçik\
+    \ manifest fayllarındakı min/max dəyərlərinə baxır. Əgər bir fayl qrupunda `max_issue_date\
+    \ = '2026-03-31'`-dirsə, Trino o faylları ümumiyyətlə S3-dən oxumur. Nəticədə\
+    \ **Parquet fayllarının 90%-dən çoxu oxunmadan ötürülür** və sorğu göz qırpımında\
+    \ bitir.\n2. **Zaman Səyahəti (Time Travel)**:\n   Hər bir dəyişiklik yeni bir\
+    \ Snapshot yaradır. Səhv bir ETL icrasından sonra cədvəlin keçmiş halını birbaşa\
+    \ sorğulamaq mümkündür:\n   `SELECT * FROM policies FOR SYSTEM_TIME AS OF '2026-10-31\
+    \ 00:00:00';`\n3. **Gizli Partisiya (Hidden Partitioning)**:\n   Köhnə sistemlərdə\
+    \ istifadəçi cədvəlin hansı qovluqda olduğunu bilməli idi (`WHERE year=2026 AND\
+    \ month=10`). Iceberg-də isə istifadəçi sadəcə tarix sütununu sorğulayır; Iceberg\
+    \ arxa planda uyğun faylları özü tapır. Əgər gələcəkdə partisiya qaydası gündəlikdən\
+    \ saatlığa dəyişsə, köhnə sorğular qətiyyən pozulmur (**Partition Evolution**).\n\
+    4. **Dərhal Sxem Dəyişikliyi (Schema Evolution)**:\n   Cədvələ yeni sütun əlavə\
+    \ etmək, sütunun adını dəyişmək və ya silmək köhnə Parquet fayllarını yenidən\
+    \ yazmadan, 1 millisaniyə ərzində metadata səviyyəsində həll olunur.\n"
+quick_recap:
+  en: Apache Iceberg provides ACID transactions, snapshots, fast data skipping, and
+    time travel over S3 Parquet files via an engine-agnostic 3-tier metadata architecture.
+  az: Apache Iceberg 3-təbəqəli metadata ağacı vasitəsilə S3 Parquet faylları üzərində
+    ACID tranzaksiyaları, snapshot-ları, time travel və sürətli data skipping-i təmin
+    edir.
+what_it_does:
+  en: Transforms dumb directories of Parquet files in cloud storage into high-performance,
+    fully transactional database tables queryable by Trino, Spark, and Flink.
+  az: Obyekt saxlancındakı Parquet fayllarını Trino, Spark və Flink tərəfindən sorğulana
+    bilən yüksək performanslı və ACID dəstəkli cədvəllərə çevirir.
+real_world_use:
+  en: Enterprise Sığorta uses Iceberg so that large nightly batch pipelines and real-time
+    streaming jobs can safely insert and update insurance policies without causing
+    read locks or corrupting reports.
+  az: Enterprise Sığorta Iceberg-dən istifadə edir ki, həm gecə işləyən böyük batch kəmərləri,
+    həm də canlı axınlar oxuculara mane olmadan sığorta polislərini təhlükəsiz şəkildə
+    cədvələ yaza bilsin.
+common_mistakes:
+  en: '- **Manually deleting Parquet files directly in S3**: In Iceberg, files are
+    tracked via metadata. Deleting a Parquet file directly from the S3 bucket corrupts
+    the table''s manifest references! Always use Iceberg SQL commands or maintenance
+    procedures (`expire_snapshots()`, `remove_orphan_files()`).
+
+    - **Ignoring Snapshot Expiration**: Every write adds a new snapshot. Without automated
+    maintenance jobs to expire old snapshots, metadata storage grows indefinitely.
+
+    '
+  az: '- **Parquet fayllarını S3-dən əllə silmək**: Iceberg-də fayllar metadata ilə
+    idarə olunur. Faylı S3-dən əllə silsəniz, cədvəl manifestləri xarab olar! Silməni
+    mütləq Iceberg SQL əmrləri ilə edin.
+
+    - **Köhnə Snapshot-ları təmizləməyi unutmaq**: Hər yazılış yeni snapshot yaradır.
+    Periodik olaraq köhnə snapshot-ları təmizləməsəniz (`expire_snapshots()`), metadata
+    qovluğu hədsiz şişər.
+
+    '
+code: "-- 1. Create a modern partitioned Apache Iceberg table in Trino\nCREATE TABLE\
+  \ nessie.insurance.policies (\n    policy_id       BIGINT,\n    customer_id    \
+  \ BIGINT,\n    policy_type     VARCHAR,\n    premium_amount  DECIMAL(10, 2),\n \
+  \   status          VARCHAR,\n    issue_date      DATE\n)\nWITH (\n    format =\
+  \ 'PARQUET',\n    partitioning = ARRAY['month(issue_date)', 'policy_type']\n);\n\
+  \n-- 2. Time Travel: Query historical state before yesterday's batch run\nSELECT\
+  \ COUNT(*) AS policies_yesterday\nFROM nessie.insurance.policies\nFOR SYSTEM_TIME\
+  \ AS OF TIMESTAMP '2026-10-30 23:59:59.000 UTC';\n"
+code_explanation:
+  en: '- **`partitioning = ARRAY[''month(issue_date)'', ''policy_type'']`**: Implements
+    Hidden Partitioning. Queries on `issue_date` automatically prune partitions without
+    users having to extract the month manually!
+
+    - **`FOR SYSTEM_TIME AS OF`**: Native Iceberg Time Travel capability that resolves
+    the exact snapshot ID active at that timestamp.
+
+    '
+  az: '- **`partitioning = ARRAY[''month(issue_date)'']`**: Gizli Partisiyanı təyin
+    edir. İstifadəçi sadəcə `WHERE issue_date = ''2026-10-31''` yazır, Iceberg arxa
+    planda aylıq partisiya fayllarını avtomatik süzür.
+
+    - **`FOR SYSTEM_TIME AS OF`**: Həmin tarix və saatda cədvəlin hansı snapshot-da
+    olduğunu tapıb tarixi məlumatı gətirən Time Travel funksiyasıdır.
+
+    '
+visual_output: '================== ICEBERG METADATA INSPECTION RESULT ==================
+
+  TABLE: nessie.insurance.policies | LOCATION: s3://enterprise-lakehouse/insurance/policies/
+
+
+  SNAPSHOT HISTORY ($snapshots table):
+
+  ┌──────────────┬──────────────────────────┬────────────────┬──────────────────────────┐
+
+  │ snapshot_id  │ committed_at             │ operation      │ summary                  │
+
+  ├──────────────┼──────────────────────────┼────────────────┼──────────────────────────┤
+
+  │ 748910283411 │ 2026-10-30 02:00:15 UTC  │ append         │ added-records: 120,400   │
+
+  │ 890124718290 │ 2026-10-31 02:00:22 UTC  │ overwrite      │ updated-records: 4,150   │
+
+  └──────────────┴──────────────────────────┴────────────────┴──────────────────────────┘
+
+  Time Travel query successfully loaded snapshot 748910283411 in 0.18s!
+
+  '
+output_description:
+  en: Displays the internal snapshot metadata table of an Apache Iceberg table showing
+    exact commit timestamps, operations, and row metrics enabling Time Travel.
+  az: Apache Iceberg cədvəlinin daxili snapshot tarixçəsini və Time Travel üçün istifadə
+    olunan kommit göstəricilərini əks etdirən nəticə.
+interview_question:
+  question:
+    en: What is Apache Iceberg, how does its metadata tree enable fast data skipping,
+      and what is Hidden Partitioning?
+    az: Apache Iceberg nədir, onun metadata ağacı məlumat atlamasını (data skipping)
+      necə sürətləndirir və Gizli Partisiya (Hidden Partitioning) nədir?
+  answer:
+    en: '1. **What is Iceberg**: An open-source, high-performance table format for
+      massive datasets on object storage (S3/MinIO), providing full ACID transactions,
+      snapshot isolation, and engine-agnostic interoperability (Trino, Spark, Flink).
+
+      2. **How Data Skipping Works**: Iceberg tracks tables using a 3-tier hierarchy
+      (`Table Metadata` -> `Manifest List` -> `Manifest Files` -> `Data Files`). In
+      manifest files, Iceberg records column-level upper and lower bounds (min/max
+      values) for every Parquet file. When a query filters with a WHERE clause (e.g.
+      `issue_date > ''2026-05-01''`), the query planner inspects the metadata tree
+      and prunes irrelevant files before reading a single byte of actual data from
+      object storage.
+
+      3. **Hidden Partitioning**: In traditional systems like Hive, users had to explicitly
+      know the directory structure and filter by artificial partition columns (e.g.
+      `year=2026 AND month=10`). Iceberg abstracts partitioning: users filter on natural
+      business timestamps, and Iceberg automatically maps queries to the correct partition
+      files. Furthermore, if partition granularity evolves (e.g. from daily to hourly),
+      existing queries continue working without breaking (**Partition Evolution**).
+
+      '
+    az: '1. **Iceberg Nədir**: Obyekt saxlancındakı (S3/MinIO) böyük məlumatlar üçün
+      tam ACID tranzaksiyaları, snapshot izolyasiyasını və bütün mühərriklərlə (Trino,
+      Spark) uyğunluğu təmin edən açıq cədvəl formatıdır.
+
+      2. **Data Skipping Necə İşləyir**: Iceberg 3-təbəqəli metadata ağacından istifadə
+      edir (`Metadata` $\rightarrow$ `Manifest List` $\rightarrow$ `Manifest Files`
+      $\rightarrow$ `Parquet Faylları`). Manifest fayllarında hər bir Parquet faylının
+      içindəki sütunların ən kiçik və ən böyük (min/max) qiymətləri qeyd olunur. `WHERE
+      issue_date > ''2026-05-01''` sorğusu gəldikdə, mühərrik diskdəki Parquet fayllarını
+      oxumazdan əvvəl bu metadata-ya baxır və uyğun olmayan faylları oxumadan atır
+      (90%+ fayl atlanır).
+
+      3. **Gizli Partisiya (Hidden Partitioning)**: Köhnə sistemlərdə istifadəçi S3
+      qovluq strukturunu bilməyə məcbur idi (`WHERE year=2026 AND month=10`). Iceberg-də
+      isə istifadəçi sadəcə real biznes sütununu (`issue_date`) sorğulayır; partisiya
+      hesablamasını Iceberg arxa planda özü həll edir. Əgər gələcəkdə partisiya qaydası
+      dəyişsə, köhnə sorğular pozulmur (**Partition Evolution**).
+
+      '
+  interviewer_tips:
+    en: Differentiate between an open table format (Iceberg, Delta Lake) and a query
+      engine (Trino, Spark). Iceberg structures the data and metadata; Trino executes
+      the distributed SQL computation.
+    az: 'Cədvəl formatı (Iceberg) ilə sorğu mühərriki (Trino) arasındakı fərqi mütləq
+      aydın ifadə edin: Iceberg metadata və faylları nizamlayır, Trino isə paylanmış
+      SQL hesablamasını icra edir.'
+flashcards:
+- front:
+    en: Is Apache Iceberg a database engine or a table format?
+    az: Apache Iceberg verilənlər bazası mühərrikidir, yoxsa cədvəl formatı?
+  back:
+    en: It is a table format. It does not execute queries itself; engines like Trino,
+      Spark, and Flink read and write Iceberg tables.
+    az: O, cədvəl formatıdır. Sorğuları özü icra etmir; Trino, Spark və Flink kimi
+      mühərriklər Iceberg cədvəllərini oxuyub yazır.
+- front:
+    en: What are the three tiers in the Apache Iceberg metadata hierarchy?
+    az: Apache Iceberg metadata iyerarxiyasının üç təbəqəsi hansılardır?
+  back:
+    en: 1. Table Metadata (metadata.json). 2. Manifest List (snap-*.avro). 3. Manifest
+      Files (*.avro listing data files with min/max column stats).
+    az: 1. Cədvəl Metadata faylı (metadata.json). 2. Manifest Siyahısı (snap-*.avro).
+      3. Manifest Faylları (*.avro - min/max statistikalı Parquet siyahısı).
+- front:
+    en: How does Apache Iceberg achieve Time Travel?
+    az: Apache Iceberg Zaman Səyahətini (Time Travel) necə təmin edir?
+  back:
+    en: Every write creates an immutable snapshot. By referencing historical snapshot
+      IDs or timestamps, users can query the table exactly as it existed in the past.
+    az: Hər yazılış dəyişməz bir snapshot yaradır. Keçmiş snapshot ID və ya tarixlərə
+      istinad edərək cədvəlin keçmiş halını dəqiq sorğulamaq mümkündür.
+- front:
+    en: What is Hidden Partitioning in Apache Iceberg?
+    az: Apache Iceberg-də Gizli Partisiya (Hidden Partitioning) nədir?
+  back:
+    en: Users query natural timestamp columns without needing to know physical partition
+      folder structures; Iceberg automatically prunes matching partitions.
+    az: İstifadəçilər S3 qovluq strukturunu bilmədən birbaşa tarix sütununu sorğulayır;
+      Iceberg arxa planda uyğun partisiya fayllarını özü tapır.
+- front:
+    en: Why should you never manually delete a Parquet file from S3 in an Iceberg
+      table?
+    az: Iceberg cədvəlindəki Parquet faylını nə üçün heç vaxt S3-dən əllə silmək olmaz?
+  back:
+    en: Because Iceberg's manifest files maintain strict pointers to that file; deleting
+      it directly causes missing file exceptions and metadata corruption.
+    az: Çünki Iceberg manifestləri həmin fayla dəqiq göstəricilər saxlayır; faylı
+      əllə sildikdə metadata korlanır və cədvəl xəta verir.

@@ -29,7 +29,7 @@ def health_check():
     return {
         "status": "healthy",
         "service": "de-learning-platform-backend",
-        "modules_count": 8,
+        "modules_count": len(modules.MODULE_ORDER),
         "engine": "FastAPI + Python 3.12"
     }
 

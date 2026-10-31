@@ -6,12 +6,14 @@ en:
   modules:
     python_core: "Python Core"
     sql: "SQL"
+    ms_sql: "MS SQL Server"
     spark: "Apache Spark"
     kafka: "Apache Kafka"
     airflow: "Apache Airflow"
     devops: "DevOps"
     data_architecture: "Data Architecture & DWH"
     dbt: "dbt (Data Build Tool)"
+    modern_lakehouse: "Modern Lakehouse"
   tabs:
     theory: "Theory"
     interview_cards: "Interview Cards"
@@ -240,12 +242,14 @@ az:
   modules:
     python_core: "Python Əsasları"
     sql: "SQL"
+    ms_sql: "MS SQL Server"
     spark: "Apache Spark"
     kafka: "Apache Kafka"
     airflow: "Apache Airflow"
     devops: "DevOps"
     data_architecture: "Data Arxitekturası və DWH"
     dbt: "dbt (Data Build Tool)"
+    modern_lakehouse: "Modern Lakehouse"
   tabs:
     theory: "Nəzəriyyə"
     interview_cards: "Müsahibə Kartları"

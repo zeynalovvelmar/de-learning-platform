@@ -1,0 +1,325 @@
+id: 01-what-is-modern-lakehouse
+order: 1
+level: junior
+title:
+  en: What is a Modern Data Lakehouse? DWH & Data Lake Evolution
+  az: Data Lakehouse Nədir? DWH və Data Lake Təkamülü
+infographic:
+  en: "```text\n┌────────────────────────────────────────────────────────────────────────┐\n\
+    │          THE EVOLUTION: DATA WAREHOUSE ──► DATA LAKE ──► LAKEHOUSE     │\n└────────────────────────────────────────────────────────────────────────┘\n\
+    1. TRADITIONAL DWH (1990s - 2010s):\n   Oracle / Teradata / SQL Server\n   ✅ Fast\
+    \ SQL, ACID transactions, BI-ready.\n   ❌ Expensive proprietary storage, structured\
+    \ data only, compute-storage coupled.\n\n2. DATA LAKE (2010s Hadoop & S3 / MinIO):\n\
+    \   Cheap Object Storage + Raw Parquet / JSON Files\n   ✅ Petabyte scale, ultra-cheap,\
+    \ stores structured & unstructured data.\n   ❌ \"Data Swamp\": No ACID, concurrent\
+    \ writes corrupt files, no UPDATE/DELETE.\n\n3. MODERN DATA LAKEHOUSE (2020s Standard\
+    \ in Enterprise FinTech & Insurance):\n   ┌─────────────────────────────────────────────────────────────────┐\n\
+    \   │ ENGINE LAYER: Trino / Apache Spark / dbt (Fast Distributed SQL) │\n   ├─────────────────────────────────────────────────────────────────┤\n\
+    \   │ CATALOG LAYER: Project Nessie (Git-like branches & commits)     │\n   ├─────────────────────────────────────────────────────────────────┤\n\
+    \   │ TABLE FORMAT: Apache Iceberg (ACID, Time Travel, Snapshots)     │\n   ├─────────────────────────────────────────────────────────────────┤\n\
+    \   │ STORAGE LAYER: S3 / MinIO / Ceph (Cheap Immutable Parquet Files)│\n   └─────────────────────────────────────────────────────────────────┘\n\
+    \   ✨ Best of both worlds: Cloud storage economics + DWH ACID & Speed!\n```\n"
+  az: "```text\n┌────────────────────────────────────────────────────────────────────────┐\n\
+    │       TƏKAMÜL: DATA WAREHOUSE (DWH) ──► DATA LAKE ──► LAKEHOUSE        │\n└────────────────────────────────────────────────────────────────────────┘\n\
+    1. ƏNƏNƏVİ DWH (1990 - 2010-cu illər):\n   Oracle / Teradata / MS SQL Server\n\
+    \   ✅ Sürətli SQL, ACID tranzaksiyalar, hesabat üçün hazır.\n   ❌ Həddən artıq\
+    \ bahalı lisenziya, yalnız cədvəl formatı, yaddaş və CPU bir yerdə.\n\n2. DATA\
+    \ LAKE (2010-cu illər Hadoop və S3 / MinIO):\n   Ucuz Obyekt Saxlancında Xam Parquet\
+    \ / JSON Faylları\n   ✅ Petabayt miqyası, çox ucuz, hər cür məlumatı (şəkil, loq,\
+    \ cədvəl) saxlayır.\n   ❌ \"Data Bataqlığı\": ACID yoxdur, eyni vaxtda yazanlar\
+    \ faylları korlayır.\n\n3. MÜASİR DATA LAKEHOUSE (Müasir Maliyyə və Qlobal Sənaye\
+    \ Standartı):\n   ┌─────────────────────────────────────────────────────────────────┐\n\
+    \   │ SORĞU MÜHƏRRİKİ: Trino / Apache Spark / dbt (Paylanmış Sürətli) │\n   ├─────────────────────────────────────────────────────────────────┤\n\
+    \   │ KATALOQ QATI: Project Nessie (Data üçün Git: Branch & Commit)   │\n   ├─────────────────────────────────────────────────────────────────┤\n\
+    \   │ CƏDVƏL FORMATI: Apache Iceberg (ACID, Time Travel, Snapshots)   │\n   ├─────────────────────────────────────────────────────────────────┤\n\
+    \   │ FİZİKİ SAXLANC: S3 / MinIO (Ucuz, Dəyişməz Parquet Faylları)    │\n   └─────────────────────────────────────────────────────────────────┘\n\
+    \   ✨ Hər iki dünyanın üstünlüyü: Ucuz saxlanc + DWH sürəti və etibarlılığı!\n\
+    ```\n"
+explanation:
+  en: '### The Big Picture: Why Companies are Building Lakehouses
+
+    To understand why modern financial and insurance enterprises like leading FinTech and insurance enterprises
+    use an open Lakehouse (Iceberg + Nessie + Trino), you must understand the historic
+    struggle between **Data Warehouses** and **Data Lakes**:
+
+
+    ### 1. The Era of the Data Warehouse (DWH)
+
+    For 30 years, companies loaded business data into relational systems (Oracle,
+    Teradata, MS SQL Server).
+
+    - **Pros**: Fast SQL queries, ACID transactions (no corrupt data), well-structured
+    Star Schemas for reporting.
+
+    - **Fatal Flaw**: Compute and storage were tightly coupled. If you needed to store
+    10x more historical data, you had to buy 10x more expensive server hardware and
+    database licenses. It could not store unstructured data (images, sensor logs).
+
+
+    ### 2. The Era of the Data Lake (Hadoop, AWS S3, MinIO)
+
+    Companies started dumping all raw files into cheap distributed object storage
+    (S3, MinIO) as Parquet or CSV.
+
+    - **Pros**: Extremely cheap (cents per GB), scalable to petabytes.
+
+    - **Fatal Flaw (The "Data Swamp")**: Object storage does not have ACID guarantees!
+    If an ETL job crashed halfway through, corrupt half-written files remained. If
+    GDPR required deleting a user, you had to rewrite terabytes of files manually.
+    There was no concurrency control.
+
+
+    ### 3. The Modern Solution: The Open Data Lakehouse
+
+    A **Data Lakehouse** merges the reliability, governance, and ACID transactions
+    of a Data Warehouse with the low cost and open flexibility of a Data Lake.
+
+    - **Storage is Open**: Your data stays in your own storage (MinIO or S3) as standard
+    Parquet files.
+
+    - **Table Format (Iceberg)**: Manages metadata so Parquet files behave like a
+    transactional database table.
+
+    - **Catalog (Nessie)**: Tracks table versions and allows branching/tagging just
+    like Git.
+
+    - **Query Engine (Trino)**: Executes standard ANSI SQL queries across the lakehouse
+    in seconds without moving data.
+
+    '
+  az: '### Böyük Mənzərə: Şirkətlər Niyə Lakehouse Qurur?
+
+    aparıcı maliyyə və sığorta şirkətləri kimi qabaqcıl maliyyə və sığorta şirkətlərinin açıq Lakehouse
+    (Iceberg + Nessie + Trino) arxitekturasına keçməsini başa düşmək üçün **Data Warehouse
+    (DWH)** və **Data Lake** arasındakı tarixi fərqi bilmək lazımdır:
+
+
+    ### 1. Ənənəvi Data Warehouse (DWH) Dövrü
+
+    30 il ərzində şirkətlər analitik məlumatları əlaqəli bazalara (Oracle, Teradata,
+    MS SQL Server) yığırdılar.
+
+    - **Müsbət tərəfi**: Sürətli SQL, ACID tranzaksiyalar (məlumatın etibarlılığı)
+    və aydın hesabatlar.
+
+    - **Əsas qüsuru**: Saxlanc (disk) və hesablama (CPU) bir-birinə bağlı idi. 10
+    dəfə çox keçmiş məlumat saxlamaq üçün 10 dəfə bahalı server və lisenziya almaq
+    lazım gəlirdi. Qeyri-strukturlu məlumatları (sənəd şəkilləri, loqlar) saxlamaq
+    olmurdu.
+
+
+    ### 2. Data Lake (Məlumat Gölü) Dövrü
+
+    Şirkətlər xam faylları çox ucuz obyekt saxlancına (S3, MinIO) Parquet və ya CSV
+    kimi tökməyə başladılar.
+
+    - **Müsbət tərəfi**: Çox ucuz idi (1 GB cəmi bir neçə qəpiyə), petabaytlarla böyüyə
+    bilirdi.
+
+    - **Əsas qüsuru ("Data Bataqlığı")**: Obyekt saxlancında ACID tranzaksiya yox
+    idi! Əgər ETL prosesi ortada qəzaya uğrasaydı, natamam xarab fayllar diskdə qalırdı.
+    Bir müştərini silmək üçün terabaytlarla Parquet faylını əllə təzədən yazmaq lazım
+    olurdu.
+
+
+    ### 3. Müasir Həll: Açıq Data Lakehouse
+
+    **Data Lakehouse** Data Warehouse-un etibarlılığı və ACID qaydaları ilə, Data
+    Lake-in ucuzluğunu və çevikliyini bir araya gətirən arxitekturadır.
+
+    - **Məlumat Açıq Qalır**: Məlumatınız öz MinIO və ya S3 saxlancınızda standart
+    Parquet faylları kimi saxlanılır (heç bir şirkətə lisenziya xəracı vermirsiniz).
+
+    - **Cədvəl Formatı (Iceberg)**: Metadata vasitəsilə həmin Parquet fayllarını əsl
+    SQL cədvəlinə çevirir (INSERT, UPDATE, DELETE etmək mümkün olur).
+
+    - **Kataloq (Nessie)**: Cədvəllərin versiyalarını Git kimi budaqlayır (`branch`)
+    və izləyir.
+
+    - **Sorğu Mühərriki (Trino)**: Məlumatı başqa yerə köçürmədən, birbaşa yerində
+    saniyələr içində standart SQL ilə sorğulayır.
+
+    '
+quick_recap:
+  en: A Data Lakehouse combines the cost efficiency of object storage (S3/MinIO) with
+    the ACID reliability and SQL speed of a Data Warehouse using open standards like
+    Iceberg, Nessie, and Trino.
+  az: Data Lakehouse ucuz obyekt saxlancını (S3/MinIO) Data Warehouse-un ACID etibarlılığı
+    və SQL sürəti ilə birləşdirən müasir açıq arxitekturadır (Iceberg, Nessie, Trino).
+what_it_does:
+  en: Enables organizations to run fast business intelligence, reporting, and machine
+    learning directly on open Parquet files without paying millions for proprietary
+    closed data warehouses.
+  az: Şirkətlərə bahalı qapalı bazalara milyonlarla lisenziya xərcləmədən, açıq Parquet
+    faylları üzərində birbaşa sürətli hesabat və analitika aparmaq imkanı verir.
+real_world_use:
+  en: Insurance companies store policy archives, medical claims, and billing logs
+    in Lakehouses to allow actuaries and data analysts to run fast queries while keeping
+    historical storage costs minimal.
+  az: Sığorta şirkətləri milyonlarla sığorta polislərini, hadisə qeydlərini və ödənişləri
+    Lakehouse-da saxlayır; analitiklər sürətli sorğular atır, şirkət isə saxlanc xərclərini
+    minimumda saxlayır.
+common_mistakes:
+  en: '- **Confusing Iceberg with a database engine**: Iceberg does not execute SQL
+    queries; it is a table format. Query engines like Trino or Spark execute queries
+    over Iceberg tables.
+
+    - **Thinking a Lakehouse requires cloud vendor lock-in**: Modern lakehouse components
+    (Iceberg, Nessie, Trino, MinIO) are 100% open-source and run on-premise or in
+    private clouds.
+
+    '
+  az: '- **Iceberg-i verilənlər bazası mühərriki zənn etmək**: Iceberg sorğu icra
+    etmir; o yalnız cədvəl formatıdır. Sorğunu Trino və ya Spark icra edir.
+
+    - **Lakehouse-un hansısa şirkətə bağlı olduğunu düşünmək**: Iceberg, Nessie, Trino
+    və MinIO tamamilə açıq mənbəli (open-source) alətlərdir və şirkətin öz daxili
+    serverlərində də problemsiz işləyir.
+
+    '
+code: "-- Conceptual SQL Query executed via Trino over an Apache Iceberg table registered\
+  \ in Nessie\nSELECT \n    policy_type,\n    COUNT(*) AS total_policies,\n    ROUND(SUM(premium_amount),\
+  \ 2) AS total_gross_premium,\n    ROUND(AVG(coverage_amount), 2) AS avg_coverage\n\
+  FROM nessie_catalog.insurance_lakehouse.fact_policies\nWHERE issue_date >= DATE\
+  \ '2026-01-01'\n  AND status = 'ACTIVE'\nGROUP BY policy_type\nORDER BY total_gross_premium\
+  \ DESC;\n"
+code_explanation:
+  en: '- **`nessie_catalog`**: Trino points to Project Nessie to discover the latest
+    snapshot of the table.
+
+    - **`insurance_lakehouse.fact_policies`**: An Apache Iceberg table backed by Parquet
+    files on S3/MinIO.
+
+    - **Zero Data Movement**: Trino distributes the query across worker nodes, reads
+    only the necessary columnar Parquet chunks, and returns aggregated analytics in
+    milliseconds.
+
+    '
+  az: '- **`nessie_catalog`**: Trino Nessie kataloquna müraciət edərək cədvəlin ən
+    son təsdiqlənmiş kommitini tapır.
+
+    - **`insurance_lakehouse.fact_policies`**: S3/MinIO üzərində Parquet fayllarından
+    təşkil olunmuş Apache Iceberg cədvəlidir.
+
+    - **Məlumat Yerindən Tərpənmir**: Trino sorğunu worker qovşaqları arasında paylayır,
+    yalnız tələb olunan sütun bloklarını oxuyur və millisaniyələrdə cavab qaytarır.
+
+    '
+visual_output: '================== TRINO LAKEHOUSE ANALYTICS QUERY RESULT ==================
+
+  CATALOG: nessie_catalog | FORMAT: Apache Iceberg | STORAGE: s3://insurance-lakehouse/
+
+
+  ┌──────────────────┬────────────────┬─────────────────────┬──────────────────┐
+
+  │ policy_type      │ total_policies │ total_gross_premium │ avg_coverage     │
+
+  ├──────────────────┼────────────────┼─────────────────────┼──────────────────┤
+
+  │ KASKO_AUTO       │ 42,500         │ 18,920,450.00 AZN   │ 35,000.00 AZN    │
+
+  │ HEALTH_CORP      │ 115,200        │ 12,450,100.00 AZN   │ 10,000.00 AZN    │
+
+  │ PROPERTY_FIRE    │ 18,100         │ 6,840,200.00 AZN    │ 120,000.00 AZN   │
+
+  │ TRAVEL_ABROAD    │ 84,300         │ 2,150,800.00 AZN    │ 30,000.00 AZN    │
+
+  └──────────────────┴────────────────┴─────────────────────┴──────────────────┘
+
+  Execution Time: 0.42s | Data Scanned: 48.2 MB (Iceberg metadata skipped 1.2 GB of
+  raw Parquet!)
+
+  '
+output_description:
+  en: Displays an aggregated analytical report generated directly from open Lakehouse
+    Parquet storage via Trino and Nessie with high speed and zero data redundancy.
+  az: Trino və Nessie vasitəsilə birbaşa açıq Lakehouse fayllarından 0.42 saniyəyə
+    çıxarılan aqreqasiya edilmiş sığorta hesabatını göstərir.
+interview_question:
+  question:
+    en: What is a Data Lakehouse, and why are enterprises moving from traditional
+      Data Warehouses and raw Data Lakes to an open Lakehouse architecture?
+    az: Data Lakehouse nədir və nə üçün şirkətlər ənənəvi Data Warehouse və sadə Data
+      Lake əvəzinə açıq Lakehouse arxitekturasına keçirlər?
+  answer:
+    en: "1. **Definition**: A Data Lakehouse is a modern architecture that implements\
+      \ data warehouse-grade structures, ACID transactional guarantees, and query\
+      \ speed directly on top of low-cost, open cloud object storage (S3/MinIO).\n\
+      2. **Why Enterprises Migrate**:\n   - **Eliminates Data Redundancy**: Traditionally,\
+      \ data was dumped into a Data Lake, then an ETL pipeline copied it into an expensive\
+      \ Data Warehouse (e.g. Teradata, Snowflake, MS SQL), duplicating storage and\
+      \ creating synchronization lag. The Lakehouse provides a Single Source of Truth\
+      \ where all tools (BI, SQL, ML) read from the same open files.\n   - **Cost\
+      \ & Vendor Lock-in Freedom**: Companies avoid millions in proprietary database\
+      \ licenses because storage is open-standard Parquet files managed by Apache\
+      \ Iceberg and Nessie, queryable by any engine (Trino, Spark, Flink).\n   - **Supports\
+      \ All Workloads**: Handles structured SQL reporting, streaming CDC, and unstructured\
+      \ machine learning features from a unified platform.\n"
+    az: "1. **Tərif**: Data Lakehouse ənənəvi Data Warehouse-un ACID etibarlılığını\
+      \ və SQL sürətini, Data Lake-in ucuz obyekt saxlancı (S3/MinIO) üzərində birbaşa\
+      \ təmin edən açıq arxitekturadır.\n2. **Şirkətlərin Keçid Səbəbləri**:\n   -\
+      \ **Məlumat Təkrarlanmasını Sıfırlayır**: Əvvəllər məlumat əvvəlcə Data Lake-ə\
+      \ tökülür, sonra ordan başqa bir ETL ilə bahalı Data Warehouse-a (məs. Teradata,\
+      \ Oracle, MS SQL) kopyalanırdı. Bu həm ikiqat yaddaş xərci, həm də hesabatlarda\
+      \ gecikmə yaradırdı. Lakehouse-da isə tək bir mərkəzi mənbə (Single Source of\
+      \ Truth) var; həm BI analitikləri, həm də mühəndislər eyni fayllardan oxuyur.\n\
+      \   - **Qapalı Lisenziyalardan Azadlıq**: Datanız şirkətin öz saxlancında açıq\
+      \ standartlı Parquet formatında qalır; heç bir kommersiya bazasına asılılıq\
+      \ (Vendor Lock-in) yaranmır.\n   - **Həm SQL, Həm ML Dəstəyi**: Eyni cədvəllər\
+      \ üzərindən həm maliyyə hesabatları verilir, həm də süni intellekt və maşın\
+      \ öyrənməsi modelləri birbaşa xam faylları oxuyur.\n"
+  interviewer_tips:
+    en: 'Emphasize the decoupling of compute and storage: storage is cheap Parquet
+      on S3/MinIO (cents per GB), and compute (Trino/Spark) scales independently on
+      demand without database vendor lock-in.'
+    az: 'Hesablama və saxlancın ayrıldığını (decoupling) xüsusi vurğulayın: saxlanc
+      S3/MinIO-da ucuz Parquet fayllarıdır, hesablama (Trino/Spark) isə ehtiyac olduqda
+      müstəqil miqyaslanır və heç bir şirkətə lisenziya xərci ödənilmir.'
+flashcards:
+- front:
+    en: What is the primary difference between a Data Warehouse, a Data Lake, and
+      a Data Lakehouse?
+    az: Data Warehouse, Data Lake və Data Lakehouse arasındakı əsas fərq nədir?
+  back:
+    en: DWH provides fast ACID SQL on expensive proprietary storage. A Data Lake provides
+      cheap open storage but lacks ACID guarantees. A Lakehouse provides ACID transactions
+      and fast SQL directly on cheap open storage.
+    az: DWH bahalı qapalı bazada sürətli ACID SQL verir. Data Lake ucuz saxlanc təmin
+      edir, lakin ACID etibarlılığı yoxdur. Lakehouse isə ucuz açıq saxlanc üzərində
+      birbaşa ACID və sürətli SQL təmin edir.
+- front:
+    en: What are the four core layers of the modern open Lakehouse stack in Enterprise FinTech & Insurance?
+    az: Müasir maliyyə və sığorta şirkətlərindəki müasir açıq Lakehouse arxitekturasının dörd əsas qatı hansılardır?
+  back:
+    en: '1. Storage: S3 / MinIO (Parquet). 2. Table Format: Apache Iceberg. 3. Catalog:
+      Project Nessie. 4. Query Engine: Trino / Apache Spark / dbt.'
+    az: '1. Saxlanc: S3 / MinIO (Parquet). 2. Cədvəl Formatı: Apache Iceberg. 3. Kataloq:
+      Project Nessie. 4. Sorğu Mühərriki: Trino / Apache Spark / dbt.'
+- front:
+    en: What is the 'Data Swamp' problem in traditional Data Lakes?
+    az: Ənənəvi Data Lake-lərdə 'Data Bataqlığı' (Data Swamp) problemi nədir?
+  back:
+    en: Without metadata governance and ACID controls, uncurated files accumulate
+      with corrupt writes, duplicate records, and zero schema evolution, making data
+      impossible to query reliably.
+    az: Metadata idarəetməsi və ACID qaydaları olmadıqda, natamam fayllar və dublikatlar
+      toplanır; nəticədə göl idarəolunmaz və etibarsız məlumat zibilliyinə çevrilir.
+- front:
+    en: Why is vendor lock-in eliminated in an open Lakehouse architecture?
+    az: Açıq Lakehouse arxitekturasında 'Vendor Lock-in' (tək təchizatçıya asılılıq)
+      necə aradan qalxır?
+  back:
+    en: Because data files are standard open-source Parquet, table metadata is Apache
+      Iceberg, and any engine (Trino, Spark, Flink, DuckDB) can read and write to
+      it.
+    az: Çünki fayllar açıq standartlı Parquet formatında, metadata isə Apache Iceberg-dədir;
+      Trino, Spark, Flink və DuckDB kimi istənilən mühərrik eyni cədvəli sərbəst oxuyub
+      yaza bilir.
+- front:
+    en: What role does Trino play in a Data Lakehouse?
+    az: Data Lakehouse-da Trino hansı rolu oynayır?
+  back:
+    en: Trino is a stateless, fast, distributed SQL query engine that queries Iceberg
+      tables directly in object storage without moving data.
+    az: Trino məlumatı başqa yerə köçürmədən, birbaşa obyekt saxlancındakı Iceberg
+      cədvəllərini paylanmış şəkildə saniyələr içində sorğulayan sürətli SQL mühərrikidir.

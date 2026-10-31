@@ -1,0 +1,407 @@
+id: 02-tsql-variables-control-flow
+order: 2
+level: junior
+title:
+  az: T-SQL Dəyişənləri və İdarəetmə Blokları (Variables & Control Flow)
+  en: T-SQL Dəyişənləri və İdarəetmə Blokları (Variables & Control Flow)
+quick_recap:
+  az: '- T-SQL-də bütün lokal dəyişənlər mütləq ''@'' simvolu ilə başlayır: DECLARE
+    @Məbləğ DECIMAL(10,2) = 500.00;
+
+    - Dəyər mənimsətmək üçün həm SET, həm də SELECT istifadə edilə bilər (SET tək
+    bir skalyar dəyər üçün standartdır).
+
+    - Məntiqi şərtlər: IF...ELSE. Əgər şərt daxilində birdən çox əmr varsa, mütləq
+    BEGIN...END blokuna alınmalıdır (Python-dakı girintilər və ya C/Java-dakı { }
+    mötərizələri kimi).
+
+    - MS SQL-də FOR dövrü yoxdur — yeganə dövr mexanizmi WHILE...BEGIN...END strukturudur.
+
+    - @@ROWCOUNT — sonuncu icra olunan SQL sorğusunun neçə sətirə təsir etdiyini bildirən
+    ən vacib sistem dəyişənidir (ETL-də monitorinq üçün əvəzsizdir).'
+  en: '- T-SQL-də bütün lokal dəyişənlər mütləq ''@'' simvolu ilə başlayır: DECLARE
+    @Məbləğ DECIMAL(10,2) = 500.00;
+
+    - Dəyər mənimsətmək üçün həm SET, həm də SELECT istifadə edilə bilər (SET tək
+    bir skalyar dəyər üçün standartdır).
+
+    - Məntiqi şərtlər: IF...ELSE. Əgər şərt daxilində birdən çox əmr varsa, mütləq
+    BEGIN...END blokuna alınmalıdır (Python-dakı girintilər və ya C/Java-dakı { }
+    mötərizələri kimi).
+
+    - MS SQL-də FOR dövrü yoxdur — yeganə dövr mexanizmi WHILE...BEGIN...END strukturudur.
+
+    - @@ROWCOUNT — sonuncu icra olunan SQL sorğusunun neçə sətirə təsir etdiyini bildirən
+    ən vacib sistem dəyişənidir (ETL-də monitorinq üçün əvəzsizdir).'
+explanation:
+  az: "### T-SQL-də Dəyişənlər (Variables)\nMürəkkəb biznes hesablamalarında aralıq\
+    \ nəticələri yaddaşda saxlamaq üçün dəyişənlərdən istifadə olunur. T-SQL-də qaydalar:\n\
+    1. Hər bir lokal dəyişən adı **`@`** simvolu ilə başlamalıdır (`@CustomerID`,\
+    \ `@TotalPayout`).\n2. Dəyişən **`DECLARE`** açar sözü və tipi ilə elan edilir.\n\
+    3. Dəyər mənimsətmək üçün iki üsul var: **`SET`** və ya **`SELECT`**.\n\n```sql\n\
+    DECLARE @BonusRate DECIMAL(4, 2) = 0.15;\nDECLARE @ActivePolicyCount INT;\n\n\
+    -- 1. SET ilə mənimsətmə (tövsiyə olunan təkli dəyər üsulu):\nSET @ActivePolicyCount\
+    \ = 120;\n\n-- 2. SELECT ilə cədvəldən mənimsətmə:\nSELECT @ActivePolicyCount\
+    \ = COUNT(*) \nFROM [dbo].[InsurancePolicies] \nWHERE [IsActive] = 1;\n```\n\n\
+    > [!NOTE]\n> **SET vs SELECT fərqi:** Əgər sorğu birdən çox sətir qaytararsa,\
+    \ `SELECT @var = col` heç bir xəta vermədən ən sonuncu sətrin dəyərini mənimsədəcək.\
+    \ `SET @var = (SELECT col ...)` isə çoxsətirli nəticə gördükdə xəta verib sizi\
+    \ qoruyacaq! Buna görə təkli dəyərlər üçün həmişə `SET` tövsiyə edilir.\n\n---\n\
+    \n### Şərti İdarəetmə: IF...ELSE və BEGIN...END Tələsi\nT-SQL-də şərt blokları\
+    \ `IF` və `ELSE` vasitəsilə qurulur. Ən vacib qayda: **`BEGIN...END`**.\n\nƏgər\
+    \ `BEGIN...END` yazmasanız, T-SQL yalnız növbəti **bircə sətir əmri** şərtə aid\
+    \ hesab edəcək!\n```sql\nDECLARE @ClaimAmount DECIMAL(10, 2) = 8500.00;\n\nIF\
+    \ @ClaimAmount > 5000.00\nBEGIN\n    PRINT N'Zərər məbləği böyükdür! Komissiya\
+    \ təsdiqi tələb olunur.';\n    -- Digər əmrlər...\nEND\nELSE\nBEGIN\n    PRINT\
+    \ N'Zərər standart qaydada avtomatik ödənilə bilər.';\nEND\n```\n\n---\n\n###\
+    \ Dövrlər: WHILE Strukturu\nMS SQL-də `FOR` və ya `FOREACH` açar sözü yoxdur.\
+    \ Əgər təkrarlanan əməliyyat aparmaq lazımdırsa, yalnız **`WHILE`** istifadə olunur:\n\
+    ```sql\nDECLARE @Counter INT = 1;\n\nWHILE @Counter <= 3\nBEGIN\n    PRINT N'Dövr\
+    \ addımı: ' + CAST(@Counter AS NVARCHAR(10));\n    SET @Counter = @Counter + 1;\n\
+    \    -- Lazım gələrsə: BREAK (dövrdən çıxır) və ya CONTINUE (növbəti addıma keçir)\n\
+    END\n```\n*(Qeyd: Data mühəndisliyində sətirbəsətir dövr qurmaq yerinə həmişə\
+    \ cədvəl yönümlü - set-based SQL sorğularına üstünlük verilir).*\n\n---\n\n###\
+    \ Data Mühəndisi üçün Ən Vacib Sistem Dəyişənləri\nETL proseslərində və boru xətlərində\
+    \ T-SQL ilə işləyərkən bu qlobal dəyişənləri bilmək şərtdir:\n* **`@@ROWCOUNT`**:\
+    \ Sonuncu əmrin (`SELECT`, `UPDATE`, `INSERT`, `DELETE`) təsir etdiyi sətir sayı.\
+    \ Əgər `UPDATE` etdinizsə və `@@ROWCOUNT = 0` olarsa, deməli heç bir sətir tapılmayıb.\n\
+    * **`SCOPE_IDENTITY()`**: Həmin əməliyyat daxilində sonuncu `INSERT` zamanı avtomatik\
+    \ yaranmış `IDENTITY` (ID) nömrəsini qaytarır.\n* **`@@ERROR`**: Əgər son əmr\
+    \ uğurlu olubsa `0`, xəta baş veribsə xətanın nömrəsini qaytarır.\n"
+  en: "### T-SQL-də Dəyişənlər (Variables)\nMürəkkəb biznes hesablamalarında aralıq\
+    \ nəticələri yaddaşda saxlamaq üçün dəyişənlərdən istifadə olunur. T-SQL-də qaydalar:\n\
+    1. Hər bir lokal dəyişən adı **`@`** simvolu ilə başlamalıdır (`@CustomerID`,\
+    \ `@TotalPayout`).\n2. Dəyişən **`DECLARE`** açar sözü və tipi ilə elan edilir.\n\
+    3. Dəyər mənimsətmək üçün iki üsul var: **`SET`** və ya **`SELECT`**.\n\n```sql\n\
+    DECLARE @BonusRate DECIMAL(4, 2) = 0.15;\nDECLARE @ActivePolicyCount INT;\n\n\
+    -- 1. SET ilə mənimsətmə (tövsiyə olunan təkli dəyər üsulu):\nSET @ActivePolicyCount\
+    \ = 120;\n\n-- 2. SELECT ilə cədvəldən mənimsətmə:\nSELECT @ActivePolicyCount\
+    \ = COUNT(*) \nFROM [dbo].[InsurancePolicies] \nWHERE [IsActive] = 1;\n```\n\n\
+    > [!NOTE]\n> **SET vs SELECT fərqi:** Əgər sorğu birdən çox sətir qaytararsa,\
+    \ `SELECT @var = col` heç bir xəta vermədən ən sonuncu sətrin dəyərini mənimsədəcək.\
+    \ `SET @var = (SELECT col ...)` isə çoxsətirli nəticə gördükdə xəta verib sizi\
+    \ qoruyacaq! Buna görə təkli dəyərlər üçün həmişə `SET` tövsiyə edilir.\n\n---\n\
+    \n### Şərti İdarəetmə: IF...ELSE və BEGIN...END Tələsi\nT-SQL-də şərt blokları\
+    \ `IF` və `ELSE` vasitəsilə qurulur. Ən vacib qayda: **`BEGIN...END`**.\n\nƏgər\
+    \ `BEGIN...END` yazmasanız, T-SQL yalnız növbəti **bircə sətir əmri** şərtə aid\
+    \ hesab edəcək!\n```sql\nDECLARE @ClaimAmount DECIMAL(10, 2) = 8500.00;\n\nIF\
+    \ @ClaimAmount > 5000.00\nBEGIN\n    PRINT N'Zərər məbləği böyükdür! Komissiya\
+    \ təsdiqi tələb olunur.';\n    -- Digər əmrlər...\nEND\nELSE\nBEGIN\n    PRINT\
+    \ N'Zərər standart qaydada avtomatik ödənilə bilər.';\nEND\n```\n\n---\n\n###\
+    \ Dövrlər: WHILE Strukturu\nMS SQL-də `FOR` və ya `FOREACH` açar sözü yoxdur.\
+    \ Əgər təkrarlanan əməliyyat aparmaq lazımdırsa, yalnız **`WHILE`** istifadə olunur:\n\
+    ```sql\nDECLARE @Counter INT = 1;\n\nWHILE @Counter <= 3\nBEGIN\n    PRINT N'Dövr\
+    \ addımı: ' + CAST(@Counter AS NVARCHAR(10));\n    SET @Counter = @Counter + 1;\n\
+    \    -- Lazım gələrsə: BREAK (dövrdən çıxır) və ya CONTINUE (növbəti addıma keçir)\n\
+    END\n```\n*(Qeyd: Data mühəndisliyində sətirbəsətir dövr qurmaq yerinə həmişə\
+    \ cədvəl yönümlü - set-based SQL sorğularına üstünlük verilir).*\n\n---\n\n###\
+    \ Data Mühəndisi üçün Ən Vacib Sistem Dəyişənləri\nETL proseslərində və boru xətlərində\
+    \ T-SQL ilə işləyərkən bu qlobal dəyişənləri bilmək şərtdir:\n* **`@@ROWCOUNT`**:\
+    \ Sonuncu əmrin (`SELECT`, `UPDATE`, `INSERT`, `DELETE`) təsir etdiyi sətir sayı.\
+    \ Əgər `UPDATE` etdinizsə və `@@ROWCOUNT = 0` olarsa, deməli heç bir sətir tapılmayıb.\n\
+    * **`SCOPE_IDENTITY()`**: Həmin əməliyyat daxilində sonuncu `INSERT` zamanı avtomatik\
+    \ yaranmış `IDENTITY` (ID) nömrəsini qaytarır.\n* **`@@ERROR`**: Əgər son əmr\
+    \ uğurlu olubsa `0`, xəta baş veribsə xətanın nömrəsini qaytarır.\n"
+infographic:
+  az: '+----------------------------------------------------------------------------------------------------+
+
+    |                               T-SQL İDARƏETMƏ STRUKTURUNUN ANATOMİYASI                             |
+
+    |                                                                                                    |
+
+    |  1. DƏYİŞƏN ELANI VƏ DƏYƏR:                                                                        |
+
+    |     DECLARE @RiskScore INT = 85;                                                                   |
+
+    |     DECLARE @DiscountPct DECIMAL(4, 2);                                                            |
+
+    |                                                                                                    |
+
+    |  2. ŞƏRT BLOKU (IF ... ELSE):                                                                      |
+
+    |     IF @RiskScore >= 80                                                                            |
+
+    |     +--- BEGIN ----------------------------------------+                                           |
+
+    |     |   SET @DiscountPct = 0.20;                       | ---> Şərt ÖDƏNİRSƏ
+    bu blok icra olunur   |
+
+    |     |   PRINT N''20% VIP Endirim tətbiq edildi'';        |                                           |
+
+    |     +--- END ------------------------------------------+                                           |
+
+    |     ELSE                                                                                           |
+
+    |     +--- BEGIN ----------------------------------------+                                           |
+
+    |     |   SET @DiscountPct = 0.05;                       | ---> Şərt ÖDƏNMƏZSƏ
+    bu blok icra olunur  |
+
+    |     |   PRINT N''5% Standart Endirim'';                  |                                           |
+
+    |     +--- END ------------------------------------------+                                           |
+
+    |                                                                                                    |
+
+    |  3. NƏTİCƏNİN YOXLANILMASI:                                                                        |
+
+    |     IF @@ROWCOUNT = 0  ---> ETL-də heç bir sətir yenilənməyibsə dərhal xəbərdarlıq
+    et!            |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+  en: '+----------------------------------------------------------------------------------------------------+
+
+    |                               T-SQL İDARƏETMƏ STRUKTURUNUN ANATOMİYASI                             |
+
+    |                                                                                                    |
+
+    |  1. DƏYİŞƏN ELANI VƏ DƏYƏR:                                                                        |
+
+    |     DECLARE @RiskScore INT = 85;                                                                   |
+
+    |     DECLARE @DiscountPct DECIMAL(4, 2);                                                            |
+
+    |                                                                                                    |
+
+    |  2. ŞƏRT BLOKU (IF ... ELSE):                                                                      |
+
+    |     IF @RiskScore >= 80                                                                            |
+
+    |     +--- BEGIN ----------------------------------------+                                           |
+
+    |     |   SET @DiscountPct = 0.20;                       | ---> Şərt ÖDƏNİRSƏ
+    bu blok icra olunur   |
+
+    |     |   PRINT N''20% VIP Endirim tətbiq edildi'';        |                                           |
+
+    |     +--- END ------------------------------------------+                                           |
+
+    |     ELSE                                                                                           |
+
+    |     +--- BEGIN ----------------------------------------+                                           |
+
+    |     |   SET @DiscountPct = 0.05;                       | ---> Şərt ÖDƏNMƏZSƏ
+    bu blok icra olunur  |
+
+    |     |   PRINT N''5% Standart Endirim'';                  |                                           |
+
+    |     +--- END ------------------------------------------+                                           |
+
+    |                                                                                                    |
+
+    |  3. NƏTİCƏNİN YOXLANILMASI:                                                                        |
+
+    |     IF @@ROWCOUNT = 0  ---> ETL-də heç bir sətir yenilənməyibsə dərhal xəbərdarlıq
+    et!            |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+code: "-- Ssenari: Müştərinin zərər tarixcəsi (claims) əsasında sığorta haqqının hesablanması\n\
+  -- Müştəri İD: 501, Baza KASKO haqqı: 1000 AZN\n\nDECLARE @TargetCustomerId INT\
+  \ = 501;\nDECLARE @BasePremium DECIMAL(10, 2) = 1000.00;\nDECLARE @TotalPastClaims\
+  \ INT = 0;\nDECLARE @FinalPremium DECIMAL(10, 2);\nDECLARE @StatusMessage NVARCHAR(100);\n\
+  \n-- 1. Müştərinin keçmiş təsdiqlənmiş qəza sayını bazadan sayırıq\nSELECT @TotalPastClaims\
+  \ = COUNT(*)\nFROM [dbo].[InsuranceClaims]\nWHERE [CustomerID] = @TargetCustomerId\n\
+  \  AND [ClaimStatus] = N'APPROVED';\n\n-- 2. IF...ELSE məntiqi ilə bonus-malus dərəcəsinin\
+  \ təyini\nIF @TotalPastClaims = 0\nBEGIN\n    -- Müştərinin heç bir qəzası olmayıb:\
+  \ 20% bonus endirimi!\n    SET @FinalPremium = @BasePremium * 0.80;\n    SET @StatusMessage\
+  \ = N'Təhlükəsiz sürücü: 20% endirim tətbiq edildi.';\nEND\nELSE IF @TotalPastClaims\
+  \ BETWEEN 1 AND 2\nBEGIN\n    -- 1 və ya 2 qəza: Standart baza tarifi\n    SET @FinalPremium\
+  \ = @BasePremium;\n    SET @StatusMessage = N'Standart tarif tətbiq edildi.';\n\
+  END\nELSE\nBEGIN\n    -- 3 və daha çox qəza: Yüksək risk cəriməsi (+40% artım)\n\
+  \    SET @FinalPremium = @BasePremium * 1.40;\n    SET @StatusMessage = N'Yüksək\
+  \ riskli sürücü: +40% əlavə haqq hesablandı.';\nEND\n\n-- 3. Yekun hesabatı təqdim\
+  \ edirik\nSELECT \n    @TargetCustomerId AS [CustomerID],\n    @TotalPastClaims\
+  \ AS [PastClaimsCount],\n    @BasePremium AS [BasePremiumAZN],\n    @FinalPremium\
+  \ AS [FinalCalculatedPremiumAZN],\n    @StatusMessage AS [DecisionNote];\n"
+code_explanation:
+  az: '* `DECLARE`: `@TargetCustomerId`, `@BasePremium` və nəticə dəyişənləri dəqiq
+    tiplərlə (`INT`, `DECIMAL(10,2)`, `NVARCHAR(100)`) elan olunur.
+
+    * `SELECT @TotalPastClaims = COUNT(*)`: Birbaşa cədvəldən aqreqasiya nəticəsi
+    dəyişənə yazılır.
+
+    * `IF...ELSE IF...ELSE`: Sığorta şirkətinin Bonus-Malus biznes qaydası T-SQL daxilində
+    yoxlanılır.
+
+    * `BEGIN...END`: Hər şərtin daxilində həm qiymət hesablanır, həm də izahat mətni
+    mənimsədilir.
+
+    * Yekun `SELECT`: Yaddaşdakı dəyişənləri bir sətirlik cədvəl nəticəsi kimi qaytarır.
+
+    '
+  en: '* `DECLARE`: `@TargetCustomerId`, `@BasePremium` və nəticə dəyişənləri dəqiq
+    tiplərlə (`INT`, `DECIMAL(10,2)`, `NVARCHAR(100)`) elan olunur.
+
+    * `SELECT @TotalPastClaims = COUNT(*)`: Birbaşa cədvəldən aqreqasiya nəticəsi
+    dəyişənə yazılır.
+
+    * `IF...ELSE IF...ELSE`: Sığorta şirkətinin Bonus-Malus biznes qaydası T-SQL daxilində
+    yoxlanılır.
+
+    * `BEGIN...END`: Hər şərtin daxilində həm qiymət hesablanır, həm də izahat mətni
+    mənimsədilir.
+
+    * Yekun `SELECT`: Yaddaşdakı dəyişənləri bir sətirlik cədvəl nəticəsi kimi qaytarır.
+
+    '
+visual_output: 'Hesablama nəticəsi:
+
+  +------------+-----------------+----------------+--------------------------+------------------------------------------------+
+
+  | CustomerID | PastClaimsCount | BasePremiumAZN | FinalCalculatedPremiumAZN| DecisionNote                                   |
+
+  +------------+-----------------+----------------+--------------------------+------------------------------------------------+
+
+  | 501        | 0               | 1000.00        | 800.00                   | Təhlükəsiz
+  sürücü: 20% endirim tətbiq edildi.  |
+
+  +------------+-----------------+----------------+--------------------------+------------------------------------------------+
+
+  (1 row affected)
+
+  '
+output_description:
+  az: 'Müştəri 501-in keçmişdə heç bir qəzası qeydə alınmadığı üçün IF bloku işə düşdü:
+    baza qiyməti 1000 AZN-dən 800 AZN-ə endirildi və qərar qeydi çıxarıldı.
+
+    '
+  en: 'Müştəri 501-in keçmişdə heç bir qəzası qeydə alınmadığı üçün IF bloku işə düşdü:
+    baza qiyməti 1000 AZN-dən 800 AZN-ə endirildi və qərar qeydi çıxarıldı.
+
+    '
+what_it_does:
+  az: '- T-SQL dəyişənlərinin necə elan edildiyini və dəyərləndirildiyini nümayiş
+    etdirir.
+
+    - Biznes məntiqlərinin baza daxilində IF...ELSE və BEGIN...END ilə necə budaqlandığını
+    göstərir.
+
+    - Sistem dəyişənləri (məs. @@ROWCOUNT) ilə məlumat axınlarının necə idarə olunacağını
+    izah edir.'
+  en: '- T-SQL dəyişənlərinin necə elan edildiyini və dəyərləndirildiyini nümayiş
+    etdirir.
+
+    - Biznes məntiqlərinin baza daxilində IF...ELSE və BEGIN...END ilə necə budaqlandığını
+    göstərir.
+
+    - Sistem dəyişənləri (məs. @@ROWCOUNT) ilə məlumat axınlarının necə idarə olunacağını
+    izah edir.'
+real_world_use:
+  az: '- İri sığorta və maliyyə şirkətlərində polisin qiymətləndirilməsi (underwriting) zamanı müştərinin
+    risk profilinə görə fərdi sığorta haqqının hesablanması birbaşa bu cür T-SQL blokları
+    və prosedurları ilə aparılır.'
+  en: '- İri sığorta və maliyyə şirkətlərində polisin qiymətləndirilməsi (underwriting) zamanı müştərinin
+    risk profilinə görə fərdi sığorta haqqının hesablanması birbaşa bu cür T-SQL blokları
+    və prosedurları ilə aparılır.'
+common_mistakes:
+  az: '- IF daxilində BEGIN...END yazmamaq: Əgər iki sətir kod yazsanız, ikinci sətir
+    şərt ödənsə də, ödənməsə də hər zaman icra ediləcək və gizli biznes məntiq xətası
+    yaradacaq.
+
+    - Çoxsətirli sorğuda `SET @var = (SELECT ID FROM Table)` yazmaq: Əgər cədvəldə
+    5 sətir varsa, sorğu xəta verəcək (`Subquery returned more than 1 value`). Belə
+    halda `TOP (1)` və ya `WHERE` ilə tək sətirə filtrləmək lazımdır.
+
+    - Sətirbəsətir əməliyyatlar üçün ehtiyac olmadan nəhəng WHILE dövrləri yazmaq:
+    SQL cədvəl yönümlüdür (set-based); 100,000 sətirlik dövr bazanı dondura bilər,
+    onu tək bir `UPDATE` sorğusu ilə etmək lazımdır.'
+  en: '- IF daxilində BEGIN...END yazmamaq: Əgər iki sətir kod yazsanız, ikinci sətir
+    şərt ödənsə də, ödənməsə də hər zaman icra ediləcək və gizli biznes məntiq xətası
+    yaradacaq.
+
+    - Çoxsətirli sorğuda `SET @var = (SELECT ID FROM Table)` yazmaq: Əgər cədvəldə
+    5 sətir varsa, sorğu xəta verəcək (`Subquery returned more than 1 value`). Belə
+    halda `TOP (1)` və ya `WHERE` ilə tək sətirə filtrləmək lazımdır.
+
+    - Sətirbəsətir əməliyyatlar üçün ehtiyac olmadan nəhəng WHILE dövrləri yazmaq:
+    SQL cədvəl yönümlüdür (set-based); 100,000 sətirlik dövr bazanı dondura bilər,
+    onu tək bir `UPDATE` sorğusu ilə etmək lazımdır.'
+interview_question:
+  question:
+    az: T-SQL-də dəyişənə qiymət mənimsədərkən `SET` və `SELECT` açar sözləri arasında
+      hansı fərqlər var və nə zaman hansını seçməliyik?
+    en: T-SQL-də dəyişənə qiymət mənimsədərkən `SET` və `SELECT` açar sözləri arasında
+      hansı fərqlər var və nə zaman hansını seçməliyik?
+  answer:
+    az: '"T-SQL-də hər iki açar söz dəyişənə qiymət vermək üçün istifadə olunsa da,
+      3 vacib fərq var:
+
+      1. **Standartlıq**: `SET` ANSI standartına uyğundur və bir dəfəyə yalnız tək
+      bir dəyişənə dəyər mənimsədir. `SELECT` isə bir sorğuda eyni anda bir neçə dəyişəni
+      mənimsədə bilir (`SELECT @a = col1, @b = col2 FROM ...`).
+
+      2. **Çoxsətirli nəticə davranışı**: Əgər sorğu birdən çox sətir qaytararsa,
+      `SET @var = (SELECT col FROM table)` icra xətası verir (Error 512). Lakin `SELECT
+      @var = col FROM table` heç bir xəta vermədən ən sonuncu oxunan sətrin dəyərini
+      saxlayır, bu isə gözlənilməz nəticəyə gətirib çıxara bilər.
+
+      3. **Boş nəticə (0 sətir)**: Əgər sorğu heç bir sətir tapmazsa, `SET` dəyişəni
+      `NULL` edir; `SELECT` isə dəyişənin əvvəlki dəyərini olduğu kimi saxlayır.
+
+
+      Qayda: Skalyar və təhlükəsiz hesablamalar üçün həmişə `SET` tövsiyə edilir."'
+    en: '"T-SQL-də hər iki açar söz dəyişənə qiymət vermək üçün istifadə olunsa da,
+      3 vacib fərq var:
+
+      1. **Standartlıq**: `SET` ANSI standartına uyğundur və bir dəfəyə yalnız tək
+      bir dəyişənə dəyər mənimsədir. `SELECT` isə bir sorğuda eyni anda bir neçə dəyişəni
+      mənimsədə bilir (`SELECT @a = col1, @b = col2 FROM ...`).
+
+      2. **Çoxsətirli nəticə davranışı**: Əgər sorğu birdən çox sətir qaytararsa,
+      `SET @var = (SELECT col FROM table)` icra xətası verir (Error 512). Lakin `SELECT
+      @var = col FROM table` heç bir xəta vermədən ən sonuncu oxunan sətrin dəyərini
+      saxlayır, bu isə gözlənilməz nəticəyə gətirib çıxara bilər.
+
+      3. **Boş nəticə (0 sətir)**: Əgər sorğu heç bir sətir tapmazsa, `SET` dəyişəni
+      `NULL` edir; `SELECT` isə dəyişənin əvvəlki dəyərini olduğu kimi saxlayır.
+
+
+      Qayda: Skalyar və təhlükəsiz hesablamalar üçün həmişə `SET` tövsiyə edilir."'
+  interviewer_tips:
+    az: '- Müsahibədə `@@ROWCOUNT` sistem dəyişənini mütləq xatırladın: ''ETL-də hər
+      hansı UPDATE və ya INSERT-dən sonra `IF @@ROWCOUNT = 0` yoxlanışı edərək datanın
+      yenilənib-yenilənmədiyini asanlıqla audit edirik''.'
+    en: '- Müsahibədə `@@ROWCOUNT` sistem dəyişənini mütləq xatırladın: ''ETL-də hər
+      hansı UPDATE və ya INSERT-dən sonra `IF @@ROWCOUNT = 0` yoxlanışı edərək datanın
+      yenilənib-yenilənmədiyini asanlıqla audit edirik''.'
+flashcards:
+- front:
+    az: T-SQL-də lokal dəyişən hansı simvolla başlamalıdır?
+    en: T-SQL-də lokal dəyişən hansı simvolla başlamalıdır?
+  back:
+    az: 'Mütləq ''@'' simvolu ilə başlamalıdır, məsələn: DECLARE @PolicyId INT;'
+    en: 'Mütləq ''@'' simvolu ilə başlamalıdır, məsələn: DECLARE @PolicyId INT;'
+- front:
+    az: T-SQL-də IF...ELSE şərtində BEGIN...END nə üçün vacibdir?
+    en: T-SQL-də IF...ELSE şərtində BEGIN...END nə üçün vacibdir?
+  back:
+    az: Çünki BEGIN...END yazılmadıqda IF yalnız özündən sonrakı bircə sətir əmri
+      şərtə aid edir. Çoxsətirli məntiqlər üçün mütləq blok açılmalıdır.
+    en: Çünki BEGIN...END yazılmadıqda IF yalnız özündən sonrakı bircə sətir əmri
+      şərtə aid edir. Çoxsətirli məntiqlər üçün mütləq blok açılmalıdır.
+- front:
+    az: SET @x = ... və SELECT @x = ... arasındakı əsas təhlükəsizlik fərqi nədir?
+    en: SET @x = ... və SELECT @x = ... arasındakı əsas təhlükəsizlik fərqi nədir?
+  back:
+    az: Sorğu birdən çox sətir qaytardıqda SET xəta atıb xəbərdar edir, SELECT isə
+      xəbərdarlıq etmədən ən son sətri mənimsədir və gizli məntiq xətası yarada bilir.
+    en: Sorğu birdən çox sətir qaytardıqda SET xəta atıb xəbərdar edir, SELECT isə
+      xəbərdarlıq etmədən ən son sətri mənimsədir və gizli məntiq xətası yarada bilir.
+- front:
+    az: T-SQL-də hansı dövr (loop) strukturu mövcuddur?
+    en: T-SQL-də hansı dövr (loop) strukturu mövcuddur?
+  back:
+    az: T-SQL-də FOR yoxdur, yalnız WHILE...BEGIN...END dövrü mövcuddur.
+    en: T-SQL-də FOR yoxdur, yalnız WHILE...BEGIN...END dövrü mövcuddur.
+- front:
+    az: '@@ROWCOUNT sistem dəyişəni nəyi qaytarır?'
+    en: '@@ROWCOUNT sistem dəyişəni nəyi qaytarır?'
+  back:
+    az: Ən sonuncu icra olunmuş SQL əmrinin (SELECT, INSERT, UPDATE, DELETE) təsir
+      etdiyi sətir sayını qaytarır.
+    en: Ən sonuncu icra olunmuş SQL əmrinin (SELECT, INSERT, UPDATE, DELETE) təsir
+      etdiyi sətir sayını qaytarır.

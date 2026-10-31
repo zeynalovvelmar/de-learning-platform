@@ -12,15 +12,15 @@ class TestFastAPIBackend(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data["status"], "healthy")
-        self.assertEqual(data["modules_count"], 8)
+        self.assertEqual(data["modules_count"], 10)
 
     def test_02_get_all_modules(self):
         res = self.client.get("/api/modules")
         self.assertEqual(res.status_code, 200)
         modules = res.json()
-        self.assertEqual(len(modules), 8)
+        self.assertEqual(len(modules), 10)
         mod_ids = [m["id"] for m in modules]
-        expected_ids = ["sql", "python", "data_architecture", "devops", "spark", "airflow", "dbt", "kafka"]
+        expected_ids = ["sql", "ms_sql", "python", "data_architecture", "devops", "spark", "airflow", "dbt", "kafka", "modern_lakehouse"]
         self.assertEqual(mod_ids, expected_ids)
 
     def test_03_get_module_lessons(self):

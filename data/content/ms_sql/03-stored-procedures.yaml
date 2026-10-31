@@ -1,0 +1,428 @@
+id: 03-stored-procedures
+order: 3
+level: intermediate
+title:
+  az: Stored Procedure Nədir? T-SQL ilə Saxlanılan Prosedurların Hazırlanması
+  en: Stored Procedure Nədir? T-SQL ilə Saxlanılan Prosedurların Hazırlanması
+quick_recap:
+  az: '- Stored Procedure (Saxlanılan Prosedur) — verilənlər bazası serverində yadda
+    saxlanılan və adı ilə çağırılan təkrar istifadə edilə bilən T-SQL kod blokudur.
+
+    - Niyə istifadə olunur? Şəbəkə yükünü azaldır, icra planını keşləyərək performansı
+    artırır və ən əsası bazanı kənar müdaxilələrdən qoruyur (Təhlükəsizlik).
+
+    - CREATE OR ALTER PROCEDURE sintaksisi ilə yaradılır və EXEC (və ya EXECUTE) əmri
+    ilə icra olunur.
+
+    - Parametrlər: Giriş parametrləri (@id INT) və nəticəni geri qaytaran çıxış parametrləri
+    (@status NVARCHAR(50) OUTPUT).
+
+    - Tranzaksiyalar və Xətaların idarə edilməsi: BEGIN TRANSACTION, COMMIT və BEGIN
+    CATCH daxilində ROLLBACK.'
+  en: '- Stored Procedure (Saxlanılan Prosedur) — verilənlər bazası serverində yadda
+    saxlanılan və adı ilə çağırılan təkrar istifadə edilə bilən T-SQL kod blokudur.
+
+    - Niyə istifadə olunur? Şəbəkə yükünü azaldır, icra planını keşləyərək performansı
+    artırır və ən əsası bazanı kənar müdaxilələrdən qoruyur (Təhlükəsizlik).
+
+    - CREATE OR ALTER PROCEDURE sintaksisi ilə yaradılır və EXEC (və ya EXECUTE) əmri
+    ilə icra olunur.
+
+    - Parametrlər: Giriş parametrləri (@id INT) və nəticəni geri qaytaran çıxış parametrləri
+    (@status NVARCHAR(50) OUTPUT).
+
+    - Tranzaksiyalar və Xətaların idarə edilməsi: BEGIN TRANSACTION, COMMIT və BEGIN
+    CATCH daxilində ROLLBACK.'
+explanation:
+  az: "### Stored Procedure Nədir? Sadə Bir Bənzətmə\nTəsəvvür edin ki, bir sığorta\
+    \ hadisəsini (məsələn, avtomobil qəzasını) təsdiqləmək üçün siz hər dəfə bu 4\
+    \ əməliyyatı ardıcıl etməlisiniz:\n1. Zərərlər cədvəlində statusu `APPROVED` etmək.\n\
+    2. Təsdiq edən mühəndisin İD-sini və cari tarixi qeyd etmək.\n3. Maliyyə cədvəlində\
+    \ ödəniş rezervini azaltmaq.\n4. Audit loq cədvəlinə kimin nə vaxt təsdiqlədiyini\
+    \ yazmaq.\n\nƏgər bunu hər dəfə kənar tətbiqdən (Python, backend, veb sayt) 4\
+    \ ayrı SQL sorğusu kimi göndərsəniz:\n* Şəbəkə ilə 4 dəfə sorğu gedib-gələcək.\n\
+    * Əgər 3-cü addımda şəbəkə kəsilsə, data yarımçıq və ziddiyyətli qalacaq.\n* Hər\
+    \ bir tərtibatçıya birbaşa maliyyə və zərərlər cədvəllərini dəyişmək (`UPDATE/DELETE`)\
+    \ səlahiyyəti verməli olacaqsınız (böyük təhlükəsizlik riski!).\n\n**Həll:** Bu\
+    \ 4 addımı bazanın daxilində tək bir paket halına salırsınız və ona ad verirsiniz:\
+    \ `usp_ApproveInsuranceClaim`.\nİndi istifadəçi sadəcə bunu yazır:\n```sql\nEXEC\
+    \ dbo.usp_ApproveInsuranceClaim @ClaimID = 101, @ApproverID = 405, @Payout = 2400.00;\n\
+    ```\nVə bütün proses serverin daxilində mikrosaniyələr ərzində, atomik olaraq\
+    \ baş verir!\n\n---\n\n### Niyə Banklar və Sığorta Şirkətləri Stored Procedure Tələb\
+    \ Edir?\n1. **Təhlükəsizlik (Security & Privileges)**:\n   İstifadəçilərə və ya\
+    \ təcrübəçilərə birbaşa `InsuranceClaims` cədvəlini yeniləmək hüququ VERİLMİR.\
+    \ Onlara yalnız `GRANT EXECUTE ON usp_ApproveInsuranceClaim` hüququ verilir. İstifadəçi\
+    \ cədvəlin içinə birbaşa müdaxilə edə bilməz, yalnız prosedur hansı qaydaları\
+    \ icazə verirsə onu edə bilər.\n2. **Keşlənmiş İcra Planı (Execution Plan Caching)**:\n\
+    \   Prosedur ilk dəfə yaradıldıqda və çağırıldıqda, MS SQL Server sorğunun ən\
+    \ optimal necə icra olunacağını hesablayır və icra planını yaddaşda keşləyir.\
+    \ Sonrakı hər çağırışda sorğunu yenidən analiz etmir, birbaşa hazır plandan istifadə\
+    \ edir.\n3. **SQL Injection Mühafizəsi**:\n   Parametrlər ciddi tiplərə bağlandığı\
+    \ üçün hakerlər SQL injection hücumu edə bilmir.\n\n---\n\n### Prosedurun Anatomiyası:\
+    \ Parametrlər və OUTPUT\n* **Giriş Parametrləri**: Prosedura kənardan ötürülən\
+    \ qiymətlər (`@ClaimID INT`).\n* **Default Parametrlər**: Əgər parametr verilməzsə\
+    \ standart qiymət alır (`@Payout DECIMAL(10,2) = 0.00`).\n* **OUTPUT Parametrləri**:\
+    \ Prosedurun icrası nəticəsində kənara qaytarılan dəyər (`@ResultMsg NVARCHAR(100)\
+    \ OUTPUT`).\n\n---\n\n### Atomik Tranzaksiya və TRY...CATCH\nƏgər prosedur daxilində\
+    \ hər hansı xəta baş verərsə (məsələn, zərər məbləği büdcədən çox olarsa), edilmiş\
+    \ bütün dəyişikliklər ləğv edilməlidir (**ROLLBACK**).\nT-SQL-də bu `BEGIN TRY\
+    \ ... BEGIN CATCH` blokları ilə idarə olunur.\n"
+  en: "### Stored Procedure Nədir? Sadə Bir Bənzətmə\nTəsəvvür edin ki, bir sığorta\
+    \ hadisəsini (məsələn, avtomobil qəzasını) təsdiqləmək üçün siz hər dəfə bu 4\
+    \ əməliyyatı ardıcıl etməlisiniz:\n1. Zərərlər cədvəlində statusu `APPROVED` etmək.\n\
+    2. Təsdiq edən mühəndisin İD-sini və cari tarixi qeyd etmək.\n3. Maliyyə cədvəlində\
+    \ ödəniş rezervini azaltmaq.\n4. Audit loq cədvəlinə kimin nə vaxt təsdiqlədiyini\
+    \ yazmaq.\n\nƏgər bunu hər dəfə kənar tətbiqdən (Python, backend, veb sayt) 4\
+    \ ayrı SQL sorğusu kimi göndərsəniz:\n* Şəbəkə ilə 4 dəfə sorğu gedib-gələcək.\n\
+    * Əgər 3-cü addımda şəbəkə kəsilsə, data yarımçıq və ziddiyyətli qalacaq.\n* Hər\
+    \ bir tərtibatçıya birbaşa maliyyə və zərərlər cədvəllərini dəyişmək (`UPDATE/DELETE`)\
+    \ səlahiyyəti verməli olacaqsınız (böyük təhlükəsizlik riski!).\n\n**Həll:** Bu\
+    \ 4 addımı bazanın daxilində tək bir paket halına salırsınız və ona ad verirsiniz:\
+    \ `usp_ApproveInsuranceClaim`.\nİndi istifadəçi sadəcə bunu yazır:\n```sql\nEXEC\
+    \ dbo.usp_ApproveInsuranceClaim @ClaimID = 101, @ApproverID = 405, @Payout = 2400.00;\n\
+    ```\nVə bütün proses serverin daxilində mikrosaniyələr ərzində, atomik olaraq\
+    \ baş verir!\n\n---\n\n### Niyə Banklar və Sığorta Şirkətləri Stored Procedure Tələb\
+    \ Edir?\n1. **Təhlükəsizlik (Security & Privileges)**:\n   İstifadəçilərə və ya\
+    \ təcrübəçilərə birbaşa `InsuranceClaims` cədvəlini yeniləmək hüququ VERİLMİR.\
+    \ Onlara yalnız `GRANT EXECUTE ON usp_ApproveInsuranceClaim` hüququ verilir. İstifadəçi\
+    \ cədvəlin içinə birbaşa müdaxilə edə bilməz, yalnız prosedur hansı qaydaları\
+    \ icazə verirsə onu edə bilər.\n2. **Keşlənmiş İcra Planı (Execution Plan Caching)**:\n\
+    \   Prosedur ilk dəfə yaradıldıqda və çağırıldıqda, MS SQL Server sorğunun ən\
+    \ optimal necə icra olunacağını hesablayır və icra planını yaddaşda keşləyir.\
+    \ Sonrakı hər çağırışda sorğunu yenidən analiz etmir, birbaşa hazır plandan istifadə\
+    \ edir.\n3. **SQL Injection Mühafizəsi**:\n   Parametrlər ciddi tiplərə bağlandığı\
+    \ üçün hakerlər SQL injection hücumu edə bilmir.\n\n---\n\n### Prosedurun Anatomiyası:\
+    \ Parametrlər və OUTPUT\n* **Giriş Parametrləri**: Prosedura kənardan ötürülən\
+    \ qiymətlər (`@ClaimID INT`).\n* **Default Parametrlər**: Əgər parametr verilməzsə\
+    \ standart qiymət alır (`@Payout DECIMAL(10,2) = 0.00`).\n* **OUTPUT Parametrləri**:\
+    \ Prosedurun icrası nəticəsində kənara qaytarılan dəyər (`@ResultMsg NVARCHAR(100)\
+    \ OUTPUT`).\n\n---\n\n### Atomik Tranzaksiya və TRY...CATCH\nƏgər prosedur daxilində\
+    \ hər hansı xəta baş verərsə (məsələn, zərər məbləği büdcədən çox olarsa), edilmiş\
+    \ bütün dəyişikliklər ləğv edilməlidir (**ROLLBACK**).\nT-SQL-də bu `BEGIN TRY\
+    \ ... BEGIN CATCH` blokları ilə idarə olunur.\n"
+infographic:
+  az: '+----------------------------------------------------------------------------------------------------+
+
+    |                           STORED PROCEDURE İCRA VƏ TƏHLÜKƏSİZLİK MODELİ                            |
+
+    |                                                                                                    |
+
+    |  Kənar Müştəri / Təcrübəçi               MS SQL SERVER (Təhlükəsiz Qapı)         Əsas
+    Cədvəllər    |
+
+    |  +-----------------------+              +------------------------------+        +----------------+
+    |
+
+    |  |   EXEC usp_Approve    |              |       STORED PROCEDURE       |        |
+    [dbo].[Claims] | |
+
+    |  |   @ClaimID = 101      | ===EXEC====> |  1. Validasiya et            | =====>
+    | Status: PENDING| |
+
+    |  |   @Payout = 2400      |              |  2. UPDATE Claims            |        |   --->
+    APPROVED| |
+
+    |  +-----------------------+              |  3. INSERT Audit Logs        |        +----------------+
+    |
+
+    |              |                          |  4. COMMIT Transaction       |                 |         |
+
+    |              |                          +------------------------------+                 |         |
+
+    |              v                                                                           v         |
+
+    |     Birbaşa UPDATE / DELETE cəhd etsə:                                          +----------------+
+    |
+
+    |     [ERROR: Permission Denied!] ------------------ BLOKLANDI! -----------------
+    | [dbo].[Audit]  | |
+
+    |     (Yalnız EXECUTE icazəsi var)                                                +----------------+
+    |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+  en: '+----------------------------------------------------------------------------------------------------+
+
+    |                           STORED PROCEDURE İCRA VƏ TƏHLÜKƏSİZLİK MODELİ                            |
+
+    |                                                                                                    |
+
+    |  Kənar Müştəri / Təcrübəçi               MS SQL SERVER (Təhlükəsiz Qapı)         Əsas
+    Cədvəllər    |
+
+    |  +-----------------------+              +------------------------------+        +----------------+
+    |
+
+    |  |   EXEC usp_Approve    |              |       STORED PROCEDURE       |        |
+    [dbo].[Claims] | |
+
+    |  |   @ClaimID = 101      | ===EXEC====> |  1. Validasiya et            | =====>
+    | Status: PENDING| |
+
+    |  |   @Payout = 2400      |              |  2. UPDATE Claims            |        |   --->
+    APPROVED| |
+
+    |  +-----------------------+              |  3. INSERT Audit Logs        |        +----------------+
+    |
+
+    |              |                          |  4. COMMIT Transaction       |                 |         |
+
+    |              |                          +------------------------------+                 |         |
+
+    |              v                                                                           v         |
+
+    |     Birbaşa UPDATE / DELETE cəhd etsə:                                          +----------------+
+    |
+
+    |     [ERROR: Permission Denied!] ------------------ BLOKLANDI! -----------------
+    | [dbo].[Audit]  | |
+
+    |     (Yalnız EXECUTE icazəsi var)                                                +----------------+
+    |
+
+    +----------------------------------------------------------------------------------------------------+
+
+    '
+code: "-- 1. Sığorta hadisəsinin təsdiqlənməsi üçün Stored Procedure\nCREATE OR ALTER\
+  \ PROCEDURE [dbo].[usp_ApproveInsuranceClaim]\n    @ClaimID INT,\n    @ApproverID\
+  \ INT,\n    @ApprovedPayout DECIMAL(10, 2),\n    @ResultStatus NVARCHAR(100) OUTPUT\
+  \  -- Nəticəni kənara qaytaran parametr\nAS\nBEGIN\n    -- Şəbəkəyə lazımsız \"\
+  (1 row affected)\" mesajlarının getməməsi üçün:\n    SET NOCOUNT ON;\n\n    -- 1.\
+  \ Biznes Qaydası Yoxlanışı: Məbləğ müsbət olmalıdır\n    IF @ApprovedPayout <= 0\n\
+  \    BEGIN\n        SET @ResultStatus = N'XƏTA: Ödəniş məbləği 0-dan böyük olmalıdır!';\n\
+  \        RETURN;\n    END\n\n    -- 2. Tranzaksiyanın başlanması (Hamısı icra olunmalı,\
+  \ ya da heç biri)\n    BEGIN TRY\n        BEGIN TRANSACTION;\n\n        -- Addım\
+  \ A: Claims cədvəlində statusu yeniləyirik\n        UPDATE [dbo].[InsuranceClaims]\n\
+  \        SET \n            [ClaimStatus] = N'APPROVED',\n            [ApprovedBy]\
+  \ = @ApproverID,\n            [ApprovedAmount] = @ApprovedPayout,\n            [UpdatedAt]\
+  \ = SYSDATETIME()\n        WHERE [ClaimID] = @ClaimID\n          AND [ClaimStatus]\
+  \ = N'PENDING'; -- Yalnız gözləmədə olanlar təsdiqlənə bilər\n\n        -- Əgər\
+  \ heç bir sətir yenilənmədisə (məs. Claim tapılmadı və ya artıq təsdiqlənib)\n \
+  \       IF @@ROWCOUNT = 0\n        BEGIN\n            SET @ResultStatus = N'XƏTA:\
+  \ Zərər müraciəti tapılmadı və ya artıq təsdiqlənib!';\n            ROLLBACK TRANSACTION;\n\
+  \            RETURN;\n        END\n\n        -- Addım B: Audit loq cədvəlinə qeyd\
+  \ yazırıq\n        INSERT INTO [dbo].[ClaimAuditLogs] ([ClaimID], [ActionType],\
+  \ [PerformedBy], [ActionDate])\n        VALUES (@ClaimID, N'CLAIM_APPROVED', @ApproverID,\
+  \ SYSDATETIME());\n\n        -- Hər şey uğurludur: Dəyişiklikləri qalıcı edirik\n\
+  \        COMMIT TRANSACTION;\n        SET @ResultStatus = N'UĞURLU: Zərər müraciəti\
+  \ təsdiqləndi və ödənişə yönəldildi.';\n    END TRY\n    BEGIN CATCH\n        --\
+  \ Gözlənilməz sistem xətası baş verərsə tranzaksiyanı geri alırıq\n        IF @@TRANCOUNT\
+  \ > 0\n            ROLLBACK TRANSACTION;\n\n        SET @ResultStatus = N'SİSTEM\
+  \ XƏTASI: ' + ERROR_MESSAGE();\n    END CATCH\nEND;\n"
+code_explanation:
+  az: '* `CREATE OR ALTER PROCEDURE`: Prosedur yoxdursa yaradır, varsa yeniləyir.
+
+    * `SET NOCOUNT ON`: Performansı artırır, hər kiçik UPDATE üçün şəbəkəyə bildiriş
+    göndərilmir.
+
+    * `@ResultStatus ... OUTPUT`: Prosedur bitəndə çağıran tərəfə nəticə mesajını
+    qaytarmaq üçün `OUTPUT` açar sözü istifadə olunur.
+
+    * `BEGIN TRANSACTION` və `COMMIT`: Cədvəllər arasında tam bütövlüyü təmin edir.
+
+    * `@@ROWCOUNT = 0`: Əgər axtarılan `ClaimID` tapılmayıbsa, boş yerə davam etmir,
+    tranzaksiyanı `ROLLBACK` edir.
+
+    * `BEGIN CATCH`: Əgər elektrik sönsə, disk dolsa və ya deadlock olsa, `ERROR_MESSAGE()`
+    ilə xətanı tutur və sistemi təmiz saxlayır.
+
+    '
+  en: '* `CREATE OR ALTER PROCEDURE`: Prosedur yoxdursa yaradır, varsa yeniləyir.
+
+    * `SET NOCOUNT ON`: Performansı artırır, hər kiçik UPDATE üçün şəbəkəyə bildiriş
+    göndərilmir.
+
+    * `@ResultStatus ... OUTPUT`: Prosedur bitəndə çağıran tərəfə nəticə mesajını
+    qaytarmaq üçün `OUTPUT` açar sözü istifadə olunur.
+
+    * `BEGIN TRANSACTION` və `COMMIT`: Cədvəllər arasında tam bütövlüyü təmin edir.
+
+    * `@@ROWCOUNT = 0`: Əgər axtarılan `ClaimID` tapılmayıbsa, boş yerə davam etmir,
+    tranzaksiyanı `ROLLBACK` edir.
+
+    * `BEGIN CATCH`: Əgər elektrik sönsə, disk dolsa və ya deadlock olsa, `ERROR_MESSAGE()`
+    ilə xətanı tutur və sistemi təmiz saxlayır.
+
+    '
+visual_output: "===================== ƏMƏLİYYATDAN ƏVVƏL (BEFORE EXECUTION) =====================\n\
+  [dbo].[InsuranceClaims] Cədvəli:\n+---------+------------------+-------------+------------+----------------+---------------------+\n\
+  | ClaimID | IncidentDesc     | ClaimStatus | ApprovedBy | ApprovedAmount | UpdatedAt\
+  \           |\n+---------+------------------+-------------+------------+----------------+---------------------+\n\
+  | 101     | Ön bufer qəzası  | PENDING     | NULL       | NULL           | 2026-10-25\
+  \ 10:00:00 |\n+---------+------------------+-------------+------------+----------------+---------------------+\n\
+  \n[dbo].[ClaimAuditLogs] Cədvəli:\n(0 rows - bu id üçün hələ heç bir audit qeydi\
+  \ yoxdur)\n\n---------------------------------------------------------------------------------\n\
+  İCRA ƏMRİ:\nDECLARE @Msg NVARCHAR(100);\nEXEC [dbo].[usp_ApproveInsuranceClaim]\
+  \ \n    @ClaimID = 101, \n    @ApproverID = 405, \n    @ApprovedPayout = 2400.00,\
+  \ \n    @ResultStatus = @Msg OUTPUT;\nSELECT @Msg AS [ProsedurNəticəsi];\n---------------------------------------------------------------------------------\n\
+  \n===================== ƏMƏLİYYATDAN SONRA (AFTER EXECUTION) =====================\n\
+  [dbo].[InsuranceClaims] Cədvəli:\n+---------+------------------+-------------+------------+----------------+---------------------+\n\
+  | ClaimID | IncidentDesc     | ClaimStatus | ApprovedBy | ApprovedAmount | UpdatedAt\
+  \           |\n+---------+------------------+-------------+------------+----------------+---------------------+\n\
+  | 101     | Ön bufer qəzası  | APPROVED    | 405        | 2400.00        | 2026-10-31\
+  \ 14:22:10 |\n+---------+------------------+-------------+------------+----------------+---------------------+\n\
+  \n[dbo].[ClaimAuditLogs] Cədvəli:\n+-------+---------+----------------+--------------+---------------------+\n\
+  | LogID | ClaimID | ActionType     | PerformedBy  | ActionDate          |\n+-------+---------+----------------+--------------+---------------------+\n\
+  | 8891  | 101     | CLAIM_APPROVED | 405          | 2026-10-31 14:22:10 |\n+-------+---------+----------------+--------------+---------------------+\n\
+  \nNəticə Mesajı: \"UĞURLU: Zərər müraciəti təsdiqləndi və ödənişə yönəldildi.\"\n"
+output_description:
+  az: 'Cədvəllərdəki dəyişiklik aydın görünür: ClaimStatus PENDING-dən APPROVED-ə
+    keçdi, ApprovedBy 405 oldu, təsdiqlənən məbləğ 2400.00 AZN yazıldı və eyni vaxtda
+    ClaimAuditLogs cədvəlinə avtomatik audit sətri düşdü!
+
+    '
+  en: 'Cədvəllərdəki dəyişiklik aydın görünür: ClaimStatus PENDING-dən APPROVED-ə
+    keçdi, ApprovedBy 405 oldu, təsdiqlənən məbləğ 2400.00 AZN yazıldı və eyni vaxtda
+    ClaimAuditLogs cədvəlinə avtomatik audit sətri düşdü!
+
+    '
+what_it_does:
+  az: '- Stored Procedure-ların nə üçün yaradıldığını və real biznes əməliyyatlarını
+    necə avtomatlaşdırdığını göstərir.
+
+    - Parametrlər, OUTPUT dəyişənləri və tranzaksiya bütövlüyünü (ACID) addım-addım
+    izah edir.
+
+    - Əməliyyatdan əvvəl və sonrakı cədvəl dəyişikliklərini əyani şəkildə nümayiş
+    etdirir.'
+  en: '- Stored Procedure-ların nə üçün yaradıldığını və real biznes əməliyyatlarını
+    necə avtomatlaşdırdığını göstərir.
+
+    - Parametrlər, OUTPUT dəyişənləri və tranzaksiya bütövlüyünü (ACID) addım-addım
+    izah edir.
+
+    - Əməliyyatdan əvvəl və sonrakı cədvəl dəyişikliklərini əyani şəkildə nümayiş
+    etdirir.'
+real_world_use:
+  az: '- İri sığorta və maliyyə şirkətlərində anderraytinq və zərərlərin tənzimlənməsi departamenti bütün
+    rəsmi təsdiqləmələri və ödəniş təyinatlarını birbaşa bu cür T-SQL Stored Procedure-ları
+    vasitəsilə icra edir.'
+  en: '- İri sığorta və maliyyə şirkətlərində anderraytinq və zərərlərin tənzimlənməsi departamenti bütün
+    rəsmi təsdiqləmələri və ödəniş təyinatlarını birbaşa bu cür T-SQL Stored Procedure-ları
+    vasitəsilə icra edir.'
+common_mistakes:
+  az: '- Stored Procedure daxilində `SET NOCOUNT ON` yazmamaq: Hər bir daxili əmr
+    üçün şəbəkəyə təsir sətirləri göndərilir, bu isə tətbiqin sürətini aşağı salır.
+
+    - Tranzaksiya açıb CATCH blokunda `ROLLBACK TRANSACTION` etməyi unutmaq: Xəta
+    baş verdikdə cədvəllərdə lock (kilidlənmə) qalır və bütün baza donur.
+
+    - Çıxış parametrini çağırarkən `OUTPUT` açar sözünü yazmamaq: Əgər `EXEC usp_Name
+    @res` yazsanız, parametr dəyər almayacaq; mütləq `EXEC usp_Name @res OUTPUT` yazılmalıdır.'
+  en: '- Stored Procedure daxilində `SET NOCOUNT ON` yazmamaq: Hər bir daxili əmr
+    üçün şəbəkəyə təsir sətirləri göndərilir, bu isə tətbiqin sürətini aşağı salır.
+
+    - Tranzaksiya açıb CATCH blokunda `ROLLBACK TRANSACTION` etməyi unutmaq: Xəta
+    baş verdikdə cədvəllərdə lock (kilidlənmə) qalır və bütün baza donur.
+
+    - Çıxış parametrini çağırarkən `OUTPUT` açar sözünü yazmamaq: Əgər `EXEC usp_Name
+    @res` yazsanız, parametr dəyər almayacaq; mütləq `EXEC usp_Name @res OUTPUT` yazılmalıdır.'
+interview_question:
+  question:
+    az: Stored Procedure nədir? Şirkətlər niyə birbaşa SQL sorğusu yazmaq əvəzinə
+      Stored Procedure istifadə etməyə üstünlük verirlər?
+    en: Stored Procedure nədir? Şirkətlər niyə birbaşa SQL sorğusu yazmaq əvəzinə
+      Stored Procedure istifadə etməyə üstünlük verirlər?
+  answer:
+    az: '"Stored Procedure verilənlər bazası serverində saxlanılan və adı ilə çağırılan
+      qabaqcadan kompilyasiya edilmiş T-SQL kod blokudur.
+
+
+      Şirkətlərin Stored Procedure seçməsinin 4 əsas səbəbi var:
+
+      1. **Təhlükəsizlik (Security)**: İstifadəçilərə və proqramçılara birbaşa cədvəllər
+      üzərində SELECT/UPDATE hüququ vermirik. Onlara yalnız həmin proseduru icra etmək
+      (`EXECUTE`) hüququ verilir. Bu həm də SQL Injection hücumlarının qarşısını tam
+      alır.
+
+      2. **Performans (Execution Plan Caching)**: İlk çağırışda sorğunun icra planı
+      yaddaşda saxlanılır, növbəti dəfələrdə server sorğunu yenidən parse etmədən
+      keşdən sürətlə icra edir.
+
+      3. **Şəbəkə Yükünün Azaldılması**: 50 sətirlik mürəkkəb SQL kodunu şəbəkə ilə
+      dəfələrlə göndərmək əvəzinə, sadəcə qısa bir prosedur adı və bir neçə parametr
+      ötürülür.
+
+      4. **Biznes Məntiqinin Mərkəzləşdirilməsi**: Sabah biznes qaydası dəyişərsə
+      (məsələn, zərər limitləri), tətbiqləri yenidən deploy etməyə ehtiyac qalmır,
+      yalnız bazadakı proseduru dəyişmək kifayətdir."'
+    en: '"Stored Procedure verilənlər bazası serverində saxlanılan və adı ilə çağırılan
+      qabaqcadan kompilyasiya edilmiş T-SQL kod blokudur.
+
+
+      Şirkətlərin Stored Procedure seçməsinin 4 əsas səbəbi var:
+
+      1. **Təhlükəsizlik (Security)**: İstifadəçilərə və proqramçılara birbaşa cədvəllər
+      üzərində SELECT/UPDATE hüququ vermirik. Onlara yalnız həmin proseduru icra etmək
+      (`EXECUTE`) hüququ verilir. Bu həm də SQL Injection hücumlarının qarşısını tam
+      alır.
+
+      2. **Performans (Execution Plan Caching)**: İlk çağırışda sorğunun icra planı
+      yaddaşda saxlanılır, növbəti dəfələrdə server sorğunu yenidən parse etmədən
+      keşdən sürətlə icra edir.
+
+      3. **Şəbəkə Yükünün Azaldılması**: 50 sətirlik mürəkkəb SQL kodunu şəbəkə ilə
+      dəfələrlə göndərmək əvəzinə, sadəcə qısa bir prosedur adı və bir neçə parametr
+      ötürülür.
+
+      4. **Biznes Məntiqinin Mərkəzləşdirilməsi**: Sabah biznes qaydası dəyişərsə
+      (məsələn, zərər limitləri), tətbiqləri yenidən deploy etməyə ehtiyac qalmır,
+      yalnız bazadakı proseduru dəyişmək kifayətdir."'
+  interviewer_tips:
+    az: '- Müsahibədə ''Execution Plan Caching'' və ''Security Privileges (GRANT EXECUTE)''
+      terminlərini işlətmək sizin mövzunu dərindən başa düşdüyünüzü sübut edir.
+
+      - İntern olaraq vakansiyada qeyd olunan ''Stored Procedure-ların hazırlanması
+      və test edilməsi'' bəndini bu nümunədəki kimi ''TRY...CATCH və ROLLBACK ilə
+      test edirəm'' deyə cavablandıra bilərsiniz.'
+    en: '- Müsahibədə ''Execution Plan Caching'' və ''Security Privileges (GRANT EXECUTE)''
+      terminlərini işlətmək sizin mövzunu dərindən başa düşdüyünüzü sübut edir.
+
+      - İntern olaraq vakansiyada qeyd olunan ''Stored Procedure-ların hazırlanması
+      və test edilməsi'' bəndini bu nümunədəki kimi ''TRY...CATCH və ROLLBACK ilə
+      test edirəm'' deyə cavablandıra bilərsiniz.'
+flashcards:
+- front:
+    az: Stored Procedure nədir?
+    en: Stored Procedure nədir?
+  back:
+    az: Verilənlər bazası serverində qeyd olunan, əvvəlcədən tərtib edilmiş və təkrar-təkrar
+      çağırıla bilən T-SQL kod paketidir.
+    en: Verilənlər bazası serverində qeyd olunan, əvvəlcədən tərtib edilmiş və təkrar-təkrar
+      çağırıla bilən T-SQL kod paketidir.
+- front:
+    az: Niyə Stored Procedure birbaşa cədvəli UPDATE etməkdən daha təhlükəsizdir?
+    en: Niyə Stored Procedure birbaşa cədvəli UPDATE etməkdən daha təhlükəsizdir?
+  back:
+    az: Çünki istifadəçiyə cədvəllərə birbaşa toxunmaq hüququ verilmir, yalnız həmin
+      proseduru icra etmək (EXECUTE) hüququ verilir; beləliklə istifadəçi qaydalardan
+      kənar məlumatı korlaya bilmir.
+    en: Çünki istifadəçiyə cədvəllərə birbaşa toxunmaq hüququ verilmir, yalnız həmin
+      proseduru icra etmək (EXECUTE) hüququ verilir; beləliklə istifadəçi qaydalardan
+      kənar məlumatı korlaya bilmir.
+- front:
+    az: Stored Procedure çağırılarkən hansı əmrdən istifadə olunur?
+    en: Stored Procedure çağırılarkən hansı əmrdən istifadə olunur?
+  back:
+    az: 'EXEC və ya EXECUTE əmrindən istifadə olunur, məsələn: EXEC dbo.usp_ApproveClaim
+      @ClaimID = 101;'
+    en: 'EXEC və ya EXECUTE əmrindən istifadə olunur, məsələn: EXEC dbo.usp_ApproveClaim
+      @ClaimID = 101;'
+- front:
+    az: Stored Procedure daxilində 'SET NOCOUNT ON' nə işə yarayır?
+    en: Stored Procedure daxilində 'SET NOCOUNT ON' nə işə yarayır?
+  back:
+    az: Hər bir INSERT/UPDATE əmrindən sonra şəbəkəyə '(1 row affected)' məlumatının
+      göndərilməsinin qarşısını alır və performansı artırır.
+    en: Hər bir INSERT/UPDATE əmrindən sonra şəbəkəyə '(1 row affected)' məlumatının
+      göndərilməsinin qarşısını alır və performansı artırır.
+- front:
+    az: OUTPUT parametri nə üçündür?
+    en: OUTPUT parametri nə üçündür?
+  back:
+    az: Prosedur daxilində hesablanan və ya əldə edilən nəticəni çağıran xarici koda
+      (və ya növbəti skriptə) geri qaytarmaq üçündür.
+    en: Prosedur daxilində hesablanan və ya əldə edilən nəticəni çağıran xarici koda
+      (və ya növbəti skriptə) geri qaytarmaq üçündür.

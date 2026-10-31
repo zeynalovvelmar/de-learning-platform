@@ -6,7 +6,7 @@ import { Language, LocalizedText } from '@/types';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (text?: LocalizedText | Record<string, string> | null) => string;
+  t: (text?: LocalizedText | Record<string, string> | string | null) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -26,8 +26,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('de_platform_lang', lang);
   };
 
-  const t = (text?: LocalizedText | Record<string, string> | null): string => {
+  const t = (text?: LocalizedText | Record<string, string> | string | null): string => {
     if (!text) return '';
+    if (typeof text === 'string') return text;
     return text[language] || text.en || text.az || '';
   };
 

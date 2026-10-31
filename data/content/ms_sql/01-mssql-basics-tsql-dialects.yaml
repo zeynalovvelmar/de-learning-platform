@@ -1,0 +1,428 @@
+id: 01-mssql-basics-tsql-dialects
+order: 1
+level: junior
+title:
+  az: MS SQL Server və T-SQL Nədir? PostgreSQL ilə Əsas Fərqlər
+  en: MS SQL Server və T-SQL Nədir? PostgreSQL ilə Əsas Fərqlər
+quick_recap:
+  az: '- Microsoft SQL Server (MS SQL) korporativ səviyyəli, yüksək etibarlı əlaqəli
+    verilənlər bazası idarəetmə sistemidir (RDBMS).
+
+    - Bank, sığorta və telekom şirkətlərində (o cümlədən İri sığorta və maliyyə şirkətlərində) əsas əməliyyat
+    (Core OLTP) sistemlərinin mərkəzində çox vaxt MS SQL dayanır.
+
+    - T-SQL (Transact-SQL) — Microsoft-un standart ANSI SQL-ə əlavə etdiyi proqramlaşdırma
+    dili uzantısıdır (dəyişənlər, şərtlər, dövrlər, prosedurlar).
+
+    - PostgreSQL bilən bir tələbə üçün əsas fərqlər: LIMIT yerinə TOP, SERIAL yerinə
+    IDENTITY, BOOLEAN yerinə BIT (0/1), NVARCHAR və N''metn'' prefiksi.'
+  en: '- Microsoft SQL Server (MS SQL) korporativ səviyyəli, yüksək etibarlı əlaqəli
+    verilənlər bazası idarəetmə sistemidir (RDBMS).
+
+    - Bank, sığorta və telekom şirkətlərində (o cümlədən İri sığorta və maliyyə şirkətlərində) əsas əməliyyat
+    (Core OLTP) sistemlərinin mərkəzində çox vaxt MS SQL dayanır.
+
+    - T-SQL (Transact-SQL) — Microsoft-un standart ANSI SQL-ə əlavə etdiyi proqramlaşdırma
+    dili uzantısıdır (dəyişənlər, şərtlər, dövrlər, prosedurlar).
+
+    - PostgreSQL bilən bir tələbə üçün əsas fərqlər: LIMIT yerinə TOP, SERIAL yerinə
+    IDENTITY, BOOLEAN yerinə BIT (0/1), NVARCHAR və N''metn'' prefiksi.'
+explanation:
+  az: "### MS SQL Server Nədir və Niyə Sığortada Geniş İstifadə Olunur?\n**Microsoft\
+    \ SQL Server** dünyanın ən populyar relasion məlumat bazalarından biridir. Enterprise\
+    \ Sığorta, banklar və dövlət müəssisələri illərdir əsas biznes əməliyyatlarını\
+    \ (müqavilə bağlanması, müştəri qeydiyyatı, ödənişlər) MS SQL üzərində idarə edir.\
+    \ \n\nSəbəbləri:\n1. **Yüksək Təhlükəsizlik və Əməliyyat Dəqiqliyi (ACID)**: Tranzaksiyaların\
+    \ itməməsi, daimi ehtiyat nüsxələr (log backup).\n2. **Geniş Korporativ Ekosistem**:\
+    \ Active Directory, Windows Server və Microsoft BI alətləri ilə qüsursuz inteqrasiya.\n\
+    3. **T-SQL və Daxili Mexanizmlər**: Biznes məntiqlərinin birbaşa baza səviyyəsində\
+    \ saxlanılan prosedurlar (Stored Procedures) vasitəsilə yüksək sürətlə icra olunması.\n\
+    \nMəlumat bazasını idarə etmək üçün **SSMS (SQL Server Management Studio)** və\
+    \ ya **Azure Data Studio** vizual alətlərindən istifadə olunur.\n\n---\n\n###\
+    \ T-SQL Nədir?\nStandart SQL sadəcə datanı sorğulamaq (`SELECT`, `INSERT`, `UPDATE`,\
+    \ `DELETE`) üçündür. Lakin real biznes prosesində sizə məntiq lazımdır: *\"Əgər\
+    \ müştərinin borcu yoxdursa endirim et, əks halda xəta qaytar\"*.\n\nMicrosoft\
+    \ standart SQL-in üzərinə proqramlaşdırma imkanları əlavə edərək onu **T-SQL (Transact-SQL)**\
+    \ adlandırdı. T-SQL sizə dəyişən elan etmək (`DECLARE`), şərt yoxlamaq (`IF...ELSE`),\
+    \ dövr qurmaq (`WHILE`) və xətaları tutmaq (`TRY...CATCH`) imkanı verir.\n\n---\n\
+    \n### PostgreSQL və Standart SQL ilə Əsas T-SQL Fərqləri\nƏgər siz PostgreSQL\
+    \ və ya ümumi SQL ilə tanışsınızsa, MS SQL-ə keçərkən ilk günlərdə qarşılaşacağınız\
+    \ əsas fərqlər bunlardır:\n\n| Xüsusiyyət | PostgreSQL / Standart SQL | MS SQL\
+    \ Server (T-SQL) | İzah və Nümunə |\n| :--- | :--- | :--- | :--- |\n| **Sətir\
+    \ sayını məhdudlaşdırmaq** | `LIMIT 10` (sorğunun sonunda) | `SELECT TOP (10)\
+    \ ...` (SELECT-dən dərhal sonra) | `SELECT TOP (5) * FROM Policies;` |\n| **Mətn\
+    \ Tipləri** | `VARCHAR`, `TEXT` | `VARCHAR` (ASCII) və `NVARCHAR` (Unicode) |\
+    \ Azərbaycan hərfləri (`ə, ö, ğ, ç, ş`) üçün mütləq `NVARCHAR` seçilməlidir! |\n\
+    | **Unicode Mətn Sabitləri** | `'Əli'` | `N'Əli'` (Qarşısında **N** hərfi) | `WHERE\
+    \ Name = N'Samirə Əliyeva'` (N qoyulmazsa '?' simvoluna çevrilə bilər) |\n| **Məntiqi\
+    \ Tip (Boolean)** | `BOOLEAN` (`TRUE` / `FALSE`) | `BIT` (`1`, `0` və ya `NULL`)\
+    \ | MS SQL-də `WHERE is_active = TRUE` yazmaq olmaz; `WHERE is_active = 1` yazılır!\
+    \ |\n| **Avtomatik Artan Açar** | `SERIAL` və ya `IDENTITY` | `IDENTITY(1, 1)`\
+    \ | `PolicyID INT IDENTITY(1,1) PRIMARY KEY` (1-dən başlayır, hər dəfə 1 artır)\
+    \ |\n| **Tarix və Saat** | `TIMESTAMP`, `NOW()` | `DATETIME2`, `GETDATE()` / `SYSDATETIME()`\
+    \ | `created_at DATETIME2 DEFAULT SYSDATETIME()` |\n| **NULL Yoxlanması** | `COALESCE(val,\
+    \ 'N/A')` | `ISNULL(val, 'N/A')` və ya `COALESCE` | `ISNULL` yalnız 2 parametr\
+    \ qəbul edir və T-SQL-ə xasdır. |\n| **Mətn Birləşdirmə** | `'A' \\|\\| 'B'` |\
+    \ `'A' + 'B'` və ya `CONCAT('A', 'B')` | MS SQL-də `+` simvolu həm cəmləmə, həm\
+    \ də mətn birləşdirmə edir. |\n| **Sxem və Obyekt Adları** | `\"public\".\"policies\"\
+    ` | `[dbo].[Policies]` | MS SQL-də obyekt adları kvadrat mötərizə `[ ]` daxilində\
+    \ yazılır. Standart sxem `dbo`-dur. |\n\n---\n\n### Təcrübəçi üçün Ən Kritik Nüans:\
+    \ `NVARCHAR` və `N''` Prefiksi\nAzərbaycandakı layihələrdə ən çox rast gəlinən\
+    \ səhvlərdən biri Unicode dəstəyidir.\nƏgər sütun `VARCHAR` olaraq yaradılsa və\
+    \ ya sorğu yazarkən `WHERE Name = 'Əli'` yazsanız, MS SQL `Ə` hərfini tanıya bilməyib\
+    \ bazaya `?li` olaraq qeyd edə bilər.\nHəmişə:\n* Sütun tipini `NVARCHAR(100)`\
+    \ təyin edin.\n* Sorğularda mətnin önünə böyük **`N`** hərfi əlavə edin: `N'KASKO\
+    \ Sığortası'`.\n"
+  en: "### MS SQL Server Nədir və Niyə Sığortada Geniş İstifadə Olunur?\n**Microsoft\
+    \ SQL Server** dünyanın ən populyar relasion məlumat bazalarından biridir. Enterprise\
+    \ Sığorta, banklar və dövlət müəssisələri illərdir əsas biznes əməliyyatlarını\
+    \ (müqavilə bağlanması, müştəri qeydiyyatı, ödənişlər) MS SQL üzərində idarə edir.\
+    \ \n\nSəbəbləri:\n1. **Yüksək Təhlükəsizlik və Əməliyyat Dəqiqliyi (ACID)**: Tranzaksiyaların\
+    \ itməməsi, daimi ehtiyat nüsxələr (log backup).\n2. **Geniş Korporativ Ekosistem**:\
+    \ Active Directory, Windows Server və Microsoft BI alətləri ilə qüsursuz inteqrasiya.\n\
+    3. **T-SQL və Daxili Mexanizmlər**: Biznes məntiqlərinin birbaşa baza səviyyəsində\
+    \ saxlanılan prosedurlar (Stored Procedures) vasitəsilə yüksək sürətlə icra olunması.\n\
+    \nMəlumat bazasını idarə etmək üçün **SSMS (SQL Server Management Studio)** və\
+    \ ya **Azure Data Studio** vizual alətlərindən istifadə olunur.\n\n---\n\n###\
+    \ T-SQL Nədir?\nStandart SQL sadəcə datanı sorğulamaq (`SELECT`, `INSERT`, `UPDATE`,\
+    \ `DELETE`) üçündür. Lakin real biznes prosesində sizə məntiq lazımdır: *\"Əgər\
+    \ müştərinin borcu yoxdursa endirim et, əks halda xəta qaytar\"*.\n\nMicrosoft\
+    \ standart SQL-in üzərinə proqramlaşdırma imkanları əlavə edərək onu **T-SQL (Transact-SQL)**\
+    \ adlandırdı. T-SQL sizə dəyişən elan etmək (`DECLARE`), şərt yoxlamaq (`IF...ELSE`),\
+    \ dövr qurmaq (`WHILE`) və xətaları tutmaq (`TRY...CATCH`) imkanı verir.\n\n---\n\
+    \n### PostgreSQL və Standart SQL ilə Əsas T-SQL Fərqləri\nƏgər siz PostgreSQL\
+    \ və ya ümumi SQL ilə tanışsınızsa, MS SQL-ə keçərkən ilk günlərdə qarşılaşacağınız\
+    \ əsas fərqlər bunlardır:\n\n| Xüsusiyyət | PostgreSQL / Standart SQL | MS SQL\
+    \ Server (T-SQL) | İzah və Nümunə |\n| :--- | :--- | :--- | :--- |\n| **Sətir\
+    \ sayını məhdudlaşdırmaq** | `LIMIT 10` (sorğunun sonunda) | `SELECT TOP (10)\
+    \ ...` (SELECT-dən dərhal sonra) | `SELECT TOP (5) * FROM Policies;` |\n| **Mətn\
+    \ Tipləri** | `VARCHAR`, `TEXT` | `VARCHAR` (ASCII) və `NVARCHAR` (Unicode) |\
+    \ Azərbaycan hərfləri (`ə, ö, ğ, ç, ş`) üçün mütləq `NVARCHAR` seçilməlidir! |\n\
+    | **Unicode Mətn Sabitləri** | `'Əli'` | `N'Əli'` (Qarşısında **N** hərfi) | `WHERE\
+    \ Name = N'Samirə Əliyeva'` (N qoyulmazsa '?' simvoluna çevrilə bilər) |\n| **Məntiqi\
+    \ Tip (Boolean)** | `BOOLEAN` (`TRUE` / `FALSE`) | `BIT` (`1`, `0` və ya `NULL`)\
+    \ | MS SQL-də `WHERE is_active = TRUE` yazmaq olmaz; `WHERE is_active = 1` yazılır!\
+    \ |\n| **Avtomatik Artan Açar** | `SERIAL` və ya `IDENTITY` | `IDENTITY(1, 1)`\
+    \ | `PolicyID INT IDENTITY(1,1) PRIMARY KEY` (1-dən başlayır, hər dəfə 1 artır)\
+    \ |\n| **Tarix və Saat** | `TIMESTAMP`, `NOW()` | `DATETIME2`, `GETDATE()` / `SYSDATETIME()`\
+    \ | `created_at DATETIME2 DEFAULT SYSDATETIME()` |\n| **NULL Yoxlanması** | `COALESCE(val,\
+    \ 'N/A')` | `ISNULL(val, 'N/A')` və ya `COALESCE` | `ISNULL` yalnız 2 parametr\
+    \ qəbul edir və T-SQL-ə xasdır. |\n| **Mətn Birləşdirmə** | `'A' \\|\\| 'B'` |\
+    \ `'A' + 'B'` və ya `CONCAT('A', 'B')` | MS SQL-də `+` simvolu həm cəmləmə, həm\
+    \ də mətn birləşdirmə edir. |\n| **Sxem və Obyekt Adları** | `\"public\".\"policies\"\
+    ` | `[dbo].[Policies]` | MS SQL-də obyekt adları kvadrat mötərizə `[ ]` daxilində\
+    \ yazılır. Standart sxem `dbo`-dur. |\n\n---\n\n### Təcrübəçi üçün Ən Kritik Nüans:\
+    \ `NVARCHAR` və `N''` Prefiksi\nAzərbaycandakı layihələrdə ən çox rast gəlinən\
+    \ səhvlərdən biri Unicode dəstəyidir.\nƏgər sütun `VARCHAR` olaraq yaradılsa və\
+    \ ya sorğu yazarkən `WHERE Name = 'Əli'` yazsanız, MS SQL `Ə` hərfini tanıya bilməyib\
+    \ bazaya `?li` olaraq qeyd edə bilər.\nHəmişə:\n* Sütun tipini `NVARCHAR(100)`\
+    \ təyin edin.\n* Sorğularda mətnin önünə böyük **`N`** hərfi əlavə edin: `N'KASKO\
+    \ Sığortası'`.\n"
+infographic:
+  az: '+---------------------------------------------------------------------------------------------------+
+
+    |                                POSTGRESQL VS MS SQL SERVER MÜQAYİSƏSİ                             |
+
+    |                                                                                                   |
+
+    |      Xüsusiyyət                      PostgreSQL                           MS
+    SQL (T-SQL)          |
+
+    |  ------------------         -----------------------------       --------------------------------  |
+
+    |  1. İlk sətirlər            SELECT * FROM ... LIMIT 5;          SELECT TOP (5)
+    * FROM ...;        |
+
+    |                                                                                                   |
+
+    |  2. Azərbaycan mətni        ''Sığorta Müqaviləsi''                N''Sığorta
+    Müqaviləsi'' (N hərfi!)  |
+
+    |                                                                                                   |
+
+    |  3. Doğru/Yalan             is_active = TRUE                    is_active =
+    1 (BIT tipi: 0 və ya 1)|
+
+    |                                                                                                   |
+
+    |  4. Avto İD                 id SERIAL PRIMARY KEY               id INT IDENTITY(1,1)
+    PRIMARY KEY  |
+
+    |                                                                                                   |
+
+    |  5. Sxem / Dialekt          "public"."policies"                 [dbo].[Policies]                  |
+
+    |                                                                                                   |
+
+    |  6. Cari Vaxt               NOW()                               GETDATE() və
+    ya SYSDATETIME()     |
+
+    +---------------------------------------------------------------------------------------------------+
+
+    '
+  en: '+---------------------------------------------------------------------------------------------------+
+
+    |                                POSTGRESQL VS MS SQL SERVER MÜQAYİSƏSİ                             |
+
+    |                                                                                                   |
+
+    |      Xüsusiyyət                      PostgreSQL                           MS
+    SQL (T-SQL)          |
+
+    |  ------------------         -----------------------------       --------------------------------  |
+
+    |  1. İlk sətirlər            SELECT * FROM ... LIMIT 5;          SELECT TOP (5)
+    * FROM ...;        |
+
+    |                                                                                                   |
+
+    |  2. Azərbaycan mətni        ''Sığorta Müqaviləsi''                N''Sığorta
+    Müqaviləsi'' (N hərfi!)  |
+
+    |                                                                                                   |
+
+    |  3. Doğru/Yalan             is_active = TRUE                    is_active =
+    1 (BIT tipi: 0 və ya 1)|
+
+    |                                                                                                   |
+
+    |  4. Avto İD                 id SERIAL PRIMARY KEY               id INT IDENTITY(1,1)
+    PRIMARY KEY  |
+
+    |                                                                                                   |
+
+    |  5. Sxem / Dialekt          "public"."policies"                 [dbo].[Policies]                  |
+
+    |                                                                                                   |
+
+    |  6. Cari Vaxt               NOW()                               GETDATE() və
+    ya SYSDATETIME()     |
+
+    +---------------------------------------------------------------------------------------------------+
+
+    '
+code: "-- MS SQL Server (T-SQL) Nümunəsi: Sığorta Polisləri Cədvəli\n-- 1. Cədvəlin\
+  \ yaradılması (IDENTITY və NVARCHAR xüsusiyyətlərinə diqqət yetirin)\nCREATE TABLE\
+  \ [dbo].[InsurancePolicies] (\n    [PolicyID] INT IDENTITY(1001, 1) PRIMARY KEY,\
+  \ -- 1001-dən başlayır, 1-1 artır\n    [PolicyNumber] NVARCHAR(30) NOT NULL UNIQUE,\n\
+  \    [CustomerName] NVARCHAR(100) NOT NULL,\n    [ProductType] NVARCHAR(50) NOT\
+  \ NULL,\n    [PremiumAZN] DECIMAL(10, 2) NOT NULL,\n    [IsActive] BIT NOT NULL\
+  \ DEFAULT 1,             -- 1 = Aktiv, 0 = Deaktiv\n    [AgentNote] NVARCHAR(255)\
+  \ NULL,\n    [CreatedAt] DATETIME2 NOT NULL DEFAULT SYSDATETIME()\n);\n\n-- 2. Datanın\
+  \ əlavə edilməsi (Unicode N prefiksinə diqqət edin)\nINSERT INTO [dbo].[InsurancePolicies]\
+  \ \n    ([PolicyNumber], [CustomerName], [ProductType], [PremiumAZN], [IsActive],\
+  \ [AgentNote])\nVALUES \n    (N'KASKO-2026-001', N'Fərid Məmmədov', N'KASKO', 1450.00,\
+  \ 1, N'Tam paket endirimlə'),\n    (N'ICBARI-2026-002', N'Aygün Hüseynova', N'İcbari\
+  \ Avto', 120.00, 1, NULL),\n    (N'KASKO-2026-003', N'Rəşad Quliyev', N'KASKO',\
+  \ 2100.50, 0, N'Müştəri imtina etdi');\n\n-- 3. T-SQL Sorğusu: TOP 2, ISNULL və\
+  \ Mətn birləşdirmə (+)\nSELECT TOP (2)\n    [PolicyNumber],\n    [CustomerName],\n\
+  \    [ProductType] + N' (' + CAST([PremiumAZN] AS NVARCHAR(20)) + N' AZN)' AS [ProductSummary],\n\
+  \    ISNULL([AgentNote], N'Qeyd yoxdur') AS [CleanNote],\n    CASE WHEN [IsActive]\
+  \ = 1 THEN N'Aktiv' ELSE N'Passiv' END AS [StatusText]\nFROM [dbo].[InsurancePolicies]\n\
+  WHERE [IsActive] = 1\nORDER BY [PremiumAZN] DESC;\n"
+code_explanation:
+  az: '* `IDENTITY(1001, 1)`: Birinci sətir üçün `PolicyID` 1001 olacaq, növbəti sətirlər
+    1002, 1003 kimi avtomatik artacaq (`SERIAL` əvəzinə).
+
+    * `NVARCHAR(100)` və `N''Fərid''`: `N` hərfi Unicode (Milli simvollar) olduğunu
+    bildirir. Azərbaycan şriftləri üçün şərtdir.
+
+    * `BIT`: `1` (Aktiv) və `0` (Passiv). T-SQL-də `TRUE/FALSE` açar sözləri əvəzinə
+    rəqəmlər işlədilir.
+
+    * `SELECT TOP (2)`: PostgreSQL-dəki `LIMIT 2` əmrinə bərabərdir, ən yüksək məbləğli
+    ilk 2 polisi gətirir.
+
+    * `ISNULL([AgentNote], N''Qeyd yoxdur'')`: Əgər qeyd `NULL`-dırsa, əvəzinə standart
+    mətn qaytarır.
+
+    * `+` operatoru: Mətnləri bir-birinə bağlayır (`CONCAT` da istifadə edilə bilər).
+
+    '
+  en: '* `IDENTITY(1001, 1)`: Birinci sətir üçün `PolicyID` 1001 olacaq, növbəti sətirlər
+    1002, 1003 kimi avtomatik artacaq (`SERIAL` əvəzinə).
+
+    * `NVARCHAR(100)` və `N''Fərid''`: `N` hərfi Unicode (Milli simvollar) olduğunu
+    bildirir. Azərbaycan şriftləri üçün şərtdir.
+
+    * `BIT`: `1` (Aktiv) və `0` (Passiv). T-SQL-də `TRUE/FALSE` açar sözləri əvəzinə
+    rəqəmlər işlədilir.
+
+    * `SELECT TOP (2)`: PostgreSQL-dəki `LIMIT 2` əmrinə bərabərdir, ən yüksək məbləğli
+    ilk 2 polisi gətirir.
+
+    * `ISNULL([AgentNote], N''Qeyd yoxdur'')`: Əgər qeyd `NULL`-dırsa, əvəzinə standart
+    mətn qaytarır.
+
+    * `+` operatoru: Mətnləri bir-birinə bağlayır (`CONCAT` da istifadə edilə bilər).
+
+    '
+visual_output: '[dbo].[InsurancePolicies] cədvəlindən TOP (2) nəticəsi:
+
+  +------------------+------------------+------------------------------+--------------------+------------+
+
+  | PolicyNumber     | CustomerName     | ProductSummary               | CleanNote          |
+  StatusText |
+
+  +------------------+------------------+------------------------------+--------------------+------------+
+
+  | KASKO-2026-001   | Fərid Məmmədov   | KASKO (1450.00 AZN)          | Tam paket
+  endirimlə| Aktiv      |
+
+  | ICBARI-2026-002  | Aygün Hüseynova  | İcbari Avto (120.00 AZN)     | Qeyd yoxdur        |
+  Aktiv      |
+
+  +------------------+------------------+------------------------------+--------------------+------------+
+
+  (2 rows affected)
+
+  '
+output_description:
+  az: 'Sorğu ən yüksək məbləğə malik 2 aktiv polisi qaytardı. NULL olan qeyd ISNULL
+    funksiyası ilə ''Qeyd yoxdur'' mətni ilə əvəz olundu və BIT dəyəri (1) ''Aktiv''
+    sözünə çevrildi.
+
+    '
+  en: 'Sorğu ən yüksək məbləğə malik 2 aktiv polisi qaytardı. NULL olan qeyd ISNULL
+    funksiyası ilə ''Qeyd yoxdur'' mətni ilə əvəz olundu və BIT dəyəri (1) ''Aktiv''
+    sözünə çevrildi.
+
+    '
+what_it_does:
+  az: '- MS SQL Server və T-SQL dialektinin fundamental prinsiplərini aydınlaşdırır.
+
+    - PostgreSQL və ANSI SQL biliklərinizi dərhal MS SQL mühitinə uyğunlaşdırmağa
+    kömək edir.
+
+    - Azərbaycan dilindəki mətnlərin Unicode (NVARCHAR / N'''') düzgün saxlanmasını
+    izah edir.'
+  en: '- MS SQL Server və T-SQL dialektinin fundamental prinsiplərini aydınlaşdırır.
+
+    - PostgreSQL və ANSI SQL biliklərinizi dərhal MS SQL mühitinə uyğunlaşdırmağa
+    kömək edir.
+
+    - Azərbaycan dilindəki mətnlərin Unicode (NVARCHAR / N'''') düzgün saxlanmasını
+    izah edir.'
+real_world_use:
+  az: '- İri sığorta və maliyyə şirkətlərində bütün əməliyyat müqavilələri və polislər MS SQL bazasında
+    saxlanılır; Data Engineering təcrübəçisi gündəlik olaraq bu cədvəllərdən məlumat
+    çıxarmaq üçün T-SQL sorğuları yazır.'
+  en: '- İri sığorta və maliyyə şirkətlərində bütün əməliyyat müqavilələri və polislər MS SQL bazasında
+    saxlanılır; Data Engineering təcrübəçisi gündəlik olaraq bu cədvəllərdən məlumat
+    çıxarmaq üçün T-SQL sorğuları yazır.'
+common_mistakes:
+  az: '- MS SQL-də sorğunun sonuna `LIMIT 10` yazmaq: T-SQL sintaksis xətası verəcək
+    (`Incorrect syntax near ''LIMIT''`). Həmişə `SELECT TOP (10)` yazılmalıdır.
+
+    - Azərbaycan mətnlərində `N` hərfini unutmaq: `WHERE City = ''Gəncə''` yazdıqda,
+    əgər collation fərqlidirsə, nəticə tapılmaya bilər; düzgünü `WHERE City = N''Gəncə''`-dir.
+
+    - Məntiqi şərtlərdə `WHERE is_valid = TRUE` yazmaq: MS SQL-də `BIT` tipi üçün
+    `WHERE is_valid = 1` yazılmalıdır.'
+  en: '- MS SQL-də sorğunun sonuna `LIMIT 10` yazmaq: T-SQL sintaksis xətası verəcək
+    (`Incorrect syntax near ''LIMIT''`). Həmişə `SELECT TOP (10)` yazılmalıdır.
+
+    - Azərbaycan mətnlərində `N` hərfini unutmaq: `WHERE City = ''Gəncə''` yazdıqda,
+    əgər collation fərqlidirsə, nəticə tapılmaya bilər; düzgünü `WHERE City = N''Gəncə''`-dir.
+
+    - Məntiqi şərtlərdə `WHERE is_valid = TRUE` yazmaq: MS SQL-də `BIT` tipi üçün
+    `WHERE is_valid = 1` yazılmalıdır.'
+interview_question:
+  question:
+    az: PostgreSQL və ya standart SQL ilə MS SQL Server (T-SQL) arasında ən vacib
+      4-5 sintaksis və tip fərqini izah edin.
+    en: PostgreSQL və ya standart SQL ilə MS SQL Server (T-SQL) arasında ən vacib
+      4-5 sintaksis və tip fərqini izah edin.
+  answer:
+    az: '"T-SQL Microsoft-un genişləndirilmiş SQL dialektidir. Əsas fərqlər bunlardır:
+
+      1. **Nəticə sayının məhdudlaşdırılması**: PostgreSQL-də `LIMIT n` sorğunun sonunda
+      yazıldığı halda, T-SQL-də `SELECT TOP (n)` başlanğıcda yazılır.
+
+      2. **Mətn və Unicode**: T-SQL-də Unicode dəstəyi üçün `NVARCHAR` tipi və mətn
+      sabitləri qarşısında `N` prefiksi (məsələn, `N''Sığorta''`) istifadə olunmalıdır.
+
+      3. **Məntiqi tip (Boolean)**: T-SQL-də ayrıca `BOOLEAN` tipi yoxdur, onun əvəzinə
+      `BIT` tipi (1, 0, NULL) işlədilir.
+
+      4. **Avtomatik artan açarlar**: PostgreSQL `SERIAL` və ya `IDENTITY` işlədir,
+      T-SQL isə cədvəl yaradılarkən sütuna `IDENTITY(başlanğıc, addım)` parametri
+      əlavə edir.
+
+      5. **Daxili funksiyalar**: PostgreSQL-dəki `NOW()` T-SQL-də `GETDATE()` və ya
+      `SYSDATETIME()`, `COALESCE` ilə yanaşı T-SQL-ə xas `ISNULL(val, default)` funksiyası
+      mövcuddur."'
+    en: '"T-SQL Microsoft-un genişləndirilmiş SQL dialektidir. Əsas fərqlər bunlardır:
+
+      1. **Nəticə sayının məhdudlaşdırılması**: PostgreSQL-də `LIMIT n` sorğunun sonunda
+      yazıldığı halda, T-SQL-də `SELECT TOP (n)` başlanğıcda yazılır.
+
+      2. **Mətn və Unicode**: T-SQL-də Unicode dəstəyi üçün `NVARCHAR` tipi və mətn
+      sabitləri qarşısında `N` prefiksi (məsələn, `N''Sığorta''`) istifadə olunmalıdır.
+
+      3. **Məntiqi tip (Boolean)**: T-SQL-də ayrıca `BOOLEAN` tipi yoxdur, onun əvəzinə
+      `BIT` tipi (1, 0, NULL) işlədilir.
+
+      4. **Avtomatik artan açarlar**: PostgreSQL `SERIAL` və ya `IDENTITY` işlədir,
+      T-SQL isə cədvəl yaradılarkən sütuna `IDENTITY(başlanğıc, addım)` parametri
+      əlavə edir.
+
+      5. **Daxili funksiyalar**: PostgreSQL-dəki `NOW()` T-SQL-də `GETDATE()` və ya
+      `SYSDATETIME()`, `COALESCE` ilə yanaşı T-SQL-ə xas `ISNULL(val, default)` funksiyası
+      mövcuddur."'
+  interviewer_tips:
+    az: '- Müsahibədə `NVARCHAR` və `N` prefiksini vurğulamaq yerli şirkətlərdə çox
+      bəyənilir, çünki Azərbaycan hərflərinin bazada korlanması ən çox rast gəlinən
+      real problemdir.
+
+      - `SELECT TOP (n) WITH TIES` xüsusiyyətini bildiyinizi qeyd etsəniz, əla üstünlük
+      qazanarsınız (eyni qiymətə malik sətirləri də gətirir).'
+    en: '- Müsahibədə `NVARCHAR` və `N` prefiksini vurğulamaq yerli şirkətlərdə çox
+      bəyənilir, çünki Azərbaycan hərflərinin bazada korlanması ən çox rast gəlinən
+      real problemdir.
+
+      - `SELECT TOP (n) WITH TIES` xüsusiyyətini bildiyinizi qeyd etsəniz, əla üstünlük
+      qazanarsınız (eyni qiymətə malik sətirləri də gətirir).'
+flashcards:
+- front:
+    az: MS SQL Server-də T-SQL nədir?
+    en: MS SQL Server-də T-SQL nədir?
+  back:
+    az: Transact-SQL — Microsoft-un standart ANSI SQL-ə əlavə etdiyi proqramlaşdırma
+      dili uzantısıdır (dəyişənlər, şərtlər, dövrlər və prosedurlar təqdim edir).
+    en: Transact-SQL — Microsoft-un standart ANSI SQL-ə əlavə etdiyi proqramlaşdırma
+      dili uzantısıdır (dəyişənlər, şərtlər, dövrlər və prosedurlar təqdim edir).
+- front:
+    az: PostgreSQL-dəki LIMIT əmrinin T-SQL qarşılığı nədir?
+    en: PostgreSQL-dəki LIMIT əmrinin T-SQL qarşılığı nədir?
+  back:
+    az: SELECT TOP (n) ... — sorğunun sonunda deyil, birbaşa SELECT sözündən dərhal
+      sonra yazılır.
+    en: SELECT TOP (n) ... — sorğunun sonunda deyil, birbaşa SELECT sözündən dərhal
+      sonra yazılır.
+- front:
+    az: T-SQL-də VARCHAR və NVARCHAR arasındakı fərq nədir və N prefiksi nə üçündür?
+    en: T-SQL-də VARCHAR və NVARCHAR arasındakı fərq nədir və N prefiksi nə üçündür?
+  back:
+    az: VARCHAR 1 baytlıq ASCII simvolları saxlayır, NVARCHAR isə 2 baytlıq Unicode
+      simvolları (ə, ö, ğ və s.) saxlayır. Mətn sabitləri önünə N qoyulmasa (məs.
+      N'Mətn'), simvollar '?' işarəsinə çevrilə bilər.
+    en: VARCHAR 1 baytlıq ASCII simvolları saxlayır, NVARCHAR isə 2 baytlıq Unicode
+      simvolları (ə, ö, ğ və s.) saxlayır. Mətn sabitləri önünə N qoyulmasa (məs.
+      N'Mətn'), simvollar '?' işarəsinə çevrilə bilər.
+- front:
+    az: MS SQL-də Boolean (True/False) tipi necə təmsil olunur?
+    en: MS SQL-də Boolean (True/False) tipi necə təmsil olunur?
+  back:
+    az: MS SQL-də ayrıca BOOLEAN tipi yoxdur; onun əvəzinə BIT tipi işlədilir (1 =
+      True, 0 = False, NULL).
+    en: MS SQL-də ayrıca BOOLEAN tipi yoxdur; onun əvəzinə BIT tipi işlədilir (1 =
+      True, 0 = False, NULL).
+- front:
+    az: T-SQL-də cədvəldə avtomatik artan (auto-increment) ID necə yaradılır?
+    en: T-SQL-də cədvəldə avtomatik artan (auto-increment) ID necə yaradılır?
+  back:
+    az: 'Sütun tərifində IDENTITY(seed, increment) yazılır, məsələn: PolicyID INT
+      IDENTITY(1, 1) PRIMARY KEY.'
+    en: 'Sütun tərifində IDENTITY(seed, increment) yazılır, məsələn: PolicyID INT
+      IDENTITY(1, 1) PRIMARY KEY.'

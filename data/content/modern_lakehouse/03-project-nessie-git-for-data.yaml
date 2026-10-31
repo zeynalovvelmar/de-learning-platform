@@ -1,0 +1,324 @@
+id: 03-project-nessie-git-for-data
+order: 3
+level: intermediate
+title:
+  en: 'Project Nessie: Git-for-Data (Branches, Commits & Multi-Table Consistency)'
+  az: 'Project Nessie: Data üçün Git (Budaqlar, Commit-lər və Çoxcədvəlli Ardıcıllıq)'
+infographic:
+  en: "```text\n┌────────────────────────────────────────────────────────────────────────┐\n\
+    │       PROJECT NESSIE: THE WRITE-AUDIT-PUBLISH (WAP) PATTERN            │\n└────────────────────────────────────────────────────────────────────────┘\n\
+    1. CREATE ISOLATED BRANCH:\n   `main` (Active Production Branch — Read by Power\
+    \ BI & Actuaries)\n      │\n      └──► `git checkout -b etl_nightly_batch` (Isolated\
+    \ working branch)\n                               │\n2. WRITE & TRANSFORM:   \
+    \       ▼\n   Apache Spark & Airflow ingest 100,000 policies into `etl_nightly_batch`.\n\
+    \   ✨ Zero risk! Production `main` branch is untouched and 100% clean.\n     \
+    \                          │\n3. AUDIT WITH dbt:             ▼\n   Run automated\
+    \ data quality tests on `etl_nightly_batch`:\n   • Check for NULL primary keys\n\
+    \   • Verify policy balances reconcile with accounting\n                     \
+    \          │\n           ┌───────────────────┴───────────────────┐\n         \
+    \  ▼ (Tests PASSED)                        ▼ (Tests FAILED)\n4. ATOMIC MERGE TO\
+    \ MAIN                 DROP BRANCH (Discard dirty data)\n   `MERGE etl_nightly_batch\
+    \ INTO main`   `DROP BRANCH etl_nightly_batch`\n   ✨ 1 millisecond commit!   \
+    \          ✨ Production was NEVER corrupted!\n```\n"
+  az: "```text\n┌────────────────────────────────────────────────────────────────────────┐\n\
+    │       PROJECT NESSIE: YAZ-YOXLA-YAYIMLA (WAP) DİZAYN MODELİ            │\n└────────────────────────────────────────────────────────────────────────┘\n\
+    1. TƏCRİD OLUNMUŞ BUDAQ YARATMAQ (Branch):\n   `main` (Canlı İstehsalat Budağı\
+    \ — Power BI və Aktuarilər buradan oxuyur)\n      │\n      └──► `branch etl_gece_batch`\
+    \ (Təcrid olunmuş işçi budaq)\n                               │\n2. YAZMAQ VƏ\
+    \ EMAL ETMƏK:       ▼\n   Spark və Airflow 100,000 sığorta polisini `etl_gece_batch`\
+    \ budağına yazır.\n   ✨ Sıfır risk! Canlı `main` budağına toxunulmur, hesabatlar\
+    \ tər-təmiz qalır.\n                               │\n3. dbt İLƏ KEYFİYYƏT YOXLANMASI:▼\n\
+    \   `etl_gece_batch` üzərində avtomatik data keyfiyyəti testləri işə salınır:\n\
+    \   • NULL açarların yoxlanması\n   • Maliyyə balanslarının mühasibatlıqla uzlaşması\n\
+    \                               │\n           ┌───────────────────┴───────────────────┐\n\
+    \           ▼ (Testlər UĞURLUDUR)                   ▼ (Xəta AŞKARLANDI)\n4. BİRBAŞA\
+    \ CANLIYA MERGE EDİLİR         BUDAQ SİLİNİR (Xarab data atılır)\n   `MERGE etl_gece_batch\
+    \ INTO main`      `DROP BRANCH etl_gece_batch`\n   ✨ 1 millisaniyəlik atomik kommit!\
+    \   ✨ Canlı sistemə heç vaxt zərər dəymədi!\n```\n"
+explanation:
+  en: '### What is Project Nessie?
+
+    **Project Nessie** is an open-source transactional catalog for Data Lakes (most
+    famously paired with Apache Iceberg).
+
+    - It brings **Git-like semantics** directly to data management: **Branches**,
+    **Tags**, **Commits**, and **Merges**.
+
+    - Where tools like Git manage versions of text code files, Nessie manages versions
+    of entire analytical tables in the Lakehouse.
+
+
+    ### 1. The Critical Problem Nessie Solves
+
+    In traditional data platforms, ETL pipelines write directly to production tables:
+
+    - If a nightly job crashes halfway through, half-written data is visible to executive
+    BI dashboards.
+
+    - If data quality fails (e.g. an API returned corrupt currency values), bad numbers
+    pollute financial reports, requiring hours of painful manual rollback.
+
+    - If an ETL process updates 3 related tables (`Customers`, `Policies`, `Claims`),
+    there was no way to update all 3 atomically. If the job died after updating `Customers`,
+    the database was left in an inconsistent state.
+
+
+    ### 2. The Core Nessie Primitives:
+
+    1. **Branch**: An isolated pointer to a specific state of the entire lakehouse
+    catalog. Writes to a branch are invisible to other branches until merged.
+
+    2. **Tag**: An immutable named milestone. For example, `tag: quarter_end_2026_q3`.
+    No matter how much data changes later, querying that tag reproduces the exact
+    financial numbers forever.
+
+    3. **Commit**: Every time Spark, Trino, or dbt modifies a table, Nessie records
+    an atomic commit on the active branch.
+
+    4. **Merge**: Integrates changes from a working branch into the target branch
+    (`main`).
+
+
+    ### 3. The Write-Audit-Publish (WAP) Pattern
+
+    This is the gold-standard workflow for modern data teams at companies like leading
+    FinTech & insurance enterprises:
+
+    1. **Write**: The pipeline creates a temporary branch `branch_20261031`. Spark
+    loads raw policy data into Iceberg on this branch.
+
+    2. **Audit**: Automated testing tools (dbt, Great Expectations) run data validation
+    suites against `branch_20261031`.
+
+    3. **Publish**: If tests pass, Nessie executes an **atomic merge** into `main`.
+    The new policies become visible to BI analysts in 1 millisecond with zero downtime!
+
+    '
+  az: '### Project Nessie Nədir?
+
+    **Project Nessie** Data Lakehouse üçün açıq mənbəli tranzaksional kataloqdur (xüsusilə
+    Apache Iceberg ilə birlikdə istifadə olunur).
+
+    - Nessie proqramçıların Git-də kod üçün istifadə etdiyi qaydaları birbaşa dataya
+    gətirir: **Budaqlar (Branches)**, **Teqlər (Tags)**, **Kommitlər (Commits)** və
+    **Birləşdirmə (Merge)**.
+
+    - Git kod fayllarının versiyasını saxladığı kimi, Nessie də Lakehouse-dakı cədvəllərin
+    versiyalarını idarə edir.
+
+
+    ### 1. Nessie Hansı Kritik Problemi Həll Edir?
+
+    Ənənəvi data sistemlərində ETL kəmərləri məlumatı birbaşa canlı istehsalat cədvəllərinə
+    yazırdı:
+
+    - Əgər gecə işləyən kəmər ortada xəta verib dayansaydı, natamam məlumat birbaşa
+    rəhbərliyin gördüyü Power BI hesabatlarına çıxırdı.
+
+    - Əgər mənbə sistemdən xarab məlumat gəlsəydi, səhvi düzəltmək üçün mühəndislər
+    saatlarla bazanı əllə təmizləməli olurdular.
+
+    - Əgər kəmər bir-biri ilə əlaqəli 3 cədvəli (`Müştərilər`, `Polislər`, `Hadisələr`)
+    yeniləyirdisə, hər üçünü eyni anda atomik yeniləmək qeyri-mümkün idi. İkinci cədvəldə
+    xəta olanda sistem balanssız vəziyyətdə qalırdı.
+
+
+    ### 2. Nessie-nin 4 Əsas Anlayışı:
+
+    1. **Budaq (Branch)**: Bütün data kataloqunun təcrid olunmuş vəziyyətini göstərən
+    göstəricidir. Bir budaqda edilən dəyişikliklər `main` budağına merge edilənə qədər
+    başqalarına görünmür.
+
+    2. **Teq (Tag)**: Dəyişdirilə bilməyən dondurulmuş nöqtədir. Məsələn: `2026_q3_maliyye_hesabati`.
+    Gələcəkdə nə qədər yeni məlumat gəlsə də, bu teq üzrə sorğu atanda həmin rübün
+    dəqiq rəqəmləri çıxacaq.
+
+    3. **Kommit (Commit)**: Spark, Trino və ya dbt cədvəli hər dəfə dəyişdikdə, Nessie
+    aktiv budaqda yeni bir qeyd (kommit) yaradır.
+
+    4. **Birləşdirmə (Merge)**: İşçi budaqdakı dəyişiklikləri canlı `main` budağına
+    birləşdirir.
+
+
+    ### 3. Yaz-Yoxla-Yayımla (Write-Audit-Publish — WAP) Modeli
+
+    aparıcı maliyyə və sığorta şirkətləri kimi qabaqcıl şirkətlərin məlumat keyfiyyətini qorumaq üçün tətbiq
+    etdiyi qızıl standart:
+
+    1. **Yaz (Write)**: Airflow gecə işləyəndə təcrid olunmuş `etl_budaq_20261031`
+    budağı yaradır. Spark yeni polisləri həmin budaqdakı Iceberg cədvəlinə yazır.
+
+    2. **Yoxla (Audit)**: dbt avtomatik testləri işə salır: NULL açarlar varmı? Maliyyə
+    cəmi mühasibatlıqla tuturmu?
+
+    3. **Yayımla (Publish)**: Testlər uğurla keçərsə, Nessie həmin budağı 1 millisaniyə
+    ərzində canlı `main` budağına **merge** edir. Canlı hesabatlar anında yenilənir
+    və heç vaxt natamam və ya xətalı məlumat görmür!
+
+    '
+quick_recap:
+  en: Project Nessie is a Git-like transactional catalog for Apache Iceberg that enables
+    branching, tagging, and atomic multi-table commits (Write-Audit-Publish pattern).
+  az: Project Nessie Apache Iceberg üçün Git-bənzəri tranzaksional kataloqdur; budaqlanma,
+    teqləmə və çoxcədvəlli atomik birləşdirməni (WAP modeli) təmin edir.
+what_it_does:
+  en: Provides version control for lakehouse tables, allowing data engineers to isolate
+    batch pipelines on branches and merge them into production only after quality
+    tests pass.
+  az: Lakehouse cədvəllərinə versiya nəzarəti gətirir, mühəndislərə ETL işlərini ayrı
+    budaqlarda təhlükəsiz aparmağa və yalnız testdən sonra canlıya birləşdirməyə imkan
+    verir.
+real_world_use:
+  en: Used in financial and insurance architectures to guarantee that daily policy
+    aggregations and claims tables update simultaneously without exposing half-written
+    batches to business dashboards.
+  az: Maliyyə və sığorta sistemlərində istifadə olunur ki, gündəlik polislər və ödənişlər
+    cədvəli eyni anda yenilənsin və hesabatlara yarımçıq məlumat düşməsin.
+common_mistakes:
+  en: '- **Assuming Nessie copies physical Parquet files when branching**: Nessie
+    branches are zero-copy metadata pointers! Creating a branch takes 1 millisecond
+    and consumes zero additional S3 disk storage.
+
+    - **Confusing Nessie with Git**: Git tracks source code files (Python, SQL scripts);
+    Nessie tracks data table versions and Iceberg snapshots in storage.
+
+    '
+  az: '- **Budaq açarkən Parquet fayllarının kopyalandığını düşünmək**: Nessie budaqları
+    sıfır-kopyalamadır (zero-copy)! Yeni budaq açmaq cəmi 1 millisaniyə çəkir və diskdə
+    əlavə yer tutmur.
+
+    - **Nessie-ni Git ilə qarışdırmaq**: Git kod fayllarını (Python, SQL skriptləri)
+    versiyalayır; Nessie isə saxlancdakı nəhəng data cədvəllərinin snapshot-larını
+    versiyalayır.
+
+    '
+code: '-- 1. Switch session to an isolated ETL working branch in Trino using Nessie
+
+  USE nessie@etl_batch_20261031;
+
+
+  -- 2. Insert new policy records safely inside the isolated branch
+
+  INSERT INTO nessie@etl_batch_20261031.insurance.policies
+
+  SELECT * FROM staging.new_policies;
+
+
+  -- 3. Run data quality assertions on the branch
+
+  -- If tests pass, merge changes into the production ''main'' branch:
+
+  MERGE BRANCH etl_batch_20261031 INTO main IN nessie;
+
+  '
+code_explanation:
+  en: '- **`USE nessie@etl_batch_20261031`**: Directs all table lookups and mutations
+    to the specified isolated Nessie branch.
+
+    - **`MERGE BRANCH ... INTO main`**: Performs an instantaneous metadata pointer
+    update. The new policies appear atomically in production.
+
+    '
+  az: '- **`USE nessie@etl_batch_20261031`**: Bütün sorğuları təcrid olunmuş işçi
+    budağa yönləndirir; canlı istifadəçilər bu dəyişikliyi görmür.
+
+    - **`MERGE BRANCH ... INTO main`**: Bir millisaniyəlik atomik əməliyyatla yeni
+    polisləri canlı `main` budağına qovuşdurur.
+
+    '
+visual_output: "================== PROJECT NESSIE BRANCH MERGE LOG ==================\n\
+  CATALOG: Nessie v0.98.0 | SOURCE: etl_batch_20261031 | TARGET: main\n\nPRE-MERGE\
+  \ AUDIT:\n[PASS] Assert No Null Policy IDs: 100% Valid (12,450 rows)\n[PASS] Assert\
+  \ Balanced Premiums: Total 4,891,200.00 AZN verified against billing DB\n\nMERGE\
+  \ COMMIT SUMMARY:\n• Commit Hash: a91f82c401b9e\n• Target Reference: refs/heads/main\n\
+  • Tables Updated (Multi-table Atomic Commit):\n  - insurance.customers (v14 -> v15)\n\
+  \  - insurance.policies (v28 -> v29)\n  - insurance.claims (v19 -> v20)\n\nStatus:\
+  \ MERGE COMPLETED IN 0.04s. Zero downtime, zero broken dashboard reads!\n"
+output_description:
+  en: Displays the Nessie transactional merge log proving multi-table atomic commit
+    execution after automated quality validation.
+  az: Avtomatik data keyfiyyəti yoxlamasından sonra 3 əlaqəli cədvəlin canlı `main`
+    budağına 0.04 saniyəyə necə təhlükəsiz merge edildiyini göstərən çıxış.
+interview_question:
+  question:
+    en: What is Project Nessie, and how does it implement the Write-Audit-Publish
+      (WAP) pattern for modern Data Lakehouses?
+    az: Project Nessie nədir və müasir Data Lakehouse-da Yaz-Yoxla-Yayımla (Write-Audit-Publish
+      — WAP) modelini necə həyata keçirir?
+  answer:
+    en: "1. **What is Nessie**: An open-source transactional catalog that brings Git-like\
+      \ semantics (branches, tags, commits, and merges) to data lakehouse table formats\
+      \ like Apache Iceberg.\n2. **The WAP Pattern**:\n   - **Write**: Instead of\
+      \ writing batch data directly into production tables, an orchestrator (Airflow)\
+      \ creates a temporary isolated branch in Nessie (e.g. `branch_20261031`). Spark\
+      \ or dbt ingests and transforms data strictly within this branch.\n   - **Audit**:\
+      \ Automated data quality tests (checking primary keys, null thresholds, schema\
+      \ anomalies, and financial reconciliations) run against the working branch.\n\
+      \   - **Publish**: If all audit tests pass, Nessie executes an atomic, zero-copy\
+      \ merge from the working branch into `main`. If any test fails, the branch is\
+      \ dropped without leaving dirty data behind.\n3. **Multi-Table Consistency**:\
+      \ Unlike traditional lakehouses where tables are updated one by one, Nessie\
+      \ enables multi-table transactions—updating `Customers`, `Policies`, and `Claims`\
+      \ on a branch and committing all three simultaneously into production in a single\
+      \ transaction.\n"
+    az: "1. **Nessie Nədir**: Apache Iceberg cədvəlləri üçün Git-bənzəri idarəetmə\
+      \ qaydalarını (budaqlanma, teqləmə, kommit və birləşdirmə) təmin edən açıq mənbəli\
+      \ tranzaksional kataloqdur.\n2. **WAP Modeli**:\n   - **Yaz (Write)**: Məlumat\
+      \ birbaşa canlı cədvəllərə deyil, Airflow tərəfindən Nessie-də açılan müvəqqəti\
+      \ təcrid olunmuş işçi budağa (`branch_20261031`) yazılır.\n   - **Yoxla (Audit)**:\
+      \ Həmin budaq üzərində avtomatik keyfiyyət testləri (NULL yoxlaması, dublikatlar,\
+      \ maliyyə balanslarının uyğunluğu) aparılır.\n   - **Yayımla (Publish)**: Testlər\
+      \ uğurla keçərsə, Nessie həmin budaqdakı dəyişiklikləri sıfır-kopyalama ilə\
+      \ canlı `main` budağına **merge** edir. Xəta olarsa, budaq sadəcə silinir və\
+      \ canlı sistemə zərrə qədər xələl gəlmir.\n3. **Çoxcədvəlli Ardıcıllıq**: Ənənəvi\
+      \ sistemlərdə cədvəllər növbə ilə yenilənirdi və ortada qəza olanda baza korlanırdı.\
+      \ Nessie ilə bir neçə əlaqəli cədvəl (`Müştərilər`, `Polislər`, `Hadisələr`)\
+      \ eyni budaqda yenilənir və tək bir atomik kommitlə canlıya keçirilir.\n"
+  interviewer_tips:
+    en: 'Emphasize that Nessie branches are zero-copy: creating a branch creates lightweight
+      metadata pointers, taking 1 millisecond and consuming zero extra S3 storage.'
+    az: 'Nessie budaqlarının sıfır-kopyalama (zero-copy) olduğunu vurğulayın: yeni
+      budaq açanda S3-dəki nəhəng fayllar kopyalanmır, yalnız yüngül metadata göstəriciləri
+      yaranır.'
+flashcards:
+- front:
+    en: What is Project Nessie?
+    az: Project Nessie nədir?
+  back:
+    en: A transactional, Git-like catalog for Apache Iceberg that enables branching,
+      tagging, and atomic multi-table commits.
+    az: Apache Iceberg üçün budaqlanma, teqləmə və çoxcədvəlli atomik birləşdirməni
+      təmin edən Git-bənzəri tranzaksional kataloqdur.
+- front:
+    en: What is the Write-Audit-Publish (WAP) pattern in data engineering?
+    az: Data mühəndisliyində Yaz-Yoxla-Yayımla (WAP) modeli nədir?
+  back:
+    en: Writing data to an isolated branch, validating it with automated quality tests,
+      and merging it to production only after tests succeed.
+    az: Məlumatı təcrid olunmuş budağa yazmaq, avtomatik testlərlə keyfiyyətini yoxlamaq
+      və yalnız testlər uğurlu olduqda canlı sistemə merge etmək.
+- front:
+    en: Does creating a Nessie branch duplicate the physical Parquet data files in
+      S3?
+    az: Nessie-də yeni budaq açanda S3-dəki fiziki Parquet faylları kopyalanırmı?
+  back:
+    en: No! Nessie branches are zero-copy metadata pointers; they take 1 millisecond
+      to create and consume zero extra storage.
+    az: Xeyr! Nessie budaqları sıfır-kopyalamadır (zero-copy); yaradılması 1 millisaniyə
+      çəkir və əlavə disk yeri tutmur.
+- front:
+    en: 'What is the benefit of Nessie tags (e.g. tag: year_end_2026)?'
+    az: 'Nessie teqlərinin (məsələn: tag: year_end_2026) faydası nədir?'
+  back:
+    en: They freeze an immutable snapshot of all tables at a specific milestone, enabling
+      100% reproducible historical financial audits.
+    az: Bütün cədvəllərin müəyyən andakı vəziyyətini dondurur, illər sonra belə həmin
+      teq üzrə 100% eyni maliyyə auditini təkrarlamağa imkan verir.
+- front:
+    en: How does Nessie provide multi-table transactional consistency?
+    az: Nessie çoxcədvəlli tranzaksional ardıcıllığı necə təmin edir?
+  back:
+    en: By allowing multiple related tables to be modified on the same branch and
+      merged into main simultaneously in a single atomic commit.
+    az: Bir neçə əlaqəli cədvəlin eyni budaqda yenilənməsinə və tək bir atomik kommitlə
+      eyni anda canlıya birləşdirilməsinə imkan verərək.

@@ -37,6 +37,7 @@ interface SidebarProps {
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
   sql: Database,
+  ms_sql: Database,
   python: Terminal,
   data_architecture: Cpu,
   kafka: Layers,
@@ -44,6 +45,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
   airflow: Clock,
   dbt: GitBranch,
   devops: Box,
+  modern_lakehouse: Layers,
 };
 
 export function Sidebar({

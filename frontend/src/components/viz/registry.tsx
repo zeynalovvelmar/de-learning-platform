@@ -2114,6 +2114,331 @@ const sqlThreeValuedLogic: FlowSpec = {
   ],
 };
 
+
+/* ============================== MODERN LAKEHOUSE ============================== */
+
+const modernLakehouseStack: FlowSpec = {
+  title: L('Müasir Data Lakehouse Arxitekturası', 'Modern Data Lakehouse Architecture'),
+  badge: 'Enterprise Lakehouse Stack',
+  footer: L(
+    'Ucuz obyekt saxlancı (MinIO/S3) + Açıq cədvəl formatı (Iceberg) + Git kataloqu (Nessie) + Dağınıq SQL (Trino) + Transformasiya (dbt).',
+    'Cheap object storage (MinIO/S3) + Table format (Iceberg) + Git catalog (Nessie) + Distributed SQL (Trino) + Transformations (dbt).'
+  ),
+  rows: [
+    {
+      stages: [
+        {
+          title: L('Saxlanc (Storage)', 'Storage'),
+          nodes: [{ label: 'MinIO / S3', sub: L('Parquet faylları', 'Parquet files'), icon: 'archive', tone: 'orange', badge: 'STORAGE' }],
+        },
+        {
+          title: L('Cədvəl Formatı', 'Table Format'),
+          arrowLabel: 'metadata',
+          nodes: [{ label: 'Apache Iceberg', sub: L('ACID + Şəkil (Snapshot)', 'ACID + Snapshots'), icon: 'layers3', tone: 'cyan', badge: 'ACID' }],
+        },
+        {
+          title: L('Kataloq (Catalog)', 'Catalog'),
+          arrowLabel: 'git-for-data',
+          nodes: [{ label: 'Project Nessie', sub: L('Branching & WAP', 'Branching & WAP'), icon: 'branch', tone: 'emerald', badge: 'GIT' }],
+        },
+        {
+          title: L('Hesablama (Compute)', 'Compute'),
+          arrowLabel: 'distributed query',
+          nodes: [{ label: 'Trino Engine', sub: L('Stateless in-memory', 'Stateless in-memory'), icon: 'zap', tone: 'blue', badge: 'SQL' }],
+        },
+        {
+          title: L('Transformasiya & BI', 'Transform & BI'),
+          arrowLabel: 'analytics',
+          nodes: [
+            { label: 'dbt', sub: L('Data Marts & Testlər', 'Data Marts & Tests'), icon: 'hammer', tone: 'amber' },
+            { label: 'Power BI', sub: L('Hesabatlar', 'Reports'), icon: 'chart', tone: 'teal' },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const icebergArchitectureViz: FlowSpec = {
+  title: L('Apache Iceberg: 3-Pilləli Metadata Ağacı', 'Apache Iceberg: 3-Tier Metadata Tree'),
+  badge: 'Metadata Tree',
+  footer: L(
+    'Iceberg sorğunu birbaşa fayllara yox, Metadata -> Manifest List -> Manifest faylları üzərindən istiqamətləndirərək faylların 90%-ni oxumadan ötürür (Data Skipping).',
+    'Iceberg routes queries via Metadata -> Manifest List -> Manifest Files to skip up to 90% of files without reading them.'
+  ),
+  rows: [
+    {
+      stages: [
+        {
+          title: L('1. Kataloq', '1. Catalog'),
+          nodes: [{ label: 'Kataloq (Nessie)', sub: 'table_metadata.json pointer', icon: 'library', tone: 'blue', badge: 'POINTER' }],
+        },
+        {
+          title: L('2. Metadata Faylı', '2. Metadata File'),
+          arrowLabel: 'snapshot',
+          nodes: [{ label: 'v1.metadata.json', sub: L('Sxem, partition və snapshot ID', 'Schema, partitions & snapshot ID'), icon: 'filecode', tone: 'violet' }],
+        },
+        {
+          title: L('3. Manifest Siyahısı', '3. Manifest List'),
+          arrowLabel: 'manifests',
+          nodes: [{ label: 'snap-1042.avro', sub: L('Manifest siyahısı və partition aralıqları', 'Manifest list & partition ranges'), icon: 'listtree', tone: 'cyan' }],
+        },
+        {
+          title: L('4. Manifest Faylları', '4. Manifest Files'),
+          arrowLabel: 'stats',
+          nodes: [{ label: 'manifest-01.avro', sub: L('Parquet min/max statistikaları', 'Parquet min/max stats'), icon: 'table', tone: 'emerald' }],
+        },
+        {
+          title: L('5. Data Faylları', '5. Data Files'),
+          arrowLabel: 'data skipping',
+          nodes: [{ label: 'data_01.parquet', sub: L('Yalnız axtarılan sətirlər oxunur!', 'Only target rows are read!'), icon: 'archive', tone: 'emerald', badge: 'PARQUET' }],
+        },
+      ],
+    },
+  ],
+};
+
+const nessieWapWorkflow: FlowSpec = {
+  title: L('Project Nessie: Write-Audit-Publish (WAP) Təhlükəsizlik Zənciri', 'Project Nessie: Write-Audit-Publish (WAP) Flow'),
+  badge: 'Git-for-Data',
+  footer: L(
+    'Xam data birbaşa main-ə deyil, dev branch-a yazılır (Write). dbt ilə test edilir (Audit). Uğurlu olduqda main-ə merge edilir (Publish). İstehsalat 100% qorunur!',
+    'Raw data writes to dev branch (Write). Tested with dbt (Audit). Merged to main on success (Publish). Production is 100% protected!'
+  ),
+  rows: [
+    {
+      label: L('Mərhələ 1: Yazılma (Write)', 'Phase 1: Write'),
+      tone: 'amber',
+      stages: [
+        { nodes: [{ label: 'main branch', sub: L('İstehsalat toxunulmazdır', 'Production untouched'), icon: 'branch', tone: 'emerald' }] },
+        { arrowLabel: 'branch create', nodes: [{ label: 'dev_ingest_today', sub: L('Təcrid olunmuş budaq', 'Isolated branch'), icon: 'split', tone: 'blue' }] },
+        { arrowLabel: 'Spark ingest', nodes: [{ label: 'Iceberg Cədvəli', sub: L('Yalnız dev budağına yazılır', 'Writes to dev branch only'), icon: 'layers3', tone: 'amber' }] },
+      ],
+    },
+    {
+      label: L('Mərhələ 2: Audit və Dərc (Audit & Publish)', 'Phase 2: Audit & Publish'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: 'dbt test (Trino)', sub: L('Not Null, Unikal və s.', 'Not Null, Unique, etc.'), icon: 'hammer', tone: 'violet', badge: 'AUDIT' }] },
+        { arrowLabel: 'pass ✓', nodes: [{ label: 'Fast-Forward Merge', sub: L('Saniyəlik atomik keçid', 'Instant atomic switch'), icon: 'merge', tone: 'emerald' }] },
+        { arrowLabel: 'publish', nodes: [{ label: 'main branch (Canlı)', sub: L('Power BI və istifadəçilər', 'Power BI & end-users'), icon: 'chart', tone: 'emerald', badge: 'GOLD' }] },
+      ],
+    },
+  ],
+};
+
+const trinoDistributedViz: HubSpec = {
+  title: L('Trino: Paylanmış Sorğu Mühərriki və Data Federasiyası', 'Trino: Distributed Query Engine & Data Federation'),
+  subtitle: L('Coordinator sorğunu planlaşdırır, Worker-lər fərqli sistemlərdən paralel oxuyur', 'Coordinator plans query, Workers query sources in parallel'),
+  badge: 'Federation',
+  footer: L(
+    'Trino-nun öz storage-i yoxdur; Coordinator və Worker-lər JDBC və SPI connector-lar vasitəsilə Iceberg, MS SQL və Postgres-i tək SQL-də birləşdirir.',
+    'Trino has no built-in storage; Coordinator & Workers use JDBC and SPI connectors to combine Iceberg, MS SQL & Postgres in a single query.'
+  ),
+  center: { label: 'Trino Coordinator', sub: L('CBO Optimizer & Task Planner', 'CBO Optimizer & Task Planner'), icon: 'cpu', tone: 'blue' },
+  spokes: [
+    { label: 'Trino Worker 1', sub: L('Iceberg Connector (S3)', 'Iceberg Connector (S3)'), icon: 'server', tone: 'cyan', direction: 'out' },
+    { label: 'Trino Worker 2', sub: L('MS SQL Connector (OLTP)', 'MS SQL Connector (OLTP)'), icon: 'server', tone: 'indigo', direction: 'out' },
+    { label: 'Trino Worker 3', sub: L('PostgreSQL Connector (CRM)', 'PostgreSQL Connector (CRM)'), icon: 'server', tone: 'violet', direction: 'out' },
+    { label: 'dbt Runner', sub: L('Transformasiya modelləri', 'Transformation models'), icon: 'hammer', tone: 'amber', direction: 'in' },
+    { label: 'Power BI / SQL User', sub: L('İnteraktiv hesabat sorğusu', 'Interactive reporting query'), icon: 'chart', tone: 'emerald', direction: 'in' },
+  ],
+};
+
+const endToEndLakehouseFlow: FlowSpec = {
+  title: L('Enterprise: Bütöv Data Lakehouse Boru Xətti', 'Enterprise Insurance: End-to-End Lakehouse Pipeline'),
+  badge: 'End-to-End',
+  footer: L(
+    'Airflow gecəlik işləri idarə edir: MS SQL -> Spark Ingestion -> Nessie Dev Branch -> dbt Audit -> Fast-Forward Merge -> Trino & Power BI.',
+    'Airflow orchestrates nightly pipeline: MS SQL -> Spark Ingestion -> Nessie Dev Branch -> dbt Audit -> Fast-Forward Merge -> Trino & Power BI.'
+  ),
+  rows: [
+    {
+      stages: [
+        {
+          title: L('1. Operativ Mənbə', '1. OLTP Source'),
+          nodes: [{ label: 'MS SQL Server', sub: L('Polislər və Zərərlər', 'Policies & Claims'), icon: 'db', tone: 'indigo' }],
+        },
+        {
+          title: L('2. Çıxarılma (Ingestion)', '2. Ingestion'),
+          arrowLabel: 'spark-submit',
+          nodes: [{ label: 'Apache Spark', sub: L('Təmizləmə & Dedup', 'Deduplication & Clean'), icon: 'zap', tone: 'amber' }],
+        },
+        {
+          title: L('3. Saxlanc & WAP', '3. Storage & WAP'),
+          arrowLabel: 'iceberg table',
+          nodes: [
+            { label: 'Nessie Dev Branch', sub: L('Təcrid olunmuş budaq', 'Isolated branch'), icon: 'branch', tone: 'blue', badge: 'DEV' },
+            { label: 'MinIO / S3', sub: L('Iceberg Parquet', 'Iceberg Parquet'), icon: 'archive', tone: 'orange' },
+          ],
+        },
+        {
+          title: L('4. Audit & Transformasiya', '4. Audit & Transform'),
+          arrowLabel: 'dbt test & run',
+          nodes: [{ label: 'dbt + Trino', sub: L('Keyfiyyət yoxlanışı və Gold Marts', 'Quality tests & Gold Marts'), icon: 'hammer', tone: 'violet' }],
+        },
+        {
+          title: L('5. İstehlak (Serving)', '5. Serving'),
+          arrowLabel: 'merge & query',
+          nodes: [{ label: 'Power BI Dashboard', sub: L('Səhər 08:30 Hesabat', 'Morning 08:30 Report'), icon: 'chart', tone: 'emerald', badge: 'GOLD ✓' }],
+        },
+      ],
+    },
+  ],
+};
+
+
+/* ============================== MS SQL SERVER & T-SQL ============================== */
+
+const mssqlDialectComparison: FlowSpec = {
+  title: L('PostgreSQL vs MS SQL Server (T-SQL) Dialekti', 'PostgreSQL vs MS SQL Server (T-SQL) Dialect'),
+  badge: 'T-SQL Basics',
+  footer: L(
+    'T-SQL fərqləri: LIMIT -> TOP (n), SERIAL -> IDENTITY(1,1), BOOLEAN -> BIT (0/1), və Unicode Azərbaycan hərfləri üçün N\'Mətn\'.',
+    'T-SQL differences: LIMIT -> TOP (n), SERIAL -> IDENTITY(1,1), BOOLEAN -> BIT (0/1), and N\'Text\' for Unicode.'
+  ),
+  rows: [
+    {
+      label: L('PostgreSQL (Standart SQL)', 'PostgreSQL (Standard SQL)'),
+      tone: 'blue',
+      stages: [
+        { nodes: [{ label: 'SELECT ... LIMIT 5', sub: L('Sorğunun sonunda', 'At query end'), icon: 'terminal', tone: 'blue' }] },
+        { nodes: [{ label: 'SERIAL PRIMARY KEY', sub: L('Avto-artan açar', 'Auto-increment key'), icon: 'table', tone: 'blue' }] },
+        { nodes: [{ label: 'BOOLEAN (TRUE/FALSE)', sub: L('Məntiqi tip', 'Boolean type'), icon: 'ok', tone: 'blue' }] },
+        { nodes: [{ label: "'Azərbaycan'", sub: L('Standart mətn sabiti', 'Standard text literal'), icon: 'file', tone: 'blue' }] },
+      ],
+    },
+    {
+      label: L('MS SQL Server (T-SQL)', 'MS SQL Server (T-SQL)'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: 'SELECT TOP (5) ...', sub: L('SELECT-dən dərhal sonra', 'Directly after SELECT'), icon: 'terminal', tone: 'emerald', badge: 'TOP' }] },
+        { nodes: [{ label: 'IDENTITY(1, 1)', sub: L('Seed və step parametri', 'Seed & step params'), icon: 'table', tone: 'emerald', badge: 'IDENTITY' }] },
+        { nodes: [{ label: 'BIT (1 / 0)', sub: L('1=True, 0=False', '1=True, 0=False'), icon: 'ok', tone: 'emerald', badge: 'BIT' }] },
+        { nodes: [{ label: "N'Azərbaycan'", sub: L('N prefiksi ilə Unicode', 'Unicode with N prefix'), icon: 'shield', tone: 'emerald', badge: 'NVARCHAR' }] },
+      ],
+    },
+  ],
+};
+
+const tsqlControlFlowViz: FlowSpec = {
+  title: L('T-SQL Dəyişənləri və Şərt Budaqlanması', 'T-SQL Variables & Control Flow'),
+  badge: 'Control Flow',
+  footer: L(
+    'Lokal dəyişənlər @ ilə başlayır. Şərt daxilində çoxsətirli əmrlər üçün BEGIN...END bloku mütləqdir. @@ROWCOUNT son təsir sayını göstərir.',
+    'Local variables start with @. BEGIN...END blocks are mandatory for multi-statement conditions. @@ROWCOUNT tracks affected rows.'
+  ),
+  rows: [
+    {
+      stages: [
+        {
+          title: L('1. Dəyişən Elanı', '1. Variable Declaration'),
+          nodes: [{ label: 'DECLARE @Score INT', sub: 'SET @Score = 85;', icon: 'code', tone: 'indigo' }],
+        },
+        {
+          title: L('2. Şərt Yoxlanışı', '2. Condition Check'),
+          arrowLabel: 'IF @Score >= 80',
+          nodes: [{ label: 'IF ... ELSE', sub: L('Budaqlanma qərarı', 'Branching decision'), icon: 'split', tone: 'amber' }],
+        },
+        {
+          title: L('3. İcra Bloku', '3. Execution Block'),
+          arrowLabel: 'BEGIN...END',
+          nodes: [{ label: 'SET @Discount = 0.20', sub: L('20% VIP Endirim hesabla', 'Calculate 20% VIP discount'), icon: 'zap', tone: 'emerald', badge: 'BEGIN...END' }],
+        },
+        {
+          title: L('4. Audit & Monitorinq', '4. Audit & Monitor'),
+          arrowLabel: 'audit',
+          nodes: [{ label: '@@ROWCOUNT', sub: L('Təsir edən sətir sayı', 'Affected row count'), icon: 'gauge', tone: 'teal', badge: 'ROWCOUNT' }],
+        },
+      ],
+    },
+  ],
+};
+
+const storedProcExecutionFlow: FlowSpec = {
+  title: L('Stored Procedure İcra və Tranzaksiya Axını', 'Stored Procedure Execution & Transaction Flow'),
+  badge: 'ACID & Security',
+  footer: L(
+    'Müştəri EXEC usp_ApproveClaim çağırır. Prosedur daxilində BEGIN TRANSACTION ilə Claims yenilənir və AuditLog yazılır. Xəta olarsa ROLLBACK, uğurlu olduqda COMMIT olunur.',
+    'Client calls EXEC usp_ApproveClaim. Inside, BEGIN TRANSACTION updates Claims and writes AuditLog. ROLLBACK on error, COMMIT on success.'
+  ),
+  rows: [
+    {
+      stages: [
+        {
+          title: L('1. Çağırış', '1. Invocation'),
+          nodes: [{ label: 'EXEC usp_Approve', sub: '@ClaimID, @Payout', icon: 'play', tone: 'blue' }],
+        },
+        {
+          title: L('2. Tranzaksiya', '2. Transaction'),
+          arrowLabel: 'atomic',
+          nodes: [{ label: 'BEGIN TRANSACTION', sub: L('Cədvəllər kilidlənir', 'Tables guarded'), icon: 'lock', tone: 'violet', badge: 'TRY' }],
+        },
+        {
+          title: L('3. Cədvəl Dəyişikliyi', '3. DML Updates'),
+          arrowLabel: 'DML',
+          nodes: [
+            { label: 'UPDATE Claims', sub: 'Status: APPROVED', icon: 'table', tone: 'emerald' },
+            { label: 'INSERT AuditLogs', sub: 'Action: CLAIM_APPROVED', icon: 'filecode', tone: 'emerald' },
+          ],
+        },
+        {
+          title: L('4. Nəticə', '4. Outcome'),
+          arrowLabel: 'COMMIT / ROLLBACK',
+          nodes: [{ label: 'COMMIT TRANSACTION', sub: 'OUTPUT @ResultMsg', icon: 'ok', tone: 'emerald', badge: 'SAFE ✓' }],
+        },
+      ],
+    },
+  ],
+};
+
+const storedProcVsFunctionViz: HubSpec = {
+  title: L('Stored Procedure və Function Müqayisəsi', 'Stored Procedure vs Function Comparison'),
+  subtitle: L('Procedure datanı dəyişir və tranzaksiya idarə edir; Function yalnız oxuyur və qiymət qaytarır', 'Procedure modifies data and controls transactions; Function only reads and returns values'),
+  badge: 'Key Difference',
+  footer: L(
+    'Funksiyalarda side-effects (UPDATE/DELETE) qadağandır və onlar birbaşa SELECT daxilində işlədilir. Prosedur isə EXEC ilə icra olunur.',
+    'Functions disallow side-effects (UPDATE/DELETE) and run inside SELECT. Procedures are invoked with EXEC.'
+  ),
+  center: { label: 'T-SQL Logic', sub: L('Database Code Blocks', 'Database Code Blocks'), icon: 'dbzap', tone: 'blue' },
+  spokes: [
+    { label: 'Stored Procedure', sub: L('EXEC ilə çağırılır; Datanı dəyişir (DML)', 'Invoked with EXEC; Modifies data (DML)'), icon: 'server', tone: 'indigo', direction: 'out' },
+    { label: 'Scalar Function', sub: L('SELECT-də çağırılır; Tək qiymət qaytarır', 'Runs in SELECT; Returns scalar value'), icon: 'code', tone: 'cyan', direction: 'out' },
+    { label: 'Table Function (TVF)', sub: L('FROM-da çağırılır; Cədvəl qaytarır', 'Runs in FROM; Returns table'), icon: 'table', tone: 'teal', direction: 'out' },
+    { label: 'Tranzaksiyalar', sub: L('COMMIT / ROLLBACK yalnız Prosedurda', 'COMMIT / ROLLBACK only in Procedures'), icon: 'lock', tone: 'rose', direction: 'in' },
+    { label: 'Təhlükəsizlik', sub: L('GRANT EXECUTE icazəsi', 'GRANT EXECUTE permissions'), icon: 'shield', tone: 'emerald', direction: 'in' },
+  ],
+};
+
+const mssqlOptimizationSargable: FlowSpec = {
+  title: L('T-SQL Performansı: S-ARG-able Sorğular və Test Qaydası', 'T-SQL Performance: S-ARG-able Queries & Testing'),
+  badge: 'Optimization',
+  footer: L(
+    'Sütunu funksiyaya bürüməyin (Index Scan yavaşdır). Dəqiq aralıqlar yazın (Index Seek sürətlidir). Testləri ROLLBACK ilə təhlükəsiz aparın.',
+    'Do not wrap columns in functions (Index Scan is slow). Use explicit ranges (Index Seek is fast). Test safely with ROLLBACK.'
+  ),
+  rows: [
+    {
+      label: L('Yavaş (Non-Sargable) — Bütün Cədvəli Oxuyur', 'Slow (Non-Sargable) — Scans Entire Table'),
+      tone: 'rose',
+      stages: [
+        { nodes: [{ label: 'WHERE YEAR(Date) = 2026', icon: 'bug', tone: 'rose' }] },
+        { arrowLabel: 'expensive', nodes: [{ label: 'Hər sətir üçün YEAR() hesabla', sub: L('CPU və disk yüklənir', 'High CPU & disk load'), icon: 'cpu', tone: 'amber' }] },
+        { arrowLabel: '100x slow', nodes: [{ label: 'Index / Table Scan', sub: L('100,000 sətir oxunur', '100,000 rows scanned'), icon: 'flame', tone: 'rose', badge: 'SLOW' }] },
+      ],
+    },
+    {
+      label: L('Sürətli (S-ARG-able) — Birbaşa İndeks Axtarışı', 'Fast (S-ARG-able) — Direct Index Seek'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: "WHERE Date >= '2026-01-01'", icon: 'shield', tone: 'emerald' }] },
+        { arrowLabel: 'direct B-Tree', nodes: [{ label: 'Index Seek', sub: L('B-Tree budağından birbaşa tapır', 'Direct B-Tree traversal'), icon: 'zap', tone: 'emerald' }] },
+        { arrowLabel: 'instant', nodes: [{ label: '10 millisaniyəyə nəticə', sub: L('Optimal icra planı', 'Optimal execution plan'), icon: 'trophy', tone: 'emerald', badge: 'FAST ✓' }] },
+      ],
+    },
+  ],
+};
+
 /* ================================== REGISTRY ================================== */
 
 const flow = (spec: FlowSpec) => () => <FlowDiagram spec={spec} />;
@@ -2227,6 +2552,20 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'python:11-generators-memory': flow(generators),
   'python:12-rest-api-ingestion-retry': flow(pythonRestApiIngestion),
   'python:13-pandas-basics-dataframes': flow(pythonPandasBasics),
+
+  // 9. MODERN LAKEHOUSE (5/5 Complete)
+  'modern_lakehouse:01-what-is-modern-lakehouse': flow(modernLakehouseStack),
+  'modern_lakehouse:02-apache-iceberg-architecture': flow(icebergArchitectureViz),
+  'modern_lakehouse:03-project-nessie-git-for-data': flow(nessieWapWorkflow),
+  'modern_lakehouse:04-trino-distributed-sql-engine': hub(trinoDistributedViz),
+  'modern_lakehouse:05-lakehouse-pipeline-flow': flow(endToEndLakehouseFlow),
+
+  // 10. MS SQL SERVER & T-SQL (5/5 Complete)
+  'ms_sql:01-mssql-basics-tsql-dialects': flow(mssqlDialectComparison),
+  'ms_sql:02-tsql-variables-control-flow': flow(tsqlControlFlowViz),
+  'ms_sql:03-stored-procedures': flow(storedProcExecutionFlow),
+  'ms_sql:04-user-defined-functions': hub(storedProcVsFunctionViz),
+  'ms_sql:05-mssql-interview-practice': flow(mssqlOptimizationSargable),
 };
 
 export function hasAnimatedInfographic(moduleId: string, lessonId: string): boolean {

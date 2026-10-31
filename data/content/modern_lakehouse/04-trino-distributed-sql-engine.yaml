@@ -1,0 +1,465 @@
+id: 04-trino-distributed-sql-engine
+order: 4
+level: intermediate
+title:
+  az: Trino Nədir? Paylanmış SQL Sorğu Mühərriki və Data Federasiyası
+  en: Trino Nədir? Paylanmış SQL Sorğu Mühərriki və Data Federasiyası
+quick_recap:
+  az: '- Trino (keçmiş PrestoSQL) nəhəng, açıq mənbəli paylanmış SQL sorğu mühərrikidir
+    (distributed SQL query engine).
+
+    - Trino məlumat bazası DEYİL — onun öz yaddaşı (storage) yoxdur; o, yalnız hesablama
+    (compute) mühərrikidir.
+
+    - Data Federasiyası: Fərqli sistemlərdəki datanı (məs. MS SQL-dəki müştərilər
+    + Iceberg/S3-dəki zərərlər) tək bir SQL sorğusunda JOIN etməyə imkan verir.
+
+    - Coordinator və Workers arxitekturası ilə işləyir; Spark-dan fərqli olaraq in-memory
+    pipelined axınla işləyir və saniyələr içində cavab qaytarır.
+
+    - İri sığorta və maliyyə şirkətlərində analitiklərin və dbt modellərinin Iceberg cədvəllərini yüksək
+    sürətlə sorğulaması üçün əsas giriş qapısıdır.'
+  en: '- Trino (keçmiş PrestoSQL) nəhəng, açıq mənbəli paylanmış SQL sorğu mühərrikidir
+    (distributed SQL query engine).
+
+    - Trino məlumat bazası DEYİL — onun öz yaddaşı (storage) yoxdur; o, yalnız hesablama
+    (compute) mühərrikidir.
+
+    - Data Federasiyası: Fərqli sistemlərdəki datanı (məs. MS SQL-dəki müştərilər
+    + Iceberg/S3-dəki zərərlər) tək bir SQL sorğusunda JOIN etməyə imkan verir.
+
+    - Coordinator və Workers arxitekturası ilə işləyir; Spark-dan fərqli olaraq in-memory
+    pipelined axınla işləyir və saniyələr içində cavab qaytarır.
+
+    - İri sığorta və maliyyə şirkətlərində analitiklərin və dbt modellərinin Iceberg cədvəllərini yüksək
+    sürətlə sorğulaması üçün əsas giriş qapısıdır.'
+explanation:
+  az: "### Niyə Trino Yaradıldı? Tarixi Zərurət\nƏvvəllər şirkətlər Data Lake-də (Hadoop/HDFS)\
+    \ saxlanılan terabaytlarla datanı sorğulamaq üçün **Apache Hive**-dan istifadə\
+    \ edirdilər. Lakin Hive arxa planda hər SQL sorğusunu ağır **MapReduce** və ya\
+    \ Spark batch işlərinə çevirir, aralıq nəticələri daima diskə yazırdı. Nəticədə\
+    \ sadə bir hesabat sorğusu 15-30 dəqiqə çəkirdi.\n\nFacebook mühəndisləri analitiklərin\
+    \ interaktiv, saniyələr çəkən SQL sorğuları icra edə bilməsi üçün **Presto**-nu\
+    \ (indiki adı ilə **Trino**) yaratdılar. Trino-nun fəlsəfəsi sadədir: **Datanı\
+    \ diskə yazma, RAM-da paralel emal et və dərhal nəticəni qaytar!**\n\n---\n\n\
+    ### Trino-nun Əsas Arxitekturası: Coordinator və Workers\nTrino klasteri iki əsas\
+    \ roldan ibarətdir:\n\n1. **Coordinator (Koordinator)**:\n   * İstifadəçidən (DBeaver,\
+    \ BI alətləri, dbt) gələn SQL sorğusunu qəbul edir.\n   * SQL-i sintaktik təhlil\
+    \ edir (parse), optimizasiya edir (Cost-Based Optimizer).\n   * Sorğunu kiçik\
+    \ mərhələlərə (**Stages**) və tapşırıqlara (**Tasks/Splits**) bölərək Worker-lərə\
+    \ paylayır.\n   * Worker-lərdən gələn yekun nəticəni toplayıb müştəriyə təqdim\
+    \ edir.\n\n2. **Workers (İşçi Serverlər)**:\n   * Koordinatordan aldıqları tapşırıqları\
+    \ paralel icra edirlər.\n   * Məlumat mənbələrinə (S3/Iceberg, PostgreSQL, MS\
+    \ SQL) birbaşa qoşulub datanı oxuyurlar.\n   * Filterləmə, aqreqasiya və join\
+    \ əməliyyatlarını yaddaşda (RAM) icra edib axın (streaming pipeline) şəklində\
+    \ ötürürlər.\n   * **Stateless**: Klasterə asanlıqla yeni worker əlavə etmək və\
+    \ ya söndürmək olar.\n\n---\n\n### Trino-nun Ən Böyük Super-Gücü: Data Federasiyası\
+    \ (Connectors)\nƏnənəvi sistemlərdə iki fərqli bazadakı datanı birləşdirmək üçün\
+    \ onları əvvəlcə ETL ilə eyni bazaya köçürmək lazım gəlirdi. Trino-da isə **Connectors**\
+    \ (birləşdiricilər) mexanizmi var. \n\nTrino bir növ \"universal SQL tərcüməçisi\
+    \ və körpüsü\"dür. Konfiqurasiya fayllarında kataloqları təyin edirsiniz:\n* `iceberg.properties`\
+    \ -> MinIO/S3-dəki Iceberg cədvəllərinə baxır\n* `mssql.properties` -> Böyük sığorta və maliyyə şirkətlərinin\
+    \ MS SQL əməliyyat bazasına baxır\n* `postgres.properties` -> CRM PostgreSQL bazasına\
+    \ baxır\n\nVə siz tək bir SQL sorğusunda yazırsınız:\n```sql\nSELECT c.customer_name,\
+    \ SUM(cl.claim_amount)\nFROM mssql.core_banking.customers c\nJOIN iceberg.analytics_lake.claims\
+    \ cl ON c.customer_id = cl.customer_id\nGROUP BY c.customer_name;\n```\nHeç bir\
+    \ məlumatı kopyalamadan Trino MS SQL-dən müştərini, S3-dən zərərləri oxuyur, öz\
+    \ yaddaşında JOIN edir və sizə 1-2 saniyəyə cavab verir!\n\n---\n\n### Trino və\
+    \ Apache Spark: Nə Zaman Hansı?\nİntern müsahibələrində ən çox verilən suallardan\
+    \ biri: *\"Əgər Spark varsa, Trino nəyə lazımdır? Və ya əksinə?\"*\n\n| Xüsusiyyət\
+    \ | Trino | Apache Spark |\n| :--- | :--- | :--- |\n| **Əsas Təyinatı** | İnteraktiv\
+    \ SQL, BI hesabatlar, dbt analitikası | Ağır ETL/ELT, ML, streaming, kompleks\
+    \ batch |\n| **İcra Modeli** | In-memory, pipelined streaming (çox sürətli) |\
+    \ Resilient Distributed Dataset (RDD), stage-by-stage |\n| **Xətalara Dözümlülük**\
+    \ | Standart rejimdə worker ölsə, sorğu ləğv edilir | Çox yüksək (node ölərsə\
+    \ qalan hissəni yenidən hesablayır) |\n| **Yaddaş İstifadəsi** | Nəticə dərhal\
+    \ axıdılır, az RAM buferi | Aralıq nəticələr üçün disk shuffle və geniş RAM |\n\
+    | **Sığortadakı Yeri** | Analitiklərin ad-hoc sorğuları və dbt ilə Iceberg üzərində\
+    \ sürətli modelləşdirmə | Gecəlik böyük həcmli xam loqların təmizlənib Lakehouse-a\
+    \ yığılması |\n\n---\n\n### dbt + Trino Əməkdaşlığı\nMüasir Data Lakehouse-da\
+    \ dbt transformasiyaları idarə edir. Lakin dbt özü məlumat emal etmir — o sadəcə\
+    \ SQL kodunu icra mühərrikinə göndərir. \n`dbt-trino` adapteri vasitəsilə dbt\
+    \ modeli Trino-ya göndərilir, Trino sorğunu Iceberg üzərində icra edir və yeni\
+    \ `Gold` / `Silver` Iceberg cədvəlini yaradır!\n"
+  en: "### Niyə Trino Yaradıldı? Tarixi Zərurət\nƏvvəllər şirkətlər Data Lake-də (Hadoop/HDFS)\
+    \ saxlanılan terabaytlarla datanı sorğulamaq üçün **Apache Hive**-dan istifadə\
+    \ edirdilər. Lakin Hive arxa planda hər SQL sorğusunu ağır **MapReduce** və ya\
+    \ Spark batch işlərinə çevirir, aralıq nəticələri daima diskə yazırdı. Nəticədə\
+    \ sadə bir hesabat sorğusu 15-30 dəqiqə çəkirdi.\n\nFacebook mühəndisləri analitiklərin\
+    \ interaktiv, saniyələr çəkən SQL sorğuları icra edə bilməsi üçün **Presto**-nu\
+    \ (indiki adı ilə **Trino**) yaratdılar. Trino-nun fəlsəfəsi sadədir: **Datanı\
+    \ diskə yazma, RAM-da paralel emal et və dərhal nəticəni qaytar!**\n\n---\n\n\
+    ### Trino-nun Əsas Arxitekturası: Coordinator və Workers\nTrino klasteri iki əsas\
+    \ roldan ibarətdir:\n\n1. **Coordinator (Koordinator)**:\n   * İstifadəçidən (DBeaver,\
+    \ BI alətləri, dbt) gələn SQL sorğusunu qəbul edir.\n   * SQL-i sintaktik təhlil\
+    \ edir (parse), optimizasiya edir (Cost-Based Optimizer).\n   * Sorğunu kiçik\
+    \ mərhələlərə (**Stages**) və tapşırıqlara (**Tasks/Splits**) bölərək Worker-lərə\
+    \ paylayır.\n   * Worker-lərdən gələn yekun nəticəni toplayıb müştəriyə təqdim\
+    \ edir.\n\n2. **Workers (İşçi Serverlər)**:\n   * Koordinatordan aldıqları tapşırıqları\
+    \ paralel icra edirlər.\n   * Məlumat mənbələrinə (S3/Iceberg, PostgreSQL, MS\
+    \ SQL) birbaşa qoşulub datanı oxuyurlar.\n   * Filterləmə, aqreqasiya və join\
+    \ əməliyyatlarını yaddaşda (RAM) icra edib axın (streaming pipeline) şəklində\
+    \ ötürürlər.\n   * **Stateless**: Klasterə asanlıqla yeni worker əlavə etmək və\
+    \ ya söndürmək olar.\n\n---\n\n### Trino-nun Ən Böyük Super-Gücü: Data Federasiyası\
+    \ (Connectors)\nƏnənəvi sistemlərdə iki fərqli bazadakı datanı birləşdirmək üçün\
+    \ onları əvvəlcə ETL ilə eyni bazaya köçürmək lazım gəlirdi. Trino-da isə **Connectors**\
+    \ (birləşdiricilər) mexanizmi var. \n\nTrino bir növ \"universal SQL tərcüməçisi\
+    \ və körpüsü\"dür. Konfiqurasiya fayllarında kataloqları təyin edirsiniz:\n* `iceberg.properties`\
+    \ -> MinIO/S3-dəki Iceberg cədvəllərinə baxır\n* `mssql.properties` -> Böyük sığorta və maliyyə şirkətlərinin\
+    \ MS SQL əməliyyat bazasına baxır\n* `postgres.properties` -> CRM PostgreSQL bazasına\
+    \ baxır\n\nVə siz tək bir SQL sorğusunda yazırsınız:\n```sql\nSELECT c.customer_name,\
+    \ SUM(cl.claim_amount)\nFROM mssql.core_banking.customers c\nJOIN iceberg.analytics_lake.claims\
+    \ cl ON c.customer_id = cl.customer_id\nGROUP BY c.customer_name;\n```\nHeç bir\
+    \ məlumatı kopyalamadan Trino MS SQL-dən müştərini, S3-dən zərərləri oxuyur, öz\
+    \ yaddaşında JOIN edir və sizə 1-2 saniyəyə cavab verir!\n\n---\n\n### Trino və\
+    \ Apache Spark: Nə Zaman Hansı?\nİntern müsahibələrində ən çox verilən suallardan\
+    \ biri: *\"Əgər Spark varsa, Trino nəyə lazımdır? Və ya əksinə?\"*\n\n| Xüsusiyyət\
+    \ | Trino | Apache Spark |\n| :--- | :--- | :--- |\n| **Əsas Təyinatı** | İnteraktiv\
+    \ SQL, BI hesabatlar, dbt analitikası | Ağır ETL/ELT, ML, streaming, kompleks\
+    \ batch |\n| **İcra Modeli** | In-memory, pipelined streaming (çox sürətli) |\
+    \ Resilient Distributed Dataset (RDD), stage-by-stage |\n| **Xətalara Dözümlülük**\
+    \ | Standart rejimdə worker ölsə, sorğu ləğv edilir | Çox yüksək (node ölərsə\
+    \ qalan hissəni yenidən hesablayır) |\n| **Yaddaş İstifadəsi** | Nəticə dərhal\
+    \ axıdılır, az RAM buferi | Aralıq nəticələr üçün disk shuffle və geniş RAM |\n\
+    | **Sığortadakı Yeri** | Analitiklərin ad-hoc sorğuları və dbt ilə Iceberg üzərində\
+    \ sürətli modelləşdirmə | Gecəlik böyük həcmli xam loqların təmizlənib Lakehouse-a\
+    \ yığılması |\n\n---\n\n### dbt + Trino Əməkdaşlığı\nMüasir Data Lakehouse-da\
+    \ dbt transformasiyaları idarə edir. Lakin dbt özü məlumat emal etmir — o sadəcə\
+    \ SQL kodunu icra mühərrikinə göndərir. \n`dbt-trino` adapteri vasitəsilə dbt\
+    \ modeli Trino-ya göndərilir, Trino sorğunu Iceberg üzərində icra edir və yeni\
+    \ `Gold` / `Silver` Iceberg cədvəlini yaradır!\n"
+infographic:
+  az: '+-----------------------------------------------------------------------------------+
+
+    |                       TRINO DAĞINIQ SQL MÜHƏRRİKİ                                 |
+
+    |                                                                                   |
+
+    |   İstifadəçilər:  [ dbt Runner ]     [ DBeaver SQL ]     [ Power BI / Superset
+    ]  |
+
+    |                         \                   |                   /                 |
+
+    |                          \                  |                  /                  |
+
+    |                           v                 v                 v                   |
+
+    |               +-------------------------------------------------------+           |
+
+    |               |                 TRINO COORDINATOR                     |           |
+
+    |               |  - SQL Parser & Cost-Based Optimizer (CBO)            |           |
+
+    |               |  - Planlaşdırma və Task-ların Worker-lərə paylanması  |           |
+
+    |               +-------------------------------------------------------+           |
+
+    |                                     |           |                                 |
+
+    |                   +-----------------+           +-----------------+               |
+
+    |                   |                                               |               |
+
+    |                   v                                               v               |
+
+    |       +-----------------------+                       +-----------------------+   |
+
+    |       |     TRINO WORKER 1    |                       |     TRINO WORKER 2    |   |
+
+    |       | In-Memory Query Exec  |                       | In-Memory Query Exec  |   |
+
+    |       +-----------------------+                       +-----------------------+   |
+
+    |               |           \                               /           |           |
+
+    |  [Iceberg Connector]  [MS SQL Connector]     [PostgreSQL Connector]   |           |
+
+    |          |                     \                     /                |           |
+
+    |          v                      v                   v                 v           |
+
+    |  +----------------+      +---------------+     +----------------+                 |
+
+    |  | MinIO / S3     |      | MS SQL Server |     | PostgreSQL CRM |                 |
+
+    |  | (Iceberg Data) |      | (Sığorta core)|     | (Müştəri baza) |                 |
+
+    |  +----------------+      +---------------+     +----------------+                 |
+
+    +-----------------------------------------------------------------------------------+
+
+    '
+  en: '+-----------------------------------------------------------------------------------+
+
+    |                       TRINO DAĞINIQ SQL MÜHƏRRİKİ                                 |
+
+    |                                                                                   |
+
+    |   İstifadəçilər:  [ dbt Runner ]     [ DBeaver SQL ]     [ Power BI / Superset
+    ]  |
+
+    |                         \                   |                   /                 |
+
+    |                          \                  |                  /                  |
+
+    |                           v                 v                 v                   |
+
+    |               +-------------------------------------------------------+           |
+
+    |               |                 TRINO COORDINATOR                     |           |
+
+    |               |  - SQL Parser & Cost-Based Optimizer (CBO)            |           |
+
+    |               |  - Planlaşdırma və Task-ların Worker-lərə paylanması  |           |
+
+    |               +-------------------------------------------------------+           |
+
+    |                                     |           |                                 |
+
+    |                   +-----------------+           +-----------------+               |
+
+    |                   |                                               |               |
+
+    |                   v                                               v               |
+
+    |       +-----------------------+                       +-----------------------+   |
+
+    |       |     TRINO WORKER 1    |                       |     TRINO WORKER 2    |   |
+
+    |       | In-Memory Query Exec  |                       | In-Memory Query Exec  |   |
+
+    |       +-----------------------+                       +-----------------------+   |
+
+    |               |           \                               /           |           |
+
+    |  [Iceberg Connector]  [MS SQL Connector]     [PostgreSQL Connector]   |           |
+
+    |          |                     \                     /                |           |
+
+    |          v                      v                   v                 v           |
+
+    |  +----------------+      +---------------+     +----------------+                 |
+
+    |  | MinIO / S3     |      | MS SQL Server |     | PostgreSQL CRM |                 |
+
+    |  | (Iceberg Data) |      | (Sığorta core)|     | (Müştəri baza) |                 |
+
+    |  +----------------+      +---------------+     +----------------+                 |
+
+    +-----------------------------------------------------------------------------------+
+
+    '
+code: "-- Trino CLI və ya DBeaver-də icra olunan Data Federation nümunəsi:\n-- MS\
+  \ SQL-dəki agent məlumatları ilə Iceberg-dəki zərər ödənişlərini birləşdiririk\n\
+  \n-- 1. Trino-da mövcud kataloqları yoxlayırıq\nSHOW CATALOGS;\n-- Nəticə: iceberg,\
+  \ mssql, postgresql, system\n\n-- 2. Data Federation Sorğusu: \n--    Iceberg-dən\
+  \ zərərlər cədvəlini, MS SQL-dən agent cədvəlini oxuyub birləşdiririk\nSELECT \n\
+  \    a.agent_id,\n    a.agent_name,\n    a.branch_office,\n    COUNT(cl.claim_id)\
+  \ AS total_claims,\n    ROUND(SUM(cl.claim_amount), 2) AS total_payout_azn\nFROM\
+  \ mssql.dbo.insurance_agents a\nJOIN iceberg.lakehouse_claims.claims_data cl \n\
+  \    ON a.agent_id = cl.registered_agent_id\nWHERE cl.claim_status = 'APPROVED'\n\
+  \  AND cl.incident_date >= DATE '2026-01-01'\nGROUP BY a.agent_id, a.agent_name,\
+  \ a.branch_office\nORDER BY total_payout_azn DESC\nLIMIT 5;\n\n-- 3. Trino sorğusunun\
+  \ icra planını və Data Skipping statistikasını görmək:\nEXPLAIN ANALYZE\nSELECT\
+  \ COUNT(*) FROM iceberg.lakehouse_claims.claims_data\nWHERE incident_date = DATE\
+  \ '2026-10-15';\n"
+code_explanation:
+  az: '* `SHOW CATALOGS`: Trino-ya qoşulmuş bütün xarici mənbələri göstərir. Burada
+    həm Iceberg, həm də MS SQL eyni anda aktivdir.
+
+    * `mssql.dbo.insurance_agents`: MS SQL Server-dəki agent məlumatlarıdır. Trino
+    birbaşa MS SQL-ə JDBC vasitəsilə sorğu atır.
+
+    * `iceberg.lakehouse_claims.claims_data`: MinIO/S3 üzərindəki Apache Iceberg cədvəlidir.
+
+    * `JOIN`: İki tamamilə fərqli fiziki maşında yerləşən cədvəl Trino worker-lərinin
+    yaddaşında (RAM) birləşdirilir!
+
+    * `EXPLAIN ANALYZE`: Trino-nun neçə sətir oxuduğunu, neçə saniyə çəkdiyini və
+    Iceberg metadata sayəsində hansı faylları oxumayıb (data skipping) ötürdüyünü
+    canlı göstərir.
+
+    '
+  en: '* `SHOW CATALOGS`: Trino-ya qoşulmuş bütün xarici mənbələri göstərir. Burada
+    həm Iceberg, həm də MS SQL eyni anda aktivdir.
+
+    * `mssql.dbo.insurance_agents`: MS SQL Server-dəki agent məlumatlarıdır. Trino
+    birbaşa MS SQL-ə JDBC vasitəsilə sorğu atır.
+
+    * `iceberg.lakehouse_claims.claims_data`: MinIO/S3 üzərindəki Apache Iceberg cədvəlidir.
+
+    * `JOIN`: İki tamamilə fərqli fiziki maşında yerləşən cədvəl Trino worker-lərinin
+    yaddaşında (RAM) birləşdirilir!
+
+    * `EXPLAIN ANALYZE`: Trino-nun neçə sətir oxuduğunu, neçə saniyə çəkdiyini və
+    Iceberg metadata sayəsində hansı faylları oxumayıb (data skipping) ötürdüyünü
+    canlı göstərir.
+
+    '
+visual_output: "+----------+-----------------------+---------------+--------------+------------------+\n\
+  | agent_id | agent_name            | branch_office | total_claims | total_payout_azn\
+  \ |\n+----------+-----------------------+---------------+--------------+------------------+\n\
+  | AG-1042  | Samirə Əliyeva        | Bakı Mərkəz   | 142          | 324,550.00 \
+  \      |\n| AG-2091  | Rauf Qasımov          | Gəncə         | 89           | 185,200.50\
+  \       |\n| AG-1105  | Elçin Məmmədov        | Sumqayıt      | 76           | 142,800.00\
+  \       |\n| AG-3044  | Leyla Həsənova        | Bakı Yasamal  | 63           | 118,900.00\
+  \       |\n| AG-1088  | Murad İsmayılov       | Şəki          | 41           | 78,450.00\
+  \        |\n+----------+-----------------------+---------------+--------------+------------------+\n\
+  Query 20261031_143022_00012_abcde: 5 rows returned in 1.42s.\nTrino Coordinator\
+  \ Stats:\n  - Stages: 3\n  - Workers utilized: 4\n  - Split count: 18 (Iceberg:\
+  \ 16 splits, MS SQL: 2 splits)\n  - CPU Time: 3.8s, Wall Time: 1.42s\n"
+output_description:
+  az: 'Sorğu cəmi 1.42 saniyə ərzində bitdi! Trino 4 worker arasında tapşırığı böldü:
+    Iceberg-dən 16 faylı oxudu, MS SQL-dən agentləri çəkdi və RAM-da JOIN edib nəticəni
+    təqdim etdi.
+
+    '
+  en: 'Sorğu cəmi 1.42 saniyə ərzində bitdi! Trino 4 worker arasında tapşırığı böldü:
+    Iceberg-dən 16 faylı oxudu, MS SQL-dən agentləri çəkdi və RAM-da JOIN edib nəticəni
+    təqdim etdi.
+
+    '
+what_it_does:
+  az: '- Trino nəhəng həcmli data gölü (Data Lake) üzərində standart ANSI SQL sorğularını
+    inanılmaz sürətlə icra edir.
+
+    - Data kopyalamağa və ETL gözləməyə ehtiyac qalmadan müxtəlif verilənlər bazalarını
+    (MS SQL, Postgres, Iceberg) federasiya edir.
+
+    - Analitiklər və dbt üçün mərkəzləşdirilmiş sürətli hesablama təbəqəsi yaradır.'
+  en: '- Trino nəhəng həcmli data gölü (Data Lake) üzərində standart ANSI SQL sorğularını
+    inanılmaz sürətlə icra edir.
+
+    - Data kopyalamağa və ETL gözləməyə ehtiyac qalmadan müxtəlif verilənlər bazalarını
+    (MS SQL, Postgres, Iceberg) federasiya edir.
+
+    - Analitiklər və dbt üçün mərkəzləşdirilmiş sürətli hesablama təbəqəsi yaradır.'
+real_world_use:
+  az: '- İri sığorta və maliyyə şirkətlərində rəhbərlik təcili olaraq son 1 ayda ödənilən zərərlər ilə MS
+    SQL əməliyyat sistemindəki yeni müştəri polislərinin nisbətini görmək istədikdə,
+    Trino tək sorğu ilə hər iki sistemi dərhal çarpazlaşdırır.
+
+    - dbt ilə Data Marts (Gold Layer) modelləri qurularkən transformasiya Trino-da
+    icra olunur və nəticə Iceberg-ə yazılır.'
+  en: '- İri sığorta və maliyyə şirkətlərində rəhbərlik təcili olaraq son 1 ayda ödənilən zərərlər ilə MS
+    SQL əməliyyat sistemindəki yeni müştəri polislərinin nisbətini görmək istədikdə,
+    Trino tək sorğu ilə hər iki sistemi dərhal çarpazlaşdırır.
+
+    - dbt ilə Data Marts (Gold Layer) modelləri qurularkən transformasiya Trino-da
+    icra olunur və nəticə Iceberg-ə yazılır.'
+common_mistakes:
+  az: '- Trino-nu verilənlər bazası sanmaq: Trino-ya data yüklənmir, Trino mövcud
+    saxlanc sistemlərinin üstündə yalnız sorğu icra edir.
+
+    - Filter yazmadan bütün xarici RDBMS cədvəlini oxumaq: Əgər MS SQL cədvəlində
+    50 milyon sətir varsa və siz `WHERE` yazmasanız, Trino bütün o datanı şəbəkə ilə
+    çəkməyə çalışacaq və şəbəkə tıxanacaq (Pushdown qaydalarına diqqət edin).
+
+    - Gecəlik 8 saatlıq ağır batch machine learning transformasiyaları üçün Trino
+    istifadə etmək: Trino interaktiv sürət üçündür; xəta dözümlülüyü tələb edən uzun
+    batch ETL üçün Apache Spark daha uyğundur.'
+  en: '- Trino-nu verilənlər bazası sanmaq: Trino-ya data yüklənmir, Trino mövcud
+    saxlanc sistemlərinin üstündə yalnız sorğu icra edir.
+
+    - Filter yazmadan bütün xarici RDBMS cədvəlini oxumaq: Əgər MS SQL cədvəlində
+    50 milyon sətir varsa və siz `WHERE` yazmasanız, Trino bütün o datanı şəbəkə ilə
+    çəkməyə çalışacaq və şəbəkə tıxanacaq (Pushdown qaydalarına diqqət edin).
+
+    - Gecəlik 8 saatlıq ağır batch machine learning transformasiyaları üçün Trino
+    istifadə etmək: Trino interaktiv sürət üçündür; xəta dözümlülüyü tələb edən uzun
+    batch ETL üçün Apache Spark daha uyğundur.'
+interview_question:
+  question:
+    az: Trino (keçmiş Presto) nədir, onun memarlığı necə qurulub və o Apache Spark-dan
+      nə ilə fərqlənir?
+    en: Trino (keçmiş Presto) nədir, onun memarlığı necə qurulub və o Apache Spark-dan
+      nə ilə fərqlənir?
+  answer:
+    az: "\"Trino açıq mənbəli, paylanmış və stateless SQL sorğu mühərrikidir. Onun\
+      \ öz daxili saxlancı (storage) yoxdur; o, Iceberg, S3, MS SQL, PostgreSQL kimi\
+      \ fərqli mənbələri `Connectors` vasitəsilə tək bir SQL sorğusunda birləşdirir\
+      \ (Data Federation). \n\nMemarlığı **Coordinator** və çoxsaylı **Workers**-dən\
+      \ ibarətdir. Koordinator SQL sorğusunu parse və optimizasiya edir, işi kiçik\
+      \ splitlərə bölüb worker-lərə paylayır. Worker-lər mənbələrdən datanı paralel\
+      \ oxuyur və yaddaşda (in-memory pipeline) emal edir.\n\nApache Spark ilə əsas\
+      \ fərqi:\n1. **İcra modeli**: Spark xətalara qarşı yüksək dözümlü olmaq üçün\
+      \ aralıq nəticələri tez-tez diskə yazır və shuffle edir (batch yönümlü). Trino\
+      \ isə nəticəni diskə yazmır, RAM-da axınla ötürür.\n2. **İstifadə ssenarisi**:\
+      \ Trino interaktiv analitika, BI alətləri və dbt SQL modelləri üçün nəzərdə\
+      \ tutulub (sub-second / bir neçə saniyəlik cavablar). Spark isə ağır ETL/ELT,\
+      \ böyük maşın öyrənməsi və streaming üçün idealdır.\""
+    en: "\"Trino açıq mənbəli, paylanmış və stateless SQL sorğu mühərrikidir. Onun\
+      \ öz daxili saxlancı (storage) yoxdur; o, Iceberg, S3, MS SQL, PostgreSQL kimi\
+      \ fərqli mənbələri `Connectors` vasitəsilə tək bir SQL sorğusunda birləşdirir\
+      \ (Data Federation). \n\nMemarlığı **Coordinator** və çoxsaylı **Workers**-dən\
+      \ ibarətdir. Koordinator SQL sorğusunu parse və optimizasiya edir, işi kiçik\
+      \ splitlərə bölüb worker-lərə paylayır. Worker-lər mənbələrdən datanı paralel\
+      \ oxuyur və yaddaşda (in-memory pipeline) emal edir.\n\nApache Spark ilə əsas\
+      \ fərqi:\n1. **İcra modeli**: Spark xətalara qarşı yüksək dözümlü olmaq üçün\
+      \ aralıq nəticələri tez-tez diskə yazır və shuffle edir (batch yönümlü). Trino\
+      \ isə nəticəni diskə yazmır, RAM-da axınla ötürür.\n2. **İstifadə ssenarisi**:\
+      \ Trino interaktiv analitika, BI alətləri və dbt SQL modelləri üçün nəzərdə\
+      \ tutulub (sub-second / bir neçə saniyəlik cavablar). Spark isə ağır ETL/ELT,\
+      \ böyük maşın öyrənməsi və streaming üçün idealdır.\""
+  interviewer_tips:
+    az: '- Müsahibədə qeyd edin ki, Trino ''Stateless''-dir: yəni sabah klasterdə
+      yük artarsa, asanlıqla yeni worker maşınları əlavə edib ümumi hesablama gücünü
+      artıra bilərik.
+
+      - ''Data Federation'' açar sözünü mütləq işlədin: şirkətdə həm MS SQL, həm də
+      Data Lake varsa, Trino körpü rolunu oynayır.'
+    en: '- Müsahibədə qeyd edin ki, Trino ''Stateless''-dir: yəni sabah klasterdə
+      yük artarsa, asanlıqla yeni worker maşınları əlavə edib ümumi hesablama gücünü
+      artıra bilərik.
+
+      - ''Data Federation'' açar sözünü mütləq işlədin: şirkətdə həm MS SQL, həm də
+      Data Lake varsa, Trino körpü rolunu oynayır.'
+flashcards:
+- front:
+    az: Trino nədir və onun məlumat bazasından (Database) əsas fərqi nədir?
+    en: Trino nədir və onun məlumat bazasından (Database) əsas fərqi nədir?
+  back:
+    az: Trino paylanmış SQL sorğu mühərrikidir. Fərqi odur ki, Trino-nun öz daxili
+      yaddaşı (storage) yoxdur — o, yalnız kənar mənbələrdəki (Iceberg, S3, MS SQL,
+      Postgres) datanı yaddaşda (RAM) emal edən hesablama təbəqəsidir.
+    en: Trino paylanmış SQL sorğu mühərrikidir. Fərqi odur ki, Trino-nun öz daxili
+      yaddaşı (storage) yoxdur — o, yalnız kənar mənbələrdəki (Iceberg, S3, MS SQL,
+      Postgres) datanı yaddaşda (RAM) emal edən hesablama təbəqəsidir.
+- front:
+    az: Trino klasterində Coordinator və Worker rolları nədir?
+    en: Trino klasterində Coordinator və Worker rolları nədir?
+  back:
+    az: 'Coordinator: SQL sorğusunu qəbul edir, optimallaşdırır və tapşırıqları bölür.
+      Workers: Datanı kənar mənbələrdən paralel oxuyur, yaddaşda filter/join edir
+      və nəticəni koordinatordan müştəriyə axıdır.'
+    en: 'Coordinator: SQL sorğusunu qəbul edir, optimallaşdırır və tapşırıqları bölür.
+      Workers: Datanı kənar mənbələrdən paralel oxuyur, yaddaşda filter/join edir
+      və nəticəni koordinatordan müştəriyə axıdır.'
+- front:
+    az: Trino-da 'Data Federation' nə deməkdir?
+    en: Trino-da 'Data Federation' nə deməkdir?
+  back:
+    az: Fərqli fiziki məlumat bazalarındakı (məsələn, MS SQL-dəki cədvəl ilə S3 Iceberg-dəki
+      cədvəli) məlumatları heç bir ETL köçürməsi etmədən tək bir SQL sorğusunda birbaşa
+      JOIN edə bilmək qabiliyyətidir.
+    en: Fərqli fiziki məlumat bazalarındakı (məsələn, MS SQL-dəki cədvəl ilə S3 Iceberg-dəki
+      cədvəli) məlumatları heç bir ETL köçürməsi etmədən tək bir SQL sorğusunda birbaşa
+      JOIN edə bilmək qabiliyyətidir.
+- front:
+    az: Trino nə üçün Apache Hive-dan və bəzən Spark-dan daha sürətlidir?
+    en: Trino nə üçün Apache Hive-dan və bəzən Spark-dan daha sürətlidir?
+  back:
+    az: Çünki Trino aralıq nəticələri diskə yazmır (no disk spooling); o, bütün məlumat
+      axınını yaddaşdan-yaddaşa (in-memory pipelined execution) ötürür.
+    en: Çünki Trino aralıq nəticələri diskə yazmır (no disk spooling); o, bütün məlumat
+      axınını yaddaşdan-yaddaşa (in-memory pipelined execution) ötürür.
+- front:
+    az: Nə zaman Spark, nə zaman isə Trino seçilməlidir?
+    en: Nə zaman Spark, nə zaman isə Trino seçilməlidir?
+  back:
+    az: Ağır gecəlik batch ETL, xətalara dözümlülük (fault tolerance) və maşın öyrənməsi
+      üçün Spark seçilir. İnteraktiv BI hesabatları, sürətli ad-hoc SQL və dbt modelləşdirməsi
+      üçün Trino seçilir.
+    en: Ağır gecəlik batch ETL, xətalara dözümlülük (fault tolerance) və maşın öyrənməsi
+      üçün Spark seçilir. İnteraktiv BI hesabatları, sürətli ad-hoc SQL və dbt modelləşdirməsi
+      üçün Trino seçilir.
