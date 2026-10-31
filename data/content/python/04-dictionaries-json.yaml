@@ -18,7 +18,7 @@ order: 4
 level: "junior"
 title:
   en: "Dictionaries, Key-Value Lookups, and JSON"
-  az: "Lüğətlər, Açar-Dəyər Cütləri və JSON"
+  az: "Dictionary (Lüğət), Key-Value Cütləri və JSON"
 quick_recap:
   en: "Dictionaries are hash tables mapping unique keys to values with O(1) average lookup complexity. In data engineering, semi-structured JSON from webhooks and APIs converts directly into Python dictionaries. Always prefer `dict.get(key, default)` over `dict[key]` to prevent KeyError crashes on optional fields."
   az: "Lüğətlər unikal açarları dəyərlərə bağlayan və O(1) orta axtarış sürəti verən hash cədvəlləridir. Data mühəndisliyində API və vebhook-lardan gələn yarı-strukturlu JSON qeydləri birbaşa Python lüğətinə çevrilir. Məcburi olmayan açarlarda KeyError xətasının qarşısını almaq üçün həmişə `dict.get(key, default)` istifadə edin."
@@ -43,7 +43,7 @@ explanation:
     Python-da lüğətlər (`dict`) bu açar-dəyər münasibətini təmsil edir. Web API-lərindən gələn bütün JSON sənədləri Python-da lüğət kimi emal olunur.
 
     ### Təhlükəsiz vs. Təhlükəli Oxuma:
-    - `data["seher"]`: Əgər `"seher"` açarı cədvəldə yoxdursa, Python dərhal `KeyError` verir və bütün boru kəməri dayanır.
+    - `data["seher"]`: Əgər `"seher"` açarı cədvəldə yoxdursa, Python dərhal `KeyError` verir və bütün data pipeline dayanır.
     - `data.get("seher", "Naməlum")`: Əgər açar yoxdursa, proqram qəzaya uğramır, təhlükəsiz şəkildə ehtiyat dəyəri ("Naməlum") qaytarır.
 
     ### Əsas Lüğət Əməliyyatları:
@@ -83,22 +83,25 @@ common_mistakes:
     - **Using mutable objects as keys**: Dictionary keys must be hashable and immutable (strings, integers, tuples). You cannot use a list as a dictionary key (`TypeError: unhashable type: 'list'`).
     - **Confusing get() default when key exists with None value**: `d = {"x": None}; d.get("x", "default")` returns `None`, because the key actually exists! Use `d.get("x") or "default"` to catch both missing and falsy values.
   az: |
-    - **data[key] ilə birbaşa oxumaq**: Olmayan tək bir açar milyonlarla sətirlik ETL kəmərini KeyError ilə dondurur. Həmişə `.get(key, default)` istifadə edin.
+    - **data[key] ilə birbaşa oxumaq**: Olmayan tək bir açar milyonlarla sətirlik ETL pipeline-ını KeyError ilə dondurur. Həmişə `.get(key, default)` istifadə edin.
     - **Dəyişən tipləri açar kimi qoymağa çalışmaq**: Lüğət açarları mütləq hash oluna bilən və dəyişməz olmalıdır (str, int, tuple). Siyahını açar etmək olmaz (`TypeError: unhashable type`).
     - **Açarın olmaması ilə dəyərin None olması fərqi**: `d = {"x": None}` olduqda `d.get("x", "defolt")` `None` qaytarır, çünki açar mövcuddur. Həm yoxluğu, həm də None-ı tutmaq üçün `d.get("x") or "defolt"` yazın.
 interview_question:
   question:
     en: "How does a Python dictionary achieve O(1) average lookup time under the hood?"
-    az: "Python lüğəti arxa planda necə işləyir ki, axtarış sürəti orta hesabla O(1) sabit vaxt təşkil edir?"
+    az: "Python lüğəti (dict) arxa planda necə işləyir ki, axtarış sürəti orta hesabla O(1) sabit vaxt təşkil edir?"
   answer:
     en: |
       1. **Hash Table Data Structure**: A dictionary is implemented as a sparse hash table array of buckets.
       2. **Hash Function Computation**: When you lookup `d[key]`, Python computes `hash(key)` in O(1) time. The hash integer is masked with the array size to compute the exact index bucket where the value's pointer lives.
       3. **Direct Memory Jump**: Instead of iterating through keys ($O(N)$), Python jumps directly to the calculated memory index in $O(1)$ constant time. If hash collisions occur, Python resolves them using open addressing with pseudo-random perturbation.
     az: |
-      1. **Hash Cədvəli Strukturu**: Lüğət arxa planda yaddaş qovluqlarından (buckets) ibarət seyrək hash cədvəli massividir.
+      1. **Hash Cədvəli Strukturu**: Lüğət arxa planda yaddaş xanalarından (buckets) ibarət seyrək hash cədvəli massividir.
       2. **Hash Funksiyasının Hesablanması**: Siz `d[key]` axtardıqda Python dərhal `hash(key)` dəyərini hesablayır. Bu rəqəm massivin ölçüsünə uyğunlaşdırılaraq dəyərin dəqiq yerləşdiyi indeks xanasını tapır.
-      3. **Birbaşa Yaddaşa Keçid**: Bütün açarları tək-tək axtarmaq ($O(N)$) əvəzinə, Python birbaşa hesablanmış yaddaş indeksinə tullanır ($O(1)$). Toqquşmalar (hash collision) baş verdikdə isə Python daxili açıq ünvanlama alqoritmi ilə növbəti xananı təyin edir.
+      3. **Birbaşa Yaddaşa Keçid**: Bütün açarları tək-tək axtarmaq ($O(N)$) əvəzinə, Python birbaşa hesablanmış yaddaş indeksinə keçir ($O(1)$). Toqquşmalar (hash collision) baş verdikdə isə Python daxili açıq ünvanlama (open addressing) alqoritmi ilə növbəti xananı təyin edir.
+  interviewer_tips:
+    en: "Also mention that since Python 3.7+, standard dictionaries are guaranteed to preserve key insertion order, and for grouping or counting records in ETL scripts, `collections.defaultdict(list)` and `collections.Counter` eliminate manual key-existence boilerplate."
+    az: "Əlavə olaraq qeyd edin ki, Python 3.7+ versiyasından etibarən standart `dict` açarların əlavə olunma ardıcıllığını (insertion order) qoruyur, ETL skriptlərində qruplaşdırma və sayma üçün isə `collections.defaultdict(list)` və `collections.Counter` istifadəsi kodu xeyli sadələşdirir."
 exercise:
   question:
     en: "Write a function `format_order_event(event_dict)` that takes a raw dictionary and extracts: 'id' from 'order_id' (assume always present), 'amount' from 'total_amount' as a float (defaulting to 0.0 if missing), and 'status' from 'status' lowercased (defaulting to 'pending' if missing). Return a dictionary `{'id': order_id, 'amount': total_amount, 'status': status}`."

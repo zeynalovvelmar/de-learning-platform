@@ -18,10 +18,10 @@ order: 10
 level: "intermediate"
 title:
   en: "Defensive Pipelines: Error Handling, Context Managers & DLQ"
-  az: "Müdafiəli Kəmərlər: Xətaların İdarə Edilməsi, Kontekst Menecerləri və DLQ"
+  az: "Defensive Pipelines: Xətaların İdarə Edilməsi, Context Manager-lər və DLQ"
 quick_recap:
   en: "Never let one corrupted row crash a multi-hour data pipeline. Use `try-except` with specific exception types (`ValueError`, `KeyError`) instead of catching bare `Exception`. Route malformed rows into a Dead-Letter Queue (DLQ). Always access files and streams using context managers (`with open(...) as f`) to guarantee resource cleanup even during crashes."
-  az: "Saatlarla davam edən bir data kəmərinin cəmi bir xarab cərgəyə görə çökməsinə imkan verməyin. Kor-koranə bütün xətaları tutmaq əvəzinə dəqiq xəta tiplərini (`ValueError`, `KeyError`) tutun. Xətalı qeydləri 'Dead-Letter Queue' (DLQ / Xətalı Məlumat Növbəsi) ünvanına yönəldin. Faylları açarkən kəmər çökdükdə belə resursların bağlanmasına zəmanət verən `with open(...) as f` kontekst menecerindən istifadə edin."
+  az: "Saatlarla davam edən bir data pipeline-ının cəmi bir xarab sətirə görə çökməsinə imkan verməyin. Kor-koranə bütün xətaları tutmaq əvəzinə dəqiq xəta tiplərini (`ValueError`, `KeyError`) tutun. Xətalı qeydləri 'Dead-Letter Queue' (DLQ) ünvanına yönəldin. Faylları açarkən pipeline çökdükdə belə resursların bağlanmasına zəmanət verən `with open(...) as f` context manager-dən istifadə edin."
 explanation:
   en: |
     Think of error handling like electrical circuit breakers in a modern building:
@@ -74,7 +74,7 @@ explanation:
     4. Alert the team with the DLQ summary.
   az: |
     Xəta idarəetməsini binadakı elektrik qoruyucuları (avtomatlar) kimi təsəvvür edin:
-    Məişət texnikasında qısaqapanma baş verərsə, avtomat dərhal atır və yalnız həmin yuvanın cərəyanını kəsir, evin qalan hissəsi isə işıqlı və təhlükəsiz qalır. Qoruyucu olmasa, kiçik bir qığılcım bütün evi yandırar (yəni 4,500,000-cu cərgədə gecə saat 03:00-da bütün kəmərin çökməsi).
+    Məişət texnikasında qısaqapanma baş verərsə, avtomat dərhal atır və yalnız həmin yuvanın cərəyanını kəsir, evin qalan hissəsi isə işıqlı və təhlükəsiz qalır. Qoruyucu olmasa, kiçik bir qığılcım bütün evi yandırar (yəni 4,500,000-cu sətirdə gecə saat 03:00-da bütün pipeline-ın çökməsi).
 
     ### 1. Try-Except-Else-Finally Strukturu:
     ```python
@@ -115,11 +115,11 @@ explanation:
         data = f.read()
     ```
 
-    ### 4. Dead-Letter Queue (DLQ / Xətalı Məlumat Növbəsi) Naxışı:
-    İstehsalat kəmərlərində çirkli məlumatların gəlməsi qaçılmazdır. Cərgə pars edilə bilmədikdə bütün kəməri çökdürmək əvəzinə:
+    ### 4. Dead-Letter Queue (DLQ) Modeli:
+    Production pipeline-larında çirkli məlumatların gəlməsi qaçılmazdır. Sətir parse edilə bilmədikdə bütün pipeline-ı çökdürmək əvəzinə:
     1. Dəqiq xətanı tutun.
-    2. Xətalı cərgəni və xətanın səbəbini DLQ siyahısına və ya xəta cədvəlinə yazın.
-    3. Qalan düzgün cərgələri emal etməyə davam edin.
+    2. Xətalı sətri və xətanın səbəbini DLQ siyahısına və ya xəta cədvəlinə yazın.
+    3. Qalan düzgün sətirləri emal etməyə davam edin.
     4. Sonda komandaya DLQ hesabatı verin.
 code: |
   import io
@@ -164,30 +164,33 @@ code: |
       print(f"  DLQ: tx={d['tx_id']} reason={d['reason']}")
 what_it_does:
   en: "Demonstrates defensive ETL processing using try/except/else to ingest valid numeric rows while routing malformed rows into a Dead-Letter Queue without terminating the batch."
-  az: "Düzgün cərgələri emal edən və xətalı cərgələri kəməri dayandırmadan Dead-Letter Queue siyahısına yönləndirən müdafiəli ETL məntiqini nümayiş etdirir."
+  az: "Düzgün sətirləri emal edən və xətalı sətirləri pipeline-ı dayandırmadan Dead-Letter Queue siyahısına yönləndirən defensive ETL məntiqini nümayiş etdirir."
 real_world_use:
   en: "Production Airflow/Spark data ingestion pipelines where millions of incoming streaming records must not fail the daily SLA due to a handful of corrupted partner payloads."
-  az: "Gündəlik milyonlarla cərgə emal edən istehsalat kəmərlərində bir neçə zədəli qeydə görə bütün günlük SLA-nın çökməsinin qarşısını almaq üçün istifadə olunur."
+  az: "Gündəlik milyonlarla sətir emal edən production pipeline-larında bir neçə zədəli qeydə görə bütün günlük SLA-nın çökməsinin qarşısını almaq üçün istifadə olunur."
 common_mistakes:
   en: |
     - **Using bare `except:` without specifying exception classes**: This catches `KeyboardInterrupt` and `SystemExit`, making pipelines impossible to terminate gracefully.
     - **Not closing files (omitting `with`)**: Leaking open file handles or connection sockets can exhaust OS file descriptor limits (`EMFILE: Too many open files`).
     - **Discarding errors silently with `pass`**: Swallowing exceptions without routing them to logs or a DLQ creates silent data loss that is difficult to detect.
   az: |
-    - **Xəta tipini göstərmədən boş `except:` yazmaq**: `KeyboardInterrupt` və sistem siqnallarını da tutur və kəməri düzgün dayandırmağı qeyri-mümkün edir.
+    - **Xəta tipini göstərmədən boş `except:` yazmaq**: `KeyboardInterrupt` və sistem siqnallarını da tutur və pipeline-ı düzgün dayandırmağı qeyri-mümkün edir.
     - **Faylları bağlamamaq (`with` istifadə etməmək)**: Açıq fayl deskriptorları yığılaraq əməliyyat sisteminin limitini bitirir (`Too many open files`).
-    - **Xətaları `pass` ilə səssizcə udmaq**: Loq yazmadan və ya DLQ-ya göndərmədən xətanı gizlətmək xəbərsiz məlumat itkisinə səbəb olur.
+    - **Xətaları `pass` ilə səssizcə udmaq**: Log yazmadan və ya DLQ-ya göndərmədən xətanı gizlətmək xəbərsiz məlumat itkisinə səbəb olur.
 interview_question:
   question:
     en: "What is the Dead-Letter Queue (DLQ) pattern, and why should you never write `except: pass` in production data pipelines?"
-    az: "Dead-Letter Queue (DLQ) naxışı nədir və nə üçün istehsalat data kəmərlərində heç vaxt `except: pass` yazılmamalıdır?"
+    az: "Dead-Letter Queue (DLQ) modeli nədir və nə üçün production data pipeline-larında heç vaxt `except: pass` yazılmamalıdır?"
   answer:
     en: |
       1. **The Danger of `except: pass`**: A bare `except: pass` catches everything, including syntax errors, variable typos (`NameError`), memory exhaustion, and process termination signals (`KeyboardInterrupt`). It silently swallows critical software bugs, leading to silent data corruption where upstream systems think the pipeline succeeded, but missing data was dropped invisibly.
       2. **The DLQ Pattern**: Instead of crashing the whole pipeline or silently dropping records, unparseable records are isolated and redirected into a separate storage sink (such as an S3 error bucket, Kafka DLQ topic, or error table) alongside the error reason and timestamp. The main pipeline continues processing healthy records to meet business SLAs, while an alerting system notifies engineers to inspect and replay the DLQ records.
     az: |
-      1. **`except: pass` Təhlükəsi**: Boş `except: pass` hər şeyi — həm sintaksis səhvlərini, həm dəyişən adlarındakı səhvləri (`NameError`), həm də prosesin dayandırılma siqnallarını (`KeyboardInterrupt`) səssizcə udur. Nəticədə sistem kəmərin uğurla bitdiyini zənn edir, lakin əslində minlərlə məlumat itir və bu xətanı tapmaq çox çətin olur.
-      2. **DLQ Naxışı**: Bütün kəməri çökdürmək və ya məlumatları gizlicə itirmək əvəzinə, xətalı cərgələr səbəbi və vaxtı ilə birlikdə xüsusi ehtiyat anbara (məsələn S3 xəta qovluğu, Kafka DLQ topiki və ya xəta cədvəli) yönləndirilir. Əsas kəmər biznes SLA-sını qoruyaraq sağlam cərgələri emal etməyə davam edir, data mühəndisləri isə sonra DLQ-ya düşən məlumatları araşdırıb təkrar emal edirlər.
+      1. **`except: pass` Təhlükəsi**: Boş `except: pass` hər şeyi — həm sintaksis səhvlərini, həm dəyişən adlarındakı səhvləri (`NameError`), həm də prosesin dayandırılma siqnallarını (`KeyboardInterrupt`) səssizcə udur. Nəticədə sistem pipeline-ın uğurla bitdiyini zənn edir, lakin əslində minlərlə məlumat itir və bu xətanı tapmaq çox çətin olur.
+      2. **DLQ Modeli**: Bütün pipeline-ı çökdürmək və ya məlumatları gizlicə itirmək əvəzinə, xətalı sətirlər səbəbi və vaxtı ilə birlikdə xüsusi ehtiyat anbara (məsələn, S3 error bucket, Kafka DLQ topic-i və ya xəta cədvəli) yönləndirilir. Əsas pipeline biznes SLA-sını qoruyaraq sağlam sətirləri emal etməyə davam edir, data mühəndisləri isə sonra DLQ-ya düşən məlumatları araşdırıb yenidən emal (replay) edirlər.
+  interviewer_tips:
+    en: "Pro tip: mention setting an 'Error Threshold Circuit Breaker' alongside a DLQ (e.g., if >5% of records in a batch fail and enter the DLQ, intentionally abort the pipeline because an upstream schema change likely broke the contract)."
+    az: "Müsahibədə 'Xəta Həddi Qoruyucusu' (Error Threshold Circuit Breaker) anlayışını da qeyd edin: əgər bir partiyada sətirlərin 5%-dən çoxu DLQ-ya düşərsə, deməli mənbə sxemində ciddi dəyişiklik baş verib və bu halda pipeline qəsdən dayandırılmalıdır."
 exercise:
   question:
     en: "Write a function `parse_batch_safely(raw_records)` that takes a list of dictionaries with keys `'id'` and `'value'`. Attempt to convert each `'value'` to an integer `int(v)`. Return a tuple of two lists: `(valid_records, failed_records)`. `valid_records` contains dicts `{'id': id, 'value': int_val}`. `failed_records` contains dicts `{'id': id, 'error': str(exception)}` for any row that raised `ValueError` or `TypeError`."
@@ -229,7 +232,7 @@ exercise:
 flashcards:
   - front:
       en: "Why is a bare `except:` considered dangerous in production data pipelines?"
-      az: "İstehsalat data kəmərlərində xəta növü göstərilməyən `except:` nə üçün təhlükəlidir?"
+      az: "Production data pipeline-larında xəta növü göstərilməyən `except:` nə üçün təhlükəlidir?"
     back:
       en: "It catches everything including system exits and syntax errors, hiding critical bugs and causing silent data loss."
       az: "Bütün xətaları (sistem siqnalları və sintaksis səhvləri daxil) udur, kritik xətaları gizlədir və məlumat itkisinə səbəb olur."
@@ -247,7 +250,7 @@ flashcards:
       az: "Xəta baş versə də, verməsə də mütləq icra olunur və fayl və ya verilənlər bazası əlaqələrinin bağlanmasını təmin edir."
   - front:
       en: "Why must you use context managers (`with open(...) as f`) for file handling?"
-      az: "Fayllarla işləyərkən nə üçün mütləq `with open(...) as f` kontekst menecerindən istifadə edilməlidir?"
+      az: "Fayllarla işləyərkən nə üçün mütləq `with open(...) as f` context manager-dən istifadə edilməlidir?"
     back:
       en: "It guarantees the file descriptor is closed automatically, preventing file handle leaks even if exceptions occur."
       az: "Fayl deskriptorunun avtomatik bağlanmasına zəmanət verir və kodda xəta çıxsa belə resurs sızmasının qarşısını alır."
@@ -256,4 +259,4 @@ flashcards:
       az: "Data mühəndisliyində Dead-Letter Queue (DLQ) nədir?"
     back:
       en: "A storage sink where malformed or unprocessable records are safely routed so the main pipeline can continue processing valid data."
-      az: "Xətalı cərgələrin ayrıca saxlanıldığı ehtiyat kanal; əsas kəmərin çökmədən sağlam məlumatları emal etməsinə imkan verir."
+      az: "Xətalı sətirlərin ayrıca saxlanıldığı ehtiyat kanal; əsas pipeline-ın çökmədən sağlam məlumatları emal etməsinə imkan verir."

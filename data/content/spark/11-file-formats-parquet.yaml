@@ -58,7 +58,7 @@ explanation:
 
     ### Why Apache Parquet is the Industry Gold Standard:
     1. **Column Pruning**: If your table has 200 columns and your SQL query selects only 3, Parquet instructs the disk controller to read only those 3 byte offsets. 98.5% of disk I/O is eliminated!
-    2. **Compression (Snappy / ZSTD)**: Because an entire column contains identical data types (e.g. all integers or all country codes), compression algorithms achieve 5x to 10x smaller file sizes than text CSVs.
+    2. **Compression (Snappy / ZSTD)**: Because an entire column contains identical data types (e.g. all integers or all country codes), compression algorithms typically achieve 4x to 10x smaller file sizes than text CSVs (depending on data redundancy).
     3. **Predicate Pushdown**: Parquet stores statistical metadata (min, max, null count) at the footer of each Row Group. If a row group has `max_age = 25` and your query is `WHERE age > 40`, Spark skips reading the entire 128MB block from S3 storage!
     4. **Delta Lake (The Modern Extension)**: An open-source storage layer on top of Parquet that adds ACID transactions (`_delta_log/`), Time Travel (`RESTORE AS OF`), schema evolution, and `MERGE INTO` upsert operations.
   az: |
@@ -68,7 +68,7 @@ explanation:
 
     ### Apache Parquet Niyə Müasir Data Mühəndisliyinin Qızıl Standartıdır?
     1. **Sütunların Kəsilməsi (Column Pruning)**: Cədvəlinizdə 200 sütun varsa və siz cəmi 2 sütunu sorğulasanız, Parquet diskin yalnız həmin 2 sütununu oxuyur. Disk I/O yükünün 99%-i aradan qalxır!
-    2. **Yüksək Sıxılma (Snappy / ZSTD)**: Eyni sütunda ancaq eyni tipli məlumatlar (məsələn, ancaq tarixlər və ya ölkə kodları) saxlandığı üçün sıxılma alqoritmləri faylı CSV-dən 5-10 dəfə kiçik edir.
+    2. **Yüksək Sıxılma (Snappy / ZSTD)**: Eyni sütunda ancaq eyni tipli məlumatlar (məsələn, ancaq tarixlər və ya ölkə kodları) saxlandığı üçün sıxılma alqoritmləri faylı CSV-dən adətən 4x–10x daha kiçik edir (datanın təkrarlanmasından asılı olaraq).
     3. **Şərtin Endirilməsi (Predicate Pushdown)**: Parquet hər 128MB-lıq blokun sonunda statistik metadata saxlayır (min, max, null sayı). Əgər blokda `max_yaş = 25`-dirsə və sizin sorğunuz `WHERE yaş > 40`-dırsa, Spark həmin bütöv 128MB-lıq bloku S3-dən oxumadan dərhal ötürür!
     4. **Delta Lake (Müasir Əlavə)**: Parquet-in üzərində qurulmuş anbar qatıdır. ACID tranzaksiyaları (`_delta_log/`), Zaman Səyahəti (Time Travel), sxem qorunması və `MERGE INTO` (Upsert) dəstəyi təmin edir.
 quick_recap:
@@ -150,8 +150,8 @@ common_mistakes:
     - **Over-partitioning by high-cardinality columns**: Running `partitionBy("user_id")` or `partitionBy("timestamp")` creates millions of tiny sub-folders with 1 KB files, crippling cloud object storage performance. Only partition by low-cardinality keys like `year`, `month`, or `region`.
     - **Applying Python functions on filter columns**: Writing `.filter(my_python_func(col("year")) == 2024)` disables Predicate Pushdown completely because Spark cannot translate opaque Python bytecode into Parquet metadata filters.
   az: |
-    - **İstehsalat məlumatlarını CSV və ya JSON-da saxlamaq**: Sütun kəsilməsi yoxdur, sıxılma zəifdir və predicate pushdown işləmir. Nəticədə bulud xərcləri 10 qat artır.
-    - **Yüksək kardinallıqlı sütunlara görə bölmək (Over-partitioning)**: `partitionBy("user_id")` və ya dəqiq zamana görə bölmək milyonlarla mikroskopik qovluq və 1 KB-lıq fayl yaradır və S3-ü kilitləyir. Yalnız az unikal dəyəri olan sütunlara görə bölün (`year`, `month`, `region`).
+    - **Production məlumatlarını CSV və ya JSON-da saxlamaq**: Sütun kəsilməsi yoxdur, sıxılma zəifdir və predicate pushdown işləmir. Nəticədə bulud xərcləri dəfələrlə artır.
+    - **Yüksək kardinallıqlı sütunlara görə bölmək (Over-partitioning)**: `partitionBy("user_id")` və ya dəqiq zamana görə bölmək milyonlarla mikroskopik qovluq və 1 KB-lıq fayl yaradır və S3-ü kilidləyir. Yalnız az unikal dəyəri olan sütunlara görə bölün (`year`, `month`, `region`).
     - **Süzgəc sütununda Python funksiyası çağırmaq**: `.filter(py_funksiyam(col("il")) == 2024)` yazdıqda Predicate Pushdown tamamilə sıradan çıxır, çünki Spark qaranlıq Python kodunu Parquet fayl filtrinə çevirə bilmir.
 interview_question:
   question:

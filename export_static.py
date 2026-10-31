@@ -7,25 +7,25 @@ output_file = Path("frontend/src/data/staticData.json")
 output_file.parent.mkdir(parents=True, exist_ok=True)
 
 MODULE_ORDER = [
-    "python",
     "sql",
-    "spark",
-    "kafka",
-    "airflow",
-    "devops",
+    "python",
     "data_architecture",
-    "dbt"
+    "devops",
+    "spark",
+    "airflow",
+    "dbt",
+    "kafka"
 ]
 
 MODULE_TITLES = {
-    "python": {"en": "Python Core", "az": "Python Əsasları"},
     "sql": {"en": "SQL", "az": "SQL"},
-    "spark": {"en": "Apache Spark", "az": "Apache Spark"},
-    "kafka": {"en": "Apache Kafka", "az": "Apache Kafka"},
-    "airflow": {"en": "Apache Airflow", "az": "Apache Airflow"},
-    "devops": {"en": "DevOps", "az": "DevOps"},
+    "python": {"en": "Python Core", "az": "Python Əsasları"},
     "data_architecture": {"en": "Data Architecture & DWH", "az": "Data Arxitekturası və DWH"},
-    "dbt": {"en": "dbt (Data Build Tool)", "az": "dbt (Data Build Tool)"}
+    "devops": {"en": "DevOps & Docker", "az": "DevOps və Docker"},
+    "spark": {"en": "Apache Spark", "az": "Apache Spark"},
+    "airflow": {"en": "Apache Airflow", "az": "Apache Airflow"},
+    "dbt": {"en": "dbt (Data Build Tool)", "az": "dbt (Data Build Tool)"},
+    "kafka": {"en": "Apache Kafka", "az": "Apache Kafka"}
 }
 
 modules_summary = []

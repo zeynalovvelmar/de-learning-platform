@@ -33,7 +33,7 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │          MEDALLION ARXİTEKTURASI (MULTI-HOP DATA BORU KƏMƏRİ)          │
+    │          MEDALLION ARXİTEKTURASI (MULTI-HOP DATA PIPELINE)             │
     └────────────────────────────────────────────────────────────────────────┘
      Mənbələr: Kafka axınları, REST API-lər, DB CDC, Loq faylları
         │
@@ -60,6 +60,7 @@ explanation:
     ### What is Medallion Architecture?
     Medallion Architecture (popularized by Databricks) is a multi-hop data design pattern that logically organizes data inside a Lakehouse into three sequential layers of increasing quality: **Bronze (Raw)**, **Silver (Cleansed)**, and **Gold (Curated / Business)**.
     - It resolves the classic **"Data Swamp"** issue where uncurated files in S3 become impossible to govern, debug, or query efficiently.
+    - This pattern is the gold standard implementation of modern **ELT (Extract, Load, Transform)**: raw payloads land untouched in Bronze, and are transformed in-place into Silver and Gold.
 
     ### 1. Bronze Layer (Raw / Ingestion Layer)
     - **Purpose**: Fast, high-throughput landing zone that captures raw records directly from sources (IoT streams, Kafka, Postgres CDC, third-party APIs).
@@ -89,6 +90,7 @@ explanation:
     ### Medallion Arxitekturası Nədir?
     Medallion Arxitekturası (Databricks tərəfindən populyarlaşdırılan) Lakehouse daxilindəki məlumatları mərhələli şəkildə saflaşdıran və keyfiyyətini artıran 3 qatdan ibarət dizayn modelidir: **Bronze (Xam)**, **Silver (Təmizlənmiş)** və **Gold (Biznes/Hesabat)**.
     - Bu model ənənəvi Data Lake-lərin idarəolunmaz zibilliyə (**Data Swamp**) çevrilməsinin qarşısını alır.
+    - Bu yanaşma müasir **ELT (Extract, Load, Transform)** modelinin ən mükəmməl nümunəsidir: məlumatlar əvvəlcə toxunulmadan Bronze qatına yüklənir, daha sonra anbardaxili addım-addım Silver və Gold qatlarına transformasiya edilir.
 
     ### 1. Bronze Təbəqəsi (Xam / Qəbul Qatı)
     - **Məqsəd**: Mənbələrdən (Kafka, CDC axınları, REST API-lər, loglar) gələn məlumatların heç bir dəyişiklik edilmədən, ən sürətli şəkildə qəbul edilməsi.
@@ -96,7 +98,7 @@ explanation:
       - **Append-only və Dəyişdirilməz**: Bronze qatına yalnız yeni sətir əlavə olunur, mövcud fayllar silinmir və ya redaktə edilmir.
       - **Orijinal Format**: Məlumat ilkin JSON və ya string formatında saxlanılır.
       - **Metadata Əlavəsi**: Hər sətirə `_ingested_at` (qəbul tarixi), `_source_file` kimi sistem sütunları əlavə edilir.
-      - **Əhəmiyyəti**: Əgər gələcəkdə pipeline-da kod səhvi aşkar olunsa və ya biznes məntiqi dəyişsə, istehsalat bazasını (Postgres/MySQL) narahat etmədən bütün tarixi məlumatı Bronze qatından yenidən emal etmək mümkündür.
+      - **Əhəmiyyəti**: Əgər gələcəkdə pipeline-da kod səhvi aşkar olunsa və ya biznes məntiqi dəyişsə, production bazasını (Postgres/MySQL) narahat etmədən bütün tarixi məlumatı Bronze qatından yenidən emal etmək mümkündür.
 
     ### 2. Silver Təbəqəsi (Təmizlənmiş və Standartlaşdırılmış Qat)
     - **Məqsəd**: Təmizlənmiş, vahid həqiqət mənbəyi (Single Source of Truth) rolunu oynayan korporativ məlumat bazası təqdim etmək.
@@ -110,13 +112,13 @@ explanation:
     ### 3. Gold Təbəqəsi (Aqreqasiya və Biznes Vitrini)
     - **Məqsəd**: İdarə heyəti, hesabat sistemləri və maşın öyrənməsi modelləri üçün son dərəcə sürətli və hazır biznes göstəriciləri təqdim etmək.
     - **Xüsusiyyətləri**:
-      - **Ölçülü Modelləşdirmə (Dimensional Modeling)**: Kimball Ulduz Sxemi (Star Schema) üzrə Fact və Dimension cədvəlləri qurulur.
+      - **Ölçülü Modelləşdirmə (Dimensional Modeling)**: Kimball Star Schema üzrə Fact və Dimension cədvəlləri qurulur.
       - **Əvvəlcədən Hesablanmış Aqreqasiyalar**: Gündəlik gəlir, müştəri aktivliyi (DAU/MAU), filial dövriyyəsi.
       - **Oxumaq üçün optimallaşdırılmış**: Parquet/Delta formatında sıxılmış, Z-Order və partisiya ilə indekslənmiş.
       - **İstehlakçılar**: Power BI, Tableau, Looker, avtomatlaşdırılmış idarə panelləri və ML Feature Store-lar.
 quick_recap:
   en: "Bronze stores raw immutable data with metadata; Silver cleans, deduplicates, and validates schemas; Gold builds business-ready Star schemas and aggregations for BI."
-  az: "Bronze xam dəyişməz məlumatı saxlayır; Silver təmizləyir, təkrarları silir və sxemi təmin edir; Gold isə BI üçün ulduz sxemi və aqreqasiya cədvəlləri yaradır."
+  az: "Bronze xam dəyişməz məlumatı saxlayır; Silver təmizləyir, təkrarları silir və sxemi təmin edir; Gold isə BI üçün Star Schema və aqreqasiya cədvəlləri yaradır."
 what_it_does:
   en: "Creates a structured multi-hop pipeline that guarantees auditability in Bronze, data cleanliness in Silver, and blazing-fast analytics in Gold."
   az: "Bronze-da audit imkanını, Silver-də məlumat təmizliyini və Gold-da yüksək sürətli analitikanı təmin edən pilləli data emalı xətti yaradır."
@@ -236,10 +238,10 @@ interview_question:
     az: "Medallion Arxitekturasını (Bronze, Silver, Gold) izah edin. Niyə Bronze-dan birbaşa Gold-a keçmək əvəzinə Silver qatına ehtiyacımız var?"
   answer:
     en: "Medallion Architecture organizes Lakehouse data into 3 logical tiers: Bronze (raw, append-only, immutable landing zone), Silver (cleansed, conformed, deduplicated enterprise single-source-of-truth), and Gold (aggregated, dimensional Star schema optimized for BI and ML). We cannot jump directly from Bronze to Gold for three critical engineering reasons: (1) **Code Reusability & Consistency**: Multiple downstream Gold marts (e.g., Marketing Mart, Finance Mart, Fraud Detection ML) require the same cleaned, deduplicated user and transaction tables. If each mart queried Bronze directly, business logic and cleaning rules would be duplicated across pipelines, leading to inconsistent numbers. (2) **Cost & Performance Efficiency**: Complex deduplication and JSON parsing is executed once during the Bronze->Silver hop rather than recomputed across dozens of separate Gold pipelines. (3) **Ad-Hoc Analysis & Exploration**: Data Analysts and Data Scientists need granular, row-level cleansed data for hypothesis testing; Gold tables are aggregated summaries that lack atomic row-level detail."
-    az: "Medallion Arxitekturası Lakehouse məlumatlarını 3 məntiqi qata ayırır: Bronze (xam, append-only, dəyişməz qəbul qatı), Silver (təmizlənmiş, unifikasiya edilmiş, vahid həqiqət mənbəyi) və Gold (BI və ML üçün aqreqasiya edilmiş, ulduz sxemli biznes vitrini). Bronze-dan birbaşa Gold-a keçməməyimizin 3 əsas mühəndislik səbəbi var: (1) **Təkrar İstifadə və Uyğunluq**: Müxtəlif Gold vitrinləri (Marketinq, Maliyyə, Fırıldaqçılıq ML modeli) eyni təmizlənmiş tranzaksiya məlumatlarına ehtiyac duyur. Əgər hər kəs birbaşa Bronze-dan oxusa, təmizləmə və dedup məntiqləri hər pipeline-da təkrar yazılacaq və şöbələr arasında rəqəmlər fərqli çıxacaq. (2) **Hesablama Xərcləri və Performans**: Ağır JSON oxuma və dedup əməliyyatı Bronze->Silver keçidində cəmi bir dəfə icra olunur, onlarla Gold pipeline-da təkrar hesablanmır. (3) **Tədqiqat və Ad-hoc Sorğular**: Analitiklər və Data Scientist-lər dənəvər (row-level) təmiz məlumata baxmaq istəyirlər; Gold qatı isə yüksək aqreqasiyalı olduğu üçün atomik detalları gizlədir."
+    az: "Medallion Arxitekturası Lakehouse məlumatlarını 3 məntiqi qata ayırır: Bronze (xam, append-only, dəyişməz qəbul qatı), Silver (təmizlənmiş, unifikasiya edilmiş, vahid həqiqət mənbəyi) və Gold (BI və ML üçün aqreqasiya edilmiş, Star Schema əsaslı biznes vitrini). Bronze-dan birbaşa Gold-a keçməməyimizin 3 əsas mühəndislik səbəbi var: (1) **Təkrar İstifadə və Uyğunluq**: Müxtəlif Gold vitrinləri (Marketinq, Maliyyə, Fırıldaqçılıq ML modeli) eyni təmizlənmiş tranzaksiya məlumatlarına ehtiyac duyur. Əgər hər kəs birbaşa Bronze-dan oxusa, təmizləmə və dedup məntiqləri hər pipeline-da təkrar yazılacaq və şöbələr arasında rəqəmlər fərqli çıxacaq. (2) **Hesablama Xərcləri və Performans**: Ağır JSON oxuma və dedup əməliyyatı Bronze->Silver keçidində cəmi bir dəfə icra olunur, onlarla Gold pipeline-da təkrar hesablanmır. (3) **Tədqiqat və Ad-hoc Sorğular**: Analitiklər və Data Scientist-lər dənəvər (row-level) təmiz məlumata baxmaq istəyirlər; Gold qatı isə yüksək aqreqasiyalı olduğu üçün atomik detalları gizlədir."
   interviewer_tips:
     en: "Emphasize that Bronze serves as the 'time-travel disaster recovery replay log', while Silver is the 'enterprise canonical model', and Gold is 'purpose-built marts'."
-    az: "Bronze-un fəlakətlər zamanı bütün boru kəmərini yenidən qurmaq üçün 'tarixi bərpa arxivi', Silver-in 'şirkətin vahid standart modeli', Gold-un isə 'spesifik biznes vitrini' olduğunu vurğulayın."
+    az: "Bronze-un fəlakətlər zamanı bütün data pipeline-ı yenidən qurmaq üçün 'tarixi bərpa arxivi', Silver-in 'şirkətin vahid standart modeli', Gold-un isə 'spesifik biznes vitrini' olduğunu vurğulayın."
 flashcards:
   - front:
       en: "What is the primary role of the Bronze layer in Medallion Architecture?"
@@ -258,7 +260,7 @@ flashcards:
       az: "Gold təbəqəsini hansı məlumat strukturları və sxemlər xarakterizə edir?"
     back:
       en: "Kimball Star Schemas (Fact/Dim tables) and pre-aggregated business KPIs ready for BI dashboards."
-      az: "BI hesabatları üçün hazır olan Kimball Ulduz Sxemləri (Fact/Dim cədvəlləri) və aqreqasiya edilmiş KPI-lar."
+      az: "BI hesabatları üçün hazır olan Kimball Star Schema (Fact/Dim cədvəlləri) və aqreqasiya edilmiş KPI-lar."
   - front:
       en: "Why is Bronze kept immutable and append-only?"
       az: "Bronze təbəqəsi nə üçün dəyişdirilməz (immutable) və yalnız əlavə olunan (append-only) saxlanılır?"

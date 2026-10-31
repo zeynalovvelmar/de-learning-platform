@@ -85,6 +85,9 @@ interview_question:
       1. **Pythonic Oxunaqlıq**: `enumerate()` birbaşa `(indeks, element)` cütlərini qaytarır, təkrar-təkrar `lst[i]` mötərizəsi yazmağa ehtiyac qalmır və indeks səhvlərinin qarşısını alır.
       2. **Təhlükəsizlik**: `zip(a, b)` iki siyahını təhlükəsiz cütləşdirir və siyahıların ölçüsü fərqli olduqda `IndexError: list index out of range` xətası vermədən ən qısa siyahıda dayanır.
       3. **Yaddaş Qənaəti (Generators)**: `enumerate()` və `zip()` Python 3-də generator qaytarır. Onlar RAM-da indeks massivləri yaratmır, O(1) yaddaşda hər addımda tək cüt çıxarır.
+  interviewer_tips:
+    en: "In Python 3.10+, mention the `strict=True` parameter in `zip(headers, row, strict=True)`. In data pipelines, if a CSV row has a missing or extra column compared to `headers`, `strict=True` immediately raises a `ValueError` instead of silently truncating data!"
+    az: "Python 3.10+ versiyasındakı `zip(headers, row, strict=True)` parametrini qeyd etmək böyük üstünlükdür: əgər CSV sətrində sütun sayı başlıqlardan (`headers`) fərqli olarsa, `strict=True` məlumatı gizlicə kəsmək əvəzinə dərhal `ValueError` qaldırır!"
 exercise:
   question:
     en: "Write a function `create_row_dicts(headers, rows)` that takes a list of column headers and a list of row lists, and uses `zip()` inside a loop to return a list of dictionaries."

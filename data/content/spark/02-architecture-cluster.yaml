@@ -83,7 +83,7 @@ explanation:
 
     ### Klasterin İşə Salınma Rejimləri (Deploy Modes):
     - **Client Mode**: Driver sizin öz kompüterinizdə işləyir. Noutbukunuzun qapağını bağlasanız və ya WiFi kəsilsə, bütün klaster işi dərhal məhv olur! (Yalnız test və sazlama üçündür).
-    - **Cluster Mode**: Driver klasterin daxilindəki təhlükəsiz bir maşına yerləşdirilir. Sizin kompüteriniz sönsə belə, klaster işini axıra qədər icra edir. (İstehsalat və Airflow üçün mütləq standartdır).
+    - **Cluster Mode**: Driver klasterin daxilindəki təhlükəsiz bir maşına yerləşdirilir. Sizin kompüteriniz sönsə belə, klaster işini axıra qədər icra edir. (Production və Airflow üçün mütləq standartdır).
 quick_recap:
   en: "Spark follows a Master-Worker distributed architecture: The Driver plans execution (DAG), the Cluster Manager assigns cluster resources, and Executors on Worker nodes run individual partition tasks in parallel across CPU cores."
   az: "Spark Master-Worker paylanmış arxitekturasına əsaslanır: Driver icranı planlaşdırır (DAG qurur), Cluster Manager fiziki resursları ayırır, Worker maşınlarındakı Executor-lar isə CPU nüvələrində partisiya tapşırıqlarını paralel icra edir."
@@ -140,7 +140,7 @@ what_it_does:
   az: "Spark-ın paylanmış iş mühiti konfiqurasiyasını aşkar edir və Driver-in nüvə yuvalarını necə əlaqələndirdiyini nümayiş etdirir."
 real_world_use:
   en: "Tuning `spark-submit` memory and core flags (`--executor-memory 16G --executor-cores 4 --num-executors 20`) to eliminate cluster resource contention and maximize pipeline throughput."
-  az: "Airflow və ya Databricks kəmərlərində `spark-submit` parametrlərini (`--executor-memory`, `--num-executors`) düzgün təyin edərək resurs xərclərini minimuma endirmək və sürəti artırmaq."
+  az: "Airflow və ya Databricks pipeline-larında `spark-submit` parametrlərini (`--executor-memory`, `--num-executors`) düzgün təyin edərək resurs xərclərini minimuma endirmək və sürəti artırmaq."
 common_mistakes:
   en: |
     - **Allocating too many cores per executor (e.g. `--executor-cores 16`)**: Causes severe JVM garbage collection (GC) pauses because huge heaps take seconds to clean. Best practice is 4 to 5 cores per executor.
@@ -149,11 +149,11 @@ common_mistakes:
   az: |
     - **Bir executor-a həddən artıq çox nüvə vermək (məs. 16 core)**: Nəhəng JVM yaddaşı səbəbindən Garbage Collection (GC) dondurmalarına səbəb olur. Ən ideal qızıl qayda hər executor-a 4-5 nüvə verməkdir.
     - **Hər executor-a cəmi 1 nüvə vermək**: Çoxlu kiçik konteyner yaradaraq klaster menecerini həddindən artıq yükləyir və ortaq yaddaş üstünlüyünü itirir.
-    - **İstehsalat işlərini Client Mode-da işlətmək**: Şəbəkənin 1 saniyəlik kəsilməsi və ya kompüterin yuxuya getməsi saatlarla davam edən kəməri yarımçıq məhv edir.
+    - **Production işlərini Client Mode-da işlətmək**: Şəbəkənin 1 saniyəlik kəsilməsi və ya kompüterin yuxuya getməsi saatlarla davam edən pipeline-ı yarımçıq məhv edir.
 interview_question:
   question:
     en: "What is the difference between Driver and Executor, and what happens to the Spark job if either one crashes?"
-    az: "Driver ilə Executor arasındakı fərq nədir və onlardan biri sıradan çıxarsa (crush olarsa) Spark işində nə baş verər?"
+    az: "Driver ilə Executor arasındakı fərq nədir və onlardan biri sıradan çıxarsa (crash olarsa) Spark işində nə baş verər?"
   answer:
     en: |
       1. **Driver vs Executor Roles**:
@@ -167,8 +167,8 @@ interview_question:
          - **Driver**: Baş komandirdir. SparkSession saxlayır, DAG planı qurur, tapşırıqları executor-lara paylayır və nəticələri izləyir. Cədvəllərin sətirlərini birbaşa emal etmir.
          - **Executor**: Fəhlə agentlərdir. Driver-in göndərdiyi tapşırıqları verilənlərin müvafiq partisiya sətirləri üzərində icra edir və keşlənmiş məlumatları öz RAM-ında saxlayır.
       2. **Xəta Baş Verdikdə Nə Olur? (Fault Tolerance)**:
-         - **Executor ölərsə**: Spark tam dözümlüdür! Driver nəbzin (heartbeat) kəsildiyini görür, Klaster Menecerindən təzə executor istəyir və DAG qrafındakı lineage (asılılıq zənciri) sayəsində itirilmiş tapşırıqları yenidən hesablayır. Kəmər ÇÖKMÜR və davam edir!
-         - **Driver ölərsə**: Bütün iş dərhal ÇÖKÜR! Çünki bütün DAG planı, tapşırıqların cari vəziyyəti və koordinasiya mərkəzi yalnız Driver-in yaddaşında yaşayır. Klaster rejimində yalnız xüsusi avtomatik yenidən başlatma konfiqurasiyası (`--supervise`) varsa, kəmər ən başdan təkrar başladılır.
+         - **Executor ölərsə**: Spark tam dözümlüdür! Driver nəbzin (heartbeat) kəsildiyini görür, Klaster Menecerindən təzə executor istəyir və DAG qrafındakı lineage (asılılıq zənciri) sayəsində itirilmiş tapşırıqları yenidən hesablayır. Pipeline ÇÖKMÜR və davam edir!
+         - **Driver ölərsə**: Bütün iş dərhal ÇÖKÜR! Çünki bütün DAG planı, tapşırıqların cari vəziyyəti və koordinasiya mərkəzi yalnız Driver-in yaddaşında yaşayır. Klaster rejimində yalnız xüsusi avtomatik yenidən başlatma konfiqurasiyası (`--supervise`) varsa, pipeline ən başdan təkrar başladılır.
   interviewer_tips:
     en: "This is a classic #1 interview question. Highlight 'Executor loss is recoverable via DAG lineage; Driver loss is fatal to the running job unless cluster supervisor restarts the entire application'."
     az: "Bu, texniki müsahibələrin #1 klassik sualıdır. Mütləq 'Executor öldükdə DAG lineage sayəsində avtomatik bərpa olunur; Driver öldükdə isə beyin öldüyü üçün bütün iş dərhal məhv olur' fərqini qeyd edin."
@@ -199,7 +199,7 @@ flashcards:
       az: "Nəhəng JVM yaddaşı yaradır və Garbage Collection (GC) fasilələri executor-un işini saniyələrlə dondurur."
   - front:
       en: "What is the recommended number of CPU cores per executor in production?"
-      az: "İstehsalatda hər bir executor üçün tövsiyə olunan ən optimal CPU nüvə sayı neçədir?"
+      az: "Production-da hər bir executor üçün tövsiyə olunan ən optimal CPU nüvə sayı neçədir?"
     back:
       en: "4 to 5 cores per executor (optimal balance for HDFS throughput and low GC overhead)."
       az: "Hər executor üçün 4-5 nüvə (yüksək I/O ötürücülüyü və aşağı GC gecikməsi üçün ən ideal balansdır)."

@@ -113,7 +113,7 @@ common_mistakes:
 interview_question:
   question:
     en: "Why is using LIMIT without ORDER BY considered dangerous in production applications?"
-    az: "İstehsalat mühitində ORDER BY olmadan LIMIT istifadə etmək nə üçün təhlükəlidir?"
+    az: "Production mühitində ORDER BY olmadan LIMIT istifadə etmək nə üçün təhlükəlidir?"
   answer:
     en: |
       Using `LIMIT` without `ORDER BY` introduces non-deterministic behavior and subtle production bugs:
@@ -121,10 +121,13 @@ interview_question:
       2. **Pagination Anomalies**: In offset-based pagination (e.g. `LIMIT 20 OFFSET 20`), users may see the same row twice across pages or miss records completely as physical row order shifts between requests.
       3. **Query Plan Instability**: The optimizer may switch between index scans and table scans dynamically, leading to radically different subsets of rows returned.
     az: |
-      `ORDER BY` olmadan `LIMIT` istifadə etmək deterministik olmayan nəticələrə və gözlənilməz xətalara səbəb olur:
-      1. **Qeyri-Deterministik Nəticə**: Relyasion cədvəllər nizamsız riyazi çoxluqlardır. Disk mühərriki eyni sorğu üçün paralelləşmə, keş və ya sonrakı yeniləmələrdən asılı olaraq tamamilə fərqli sətirlər qaytara bilər.
-      2. **Səhifələmə Qüsurları**: Səhifələmədə (`LIMIT 20 OFFSET 20`) istifadəçi növbəti səhifəyə keçərkən bəzi qeydləri iki dəfə görə bilər və ya aralıq sətirlər ümumiyyətlə oxunmadan atlana bilər.
-      3. **Sorğu Planının Qeyri-Sabitliyi**: Optimallaşdırıcı indeks skanı ilə tam cədvəl skanı arasında keçid etdikdə qaytarılan sətirlərin tərkibi gözlənilmədən dəyişir.
+      `ORDER BY` olmadan `LIMIT` istifadə etmək deterministik olmayan nəticələrə və gözlənilməz production xətalarına səbəb olur:
+      1. **Qeyri-Deterministik Nəticə**: Relyasion cədvəllər nizamsız riyazi çoxluqlardır. Disk mühərriki eyni sorğu üçün paralel yazmalar, keş və ya sonrakı yeniləmələrdən asılı olaraq tamamilə fərqli sətirlər qaytara bilər.
+      2. **Səhifələmə (Pagination) Qüsurları**: Səhifələmədə (`LIMIT 20 OFFSET 20`) istifadəçi növbəti səhifəyə keçərkən bəzi qeydləri iki dəfə görə bilər və ya aralıq sətirlər ümumiyyətlə oxunmadan atlana bilər.
+      3. **Sorğu Planının Qeyri-Sabitliyi**: Query optimizer indeks skanı ilə tam cədvəl skanı arasında keçid etdikdə qaytarılan sətirlərin tərkibi gözlənilmədən dəyişir.
+  interviewer_tips:
+    en: "Bonus point: even when ORDER BY is present, if the sort column has duplicate (tied) values, pagination can still be non-deterministic! Always add a unique tie-breaker column to ORDER BY (e.g., `ORDER BY created_at DESC, id DESC`)."
+    az: "Müsahibədə üstünlük qazandıran nüans: hətta ORDER BY yazıldıqda belə, sıralanan sütunda təkrarlanan (bərabər) dəyərlər varsa, nəticə yenə qeyri-deterministik ola bilər! Həmişə ORDER BY sonuna unikal bərabərlik pozan sütun (tie-breaker) əlavə edin (məsələn, `ORDER BY created_at DESC, id DESC`)."
 exercise:
   question:
     en: "Find the 3 cheapest products by sorting by price in ascending order. Return product_name and price."

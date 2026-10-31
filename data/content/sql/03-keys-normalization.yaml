@@ -17,10 +17,10 @@ order: 3
 level: "intermediate"
 title:
   en: "Primary Keys, Foreign Keys, and Normalization"
-  az: "Əsas Açarlar, Xarici Açarlar və Normallaşdırma"
+  az: "Primary Key, Foreign Key və Normallaşdırma"
 quick_recap:
   en: "Primary Keys guarantee entity uniqueness, Foreign Keys enforce referential relationships, and Normalization prevents data duplication, write anomalies, and schema inconsistencies."
-  az: "Əsas Açarlar (Primary Keys) qeydin unikallığını təmin edir, Xarici Açarlar (Foreign Keys) əlaqələri qoruyur, Normallaşdırma isə məlumat təkrarlanmasının, yazma qüsurlarının və uyğunsuzluqların qarşısını alır."
+  az: "Primary Key (Əsas Açar) qeydin unikallığını təmin edir, Foreign Key (Xarici Açar) cədvəllərarası əlaqələri qoruyur, Normallaşdırma (Normalization) isə məlumat təkrarlanmasının, yazma anomaliyalarının və sxem uyğunsuzluqlarının qarşısını alır."
 explanation:
   en: |
     Relational database design relies on mathematical relations and integrity constraints to ensure data is accurate, consistent, and free of unnecessary redundancy:
@@ -101,9 +101,9 @@ common_mistakes:
     - **Over-normalizing analytical databases (OLAP)**: While 3NF is standard for operational OLTP databases, analytical data warehouses benefit from dimensional denormalization (Star Schema, Snowflake Schema) to eliminate complex join overheads.
     - **Using natural keys that can change**: Relying on mutable business identifiers (like email addresses or phone numbers) as primary keys instead of stable surrogate keys (integers, UUIDs).
   az: |
-    - **Xarici Açar sütunlarında indeks yaratmağı unutmaq**: Çox sayda verilənlər bazası mühərriki (o cümlədən SQLite) xarici açarlarda avtomatik indeks yaratmır. Bu sütunları indeksləməmək JOIN əməliyyatlarında və kaskad silinmələrdə cədvəlin tam skan edilməsinə səbəb olur.
-    - **Analitik bazaları (OLAP) həddindən artıq normallaşdırmaq**: 3NF əməliyyat yönümlü OLTP üçün vacib olsa da, analitik anbarlarda (DWH) sürətli sorğular üçün denormallaşdırma (Ulduz Sxemi / Star Schema) daha məqsədəuyğundur.
-    - **Dəyişə bilən təbii açarlardan istifadə etmək**: Zamanla dəyişə bilən sahələri (e-poçt və ya telefon) əsas açar kimi istifadə etmək; stabil surroqat açarlar (integer, UUID) əvəzinə təbii açarlara güvənmək.
+    - **Foreign Key sütunlarında indeks yaratmağı unutmaq**: Çox sayda verilənlər bazası mühərriki (o cümlədən SQLite və PostgreSQL) xarici açarlarda avtomatik indeks yaratmır. Bu sütunları indeksləməmək JOIN əməliyyatlarında və kaskad silinmələrdə cədvəlin tam oxunmasına (full table scan) səbəb olur.
+    - **Analitik bazaları (OLAP) həddindən artıq normallaşdırmaq**: 3NF əməliyyat yönümlü OLTP üçün vacib olsa da, analitik anbarlarda (DWH) sürətli sorğular üçün denormallaşdırma (Star schema / Snowflake schema) daha məqsədəuyğundur.
+    - **Dəyişə bilən təbii açarlardan (natural keys) istifadə etmək**: Zamanla dəyişə bilən sahələri (e-poçt və ya telefon) Primary Key kimi istifadə etmək; stabil surrogate key-lər (integer, UUID) əvəzinə təbii açarlara güvənmək.
 interview_question:
   question:
     en: "When would you deliberately denormalize a database schema in data engineering?"
@@ -116,38 +116,59 @@ interview_question:
       3. **Write/Read Workload Trade-off**: Operational OLTP prioritizes low write amplification and integrity (3NF). Analytical OLAP prioritizes fast column-scan throughput, accepting duplicate storage and pipeline-managed eventual consistency.
     az: |
       Data mühəndisliyində denormallaşdırma yazma və saxlama xərcləri ilə analitik oxuma sürəti arasında şüurlu bir kompromisdir:
-      1. **OLAP Sorğularının Sürətləndirilməsi**: Analitik anbarlar (ClickHouse, BigQuery, Snowflake) milyardlarla sətir emal edir. Denormallaşdırılmış sxemlər (Ulduz Sxemi, Vahid Böyük Cədvəl - OBT) paylanmış ağır JOIN və şəbəkə qarışdırma (shuffle) əməliyyatlarını aradan qaldırır.
-      2. **Əvvəlcədən Hesablanmış Göstəricilər (Materialized Views)**: Ölçüləri əvvəlcədən hesablanmış aqreqasiyalarla birləşdirmək BI panellərinin (dashboards) sorğuları dərhal cavablandırmasını təmin edir.
+      1. **OLAP Sorğularının Sürətləndirilməsi**: Analitik anbarlar (ClickHouse, BigQuery, Snowflake) milyardlarla sətir emal edir. Denormallaşdırılmış sxemlər (Star schema, One Big Table - OBT) paylanmış ağır JOIN və şəbəkə qarışdırma (shuffle) əməliyyatlarını aradan qaldırır.
+      2. **Əvvəlcədən Hesablanmış Göstəricilər (Materialized Views)**: Dimension-ları əvvəlcədən hesablanmış aqreqasiyalarla birləşdirmək BI dashboard-larının sorğuları dərhal cavablandırmasını təmin edir.
       3. **Oxuma/Yazma Yükünün Balanslaşdırılması**: Əməliyyat yönümlü OLTP aşağı yazma yükünə və bütövlüyə (3NF) üstünlük verir. Analitik OLAP isə sütunlu oxuma sürətini artırmaq üçün saxlama təkrarlanmasını qəbul edir.
+  interviewer_tips:
+    en: "Contrast OLTP vs. OLAP clearly: mention that cloud storage is cheap while distributed compute (shuffling billions of rows during joins) is expensive, which is why Star Schema and OBT dominate modern data warehouses."
+    az: "Müsahibədə OLTP və OLAP fərqini aydın vurğulayın: müasir bulud sistemlərində disk yaddaşı ucuz, hesablama gücü (milyardlarla sətrin JOIN zamanı şəbəkədə shuffle edilməsi) isə bahadır. Buna görə DWH-lərdə Star schema və OBT üstünlük təşkil edir."
+exercise:
+  question:
+    en: "Write a query joining orders (o) and users (u) using their Foreign Key / Primary Key relationship to retrieve order_id, first_name, email, and total_amount for all orders placed by user_id = 1."
+    az: "orders (o) və users (u) cədvəllərini Foreign Key / Primary Key əlaqəsi üzrə birləşdirərək user_id = 1 olan müştərinin bütün sifarişləri üçün order_id, first_name, email və total_amount sütunlarını qaytaran sorğu yazın."
+  starter_code: |
+    SELECT o.order_id, u.first_name, u.email, o.total_amount
+    FROM orders o
+    JOIN users u ON ___
+    WHERE ___;
+  hint:
+    en: "Join on `o.user_id = u.user_id` and filter with `WHERE o.user_id = 1`."
+    az: "`o.user_id = u.user_id` şərti ilə birləşdirin və `WHERE o.user_id = 1` ilə süzün."
+  solution: |
+    SELECT o.order_id, u.first_name, u.email, o.total_amount
+    FROM orders o
+    JOIN users u ON o.user_id = u.user_id
+    WHERE o.user_id = 1;
+  order_matters: false
 
 flashcards:
   - front:
       en: "What are the two mandatory properties of a Primary Key (PK)?"
-      az: "Əsas Açarın (Primary Key) iki mütləq tələbi hansıdır?"
+      az: "Primary Key-in (Əsas Açarın) iki mütləq tələbi hansıdır?"
     back:
       en: "1. Uniqueness: No two rows can have the same primary key value. 2. Non-nullability: A primary key cannot contain NULL values."
-      az: "1. Unikallıq: Heç bir iki sətir eyni əsas açar dəyərinə malik ola bilməz. 2. NULL ola bilməməsi: Əsas açar sütununda heç vaxt NULL ola bilməz."
+      az: "1. Unikallıq: Heç bir iki sətir eyni Primary Key dəyərinə malik ola bilməz. 2. NULL ola bilməməsi: Primary Key sütununda heç vaxt NULL ola bilməz."
   - front:
       en: "What is referential integrity and which constraint enforces it?"
       az: "Əlaqə bütövlüyü (referential integrity) nədir və onu hansı məhdudiyyət təmin edir?"
     back:
       en: "Referential integrity guarantees that relationships between tables remain consistent. It is enforced by Foreign Keys (FK), which require child values to match an existing parent PK."
-      az: "Əlaqə bütövlüyü cədvəllər arasındakı münasibətlərin ardıcıllığını təmin edir. Bu, Xarici Açar (FK) vasitəsilə təmin olunur və bala cədvəldəki dəyərin ana cədvəldəki Əsas Açara uyğunluğunu tələb edir."
+      az: "Əlaqə bütövlüyü cədvəllər arasındakı münasibətlərin ardıcıllığını təmin edir. Bu, Foreign Key (FK) vasitəsilə qorunur və bala cədvəldəki dəyərin ana cədvəldəki Primary Key-ə uyğunluğunu tələb edir."
   - front:
       en: "What is the core rule of the 3rd Normal Form (3NF) in simple terms?"
       az: "3-cü Normal Formanın (3NF) əsas qaydası sadə dillə nədir?"
     back:
       en: "Every non-key attribute must depend directly on the primary key, the whole primary key, and nothing but the primary key (no transitive dependencies)."
-      az: "Açar olmayan hər bir sütun birbaşa və yalnız əsas açardan asılı olmalıdır. Sütunların başqa sütunlar üzərindən dolayısı ilə (tranzitiv) asılılığına yol verilmir."
+      az: "Açar olmayan hər bir sütun birbaşa və yalnız Primary Key-dən asılı olmalıdır. Sütunların başqa sütunlar üzərindən dolayısı ilə (tranzitiv) asılılığına yol verilmir."
   - front:
       en: "Why is denormalization (Star Schema / OBT) common in Data Engineering warehouses?"
-      az: "Data mühəndisliyi anbarlarında (DWH) nə üçün denormallaşdırma (Ulduz Sxemi / OBT) geniş tətbiq olunur?"
+      az: "Data mühəndisliyi anbarlarında (DWH) nə üçün denormallaşdırma (Star schema / OBT) geniş tətbiq olunur?"
     back:
       en: "To avoid expensive distributed multi-table JOINs across billions of rows, significantly accelerating analytical query throughput and dashboard latency."
-      az: "Milyardlarla sətir üzərində paylanmış ağır çoxcədvəlli JOIN əməliyyatlarından qaçmaq, analitik sorğuların və BI panellərinin sürətini kəskin artırmaq üçün."
+      az: "Milyardlarla sətir üzərində paylanmış ağır çoxcədvəlli JOIN əməliyyatlarından qaçmaq, analitik sorğuların və BI dashboard-larının sürətini kəskin artırmaq üçün."
   - front:
       en: "Do Foreign Keys create indexes automatically in SQLite and PostgreSQL?"
-      az: "SQLite və PostgreSQL-də Xarici Açarlar (Foreign Keys) avtomatik indeks yaradırmı?"
+      az: "SQLite və PostgreSQL-də Foreign Key-lər avtomatik indeks yaradırmı?"
     back:
       en: "No. FK columns must be explicitly indexed by the engineer; otherwise, JOIN operations and cascading actions cause expensive full table scans."
-      az: "Xeyr. FK sütunları data mühəndisi tərəfindən açıq şəkildə indekslənməlidir; əks halda JOIN və silmə əməliyyatları bütün cədvəlin daranmasına (table scan) səbəb olur."
+      az: "Xeyr. FK sütunları data mühəndisi tərəfindən açıq şəkildə indekslənməlidir; əks halda JOIN və silmə əməliyyatları bütün cədvəlin oxunmasına (full table scan) səbəb olur."

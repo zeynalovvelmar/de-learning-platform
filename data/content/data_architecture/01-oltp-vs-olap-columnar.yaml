@@ -55,7 +55,7 @@ explanation:
        - **Workload**: Business analysts and data pipelines aggregating millions of rows to answer strategic questions (e.g. *"What was the total revenue across all stores in 2026 Q3?"*).
        - **Queries**: `SELECT category, SUM(amount), AVG(margin) FROM sales GROUP BY 1`.
        - **Storage Model**: **Column-Oriented (Columnar)**. All values of the `amount` column across all rows are packed contiguously together on disk.
-       - **Why Columnar is 100x Faster for Analytics**:
+       - **Why Columnar Storage is Order-of-Magnitude Faster for Analytics**:
          - **I/O Pruning**: If your table has 80 columns and you run `SELECT SUM(amount)`, OLAP reads only the bytes for `amount`, completely skipping the other 79 columns!
          - **Heavy Compression**: Because integers or floats are grouped together, compression algorithms (Snappy, ZSTD, Run-Length Encoding) shrink disk space by 70-90%.
        - **Examples**: Snowflake, Google BigQuery, ClickHouse, Apache Druid, Amazon Redshift.
@@ -72,7 +72,7 @@ explanation:
        - **İş rejimi**: Biznes analitiklər və data mühəndisləri keçən rübün yekun maliyyə nəticələrini və ya illik trendləri hesablamaq üçün milyonlarla sətiri eyni anda aqreqasiya edirlər.
        - **Əsas sorğular**: `SELECT category, SUM(amount), AVG(discount) FROM sales GROUP BY 1`.
        - **Saxlanma qaydası**: **Sütunlu (Column-Oriented / Columnar)**. Bütün 10 milyon sətirin `amount` (məbləğ) dəyərləri diskdə bir yerdə, yanaşı bloklarda saxlanılır.
-       - **Niyə Sütunlu Baza Analitikada 100 Dəfə Sürətlidir?**:
+       - **Niyə Sütunlu Saxlanc Analitik Sorğularda Qat-qat Sürətlidir?**:
          - **I/O Qənaəti**: Əgər cədvəldə 80 sütun varsa və siz sadəcə `SUM(amount)` yazmısınızsa, OLAP bazası qalan 79 sütunu ümumiyyətlə diskdən oxumur!
          - **Nəhəng Sıxılma**: Eyni tipli rəqəmlər yanaşı durduğu üçün sıxılma alqoritmləri (ZSTD, Snappy) faylı 5-10 dəfə kiçildir və RAM-a çox az yük düşür.
        - **Nümunələr**: Snowflake, Google BigQuery, ClickHouse, Amazon Redshift.
@@ -87,7 +87,7 @@ real_world_use:
   az: "Müştəri sifarişlərini canlı OLTP Postgres bazasında qəbul edib, gecə saatlarında sütunlu OLAP Snowflake anbarına köçürərək rəhbərlik hesabatları hazırlamaq."
 common_mistakes:
   en: "Running heavy multi-table analytical aggregations (`SUM`, `GROUP BY`) directly on a production OLTP database, locking tables and crashing the customer website."
-  az: "Canlı müştəri bazasında (OLTP Postgres) milyonluq aqreqasiya sorğuları işlətmək, cədvəlləri kilitləmək və tətbiqi/saytı dondurmaq."
+  az: "Canlı müştəri bazasında (OLTP Postgres) milyonluq aqreqasiya sorğuları işlətmək, cədvəlləri kilidləmək və tətbiqi/saytı dondurmaq."
 code: |
   -- ==============================================================================
   -- DEMONSTRATING OLTP (ROW) VS OLAP (COLUMNAR) ACCESS PATTERNS
@@ -120,7 +120,7 @@ code_explanation:
     - OLTP-də `SELECT * WHERE user_id = 49102` idealdır, çünki bir müştərinin bütün məlumatları diskdə bir sətirdə yanaşı yatır.
     - OLAP-da `SUM(amount)` sorğusu 100 milyon sətir üzrə icra olunur. Baza sütunlu olduğu üçün ünvan, telefon və şərh sütunlarına heç baxmır, sorğu 4 dəqiqə deyil, 0.8 saniyəyə bitir!
 visual_output: |
-  ===================== DISK I/O SCAN COMPARISON (100M ROWS) =====================
+  =============== ILLUSTRATIVE DISK I/O SCAN BENCHMARK (100M ROWS) ===============
   Query: SELECT DATE_TRUNC('month', order_date), SUM(amount) FROM orders;
 
   ┌─────────────────────────┬──────────────────────┬─────────────┬──────────────┐
@@ -129,10 +129,10 @@ visual_output: |
   │ PostgreSQL (Row-based)  │ All 25 columns read  │ 42.8 GB     │ 184.2 s (3m) │
   │ Snowflake (Columnar)    │ Only 2 columns read  │ 1.4 GB      │ 0.85 s       │
   └─────────────────────────┴──────────────────────┴─────────────┴──────────────┘
-  Speedup: Columnar storage is 216x FASTER with 96% LESS DISK I/O!
+  Illustrative Speedup: Columnar storage scans 96% LESS DISK I/O (~216x faster in this 2-of-25 column scenario)!
 output_description:
-  en: "Compares row-oriented vs columnar performance on 100M rows, showing a 216x speedup and 96% reduction in disk scan bytes."
-  az: "100 milyon sətirlik cədvəldə sətirli və sütunlu saxlancın müqayisəsini əks etdirir: Sütunlu baza 216 dəfə sürətli və 96% az disk oxunuşu təmin edir."
+  en: "Illustrates row-oriented vs columnar I/O performance on a 25-column 100M-row table, showing a ~96% reduction in disk scan bytes when querying only 2 columns."
+  az: "25 sütunlu 100 milyon sətirlik cədvəldə sətirli və sütunlu saxlancın nümunəvi (illustrative benchmark) müqayisəsini əks etdirir: yalnız 2 sütun oxunduqda disk I/O ~96% azalır."
 interview_question:
   question:
     en: "What is the difference between OLTP and OLAP? Why is columnar storage vastly superior to row-oriented storage for analytical queries?"
@@ -173,4 +173,4 @@ flashcards:
       az: "Ağır analitik (OLAP) hesabat sorğularını niyə birbaşa canlı OLTP bazasında işlətmək olmaz?"
     back:
       en: "It exhausts database CPU/memory, locks transaction tables, and can crash the consumer-facing application."
-      az: "Baza yaddaşını və CPU-sunu doldurur, tranzaksiya cədvəllərini kilitləyir və müştəri tətbiqini dondura bilər."
+      az: "Baza yaddaşını və CPU-sunu doldurur, tranzaksiya cədvəllərini kilidləyir və müştəri tətbiqini dondura bilər."

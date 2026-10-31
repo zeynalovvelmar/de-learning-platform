@@ -3,7 +3,7 @@ order: 1
 level: "junior"
 title:
   en: "Linux Fundamentals & Production Bash Scripting for DE"
-  az: "Linux Əsasları və Data Mühəndisləri Üçün İstehsalat Bash Skriptləri"
+  az: "Linux Əsasları və Data Mühəndisləri Üçün Production Bash Skriptləri"
 infographic:
   en: |
     ```text
@@ -16,7 +16,7 @@ infographic:
         ▼                             ▼                             ▼
     ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
     │ STREAMS & PIPES      │   │ PRODUCTION SAFETY    │   │ DE TEXT TOOLKIT      │
-    │ • 0: stdin           │   │ `set -euo pipefail`  │   │ • `grep`: Pattern找  │
+    │ • 0: stdin           │   │ `set -euo pipefail`  │   │ • `grep`: Pattern    │
     │ • 1: stdout (`>`)    │   │ • -e: Exit on error  │   │ • `awk`: Column math │
     │ • 2: stderr (`2>&1`) │   │ • -u: Error on unset │   │ • `sed`: Stream edit │
     │ • `|`: Pipe output   │   │ • -o pipefail: Catch │   │ • `jq`: JSON parse   │
@@ -33,14 +33,14 @@ infographic:
         ┌─────────────────────────────┼─────────────────────────────┐
         ▼                             ▼                             ▼
     ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
-    │ AXINLAR VƏ BORULAR   │   │ TƏHLÜKƏSİZLİK BAYRAĞI│   │ DE MƏTN ALƏTLƏRİ     │
+    │ AXINLAR VƏ PIPES     │   │ TƏHLÜKƏSİZLİK BAYRAĞI│   │ DE MƏTN ALƏTLƏRİ     │
     │ • 0: stdin (giriş)   │   │ `set -euo pipefail`  │   │ • `grep`: Mətn axtar │
     │ • 1: stdout (`>`)    │   │ • -e: Xətada dərhal  │   │ • `awk`: Sütun emalı │
     │ • 2: stderr (`2>&1`) │   │   skripti dayandır   │   │ • `sed`: Mətn dəyiş  │
     │ • `|`: Bir əmrin     │   │ • -u: Boş dəyişəndə  │   │ • `jq`: JSON parsing │
     │   çıxışını digərinə  │   │   xəta qaldır        │   │ • `tail -f`: Canlı   │
-    │   ötürən boru (pipe) │   │ • -o pipefail: Boruda│   │   loq izləmə         │
-    │                      │   │   gizli xətanı tut   │   │                      │
+    │   ötürən pipe        │   │ • -o pipefail: Pipe  │   │   loq izləmə         │
+    │                      │   │   xətasını tut       │   │                      │
     └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
     ```
 explanation:
@@ -66,7 +66,7 @@ explanation:
     - **`-o pipefail`**: If `cmd1 | cmd2` fails at `cmd1`, Bash treats the whole pipeline as failed (normally, Bash only checks the exit code of the last command `cmd2`).
   az: |
     ### Linux Niyə Data Mühəndisi Üçün Məcburidir?
-    Real istehsalat mühitində Big Data kəmərləri Windows və ya macOS üzərində işləmir. Bütün paylanmış klasterlər (Spark, Kafka, Hadoop) və konteyner platformaları (Docker, Kubernetes) **Linux** əməliyyat sistemi (Ubuntu, Debian, RHEL, Alpine) üzərində qurulur.
+    Real production mühitində Big Data pipeline-ları Windows və ya macOS üzərində işləmir. Bütün paylanmış klasterlər (Spark, Kafka, Hadoop) və konteyner platformaları (Docker, Kubernetes) **Linux** əməliyyat sistemi (Ubuntu, Debian, RHEL, Alpine) üzərində qurulur.
 
     Data mühəndisi Linux terminalını dərindən bilməlidir ki:
     1. Qrafik interfeysi (GUI) olmayan uzaq serverlərdə (remote servers) gigabaytlarla loqları saniyələr içində axtarıb xətanı tapsın.
@@ -77,16 +77,16 @@ explanation:
     - **`stdin (0)`**: Giriş axını.
     - **`stdout (1)`**: Normal çıxış axını. `>` faylın üzərinə yazar, `>>` isə faylın sonuna əlavə edər.
     - **`stderr (2)`**: Xəta axını. `2>&1` xətaları normal çıxış axını ilə eyni yerə yönləndirir.
-    - **Pipes (`|` Boru)**: Bir əmrin çıxışını diskinə yazmadan, birbaşa yaddaşda (RAM) növbəti əmrə giriş kimi ötürür.
+    - **Pipes (`|`)**: Bir əmrin çıxışını diskə yazmadan, birbaşa yaddaşda (RAM) növbəti əmrə giriş kimi ötürür.
 
-    ### İstehsalatın Qızıl Qaydası: `set -euo pipefail`
-    Adi Bash skriptlərində bir sətr xəta versə belə, skript dayanmır və sonrakı sətrləri işlətməyə davam edir; bu isə datanı səssizcə korlayır.
+    ### Production Mühitinin Qızıl Qaydası: `set -euo pipefail`
+    Adi Bash skriptlərində bir sətir xəta versə belə, skript dayanmır və sonrakı sətirləri işlətməyə davam edir; bu isə datanı səssizcə korlayır.
     - **`-e`**: Hər hansı bir əmr xəta versə, skripti dərhal dayandırır.
     - **`-u`**: Təyin olunmamış (boş) dəyişən istifadə edildikdə xəta qaldırır (məsələn: `rm -rf /$DIR` səhvinin qarşısını alır).
-    - **`-o pipefail`**: Əgər `əməliyyat1 | əməliyyat2` zəncirində birinci əmr çöksə, bütün kəməri uğursuz elan edir.
+    - **`-o pipefail`**: Əgər `əməliyyat1 | əməliyyat2` zəncirində birinci əmr çöksə, bütün pipeline-ı uğursuz elan edir.
 quick_recap:
   en: "Linux is the foundation of all Big Data engines. Always start production Bash scripts with `set -euo pipefail` and use pipes (`|`) for in-memory stream processing."
-  az: "Linux bütün Big Data sistemlərinin təməlidir. İstehsalat Bash skriptlərini həmişə `set -euo pipefail` ilə başladın və məlumatı `|` boruları ilə axın şəklində emal edin."
+  az: "Linux bütün Big Data sistemlərinin təməlidir. Production Bash skriptlərini həmişə `set -euo pipefail` ilə başladın və məlumatı `|` pipe-ları ilə axın şəklində emal edin."
 what_it_does:
   en: "Provides low-level OS management, automation scripting, log diagnostics, and text stream manipulation across data nodes."
   az: "Data serverlərində aşağı səviyyəli ƏS idarəetməsini, avtomatlaşdırma skriptlərini, loq analizini və mətn axınlarının emalını təmin edir."
@@ -95,7 +95,7 @@ real_world_use:
   az: "Baza yüklənməsindən əvvəl xammal CSV fayllarını `awk`/`sed` ilə süzmək, loqları arxivləşdirmək və pipeline-ları avtomatlaşdırmaq."
 common_mistakes:
   en: "Writing Bash scripts without `set -euo pipefail`, leading to cascading silent failures where corrupted data gets processed downstream."
-  az: "Bash skriptlərində `set -euo pipefail` yazmamaq və kəmərdə əvvəlki addım çöksə belə sonrakı addımların səhv məlumatla davam etməsi."
+  az: "Bash skriptlərində `set -euo pipefail` yazmamaq və pipeline-da əvvəlki addım çöksə belə sonrakı addımların səhv məlumatla davam etməsi."
 code: |
   #!/usr/bin/env bash
   # ==============================================================================
@@ -155,17 +155,17 @@ visual_output: |
   ORD-99108,CUST-883,450.25
 output_description:
   en: "Shows the production Bash script safely executing, streaming millions of rows through awk/grep, and generating the clean partition file."
-  az: "İstehsalat Bash skriptinin təhlükəsiz icrasını, awk/grep ilə faylı süzməsini və təmiz partisiya faylını yaratmasını göstərir."
+  az: "Production Bash skriptinin təhlükəsiz icrasını, awk/grep ilə faylı süzməsini və təmiz partisiya faylını yaratmasını göstərir."
 interview_question:
   question:
     en: "What does `set -euo pipefail` do at the top of a Bash script, and why is it considered a mandatory best practice in Data Engineering?"
     az: "Bash skriptinin başında yazılan `set -euo pipefail` nə edir və niyə Data Mühəndisliyində məcburi standart hesab olunur?"
   answer:
     en: "By default, Bash continues running even if commands fail or undefined variables are accessed. `set -euo pipefail` hardens the script: (1) `-e` exits immediately if any command returns a non-zero exit status; (2) `-u` treats unset variables as an error and exits, preventing catastrophic accidents like `rm -rf /$UNDEFINED_VAR`; (3) `-o pipefail` ensures that if any command in a pipeline (`cmd1 | cmd2 | cmd3`) fails, the entire pipeline returns that failure status rather than masked by the final command. In Data Engineering, this prevents corrupt, partial, or missing data from silently progressing into downstream production databases."
-    az: "Susmaya görə Bash skriptində bir əmr xəta versə belə, icra dayanmır və sonrakı sətirlərə keçir. `set -euo pipefail` skripti gücləndirir: (1) `-e` hər hansı bir əmr xəta verdikdə skripti dərhal dayandırır; (2) `-u` boş (təyin olunmamış) dəyişəndən istifadə edildikdə xəta verir və `rm -rf /$DIR` kimi fəlakətli silinmələrin qarşısını alır; (3) `-o pipefail` boru (`cmd1 | cmd2 | cmd3`) zəncirində əvvəlki əmrlərdən biri çöksə, bütün kəməri xətalı elan edir. Data mühəndisliyində bu, natamam və ya xarab məlumatın səssizcə növbəti istehsalat bazalarına yazılmasının qarşısını alır."
+    az: "Susmaya görə Bash skriptində bir əmr xəta versə belə, icra dayanmır və sonrakı sətirlərə keçir. `set -euo pipefail` skripti gücləndirir: (1) `-e` hər hansı bir əmr xəta verdikdə skripti dərhal dayandırır; (2) `-u` boş (təyin olunmamış) dəyişəndən istifadə edildikdə xəta verir və `rm -rf /$DIR` kimi fəlakətli silinmələrin qarşısını alır; (3) `-o pipefail` pipe (`cmd1 | cmd2 | cmd3`) zəncirində əvvəlki əmrlərdən biri çöksə, bütün pipeline-ı xətalı elan edir. Data mühəndisliyində bu, natamam və ya xarab məlumatın səssizcə növbəti production bazalarına yazılmasının qarşısını alır."
   interviewer_tips:
     en: "Senior interviewers test your operational rigor with this question. Explaining each flag (`-e`, `-u`, `-o pipefail`) and mentioning 'silent data corruption' instantly sets you apart from junior candidates."
-    az: "Müsahibəçilər sizin istehsalat ciddiyyətinizi bu sualla yoxlayır. Hər bayrağı (`-e`, `-u`, `-o pipefail`) ayrı-ayrı izah etmək və 'məlumatın səssiz korlanması' arqumentini gətirmək sizə yüksək xal qazandıracaq."
+    az: "Müsahibəçilər sizin production ciddiyyətinizi bu sualla yoxlayır. Hər bayrağı (`-e`, `-u`, `-o pipefail`) ayrı-ayrı izah etmək və 'məlumatın səssiz korlanması' arqumentini gətirmək sizə yüksək xal qazandıracaq."
 flashcards:
   - front:
       en: "What does the `-e` flag do in `set -e` in Bash?"
@@ -175,7 +175,7 @@ flashcards:
       az: "Hər hansı bir əmr sıfırdan fərqli (xəta) statusu ilə bitdikdə skriptin dərhal dayanmasını təmin edir."
   - front:
       en: "Why is `-o pipefail` critical when chaining commands with `|` (pipes)?"
-      az: "Əmrləri `|` (boru) ilə birləşdirərkən `-o pipefail` niyə həyati əhəmiyyət daşıyır?"
+      az: "Əmrləri `|` (pipe) ilə birləşdirərkən `-o pipefail` niyə həyati əhəmiyyət daşıyır?"
     back:
       en: "Without it, the exit status of the pipeline is only that of the last command, masking failures that occurred in earlier steps."
       az: "Bu olmadan yalnız ən sonuncu əmrin çıxış statusu yoxlanılır və əvvəlki mərhələlərdə baş verən xətalar gizli qalır."
@@ -193,7 +193,7 @@ flashcards:
       az: "`>` hədəf faylın üzərinə yazır (təmizləyir), `>>` isə faylın sonuna əlavə edir."
   - front:
       en: "Which Linux command is best for real-time monitoring of actively written pipeline log files?"
-      az: "Data kəmərinin canlı yazılan loq fayllarını real vaxtda izləmək üçün ən yaxşı Linux əmri hansıdır?"
+      az: "Data pipeline-ının canlı yazılan loq fayllarını real vaxtda izləmək üçün ən yaxşı Linux əmri hansıdır?"
     back:
       en: "`tail -f <logfile>` (or `tail -n 100 -f <logfile>`)."
       az: "`tail -f <loq_faylı>` (və ya `tail -n 100 -f <loq_faylı>`)."

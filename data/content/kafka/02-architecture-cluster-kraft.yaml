@@ -20,7 +20,7 @@ infographic:
     │  MODERN KAFKA (KRaft Mode - Kafka Raft Metadata): Self-Managed (3.0+)  │
     │  [Broker 1 (Broker Role)]    [Broker 2 (Broker Role)]                  │
     │               ▲                                 ▲                      │
-    │               │ Internal @metadata topic sync   │ (Raft Consensus)     │
+    │               │ Internal __cluster_metadata     │ (Raft Consensus)     │
     │               ▼                                 ▼                      │
     │  [Broker 3 (Combined: Broker + KRaft Active Controller Leader)]        │
     │  [Broker 4 (KRaft Follower)]           [Broker 5 (KRaft Follower)]     │
@@ -43,7 +43,7 @@ infographic:
     │  MÜASİR KAFKA (KRaft Rejimi - ZooKeeper-siz Kafka 3.0+): Daxili Konsensus│
     │  [Broker 1 (İşçi Broker)]    [Broker 2 (İşçi Broker)]                  │
     │               ▲                                 ▲                      │
-    │               │ Daxili @metadata topiki         │ (Raft Protokolu)     │
+    │               │ Daxili __cluster_metadata       │ (Raft Protokolu)     │
     │               ▼                                 ▼                      │
     │  [Broker 3 (Həm İşçi, Həm də KRaft Aktiv Controller Lideri)]           │
     │  [Broker 4 (KRaft İzləyicisi)]         [Broker 5 (KRaft İzləyicisi)]   │
@@ -56,7 +56,7 @@ explanation:
     - **A Broker**: An individual warehouse building. Each broker is an independent server running the Kafka software, storing message logs on its physical hard drives, and serving client requests.
     - **The Cluster**: A group of brokers working together under a unified cluster ID. Even if Warehouse #2 catches fire, Warehouses #1 and #3 keep shipping containers without interruption (**High Availability**).
     - **The Old ZooKeeper Model**: An external, foreign government agency with their own private office building down the street (ZooKeeper). Every time a warehouse added a new shelf or changed a manager, they had to telephone ZooKeeper and wait for approval. It was clumsy, duplicated state, and struggled when the port grew to millions of containers.
-    - **The Modern KRaft Model (Kafka Raft)**: The port managers elect their own internal Chief Harbor Master (**KRaft Controller Leader**) directly from among the warehouse captains. Cluster metadata is stored directly inside an ultra-fast internal Kafka topic (`@metadata`). Startup is instantaneous and can scale to millions of partitions!
+    - **The Modern KRaft Model (Kafka Raft)**: The port managers elect their own internal Chief Harbor Master (**KRaft Controller Leader**) directly from among the warehouse captains. Cluster metadata is stored directly inside an ultra-fast internal Kafka topic (`__cluster_metadata`). Startup is instantaneous and can scale to millions of partitions! *(Note: In Apache Kafka 4.0 (2025), ZooKeeper support was completely removed and KRaft is now the sole metadata consensus engine).*
 
     ### Key Responsibilities of the Controller Broker:
     1. Monitors broker health via heartbeats.
@@ -65,9 +65,9 @@ explanation:
   az: |
     Böyük bir beynəlxalq dəniz limanının idarə olunmasını təsəvvür edin:
     - **Broker**: Limandakı fərdi bir anbar binasıdır. Hər bir broker Kafka proqramını işlədən, mesajları öz fiziki disklərində saxlayan və müştərilərə xidmət edən müstəqil serverdir.
-    - **Klaster**: Vahid identifikator altında birləşmiş brokerlər şəbəkəsidir. 2 nömrəli anbarda nasazlıq yaransa belə, 1 və 3 nömrəli anbarlar işi dərhal öz üzərinə götürür və kəmər dayanmır (**Yüksək Əlçatanlıq - High Availability**).
+    - **Klaster**: Vahid identifikator altında birləşmiş brokerlər şəbəkəsidir. 2 nömrəli anbarda nasazlıq yaransa belə, 1 və 3 nömrəli anbarlar işi dərhal öz üzərinə götürür və pipeline dayanmır (**Yüksək Əlçatanlıq - High Availability**).
     - **Köhnə ZooKeeper Modeli**: Küçənin o biri başında yerləşən tamamilə kənar bir dövlət agentliyi kimidir. Limanda hər dəfə yeni rəf tikildikdə və ya menecer dəyişdikdə ZooKeeper agentliyinə zəng edib təsdiq gözləməli olurdular. İki fərqli sistemi idarə etmək çətin idi və klaster böyüdükcə ZooKeeper darboğaza çevrilirdi.
-    - **Müasir KRaft Modeli (Kafka Raft)**: Liman kapitanları öz aralarından bir Baş Dispetçer (**KRaft Controller Leader**) seçirlər. Klasterin bütün metadatasını (kim haradadır, hansı partisiya kimdədir) birbaşa daxili `@metadata` adlı super-sürətli Kafka topiki idarə edir. ZooKeeper-ə ehtiyac qalmır, klaster saniyələr içində açılır və milyonlarla partisiyanı idarə edə bilir!
+    - **Müasir KRaft Modeli (Kafka Raft)**: Liman kapitanları öz aralarından bir Baş Dispetçer (**KRaft Controller Leader**) seçirlər. Klasterin bütün metadatasını (kim haradadır, hansı partisiya kimdədir) birbaşa daxili `__cluster_metadata` adlı super-sürətli Kafka topiki idarə edir. ZooKeeper-ə ehtiyac qalmır, klaster saniyələr içində açılır və milyonlarla partisiyanı idarə edə bilir! *(Qeyd: Apache Kafka 4.0 (2025) versiyasından etibarən ZooKeeper dəstəyi tamamilə silinmişdir və KRaft yeganə metadata konsensus mühərrikidir).*
 
     ### Controller Broker-in Əsas Vəzifələri:
     1. Bütün brokerlərin nəbzini (heartbeat) yoxlayaraq sağlamlığını izləyir.
@@ -124,7 +124,7 @@ visual_output: |
     • Topic: '__consumer_offsets'      | Partitions: 50
 output_description:
   en: "Terminal diagnosis displaying a healthy 3-broker production cluster with KRaft active controller coordination and partition counts."
-  az: "KRaft aktiv controller nəzarəti altında 3 aktiv brokerdən ibarət istehsalat klasterinin və daxili topic-lərinin sağlam vəziyyətini göstərən diaqnostika çıxışı."
+  az: "KRaft aktiv controller nəzarəti altında 3 aktiv brokerdən ibarət production klasterinin və daxili topic-lərinin sağlam vəziyyətini göstərən diaqnostika çıxışı."
 what_it_does:
   en: "Interrogates cluster metadata dynamically, identifying alive broker nodes, controller presence, and topic distribution across nodes."
   az: "Klasterin vəziyyətini dinamik sorğulayaraq aktiv brokerləri, controller varlığını və topic-lərin serverlər üzrə paylanmasını nümayiş etdirir."
@@ -151,20 +151,20 @@ interview_question:
       2. **Why ZooKeeper Was Eliminated (The 3 Bottlenecks)**:
          - **Metadata Desynchronization**: In ZooKeeper mode, metadata lived externally in ZK nodes and had to be continually synced into the Controller's RAM. If the Controller crashed, a new Controller had to read millions of ZK z-nodes, taking minutes to recover.
          - **Partition Scalability Limits**: ZooKeeper could practically manage up to ~200,000 partitions per cluster before watch storm latency degraded the cluster.
-         - **Operational Complexity**: DevOps teams had to configure, monitor, patch, and secure two completely different distributed distributed JVM systems (ZooKeeper + Kafka).
+         - **Operational Complexity**: DevOps teams had to configure, monitor, patch, and secure two completely different distributed JVM systems (ZooKeeper + Kafka).
       3. **The KRaft Revolution (Kafka Raft)**:
-         - Metadata is now stored natively inside an internal, immutable, replicated event log (`@metadata`).
-         - Uses the Raft consensus algorithm. Controller failover takes **milliseconds** instead of minutes, and a single cluster can effortlessly support tens of millions of partitions.
+         - Metadata is now stored natively inside an internal, immutable, replicated event log (`__cluster_metadata`).
+         - Uses the Raft consensus algorithm. Controller failover takes **milliseconds** instead of minutes, and a single cluster can effortlessly support tens of millions of partitions. *(Note: ZooKeeper support was completely removed in Apache Kafka 4.0).*
     az: |
       1. **Controller Broker-in Rolu**:
          - Klasterdəki brokerlərdən biri **Controller** seçilir. O, klasterin beynidir: digər brokerlərin sağlamlığını izləyir, hansısa broker sıradan çıxdıqda dərhal yeni partisiya Liderlərini seçir və yenilikləri bütün digər brokerlərə çatdırır.
       2. **ZooKeeper Niyə Ləğv Edildi? (3 Əsas Darboğaz)**:
          - **Metadata Sinxronizasiya Gecikməsi**: ZooKeeper-də məlumatlar xaricdə saxlanılırdı və Controller-in yaddaşına daşınmalı idi. Controller öldükdə yeni Controller-in bütün ZooKeeper qovluqlarını oxuması dəqiqələrlə vaxt aparırdı.
-         - **Partisiya Sayı Məhdudiyyəti**: ZooKeeper bir klasterdə maksimum ~200,000 partisiya saxlaya bilirdi; daha çox partisiya olduqda şəbəkə kilitlənirdi.
+         - **Partisiya Sayı Məhdudiyyəti**: ZooKeeper bir klasterdə maksimum ~200,000 partisiya saxlaya bilirdi; daha çox partisiya olduqda şəbəkə kilidlənirdi.
          - **İdarəetmənin Mürəkkəbliyi**: Mühəndislər iki tamamilə fərqli paylanmış sistemi (ZooKeeper və Kafka) ayrı-ayrılıqda quraşdırmalı, sazlamalı və qorumalı idilər.
       3. **KRaft Üstünlüyü**:
-         - Artıq bütün klaster metadatası Kafka-nın öz daxili `@metadata` adlı replikasiyalı jurnalında saxlanılır.
-         - Raft konsensus protokolundan istifadə edilir. Controller dəyişməsi dəqiqələr deyil, **milli-saniyələr** çəkir və klaster milyonlarla partisiyanı asanlıqla idarə edir.
+         - Artıq bütün klaster metadatası Kafka-nın öz daxili `__cluster_metadata` adlı replikasiyalı jurnalında saxlanılır.
+         - Raft konsensus protokolundan istifadə edilir. Controller dəyişməsi dəqiqələr deyil, **milli-saniyələr** çəkir və klaster milyonlarla partisiyanı asanlıqla idarə edir. *(Qeyd: Apache Kafka 4.0 versiyasında ZooKeeper tamamilə silinmişdir).*
   interviewer_tips:
     en: "Focus on 'instant controller failover', 'elimination of metadata dual-state desynchronization', and 'scaling from 200k to millions of partitions'. Stating that modern Kafka 3.0+ runs KRaft in production is a strong senior signal."
     az: "Müsahibədə 'Controller bərpasının millisaniyələrə enməsi', 'iki ayrı sistemdə metadata uyğunsuzluğunun yox olması' və 'partisiya limitinin milyonlara qalxması' arqumentlərini vurğulayın."

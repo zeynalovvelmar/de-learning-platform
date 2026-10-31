@@ -44,7 +44,7 @@ export function ClientApp({ initialSlug }: ClientAppProps) {
 
   const initialIsHome = !slug0;
   const initialIsInterviews = slug0 === 'interviews';
-  const initialModuleId = slug0 && slug0 !== 'interviews' ? slug0 : 'python';
+  const initialModuleId = slug0 && slug0 !== 'interviews' ? slug0 : 'sql';
   const initialLessonId = slug1 ? slug1 : '';
 
   // Initial lesson detail (0ms if preloaded)

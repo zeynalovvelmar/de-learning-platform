@@ -3,7 +3,7 @@ order: 12
 level: "advanced"
 title:
   en: "Kubernetes Fundamentals for DE & Production Observability (Prometheus & Grafana)"
-  az: "DE Üçün Kubernetes Əsasları və İstehsalat Monitorinqi (Prometheus və Grafana)"
+  az: "DE Üçün Kubernetes Əsasları və Production Monitorinqi (Prometheus və Grafana)"
 infographic:
   en: |
     ```text
@@ -38,7 +38,7 @@ infographic:
         ┌─────────────────────────────┼─────────────────────────────┐
         ▼                             ▼                             ▼
     ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
-    │ K8s JOB (Batch ETL)  │   │ STATEFULSET (Dövlət) │   │ DEPLOYMENT (Statik)  │
+    │ K8s JOB (Batch ETL)  │   │ STATEFULSET (Data)   │   │ DEPLOYMENT (Statik)  │
     │ • Spark və ya dbt    │   │ • Kafka Brokerləri   │   │ • Airflow Webserver  │
     │   işini bitirənə kimi│   │ • PostgreSQL Bazası  │   │ • Daim işləyən nüsxə,│
     │ • İş bitəndə silinir!│   │ • Sabit Volume ID    │   │   özünü sağaldan     │
@@ -46,7 +46,7 @@ infographic:
                                       │
                                       ▼
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  İSTEHSALAT MONİTORİNQİ: PROMETHEUS VƏ GRAFANA                         │
+    │  PRODUCTION MONİTORİNQİ: PROMETHEUS VƏ GRAFANA                         │
     │  • Prometheus: Hər 15s-dən bir metrikaları yığır (Kafka Lag, CPU, RAM) │
     │  • Grafana: Canlı vizual qrafiklər və Slack-ə təcili qəza siqnalları   │
     └────────────────────────────────────────────────────────────────────────┘
@@ -73,22 +73,22 @@ explanation:
     - **Grafana**: The visual dashboard UI displaying real-time metrics, pipeline health gauges, and routing automated incident alerts to Slack or PagerDuty when an SLA is breached.
   az: |
     ### Docker Compose-dan Kubernetes-ə Nə Vaxt Keçilir?
-    Docker Compose noutbukda və ya tək bir serverdə işləmək üçün idealdır. Lakin istehsalat mühitində:
-    - Kəmərləriniz 20-30 müxtəlif güclü serverdən (klasterdən) ibarət infrastrukturda paylanmalıdır.
-    - Əgər bir server xarab olsa, oradakı kəmərlər dərhal başqa sağlam serverə avtomatik köçürülməlidir (Self-healing).
+    Docker Compose noutbukda və ya tək bir serverdə işləmək üçün idealdır. Lakin production mühitində:
+    - Pipeline-larınız 20-30 müxtəlif güclü serverdən (klasterdən) ibarət infrastrukturda paylanmalıdır.
+    - Əgər bir server xarab olsa, oradakı pipeline-lar dərhal başqa sağlam serverə avtomatik köçürülməlidir (Self-healing).
     - Günorta gələn böyük data axını üçün sistem avtomatik böyüməli (auto-scale), gecə isə xərclərə qənaət üçün kiçilməlidir.
     - **Kubernetes (K8s)** bütün bu paylanmış klaster problemlərini həll edən sənaye standartıdır.
 
     ### Data Mühəndisi Üçün Əsas K8s Obyektləri
     1. **Pod**: Kubernetes-in ən kiçik vahididir. Eyni şəbəkə IP-sini və diski bölüşən bir və ya bir neçə konteynerdən ibarətdir.
     2. **Job / CronJob**: Data mühəndisinin ən çox istifadə etdiyi rejim! Daim açıq qalan saytların əksinə olaraq, K8s `Job` podu qaldırır, Spark/Python/dbt skriptini icra edir və iş bitən kimi podu bağlayıb resursları azad edir.
-    3. **Deployment**: Daimi işləyən vəziyyətsiz proqramlar üçündür (məsələn: Airflow Webserver).
-    4. **StatefulSet**: Data saxlayan dövlətli sistemlər üçün şərtdir (Kafka brokerləri, PostgreSQL). Hər pod üçün sabit ad (`kafka-0`, `kafka-1`) və daimi disk təyin edir.
-    5. **ConfigMap və Secret**: Şifrələri və konfiqurasiyaları podlara imici dəyişmədən təhlükəsiz şəkildə ötürür.
+    3. **Deployment**: Daimi işləyən stateless (vəziyyətsiz) proqramlar üçündür (məsələn: Airflow Webserver).
+    4. **StatefulSet**: Data saxlayan stateful (vəziyyət saxlayan) sistemlər üçün şərtdir (Kafka brokerləri, PostgreSQL). Hər pod üçün sabit ad (`kafka-0`, `kafka-1`) və daimi disk təyin edir.
+    5. **ConfigMap və Secret**: Şifrələri və konfiqurasiyaları podlara Docker image-i dəyişmədən təhlükəsiz şəkildə ötürür.
 
-    ### İstehsalat Monitorinqi: Prometheus və Grafana
+    ### Production Monitorinqi: Prometheus və Grafana
     Ölçə bilmədiyiniz sistemi idarə edə bilməzsiniz:
-    - **Prometheus**: Hər 15 saniyədən bir bütün serverlərdən və kəmərlərdən metrikaları yığan zamana bağlı verilənlər bazasıdır (CPU, RAM, Kafka gecikməsi - Consumer Lag, Airflow xəta sayı).
+    - **Prometheus**: Hər 15 saniyədən bir bütün serverlərdən və pipeline-lardan metrikaları yığan zamana bağlı verilənlər bazasıdır (CPU, RAM, Kafka gecikməsi - Consumer Lag, Airflow xəta sayı).
     - **Grafana**: Həmin metrikaları zərif vizual qrafiklərə çevirən və xəta baş verəndə dərhal Slack/Telegram-a təcili həyəcan siqnalı göndərən monitorinq panelidir.
 quick_recap:
   en: "Kubernetes orchestrates container clusters across multiple servers. Use K8s Jobs for batch ETL tasks, StatefulSets for Kafka/Postgres, and Prometheus + Grafana for pipeline observability."
@@ -178,13 +178,13 @@ output_description:
 interview_question:
   question:
     en: "What is the difference between a Kubernetes `Deployment`, a `StatefulSet`, and a `Job`? Which would you choose for Apache Kafka versus an ETL pipeline?"
-    az: "Kubernetes-də `Deployment`, `StatefulSet` və `Job` arasındakı fərq nədir? Apache Kafka və bir ETL kəməri üçün hansını seçərdiniz?"
+    az: "Kubernetes-də `Deployment`, `StatefulSet` və `Job` arasındakı fərq nədir? Apache Kafka və bir ETL pipeline-ı üçün hansını seçərdiniz?"
   answer:
     en: "A `Deployment` manages stateless applications (like web APIs or Airflow webservers) where pods are completely interchangeable and can be replaced at any time with dynamic IP addresses. A `StatefulSet` manages stateful distributed applications (like Apache Kafka brokers or PostgreSQL), providing unique, stable network identifiers (e.g. `kafka-0`, `kafka-1`) and dedicated, persistent volume claims that reconnect to the exact same pod even after pod restarts. A `Job` is specifically designed for batch workloads that run to completion and terminate (like an ETL pipeline, Spark submit, or dbt model run). For Apache Kafka, you MUST use a `StatefulSet` to maintain partition log ownership and cluster quorum. For an ETL pipeline, you should use a `Job` (or `CronJob`) because it executes once, guarantees completion, and releases compute resources immediately upon finishing."
-    az: "`Deployment` vəziyyətsiz (stateless) tətbiqlər üçündür (məs: Web API və ya Airflow Webserver). Buradakı podlar tamamilə əvəzolunandır və dinamik IP alırlar. `StatefulSet` isə dövlətli (stateful) paylanmış sistemlər üçündür (məs: Apache Kafka və ya PostgreSQL). Hər bir pod üçün unikal, sabit ad (`kafka-0`, `kafka-1`) və daimi disk volume-u təyin edir; pod başqa serverə köçsə belə, eyni diski yenidən götürür. `Job` isə işini bitirənə qədər işləyib sonra dayanan partiya (batch) kəmərləri üçündür (məs: ETL kəməri, Spark işi, dbt modeli). Buna görə də Apache Kafka üçün mütləq `StatefulSet` seçilməlidir ki, topic partisiyaları və cluster quorumu qorunsun. ETL kəməri üçün isə `Job` (və ya `CronJob`) seçilməlidir ki, iş bitən kimi kompüter resurslarını dərhal azad edib bulud xərcinə qənaət etsin."
+    az: "`Deployment` vəziyyətsiz (stateless) tətbiqlər üçündür (məs: Web API və ya Airflow Webserver). Buradakı podlar tamamilə əvəzolunandır və dinamik IP alırlar. `StatefulSet` isə stateful (vəziyyət saxlayan) paylanmış sistemlər üçündür (məs: Apache Kafka və ya PostgreSQL). Hər bir pod üçün unikal, sabit ad (`kafka-0`, `kafka-1`) və daimi disk volume-u təyin edir; pod başqa serverə köçsə belə, eyni diski yenidən götürür. `Job` isə işini bitirənə qədər işləyib sonra dayanan batch pipeline-ları üçündür (məs: ETL pipeline-ı, Spark işi, dbt modeli). Buna görə də Apache Kafka üçün mütləq `StatefulSet` seçilməlidir ki, topic partisiyaları və cluster quorumu qorunsun. ETL pipeline-ı üçün isə `Job` (və ya `CronJob`) seçilməlidir ki, iş bitən kimi kompüter resurslarını dərhal azad edib bulud xərcinə qənaət etsin."
   interviewer_tips:
     en: "Categorizing: Kafka -> StatefulSet (identity + storage); ETL Pipeline -> Job (run-to-completion) instantly demonstrates production-grade Kubernetes design capability."
-    az: "Kafka -> StatefulSet (sabit şəbəkə və disk) və ETL -> Job (işi bitirib bağlanan) uyğunlaşdırmasını etmək istehsalat səviyyəli K8s memarlıq biliklərinizi sübut edir."
+    az: "Kafka -> StatefulSet (sabit şəbəkə və disk) və ETL -> Job (işi bitirib bağlanan) uyğunlaşdırmasını etmək production səviyyəli K8s memarlıq biliklərinizi sübut edir."
 flashcards:
   - front:
       en: "What is the smallest deployable computing unit in Kubernetes?"
@@ -194,7 +194,7 @@ flashcards:
       az: "Pod (bir və ya bir neçə ortaq konteyneri özündə birləşdirir)."
   - front:
       en: "Which Kubernetes workload controller is designed for batch ETL jobs that run to completion?"
-      az: "İşini bitirənə qədər işləyib dayanan batch ETL kəmərləri üçün hansı Kubernetes nəzarətçisi nəzərdə tutulub?"
+      az: "İşini bitirənə qədər işləyib dayanan batch ETL pipeline-ları üçün hansı Kubernetes nəzarətçisi nəzərdə tutulub?"
     back:
       en: "A Kubernetes `Job` (or scheduled `CronJob`)."
       az: "Kubernetes `Job` (və ya cədvəl üzrə `CronJob`)."
@@ -209,10 +209,10 @@ flashcards:
       az: "Data Platformasında Prometheus-un funksiyası nədir?"
     back:
       en: "It scrapes and stores time-series metrics (CPU, RAM, Kafka lag, pipeline run times) at regular intervals."
-      az: "Müəyyən fasilələrlə zamana bağlı metrikaları (CPU, RAM, Kafka ləngiməsi, kəmər müddəti) toplayıb saxlayır."
+      az: "Müəyyən fasilələrlə zamana bağlı metrikaları (CPU, RAM, Kafka ləngiməsi, pipeline müddəti) toplayıb saxlayır."
   - front:
       en: "What is Grafana primarily used for in production pipeline monitoring?"
-      az: "İstehsalat kəmərlərinin monitorinqində Grafana əsasən nə üçün istifadə olunur?"
+      az: "Production pipeline-larının monitorinqində Grafana əsasən nə üçün istifadə olunur?"
     back:
       en: "Visualizing time-series metrics through interactive dashboards and routing incident alerts to notification channels."
       az: "Metrikaları interaktiv vizual panellərdə göstərmək və xəta siqnallarını bildiriş kanallarına yönləndirmək üçün."

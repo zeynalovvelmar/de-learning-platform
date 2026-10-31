@@ -18,10 +18,10 @@ order: 9
 level: "intermediate"
 title:
   en: "Common Table Expressions (CTEs) and Subqueries"
-  az: "CTE (Ümumi Cədvəl İfadələri) və Alt Sorğular"
+  az: "Common Table Expressions (CTE) və Subquery-lər"
 quick_recap:
   en: "CTEs (WITH clause) define temporary named result sets for the scope of a single query. They transform deeply nested, unmaintainable subqueries into clean, sequential pipeline stages (the core pattern of tools like dbt)."
-  az: "CTE (WITH bəndi) sorğu müddətində müvəqqəti nəticə çoxluğuna ad verir. Dərin iç-içə keçmiş oxunmaz alt sorğuları pilləli, aydın mərhələlərə bölür (dbt kimi müasir alətlərin təməl prinsipidir)."
+  az: "CTE (WITH bəndi) sorğu müddətində müvəqqəti nəticə çoxluğuna ad verir. Dərin iç-içə keçmiş oxunmaz alt sorğuları (subqueries) pilləli, aydın mərhələlərə bölür (dbt kimi müasir alətlərin təməl prinsipidir)."
 explanation:
   en: |
     Think of preparing a gourmet dish in a professional kitchen:
@@ -73,7 +73,7 @@ explanation:
     Peşəkar mətbəxdə mürəkkəb bir yeməyin hazırlanmasını təsəvvür edin:
     - Həvəskar aşpaz hər şeyi tək bir tavada xaotik şəkildə eyni vaxtda etməyə çalışır: tərəvəzləri doğrayarkən sousu yandırır və əti qarışdırır. İç-içə keçmiş 4-5 mərtəbəli alt sorğular (`SELECT ... FROM (SELECT ... FROM (SELECT ...))`) məhz belə görünür.
     - Peşəkar aşpaz isə əvvəlcədən ərzaqları təmiz, üzəri yazılmış qablara hazırlayır: "1-ci Qab: doğranmış tərəvəzlər", "2-ci Qab: marinad olunmuş ət", "3-cü Qab: ədviyyatlı sous". Sonda isə bu hazır qabları səliqə ilə birləşdirib yeməyi bişirir.
-    SQL-də bu səliqəli hazırlıq **CTE (`WITH ... AS (...)`)** adlanır. O, 200 sətirlik mürəkkəb boru kəmərlərini yuxarıdan aşağıya rahat oxunan aydın pillələrə bölür.
+    SQL-də bu səliqəli hazırlıq **CTE (`WITH ... AS (...)`)** adlanır. O, 200 sətirlik mürəkkəb transformasiya sorğularını yuxarıdan aşağıya rahat oxunan aydın pillələrə bölür.
 
     ### Alt Sorğular və CTE Müqayisəsi:
     - **Alt Sorğu (Subquery)**: `FROM` və ya `WHERE` daxilində mötərizədə yazılır. 2-3 qatdan sonra oxunması və idarəsi çox çətinləşir.
@@ -137,7 +137,7 @@ what_it_does:
   az: "Sifarişlərin aqreqasiyasını müstəqil customer_orders CTE-sində hesablayır, sonra istifadəçilər cədvəli ilə birləşdirərək 6 və daha çox sifarişi olan müştəriləri göstərir."
 real_world_use:
   en: "The standard architectural pattern in dbt (data build tool) pipelines, structuring analytics into staging, intermediate, and mart layers."
-  az: "Müasir dbt (data build tool) boru kəmərlərində analitikanı ilkin (staging), aralıq (intermediate) və analitik mart qatlarına bölmək üçün standart arxitektura modelidir."
+  az: "Müasir dbt (data build tool) pipeline-larında analitikanı staging, intermediate və mart qatlarına bölmək üçün standart arxitektura modelidir."
 common_mistakes:
   en: |
     - **Repeating the WITH keyword**: Use `WITH cte_a AS (...), cte_b AS (...)`. Only one `WITH` keyword is allowed at the start; subsequent CTEs are separated by commas.
@@ -150,16 +150,19 @@ common_mistakes:
 interview_question:
   question:
     en: "Why do modern data teams (especially using dbt) enforce CTEs over nested subqueries?"
-    az: "Müasir data komandaları (xüsusən dbt istifadə edənlər) nə üçün iç-içə alt sorğular əvəzinə qəti şəkildə CTE-ləri tələb edirlər?"
+    az: "Müasir data komandaları (xüsusən dbt istifadə edənlər) nə üçün iç-içə alt sorğular (subqueries) əvəzinə qəti şəkildə CTE-ləri tələb edirlər?"
   answer:
     en: |
       1. **Linear Readability**: CTEs execute like top-to-bottom procedural code. An engineer reads `staging` -> `cleansed` -> `aggregated` -> `final_mart` sequentially. Nested subqueries must be decrypted from the inside out.
       2. **Unit Debugging**: In production pipelines, debugging a 300-line model is trivial with CTEs: you simply change the final line to `SELECT * FROM intermediate_stage` to verify intermediate state.
       3. **DRY (Don't Repeat Yourself)**: A single CTE can be referenced multiple times across downstream joins, avoiding duplicate copy-pasted subquery logic.
     az: |
-      1. **Xətti Oxunaqlıq**: CTE-lər yuxarıdan aşağıya doğru təbii pillələrlə oxunur: `ilkin` -> `təmizlənmiş` -> `aqreqasiya` -> `yekun_mart`. İç-içə alt sorğuları isə daxildən xaricə doğru çətinliklə oxumaq lazım gəlir.
-      2. **Rahat Xəta Axtarışı (Debugging)**: İstehsalat kəmərində 300 sətirlik kodu yoxlamaq çox asandır: sonuncu sətri `SELECT * FROM araliq_merhele` edərək istənilən aralıq pillənin nəticəsini dərhal görmək olur.
+      1. **Xətti Oxunaqlıq**: CTE-lər yuxarıdan aşağıya doğru təbii pillələrlə oxunur: `staging` -> `cleansed` -> `aggregated` -> `final_mart`. İç-içə alt sorğuları isə daxildən xaricə doğru çətinliklə oxumaq lazım gəlir.
+      2. **Rahat Debugging**: Production pipeline-ında 300 sətirlik modeli yoxlamaq çox asandır: sonuncu sətri `SELECT * FROM intermediate_stage` edərək istənilən aralıq pillənin nəticəsini dərhal görmək olur.
       3. **Təkrarın Qarşısının Alınması (DRY)**: Tək bir CTE sorğu daxilində aşağıdakı bir neçə JOIN-də təkrar istifadə edilə bilər və eyni məntiqi təkrar yazmağa ehtiyac qalmır.
+  interviewer_tips:
+    en: "Be ready for the follow-up: 'Are CTEs materialized or inlined by the optimizer?' In modern PostgreSQL (12+), SQLite, and cloud warehouses, single-reference CTEs are usually inlined automatically, though `WITH cte AS MATERIALIZED (...)` can force materialization."
+    az: "Növbəti suala hazır olun: 'CTE yaddaşda saxlanılır (materialized), yoxsa əsas sorğuya birləşdirilir (inlined)?' Müasir PostgreSQL (12+), SQLite və bulud DWH-lərdə tək dəfə çağırılan CTE-lər avtomatik inline edilir, lakin lazım gəldikdə `WITH cte AS MATERIALIZED (...)` ilə məcburi keşləmə tətbiq oluna bilər."
 exercise:
   question:
     en: "Write a query using a CTE named user_spend that calculates the user_id and total_spent (sum of total_amount rounded to 2 decimals) from orders grouped by user_id. Then select user_id and total_spent from user_spend where total_spent > 1000.0."
@@ -208,7 +211,7 @@ flashcards:
       az: "Başda bircə dəfə `WITH` yazılır, ardınca gələn CTE-lər sadəcə vergüllə ayrılır: `WITH cte1 AS (...), cte2 AS (...) SELECT ...`."
   - front:
       en: "Why are CTEs preferred over nested subqueries for complex pipeline logic?"
-      az: "Mürəkkəb boru kəməri məntiqində nə üçün iç-içə alt sorğular əvəzinə CTE-lərə üstünlük verilir?"
+      az: "Mürəkkəb data pipeline məntiqində nə üçün iç-içə alt sorğular əvəzinə CTE-lərə üstünlük verilir?"
     back:
       en: "They make SQL modular and readable from top to bottom (like linear code), make step-by-step debugging easy, and eliminate duplicate logic."
       az: "SQL kodunu modullu və yuxarıdan aşağıya xətti oxunan edir, pilləli xəta axtarışını asanlaşdırır və təkrarlanan məntiqi aradan qaldırır."

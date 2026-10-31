@@ -133,7 +133,7 @@ what_it_does:
   az: "Paylanmış partisiya sağlamlığını yoxlayır, Lider təyinatlarını aşkar edir və sinxronizasiyası pozulmuş nüsxələri göstərir."
 real_world_use:
   en: "Primary metric tracked in Prometheus/Datadog alerting. 'UnderReplicatedPartitions > 0' triggers automated incident paging for SRE and Data Platform teams."
-  az: "İstehsalat monitorinq sistemlərində (Prometheus, Datadog) #1 kritik göstəricidir. 'UnderReplicatedPartitions > 0' olduqda avtomatik həyəcan bildirişi göndərilir."
+  az: "Production monitorinq sistemlərində (Prometheus, Datadog) #1 kritik göstəricidir. 'UnderReplicatedPartitions > 0' olduqda avtomatik həyəcan bildirişi göndərilir."
 common_mistakes:
   en: |
     - **Enabling `unclean.leader.election.enable = true` in financial topics**: Results in silent data loss and impossible-to-reconcile account balance discrepancies.

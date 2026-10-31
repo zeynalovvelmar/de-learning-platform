@@ -83,10 +83,10 @@ explanation:
     - **Nəzarətsiz Lag Niyə Fəlakətdir?**:
       - **SLA Gecikməsi**: Canlı panellər 100 millisaniyə yerinə hadisələri 2 saat gecikmə ilə göstərir.
       - **Data İtkisi (Retention Həddi)**: Əgər topic-in saxlama müddəti 24 saatdırsa və consumer lag 24 saatdan çox gecikirsə, Kafka vaxtı dolan köhnə faylları diskdən siləcək! İstehlakçı həmin mesajlara heç çatmamış məlumatlar birdəfəlik itəcək!
-    - **İstehsalatda Lag Necə Diaqnostika Edilir?**:
+    - **Production-da Lag Necə Diaqnostika Edilir?**:
       - Terminalda `kafka-consumer-groups --describe --group <qrup-adı>` icra olunur.
       - **Bütün partisiyalarda lag yüksəkdirsə**: İstehlakçı kodu zəifdir (məsələn, hər hadisə üçün ayrıca yavaş HTTP sorğusu atır və ya bazaya sətir-sətir yazır). Həll: Məlumatları toplu (batch) yazmaq, partisiya sayını və consumer sayını artırmaq.
-      - **Yalnız 1 partisiyada lag varsa**: Bu klassik **Məlumat Əyriliyidir (Data Skewness)**. Bircə nəhəng açar həmin partisiyanı boğur.
+      - **Yalnız 1 partisiyada lag varsa**: Bu klassik **Data Skew-dur (Data Skewness — məlumat əyriliyi)**. Bircə nəhəng açar həmin partisiyanı boğur.
     - **Böyük Məlumat Ekosistemi**:
       - **Kafka Connect**: Heç bir xüsusi kod yazmadan bazalardan (Debezium CDC ilə) Kafkaya və Kafkadan S3/Snowflake anbarlarına fasiləsiz axın qurur.
       - **Spark Streaming və Flink**: Kafka axınını mikrosaniyələrlə oxuyaraq canlı pəncərə (window) hesablamaları aparır və təmizlənmiş analitikanı ClickHouse bazasına ötürür.
@@ -125,7 +125,7 @@ code_explanation:
     - `CURRENT-OFFSET`: İstehlakçının oxuyub qeyd etdiyi ən son offset.
     - `LOG-END-OFFSET (LEO)`: Producer tərəfindən həmin partisiyaya yazılmış ən sonuncu mesaj nömrəsi.
     - `LAG`: `LOG-END-OFFSET - CURRENT-OFFSET`. Hələ oxunmamış və növbədə gözləyən hadisələrin dəqiq sayı.
-    - Nəticəyə baxın: 0 və 2-ci partisiyalarda lag cəmi 1-2 olduğu halda, 1-ci partisiyada lag 26,800-ə çatıb! Bu, klassik **Məlumat Əyriliyi (Data Skewness)** diaqnozudur.
+    - Nəticəyə baxın: 0 və 2-ci partisiyalarda lag cəmi 1-2 olduğu halda, 1-ci partisiyada lag 26,800-ə çatıb! Bu, klassik **Data Skew (Data Skewness — məlumat əyriliyi)** diaqnozudur.
 visual_output: |
   === 1. Standard Production Kafka CLI Lag Inspection Command ===
   $ kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group payment-analytics-group
@@ -145,7 +145,7 @@ output_description:
   az: "kafka-consumer-groups əmrinin terminal çıxışı: 0 və 2-ci partisiyaların sağlam olduğunu, 1-ci partisiyada isə data skew səbəbindən 26,800-lük kritik lag yarandığını göstərir."
 what_it_does:
   en: "Illustrates production consumer group inspection via CLI, calculates lag metrics per partition, and demonstrates diagnosis of skewness bottlenecks."
-  az: "İstehsalatda CLI ilə consumer qrupunun diaqnostikasını aparmağı, hər partisiya üzrə lag-ı hesablamağı və darboğazların tapılmasını nümayiş etdirir."
+  az: "Production-da CLI ilə consumer qrupunun diaqnostikasını aparmağı, hər partisiya üzrə lag-ı hesablamağı və darboğazların tapılmasını nümayiş etdirir."
 real_world_use:
   en: "Core component of DataOps monitoring. Automated tools like Burrow or Prometheus Kafka Exporter alert engineers via PagerDuty whenever lag passes critical thresholds."
   az: "DataOps monitorinqinin əsasıdır. Prometheus və Burrow alətləri lag müəyyən həddi keçdikdə avtomatik olaraq növbətçi mühəndisə həyəcan bildirişi göndərir."
@@ -185,9 +185,9 @@ interview_question:
       2. **Addım-Addım Diaqnostika Planı**:
          - **1-ci Addım (Partisiyalar üzrə bölgünü yoxlamaq)**: `kafka-consumer-groups --describe` əmrini icra edirəm.
            - *Vəziyyət A (Bütün partisiyalarda lag eyni dərəcədə artıb)*: İstehlakçı ümumi daxilolma axınının sürətinə çata bilmir.
-           - *Vəziyyət B (Yalnız 1 partisiyada lag həddən artıq böyükdür)*: Bu klassik **Məlumat Əyriliyidir (Data Skewness)** — tək bir populyar açar ("hot key") həmin partisiyanı boğur və ya zəhərli mesaj xətası var.
+           - *Vəziyyət B (Yalnız 1 partisiyada lag həddən artıq böyükdür)*: Bu klassik **Data Skew-dur (Data Skewness — məlumat əyriliyi)** — tək bir populyar açar ("hot key") həmin partisiyanı boğur və ya zəhərli mesaj xətası var.
          - **2-ci Addım (İstehlakçını və Hədəf Bazanı Yoxlamaq)**:
-           - İstehlakçı hədəf bazanın ləngliyinə görə ilişibmi? (Bazada kilitlənmə, indeks çatışmazlığı və ya sətir-sətir tək yazılma yoxlanılır).
+           - İstehlakçı hədəf bazanın ləngliyinə görə ilişibmi? (Bazada kilidlənmə, indeks çatışmazlığı və ya sətir-sətir tək yazılma yoxlanılır).
            - Consumer serverində CPU/RAM bitibmi və ya Garbage Collection (GC) dondurması baş verirmi?
          - **3-cü Addım (Problemi Aradan Qaldırmaq)**:
            - Bazaya yazmanı mütləq toplu (batch) rejimə keçirmək.
@@ -195,7 +195,7 @@ interview_question:
            - Əgər problem data skew-dursa: Mesaj açarına duzlama (salting) tətbiq edərək yükü bütün partisiyalara paylamaq.
   interviewer_tips:
     en: "Structure your answer cleanly into 'Definition', 'Diagnosis (Uniform vs Single-partition lag)', and 'Remediation (Batching, Scaling partitions, Key Salting)'. This demonstrates true battle-tested production engineering experience."
-    az: "Cavabınızı dəqiq şəkildə 'Tərif', 'Diaqnostika (Bütün partisiyalar vs Tək partisiya fərqi)' və 'Həll Yolları (Batching, Partisiya artımı, Salting)' bloklarına bölün. Bu, real istehsalat təcrübənizi dərhal nümayiş etdirəcək."
+    az: "Cavabınızı dəqiq şəkildə 'Tərif', 'Diaqnostika (Bütün partisiyalar vs Tək partisiya fərqi)' və 'Həll Yolları (Batching, Partisiya artımı, Salting)' bloklarına bölün. Bu, real production təcrübənizi dərhal nümayiş etdirəcək."
 flashcards:
   - front:
       en: "What is Consumer Lag in Apache Kafka?"
@@ -205,7 +205,7 @@ flashcards:
       az: "Partisiyadakı ən son mesajın offset-i (LEO) ilə consumer-in oxuyub təsdiqlədiyi cari offset arasındakı fərqdir."
   - front:
       en: "What is the primary danger of unchecked Consumer Lag in production?"
-      az: "İstehsalatda nəzarətsiz Consumer Lag-ın ən böyük təhlükəsi nədir?"
+      az: "Production-da nəzarətsiz Consumer Lag-ın ən böyük təhlükəsi nədir?"
     back:
       en: "Data loss: if lag exceeds topic retention time, unconsumed messages are permanently deleted from disk."
       az: "Data itkisi: əgər lag topic-in saxlama müddətini (retention) aşarsa, oxunmamış mesajlar diskdən birdəfəlik silinir."
@@ -214,7 +214,7 @@ flashcards:
       az: "Topic-in yalnız BİR partisiyasında nəhəng consumer lag olması nə deməkdir?"
     back:
       en: "It indicates Data Skewness: a disproportionate volume of messages share the same key, flooding that single partition."
-      az: "Məlumat Əyriliyi (Data Skewness) deməkdir: həddən artıq çox hadisə eyni açara malik olduğu üçün tək həmin partisiyanı şişirdir."
+      az: "Data Skew (Data Skewness — məlumat əyriliyi) deməkdir: həddən artıq çox hadisə eyni açara malik olduğu üçün tək həmin partisiyanı şişirdir."
   - front:
       en: "What is Kafka Connect?"
       az: "Kafka Connect nədir?"

@@ -3,7 +3,7 @@ order: 8
 level: "intermediate"
 title:
   en: "Window Functions & Analytical Rankings in PySpark"
-  az: "Pəncərə Funksiyaları (Window Functions) və Analitika"
+  az: "Window Functions (Pəncərə Funksiyaları) və Analitika"
 infographic:
   en: |
     ```text
@@ -53,11 +53,11 @@ explanation:
     ### The Catastrophic Window Trap:
     If you write `Window.orderBy("salary")` without `.partitionBy()`, you force Spark to collect all billions of rows into a **SINGLE PARTITION** on a single executor to perform a global sort. This instantly crashes the executor with OOM.
   az: |
-    PySpark Pəncərə Funksiyalarını (Window Functions) Olimpiya Oyunları kimi təsəvvür edin:
+    PySpark Window Functions (Pəncərə Funksiyalarını) Olimpiya Oyunları kimi təsəvvür edin:
     - Bütün qaçışçıları, üzgüçüləri və şahmatçıları bir-birinə qarışdırıb tək bir yarış keçirmirsiniz.
     - **`partitionBy("idman_növü")`**: İdmançıları idman növlərinə görə ayrı-ayrı qruplara (partisiyalara) bölür.
     - **`orderBy(desc("xal"))`**: Hər idman növü daxilində idmançıları nəticələrinə görə sıralayır.
-    - **Pəncərə Funksiyası (`row_number()`, `rank()`)**: Hər idman növü daxilində Qızıl (1), Gümüş (2) və Bürünc (3) medallarını təyin edir.
+    - **Window Funksiyası (`row_number()`, `rank()`)**: Hər idman növü daxilində Qızıl (1), Gümüş (2) və Bürünc (3) medallarını təyin edir.
 
     ### Ən Vacib Analitik Funksiyalar:
     - `row_number()`: Qəti ardıcıl nömrələmə: `1, 2, 3, 4`. (Eyni dəyərlərə fərqli nömrə verir). Ən son qeydi seçmək və dublikatları silmək üçün ən yaxşı üsuldur.
@@ -70,7 +70,7 @@ explanation:
     Əgər `.partitionBy()` yazmadan birbaşa `Window.orderBy("maaş")` yazsanız, Spark qlobal sıralama aparmaq üçün terabaytlarla məlumatın hamısını **TƏK BİR PARTİSİYAYA** və tək bir executor-a yığmağa məcbur olur. Bu, bütün klasteri iflic edir və OOM çöküşünə səbəb olur.
 quick_recap:
   en: "Window functions calculate running totals, rankings, and lead/lag differences across groups of rows without collapsing them into a single row like `groupBy`. Always provide a `.partitionBy()` clause to preserve cluster parallelism."
-  az: "Pəncərə funksiyaları cədvəl sətirlərini `groupBy` kimi tək bir cərgəyə sıxmadan qruplar üzrə dərəcələri, hərəkətli cəmləri və əvvəlki/sonrakı fərqləri hesablayır. Klaster paralelliyini qorumaq üçün hər zaman `.partitionBy()` göstərilməlidir."
+  az: "Window funksiyaları cədvəl sətirlərini `groupBy` kimi tək bir cərgəyə sıxmadan qruplar üzrə dərəcələri, hərəkətli cəmləri və əvvəlki/sonrakı fərqləri hesablayır. Klaster paralelliyini qorumaq üçün hər zaman `.partitionBy()` göstərilməlidir."
 code: |
   from pyspark.sql import SparkSession
   from pyspark.sql.window import Window
@@ -162,7 +162,7 @@ common_mistakes:
 interview_question:
   question:
     en: "How does Spark execute Window functions across a distributed cluster, and what catastrophe occurs if you define a window with `Window.orderBy(...)` without specifying `.partitionBy(...)`?"
-    az: "Spark paylanmış klasterdə Pəncərə Funksiyalarını (Window Functions) necə icra edir və `.partitionBy(...)` yazmadan yalnız `Window.orderBy(...)` təyin etdikdə hansı fəlakət baş verir?"
+    az: "Spark paylanmış klasterdə Window Functions (Pəncərə Funksiyalarını) necə icra edir və `.partitionBy(...)` yazmadan yalnız `Window.orderBy(...)` təyin etdikdə hansı fəlakət baş verir?"
   answer:
     en: |
       1. **Distributed Window Execution**:

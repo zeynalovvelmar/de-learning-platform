@@ -38,7 +38,7 @@ infographic:
     3. EPHEMERAL (`materialized='ephemeral'`) ─► Anbarda fiziki mövcud deyil!
        • Aşağı axın modellərinin daxilinə CTE (`WITH ...`) kimi birbaşa yeridilir.
 
-    4. İNKREMENTAL (`materialized='incremental'`) ──► ⚡ İSTEHSALATIN ƏSAS GÜCÜ!
+    4. İNKREMENTAL (`materialized='incremental'`) ──► ⚡ PRODUCTION MÜHİTİNİN ƏSAS GÜCÜ!
        • 1-ci İcra: Bütün cədvəli qurur.
        • 2+ İcralar: Yalnız `updated_at > max(tarix)` olan təzə sətirləri əlavə/merge edir.
        ✨ 100 milyonluq cədvəli saatlarla deyil, saniyələr içində yeniləyir!
@@ -81,7 +81,7 @@ explanation:
     1. **`view` (İlkin / Default forma)**:
        - Anbarda `CREATE VIEW` əmrini icra edir.
        - **Müsbət tərəfi**: Diskdə yer tutmur; `dbt run` dərhal bitir; həmişə mənbədəki ən son məlumatı göstərir.
-       - **Mənfi tərəfi**: Əgər içində ağır JOIN və ya pəncərə funksiyaları varsa, BI panelləri hər dəfə çox ləng açılacaq.
+       - **Mənfi tərəfi**: Əgər içində ağır JOIN və ya Window Functions varsa, BI panelləri hər dəfə çox ləng açılacaq.
        - *Harda istifadə olunur*: Xam məlumatı təmizləyən ilkin layda (`models/staging/`).
     2. **`table` (Fiziki Cədvəl)**:
        - Anbarda `CREATE TABLE AS SELECT` əmrini icra edir.
@@ -189,7 +189,7 @@ flashcards:
       az: "Anbarda heç bir obyekt yaratmayan, dbt-nin birbaşa digər modellərin içinə daxili CTE kimi yeritdiyi model."
   - front:
       en: "Why are `incremental` models essential in enterprise data warehouses?"
-      az: "İstehsalat verilənlər anbarlarında inkremental modellər nə üçün zəruridir?"
+      az: "Production verilənlər anbarlarında inkremental modellər nə üçün zəruridir?"
     back:
       en: "They process only new or modified rows, eliminating the massive compute cost of rebuilding multi-million row tables."
       az: "Yalnız yeni və ya dəyişmiş sətirləri emal edir və milyonlarla sətirlik cədvəlləri hər dəfə sıfırdan yazmaq xərcini aradan qaldırır."

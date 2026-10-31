@@ -1,0 +1,186 @@
+id: "13-pandas-basics-dataframes"
+order: 13
+level: "intermediate"
+title:
+  en: "Pandas for Data Engineers: Vectorization, Merges, GroupBy & Missing Data"
+  az: "Data Mühəndisləri üçün Pandas: Vektorlaşdırma, Birləşmələr, GroupBy və NULL İdarəsi"
+quick_recap:
+  en: "Pandas is the cornerstone Python library for in-memory tabular manipulation. Data Engineers must master vectorized operations, proper NaN/null handling (`fillna`), multi-table joins (`merge`), and aggregation (`groupby`), while strictly avoiding slow Python row loops like `.iterrows()`."
+  az: "Pandas yaddaşdaxili cədvəl emalı üçün Python-un əsas kitabxanasıdır. Data Mühəndisləri vektorlaşdırılmış əməliyyatları, NaN/null idarəsini (`fillna`), cədvəllərin birləşdirilməsini (`merge`) və aqreqasiyanı (`groupby`) dərindən bilməli, ləng `.iterrows()` dövrələrindən qətiyyətlə qaçmalıdırlar."
+explanation:
+  en: |
+    While SQL processes data inside the database and PySpark scales across distributed clusters, **Pandas** is the standard tool for localized transformations, data validation scripts, and single-node Python ETL tasks.
+
+    ### 1. Vectorization vs. The `.iterrows()` Anti-Pattern:
+    - **Anti-Pattern (Row Iteration)**: Using `for index, row in df.iterrows():` executes in pure Python, creating row-level tuple overhead. Processing 100,000 rows takes seconds or minutes!
+    - **Vectorization (C-Speed)**: Operations like `df['tax'] = df['amount'] * 0.18` execute in optimized, compiled C/Cython backend memory buffers via NumPy in milliseconds.
+
+    ### 2. Handling Missing Data (NaN / None):
+    - In Pandas, missing numbers are represented as floating-point `NaN` (or `pd.NA` in modern nullable types).
+    - `df.isna().sum()` reveals missing value distributions across columns.
+    - `df['amount'] = df['amount'].fillna(0.0)` prevents missing values from corrupting mathematical sums.
+    - `df.dropna(subset=['user_id'])` purges orphan rows before loading to target warehouses.
+
+    ### 3. Joins & Merges:
+    - `pd.merge(orders_df, users_df, on='user_id', how='left')` mimics SQL `LEFT JOIN`.
+    - Always verify row counts before and after a merge to detect Cartesian product explosions caused by duplicate keys.
+
+    ### 4. GroupBy & Multi-Metric Aggregations:
+    Modern Pandas syntax allows clean named aggregations:
+    ```python
+    summary = df.groupby('country').agg(
+        total_revenue=('amount', 'sum'),
+        active_users=('user_id', 'nunique'),
+        avg_order=('amount', 'mean')
+    ).reset_index()
+    ```
+
+    ### 5. Memory Management in Production:
+    - Downcast types: Convert 64-bit integers (`int64`) to `int32`, and high-cardinality strings to `category` to reduce RAM usage by up to 80%.
+  az: |
+    SQL məlumatı birbaşa verilənlər bazasında emal edərkən, PySpark isə nəhəng klasterlər üzərində paylayarkən, **Pandas** lokal data transformasiyaları, validasiya skriptləri və tək-qovşaqlı Python ETL proseslərinin standart alətidir.
+
+    ### 1. Vektorlaşdırma vs. `.iterrows()` Anti-Pattern-i:
+    - **Anti-Pattern (Sətir-bə-sətir Dövrə)**: `for index, row in df.iterrows():` yazmaq təmiz Python interpretatorunda işləyir və hər sətir üçün əlavə overhead yaradır. 100,000 sətri emal etmək dəqiqələrlə çəkir!
+    - **Vektorlaşdırma (C-Sürəti)**: `df['vergi'] = df['məbləğ'] * 0.18` əməliyyatı NumPy vasitəsilə arxa planda kompilyasiya olunmuş C/Cython yaddaş bloklarında millisaniyələr ərzində icra olunur.
+
+    ### 2. Çatışmayan Məlumatların (NaN / None) İdarəsi:
+    - Pandas-da çatışmayan ədədlər `NaN` kimi saxlanılır.
+    - `df.isna().sum()` hər sütundakı boş xanaların sayını göstərir.
+    - `df['amount'] = df['amount'].fillna(0.0)` riyazi cəmləmələrdə xətaların qarşısını alır.
+    - `df.dropna(subset=['user_id'])` əsas açarı olmayan natamam sətirləri təmizləyir.
+
+    ### 3. Cədvəllərin Birləşdirilməsi (Merge):
+    - `pd.merge(orders_df, users_df, on='user_id', how='left')` SQL-dəki `LEFT JOIN` kimi işləyir.
+    - Birləşmədən əvvəl və sonra sətir sayını mütləq yoxlayın ki, dublikat açarlar nəticəsində Dekart hasili (Cartesian product) yaranmasın.
+
+    ### 4. GroupBy və Çoxsütunlu Aqreqasiya:
+    Müasir Pandas sintaksisi ilə adlandırılmış təmiz aqreqasiyalar qurulur:
+    ```python
+    summary = df.groupby('country').agg(
+        total_revenue=('amount', 'sum'),
+        active_users=('user_id', 'nunique'),
+        avg_order=('amount', 'mean')
+    ).reset_index()
+    ```
+
+    ### 5. Yaddaşın (RAM) İdarə Edilməsi:
+    - Tiplərin kiçildilməsi: 64-bitlik `int64` tiplərini `int32`-yə, təkrar olunan mətnləri isə `category` tipinə çevirərək RAM istifadəsini 80%-ə qədər azaltmaq olar.
+code: |
+  import pandas as pd
+
+  # 1. Create simulated production batch
+  raw_events = pd.DataFrame({
+      "user_id": [101, 102, 101, 103, 102],
+      "amount": [150.0, None, 45.0, 320.0, 80.0],
+      "status": ["PAID", "PENDING", "PAID", "PAID", "CANCELLED"]
+  })
+
+  # 2. Defensive Cleaning: fill missing amount with 0.0
+  raw_events["amount"] = raw_events["amount"].fillna(0.0)
+
+  # 3. Vectorized filtering
+  paid_events = raw_events[raw_events["status"] == "PAID"]
+
+  # 4. GroupBy and named aggregation
+  user_kpi = paid_events.groupby("user_id", as_index=False)["amount"].agg(
+      total_spend="sum",
+      order_count="count"
+  )
+
+  print("Clean Aggregated KPIs:")
+  print(user_kpi)
+what_it_does:
+  en: "Demonstrates core Pandas workflows: DataFrame creation, handling nulls with fillna, vectorized boolean filtering, and clean GroupBy aggregations."
+  az: "Əsas Pandas iş axınını nümayiş etdirir: DataFrame yaradılması, fillna ilə NULL-ların təmizlənməsi, vektorlaşdırılmış filtrləmə və təmiz GroupBy aqreqasiyası."
+real_world_use:
+  en: "Used in Python data processing pipelines to clean, validate, and aggregate daily batch metrics before loading transformed records into cloud data warehouses."
+  az: "Transformasiya olunmuş məlumatları bulud anbarlarına yükləməzdən əvvəl təmizləmək, yoxlamaq və gündəlik metrikləri aqreqasiya etmək üçün istifadə olunur."
+common_mistakes:
+  en: |
+    - **Using `.iterrows()` for transformations**: Row-by-row iteration in Python destroys performance. Always use vectorized operations or `.apply()`.
+    - **Ignoring NaN in GroupBy**: By default, older versions of Pandas dropped NaN keys in `.groupby()`; use `dropna=False` if missing keys must be reported.
+    - **Inadvertent SettingWithCopyWarning**: Modifying a filtered slice without `.copy()` causes subtle bugs; always make an explicit copy when branching.
+  az: |
+    - **Transformasiyalarda `.iterrows()` istifadə etmək**: Sətirləri tək-tək dövrəyə salmaq performansı sıfıra endirir. Həmişə vektorlaşdırılmış əməliyyatlardan istifadə edin.
+    - **GroupBy zamanı NaN açarlarını unutmaq**: Susmaya görə köhnə Pandas versiyaları qruplaşdırma açarı NaN olan sətirləri atır; çatışmayan açarları da görmək üçün `dropna=False` parametrini verin.
+    - **SettingWithCopyWarning xəbərdarlığına məhəl qoymamaq**: Süzülmüş cədvəl hissəsini `.copy()` etmədən dəyişmək xətalara yol açır; müstəqil dəyişiklik üçün həmişə `.copy()` yazın.
+interview_question:
+  question:
+    en: "Why is vectorization so much faster than Python row iteration (.iterrows()), and how does it work under the hood?"
+    az: "Vektorlaşdırma Python sətir dövrəsindən (.iterrows()) nə üçün dəfələrlə sürətlidir və arxa planda necə işləyir?"
+  answer:
+    en: |
+      1. **Compiled C vs. Interpreted Python**: When you loop with `.iterrows()`, Python must execute bytecode, resolve dynamic typing, and allocate a new Series/Tuple object for every single row. In a 1M-row dataset, this creates 1M Python objects and function calls.
+      2. **Contiguous Memory Buffers (NumPy)**: Vectorized operations delegate array arithmetic directly to compiled, low-level C/Fortran routines in NumPy. The data is stored in contiguous memory blocks, allowing the CPU to utilize SIMD (Single Instruction, Multiple Data) processor registers and hardware cache lines without Python runtime overhead.
+    az: |
+      1. **Kompilyasiya olunmuş C vs. İnterpretasiyalı Python**: `.iterrows()` ilə dövrə qurduqda, Python hər bir sətir üçün dinamik tipləri yoxlamalı, bytecode icra etməli və hər sətirə ayrıca Series/Tuple obyekti ayırmalıdır. 1 milyon sətirdə bu, 1 milyon Python obyekti və funksiya çağırışı deməkdir.
+      2. **Bütöv Yaddaş Blokları (NumPy)**: Vektorlaşdırılmış əməliyyatlar massiv hesablamalarını birbaşa NumPy-ın daxilindəki kompilyasiya edilmiş C/Fortran rutinlərinə ötürür. Məlumatlar yaddaşda ardıcıl bloklarda saxlandığı üçün CPU birbaşa SIMD (Single Instruction, Multiple Data) registrlərindən və keşindən istifadə edir və heç bir Python ləngiməsi qalmır.
+  interviewer_tips:
+    en: "Mention Polars as a modern, high-performance alternative to Pandas written in Rust with built-in multi-threading and query optimization (Apache Arrow native)."
+    az: "Rust dilində yazılmış, çoxtutarlı (multi-threaded) və Apache Arrow əsaslı modern alternativ olan Polars kitabxanasını da müsahibədə qeyd etmək üstünlük gətirir."
+exercise:
+  question:
+    en: "Write a function `clean_and_aggregate_orders(df: pd.DataFrame) -> pd.DataFrame` that fills missing values in the `amount` column with 0.0, filters for rows where `status == 'COMPLETED'`, and returns a DataFrame grouped by `user_id` with the sum of `amount` renamed to `total_amount`."
+    az: "`amount` sütunundakı çatışmayan qiymətləri 0.0 ilə dolduran, `status == 'COMPLETED'` olan sətirləri süzən və `user_id` üzrə qruplaşdıraraq `amount` cəmini `total_amount` sütun adı ilə qaytaran `clean_and_aggregate_orders(df: pd.DataFrame) -> pd.DataFrame` funksiyası yazın."
+  starter_code: |
+    import pandas as pd
+
+    def clean_and_aggregate_orders(df: pd.DataFrame) -> pd.DataFrame:
+        # Fill nulls, filter for COMPLETED, and group by user_id
+        return df
+  hint:
+    en: "Use `df = df.copy()`, `df['amount'] = df['amount'].fillna(0.0)`, filter with boolean indexing, and call `.groupby('user_id', as_index=False)['amount'].sum().rename(columns={'amount': 'total_amount'})`."
+    az: "`df = df.copy()`, `df['amount'] = df['amount'].fillna(0.0)` yazın, `status == 'COMPLETED'` ilə süzün və `.groupby('user_id', as_index=False)['amount'].sum().rename(columns={'amount': 'total_amount'})` ilə aqreqasiya edin."
+  solution: |
+    import pandas as pd
+
+    def clean_and_aggregate_orders(df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        df['amount'] = df['amount'].fillna(0.0)
+        filtered = df[df['status'] == 'COMPLETED']
+        return filtered.groupby('user_id', as_index=False)['amount'].sum().rename(columns={'amount': 'total_amount'})
+  test_code: |
+    import pandas as pd
+
+    data = pd.DataFrame({
+        'user_id': [10, 20, 10, 30],
+        'amount': [100.0, None, 50.0, 200.0],
+        'status': ['COMPLETED', 'COMPLETED', 'COMPLETED', 'REFUNDED']
+    })
+    res = clean_and_aggregate_orders(data)
+    assert len(res) == 2
+    assert res[res['user_id'] == 10]['total_amount'].values[0] == 150.0
+    assert res[res['user_id'] == 20]['total_amount'].values[0] == 0.0
+
+flashcards:
+  - front:
+      en: "Why should you never use df.iterrows() for data processing in production?"
+      az: "İstehsalatda məlumat emalı üçün nə üçün heç vaxt df.iterrows() istifadə edilməməlidir?"
+    back:
+      en: "Because it converts rows to Python tuple/Series objects in an interpreted loop, running orders of magnitude slower than compiled C vectorized operations."
+      az: "Çünki hər sətri interpretasiya olunan dövrədə tək-tək Python obyektinə çevirir və C dilində kompilyasiya olunmuş vektorlaşdırmadan yüzlərlə dəfə ləng işləyir."
+  - front:
+      en: "What does the fillna() method do in Pandas?"
+      az: "Pandas-da fillna() metodu nə iş görür?"
+    back:
+      en: "It replaces missing NaN / null values with a specified scalar value, dictionary of defaults, or forward/backward fills."
+      az: "Çatışmayan NaN / null dəyərləri göstərilən sabit qiymətlə, susmaya görə lüğətlə və ya əvvəlki/sonrakı qiymətlə əvəzləyir."
+  - front:
+      en: "How does pd.merge() differ from pd.concat()?"
+      az: "pd.merge() ilə pd.concat() arasındakı fərq nədir?"
+    back:
+      en: "pd.merge() performs relational database-style joins on specific key columns. pd.concat() stacks DataFrames vertically (axis=0) or horizontally (axis=1) by index."
+      az: "pd.merge() verilənlər bazası qaydasında açar sütunlar üzrə cədvəlləri birləşdirir (JOIN). pd.concat() isə cədvəlləri şaquli və ya üfüqi olaraq bir-birinə calayır."
+  - front:
+      en: "What is the benefit of downcasting numeric types in a large Pandas DataFrame?"
+      az: "Böyük Pandas DataFrame-də ədədi tipləri kiçiltməyin (downcasting) faydası nədir?"
+    back:
+      en: "Converting int64/float64 to int32/float32 or category types slashes RAM consumption by up to 50–80%, preventing Out-Of-Memory errors."
+      az: "int64/float64 tiplərini int32/float32 və ya category tiplərinə çevirmək RAM istifadəsini 50–80%-ə qədər azaldır və OOM xətalarının qarşısını alır."
+  - front:
+      en: "What does the reset_index() method do after a groupby aggregation?"
+      az: "groupby aqreqasiyasından sonra reset_index() nə edir?"
+    back:
+      en: "It converts grouping index levels back into standard DataFrame columns, making the table easy to merge, export to CSV/Parquet, or insert into SQL."
+      az: "Qruplaşdırma indeksini yenidən adi cədvəl sütununa çevirərək datanı cədvəllərlə birləşdirmək, CSV/Parquet-ə yazmaq və ya SQL-ə göndərmək üçün standart hala gətirir."

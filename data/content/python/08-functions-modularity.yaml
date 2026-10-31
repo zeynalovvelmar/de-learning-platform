@@ -18,10 +18,10 @@ order: 8
 level: "junior"
 title:
   en: "Functions, Modularity, and The Mutable Default Trap"
-  az: "Funksiyalar, Modulluq və Dəyişən Arqument Tələsi"
+  az: "Funksiyalar, Modulluq və Mutable Default Argument Tələsi"
 quick_recap:
   en: "Functions package reusable transformation logic into modular units. The #1 classic Python interview trap: NEVER define mutable default arguments like `def append_item(val, items=[])`. Default arguments are evaluated only once at definition time, meaning `items` persists across all calls! Always use `items=None` and initialize inside."
-  az: "Funksiyalar təkrar istifadə olunan transformasiya kodunu vahid modullara yığır. Ən məşhur #1 klassik Python müsahibə tələsi: heç vaxt arqumentə susmaya görə boş siyahı qoymayın (`def add(val, items=[])`). Susmaya görə arqument funksiya elan ediləndə cəmi bircə dəfə yaradılır və sonrakı bütün çağırışlarda eyni siyahı yaddaşda qalır! Həmişə `items=None` istifadə edin."
+  az: "Funksiyalar təkrar istifadə olunan transformasiya kodunu vahid modullara yığır. Ən məşhur #1 klassik Python müsahibə tələsi: heç vaxt arqumentə default olaraq dəyişən (mutable) obyekt qoymayın (`def add(val, items=[])`). Default arqument funksiya elan ediləndə cəmi bircə dəfə yaradılır və sonrakı bütün çağırışlarda eyni siyahı yaddaşda qalır! Həmişə `items=None` istifadə edin."
 explanation:
   en: |
     Think of a function like an automated espresso machine:
@@ -49,9 +49,9 @@ explanation:
   az: |
     Funksiyanı avtomatlaşdırılmış qəhvə aparatı kimi təsəvvür edin:
     Siz daxili inqrediyentləri verirsiniz (qəhvə dənəsi və su), düyməni basırsınız və təmiz çıxış (qəhvə) alırsınız. Əgər aparat əvvəlki müştərinin qalıqlarını sonrakı müştərinin stəkanına töksə, bu böyük bir xətadır.
-    Python-da **Təmiz Funksiyalar (Pure Functions)** yazmaq (eyni giriş $\rightarrow$ eyni çıxış, gözlənilməz kənar təsirlər olmadan) data kəmərlərini etibarlı və test olunan edir.
+    Python-da **Təmiz Funksiyalar (Pure Functions)** yazmaq (eyni giriş $\rightarrow$ eyni çıxış, gözlənilməz kənar təsirlər olmadan) data pipeline-larını etibarlı və test olunan edir.
 
-    ### Məşhur "Dəyişən Susmaya Görə Arqument" Tələsi:
+    ### Məşhur "Mutable Default Argument" Tələsi:
     ```python
     def add_event(event_id, buffer=[]):  # BÖYÜK SƏHV!
         buffer.append(event_id)
@@ -88,14 +88,14 @@ what_it_does:
   az: "Dəyişən susmaya görə arqumentləri None və aşkar yoxlama ilə təhlükəsiz başlatmağın sənaye standartı üsulunu göstərir."
 real_world_use:
   en: "Structuring data transformations into small, testable unit functions (e.g. clean_timestamp, normalize_currency) used across Airflow DAG tasks."
-  az: "Airflow tapşırıqlarında və ETL kəmərlərində transformasiya məntiqini kiçik, təkrar istifadə edilən vahid funksiyalara bölmək üçün istifadə olunur."
+  az: "Airflow task-larında və ETL pipeline-larında transformasiya məntiqini kiçik, təkrar istifadə edilən vahid funksiyalara bölmək üçün istifadə olunur."
 common_mistakes:
   en: |
     - **Using mutable defaults like `def f(data=[])`**: Leads to state pollution where previous function call data bleeds into new calls.
     - **Forgetting the return statement**: A function without an explicit `return` implicitly returns `None`.
     - **Modifying global variables inside functions without need**: Makes code unpredictable and untestable. Pass variables as arguments instead.
   az: |
-    - **Susmaya görə dəyişən tip qoymaq `def f(data=[])`**: Əvvəlki çağırışların məlumatı növbəti çağırışlara qarışır və kəməri korlayır.
+    - **Default olaraq dəyişən tip qoymaq `def f(data=[])`**: Əvvəlki çağırışların məlumatı növbəti çağırışlara qarışır və pipeline-ı korlayır.
     - **return yazmağı unutmaq**: Açıq `return` olmayan funksiyalar susmaya görə `None` qaytarır.
     - **Funksiya içində qlobal dəyişənləri dəyişmək**: Kodu gözlənilməz və test olunmaz edir. Məlumatları arqument kimi ötürün.
 interview_question:
@@ -110,11 +110,14 @@ interview_question:
          `def append_item(val, items=None):`
          `    if items is None: items = []`
     az: |
-      1. **Təyinat Zamanı Yaradılma**: Python-da susmaya görə arqumentlər funksiya çağırılan zaman deyil, `def` əmri icra ediləndə (skript yüklənəndə) cəmi bir dəfə yaradılır.
-      2. **Ortaq Yaddaşın Qalması**: Boş siyahı `[]` yaddaşda tək bir obyekt kimi qalır. Default dəyərə güvənən sonrakı hər bir çağırış eyni siyahını doldurur və əvvəlki zənglərin məlumatı silinmir.
-      3. **Həlli**: Həmişə susmaya görə `None` təyin edin:
+      1. **Təyinat Zamanı Yaradılma**: Python-da default arqumentlər funksiya çağırılan zaman deyil, `def` əmri icra ediləndə (modul import olunanda) cəmi bir dəfə yaradılır.
+      2. **Ortaq Yaddaşın Qalması**: Boş siyahı `[]` yaddaşda (`func.__defaults__` daxilində) tək bir obyekt kimi qalır. Default dəyərə güvənən sonrakı hər bir çağırış eyni siyahını doldurur və əvvəlki çağırışların məlumatı silinmir.
+      3. **Həlli**: Həmişə default dəyər kimi `None` təyin edin:
          `def append_item(val, items=None):`
          `    if items is None: items = []`
+  interviewer_tips:
+    en: "Mention that Python stores default argument objects inside the function's `func.__defaults__` tuple attribute at definition time, and highlight that writing pure functions with Type Hints (`def parse(row: dict) -> dict:`) makes unit testing ETL pipelines with `pytest` straightforward."
+    az: "Müsahibədə Python-un default arqumentləri funksiyanın `func.__defaults__` atributunda saxladığını qeyd edin və Type Hints (`def parse(row: dict) -> dict:`) ilə Pure Function-lar yazmağın ETL pipeline-larını `pytest` ilə test etməyi asanlaşdırdığını vurğulayın."
 exercise:
   question:
     en: "Write a function `calculate_net_revenue(gross, discount_pct=0.0, tax_pct=0.18)` that computes: discounted = gross * (1 - discount_pct), tax = discounted * tax_pct, net = discounted - tax. Return the net revenue rounded to 2 decimal places."

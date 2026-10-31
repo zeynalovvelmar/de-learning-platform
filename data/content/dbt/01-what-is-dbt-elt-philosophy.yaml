@@ -155,17 +155,17 @@ output_description:
 interview_question:
   question:
     en: "What is dbt (data build tool), what stage of the ELT pipeline does it handle, and why do engineers write only SELECT queries in dbt?"
-    az: "dbt (data build tool) nədir, ELT boru kəmərinin hansı mərhələsinə cavabdehdir və mühəndislər dbt-də nə üçün yalnız SELECT sorğuları yazırlar?"
+    az: "dbt (data build tool) nədir, ELT pipeline-ının hansı mərhələsinə cavabdehdir və mühəndislər dbt-də nə üçün yalnız SELECT sorğuları yazırlar?"
   answer:
     en: "dbt is an open-source transformation framework that enables data engineers and analysts to transform, test, and document data directly inside cloud data warehouses using SQL and software engineering best practices. It strictly handles the 'T' (Transform) in ELT; it does not extract or load raw data. Engineers write only `SELECT` queries because dbt automatically handles the DDL (Data Definition Language) and DML boilerplate behind the scenes. When you execute `dbt run`, dbt wraps your `SELECT` query in `CREATE TABLE AS SELECT` or `CREATE VIEW AS SELECT` statements tailored to your specific database adapter (Snowflake, BigQuery, Postgres). This decouples pure business transformation logic from database administrative boilerplate, guarantees idempotent execution, and enforces Git version control."
-    az: "dbt data mühəndislərinə və analitiklərə bulud anbarlarının daxilindəki məlumatları SQL və proqram mühəndisliyi prinsipləri (Git, testlər) ilə çevirməyə, test etməyə və sənədləşdirməyə imkan verən transformasiya alətidir. O, ELT kəmərinin sırf 'T' (Transform) mərhələsinə cavabdehdir; xam məlumatı bazadan çıxarmır və ya yükləmir. Mühəndislərin yalnız `SELECT` yazmasının səbəbi dbt-nin bütün DDL və DML şablonlarını arxa planda avtomatlaşdırmasıdır. `dbt run` verdikdə, dbt sizin `SELECT` sorğunuzu hədəf bazanın (Snowflake, BigQuery) dialektinə uyğun `CREATE TABLE AS SELECT` və ya `CREATE VIEW` əmrlərinə bürüyür. Bu, biznes məntiqini inzibati cədvəl idarəetməsindən ayırır və prosesi idempotent (təkrar icra edilə bilən) edir."
+    az: "dbt data mühəndislərinə və analitiklərə bulud anbarlarının daxilindəki məlumatları SQL və proqram mühəndisliyi prinsipləri (Git, testlər) ilə çevirməyə, test etməyə və sənədləşdirməyə imkan verən transformasiya alətidir. O, ELT pipeline-ının sırf 'T' (Transform) mərhələsinə cavabdehdir; xam məlumatı bazadan çıxarmır və ya yükləmir. Mühəndislərin yalnız `SELECT` yazmasının səbəbi dbt-nin bütün DDL və DML şablonlarını arxa planda avtomatlaşdırmasıdır. `dbt run` verdikdə, dbt sizin `SELECT` sorğunuzu hədəf bazanın (Snowflake, BigQuery) dialektinə uyğun `CREATE TABLE AS SELECT` və ya `CREATE VIEW` əmrlərinə bürüyür. Bu, biznes məntiqini inzibati cədvəl idarəetməsindən ayırır və prosesi idempotent (təkrar icra edilə bilən) edir."
   interviewer_tips:
     en: "Make sure to emphasize that dbt does NOT move data over the network—it pushes down SQL execution directly into the cloud warehouse's compute engine."
     az: "dbt-nin məlumatı şəbəkə üzərindən özünə çəkmədiyini, hesablama yükünü birbaşa bulud anbarının (Snowflake/BigQuery) öz mühərrikinə yönləndirdiyini (Pushdown Execution) mütləq qeyd edin."
 flashcards:
   - front:
       en: "What part of the ELT pipeline does dbt handle?"
-      az: "dbt ELT boru kəmərinin hansı hissəsinə cavabdehdir?"
+      az: "dbt ELT pipeline-ının hansı hissəsinə cavabdehdir?"
     back:
       en: "Exclusively the 'T' (Transform) stage inside the cloud data warehouse."
       az: "Yalnız bulud verilənlər anbarının daxilindəki 'T' (Transformasiya) mərhələsinə."

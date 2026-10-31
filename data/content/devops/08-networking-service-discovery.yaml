@@ -36,7 +36,7 @@ infographic:
     ❌ STANDART ŞƏBƏKƏ (Köhnə docker0):
        • Daxili DNS YOXDUR! Konteynerlər bir-birini adı ilə TAPA BİLMİR.
        • Airflow Postgres-in IP-sini təxmin etməlidir: 172.17.0.3 (Hər dəfə dəyişir!)
-       💥 Konteyner sönüb-yanan kimi bütün kəmərlər çökür!
+       💥 Konteyner sönüb-yanan kimi bütün pipeline-lar çökür!
 
     ✅ XÜSUSİ ŞƏBƏKƏ (`docker network create data-net`):
        • AVTOMATİK DAXİLİ DNS ŞƏBƏKƏSİ!
@@ -73,7 +73,7 @@ explanation:
     Data mühəndisliyində heç vaxt tək bir konteyner işləmir. Standart data infrastrukturu bir neçə xidmətin bir-biri ilə fasiləsiz əlaqəsini tələb edir:
     - Apache Airflow Metadata üçün PostgreSQL bazasına sorğu göndərir.
     - Spark axın proqramları real vaxtda Apache Kafka-dan mesajları oxuyur.
-    - Python kəmərləri xammal faylları MinIO (S3 tipli obyekt anbarı) servisinə yükləyir.
+    - Python pipeline-ları xammal faylları MinIO (S3 tipli obyekt anbarı) servisinə yükləyir.
 
     ### 4 Əsas Docker Şəbəkə Sürücüsü (Drivers)
     1. **`bridge` (Körpü)**: Ən geniş yayılan xüsusi virtual şəbəkədir. Eyni körpüdə olan konteynerlər bir-biri ilə sərbəst danışır, lakin xarici dünyadan təcrid olunur.
@@ -95,7 +95,7 @@ real_world_use:
   az: "Airflow, PostgreSQL və Kafka konteynerlərini `data-platform-net` şəbəkəsində birləşdirərək bir-biri ilə ad vasitəsilə danışdırmaq."
 common_mistakes:
   en: "Relying on hardcoded container IP addresses (e.g. `172.17.0.2`) in data pipeline connection strings instead of container DNS names on a user-defined network."
-  az: "Daxili DNS adı əvəzinə kodun içinə konteynerin IP ünvanını yazmaq və konteyner restart olanda IP dəyişdiyi üçün kəmərin çökməsi."
+  az: "Daxili DNS adı əvəzinə kodun içinə konteynerin IP ünvanını yazmaq və konteyner restart olanda IP dəyişdiyi üçün pipeline-ın çökməsi."
 code: |
   # ==============================================================================
   # DOCKER NETWORKING & SERVICE DISCOVERY IN ACTION
@@ -160,7 +160,7 @@ interview_question:
     az: "Docker ilə bir neçə data servisini işlədərkən standart körpü (default bridge) əvəzinə Xüsusi Yaradılmış Körpü (User-Defined Bridge) şəbəkəsi niyə məcburidir?"
   answer:
     en: "On the default bridge network (`docker0`), Docker disables automatic DNS resolution; containers can only communicate with each other using raw IP addresses. In a data platform, container IP addresses are dynamic and change whenever containers are restarted or recreated during updates. On a User-Defined Bridge network (`docker network create`), Docker provides an automatic embedded DNS server where containers resolve each other by container name (e.g. `postgres:5432` or `kafka:9092`). This eliminates hardcoded IP addresses, ensures resilient service discovery, and isolates application network traffic from other unrelated containers on the host."
-    az: "Standart körpü şəbəkəsində (`docker0`) Docker daxili avtomatik DNS xidmətini söndürür; konteynerlər bir-biri ilə yalnız birbaşa IP ünvanları vasitəsilə danışa bilir. Data platformasında isə konteynerlər hər yenidən başlayanda onların IP ünvanı dəyişir, bu isə kəmərlərin dayanmasına gətirib çıxarır. Xüsusi yaradılmış körpü şəbəkəsində (`docker network create`) Docker daxili DNS serverini aktivləşdirir və konteynerlər bir-birini adları vasitəsilə (`postgres:5432` və ya `kafka:9092`) dərhal tapır. Bu, kodda heç bir IP yazmamağa imkan verir, xidmətlərin aşkarlanmasını (service discovery) təmin edir və data şəbəkəsini digər konteynerlərdən təhlükəsiz şəkildə təcrid edir."
+    az: "Standart körpü şəbəkəsində (`docker0`) Docker daxili avtomatik DNS xidmətini söndürür; konteynerlər bir-biri ilə yalnız birbaşa IP ünvanları vasitəsilə danışa bilir. Data platformasında isə konteynerlər hər yenidən başlayanda onların IP ünvanı dəyişir, bu isə pipeline-ların dayanmasına gətirib çıxarır. Xüsusi yaradılmış körpü şəbəkəsində (`docker network create`) Docker daxili DNS serverini aktivləşdirir və konteynerlər bir-birini adları vasitəsilə (`postgres:5432` və ya `kafka:9092`) dərhal tapır. Bu, kodda heç bir IP yazmamağa imkan verir, xidmətlərin aşkarlanmasını (service discovery) təmin edir və data şəbəkəsini digər konteynerlərdən təhlükəsiz şəkildə təcrid edir."
   interviewer_tips:
     en: "State clearly that 'Automatic DNS Resolution is only enabled on user-defined networks, NOT on the default bridge network.' Interviewers test this exact networking nuance."
     az: "'Avtomatik DNS yalnız xüsusi yaradılmış şəbəkələrdə işləyir, standart körpüdə işləmir' cümləsini dəqiq vurğulamaq şəbəkə biliklərinizi sübut edir."

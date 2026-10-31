@@ -18,7 +18,7 @@ order: 3
 level: "junior"
 title:
   en: "Lists, Slicing, and Reference Semantics"
-  az: "Siyahılar, Dilimləmə və İstinad Məntiqi"
+  az: "List-lər, Slicing (Dilimləmə) və İstinad Məntiqi"
 quick_recap:
   en: "Lists are mutable, dynamically sized ordered sequences in Python. Key operations include .append() (O(1) amortized), .pop() (O(1)), and slicing [start:stop:step]. Critical junior interview trap: `b = a` assigns an alias to the same memory object, not a copy. Use `a.copy()` or `a[:]` for an independent shallow copy."
   az: "Siyahılar Python-da ölçüsü dinamik dəyişən nizamlı ardıcıllıqdır (mutable). Əsas əməliyyatlar: .append() (O(1)), .pop() (O(1)) və dilimləmə [start:stop:step]. Ən böyük Junior müsahibə tələsi: `b = a` nüsxə yaratmır, eyni obyektə istinad edir. Müstəqil nüsxə üçün `a.copy()` və ya `a[:]` istifadə edilməlidir."
@@ -102,6 +102,9 @@ interview_question:
       1. **Yaddaşda Yaradılma**: `a = [1, 2]` heap yaddaşında bir siyahı obyekti yaradır və `a` dəyişəni həmin yaddaş ünvanını göstərir.
       2. **İstinadın Bağlanması**: `b = a` yeni siyahı yaratmır; sadəcə `b` dəyişəninə də tam eyni yaddaş ünvanını bağlayır (`id(a) == id(b)`).
       3. **Yerində Dəyişmə**: `b.append(3)` həmin ünvandakı obyekti yerindəcə genişləndirir. `a` dəyişəni də eyni ünvana baxdığı üçün `a`-nın qiyməti avtomatik `[1, 2, 3]` olur. Bunun qarşısını almaq üçün müstəqil nüsxə (`b = a.copy()`) yaradılmalıdır.
+  interviewer_tips:
+    en: "Be ready for the follow-up: 'What is the difference between a shallow copy (`a.copy()`) and a deep copy (`copy.deepcopy(a)`)?' A shallow copy duplicates only the outer list container, so nested dictionaries or lists inside still share memory references! Use `copy.deepcopy()` when copying nested JSON payloads."
+    az: "Növbəti suala hazır olun: 'Dayaz nüsxə (`a.copy()` - shallow copy) ilə dərin nüsxə (`copy.deepcopy(a)` - deep copy) arasındakı fərq nədir?' Shallow copy yalnız xarici siyahını kopyalayır, onun içindəki lüğətlər (nested dicts) yenə eyni yaddaş ünvanına baxır! İç-içə JSON obyektlərini kopyalayarkən `copy.deepcopy()` istifadə edilməlidir."
 exercise:
   question:
     en: "Write a function `get_batch_summary(records)` that takes a list of order IDs and returns a dictionary with keys: 'count' (number of records), 'first' (first record), 'last' (last record), and 'top_three' (a slice of the first three records)."

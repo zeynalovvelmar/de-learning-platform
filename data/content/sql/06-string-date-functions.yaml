@@ -107,7 +107,7 @@ what_it_does:
   az: "İstifadəçi ad və soyadını böyük hərflərlə birləşdirir, e-poçt ünvanını boşluqlardan təmizləyib kiçik hərflərə gətirir və qeydiyyat il-ayını çıxarır."
 real_world_use:
   en: "Standard practice in ingestion staging layers (Bronze to Silver in Medallion architecture) to ensure clean joins and reliable partition pruning."
-  az: "Medallion arxitekturasında (Bürüncdən Gümüş qata keçid) etibarlı JOIN əməliyyatları və partisiya süzülməsi təmin etmək üçün standart təmizləmə mərhələsidir."
+  az: "Medallion arxitekturasında (Bronze qatından Silver qatına keçid) etibarlı JOIN əməliyyatları və partition pruning təmin etmək üçün standart təmizləmə mərhələsidir."
 common_mistakes:
   en: |
     - **Case mismatch during joins**: 'user@domain.com' does not match 'User@domain.com'. Always standardize casing with `LOWER()` when joining on strings.
@@ -120,7 +120,7 @@ common_mistakes:
 interview_question:
   question:
     en: "Why is the ISO-8601 ('YYYY-MM-DD') date format universally standard in data warehouses and lakehouses?"
-    az: "Data anbarı və lakehouse sistemlərində nə üçün ISO-8601 ('YYYY-MM-DD') tarix formatı qlobal standartdır?"
+    az: "Data anbarı (DWH) və lakehouse sistemlərində nə üçün ISO-8601 ('YYYY-MM-DD') tarix formatı qlobal standartdır?"
   answer:
     en: |
       1. **Natural Alphabetical Sorting**: Strings in 'YYYY-MM-DD' order naturally sort chronologically using simple ASCII lexicographical comparisons, without needing date parsing functions.
@@ -128,8 +128,11 @@ interview_question:
       3. **Global Disambiguation**: Unlike 'MM/DD/YYYY' (US) or 'DD/MM/YYYY' (Europe), ISO-8601 avoids regional ambiguity across distributed engineering teams.
     az: |
       1. **Təbii Əlifba Çeşidlənməsi**: 'YYYY-MM-DD' formatındakı mətnlər heç bir tarix funksiyasına ehtiyac olmadan birbaşa ASCII əlifba sırası ilə dəqiq xronoloji düzülür.
-      2. **Fayl Partisiyalama**: Bulud yaddaşlarında (S3, GCS) analitik qovluqlar `/year=YYYY/month=MM/` kimi qurulur. Standart format mühərriklərə partisiya budamasını birbaşa həyata keçirməyə imkan verir.
+      2. **Fayl Partisiyalama (Storage Partitioning)**: Bulud yaddaşlarında (S3, GCS) analitik qovluqlar `/year=YYYY/month=MM/` kimi qurulur. Standart format mühərriklərə partition pruning əməliyyatını birbaşa həyata keçirməyə imkan verir.
       3. **Birmənalı Qlobal Uyğunluq**: 'MM/DD/YYYY' (ABŞ) və 'DD/MM/YYYY' (Avropa) qarışıqlığından fərqli olaraq, ISO-8601 bütün sistemlərdə eyni cür başa düşülür.
+  interviewer_tips:
+    en: "Also mention SARGability (Search Argument Able): wrapping an indexed column in a function inside WHERE (e.g., `WHERE strftime('%Y', order_date) = '2024'`) prevents index usage; prefer range filters (`WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01'`)."
+    az: "Müsahibədə SARGability qaydasını da qeyd edin: indekslənmiş sütunu WHERE daxilində funksiyaya salmaq (məsələn, `WHERE strftime('%Y', order_date) = '2024'`) indeksdən istifadəni bloklayır; bunun əvəzinə diapazon filtri (`WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01'`) yazılmalıdır."
 exercise:
   question:
     en: "Extract the user_id, lowercased email as clean_email, and the email domain (characters after the '@' symbol) as domain for all users whose email ends with '.com'. Restrict output to 10 rows."
@@ -168,7 +171,7 @@ flashcards:
       az: "1 (1 əsaslı indeksləmə). 1-ci mövqe mətnin ən birinci simvolunu bildirir."
   - front:
       en: "Why must you use LOWER() or UPPER() before performing text JOINs in ETL pipelines?"
-      az: "ETL boru kəmərlərində mətnlər üzrə JOIN etməzdən əvvəl nə üçün LOWER() və ya UPPER() tətbiq olunmalıdır?"
+      az: "ETL pipeline-larında mətnlər üzrə JOIN etməzdən əvvəl nə üçün LOWER() və ya UPPER() tətbiq olunmalıdır?"
     back:
       en: "Because SQL string matching is case-sensitive. Inconsistent casing across data sources causes legitimate matching records to be dropped."
       az: "Çünki SQL-də mətn müqayisəsi hərf registrinə həssasdır. Fərqli mənbələrdəki böyük/kiçik hərf fərqləri uyğun sətirlərin itməsinə səbəb olar."

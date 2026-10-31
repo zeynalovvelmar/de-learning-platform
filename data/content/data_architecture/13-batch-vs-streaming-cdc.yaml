@@ -1,0 +1,236 @@
+id: "13-batch-vs-streaming-cdc"
+order: 13
+level: "advanced"
+title:
+  en: "Batch vs. Streaming & Change Data Capture (CDC)"
+  az: "Batch və Streaming Emalı: Change Data Capture (CDC) və Log-Əsaslı Replikasiya"
+infographic:
+  en: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │          POLL-BASED ETL  vs  LOG-BASED CHANGE DATA CAPTURE (CDC)       │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. POLL-BASED QUERYING (Anti-Pattern on Production OLTP):
+       OLTP DB ──► SELECT * FROM orders WHERE updated_at > :last_sync ──► Batch
+       ❌ High DB CPU overhead on production tables during daytime.
+       ❌ Hard Deletes are completely missed (DELETE leaves no row to query!).
+       ❌ Micro-updates between polling intervals are lost.
+
+    2. LOG-BASED CDC WITH DEBEZIUM & KAFKA (Modern Event-Driven Standard):
+       OLTP DB [PostgreSQL/MySQL]
+          │
+          ▼ Transaction Commit
+       [WAL / Binlog] (Append-Only Physical Disk Log)
+          │
+          ▼ Non-invasive Streaming Read
+       [Debezium Connector] ──► [Apache Kafka Topic] ──► [Lakehouse / Iceberg / DWH]
+                                 (JSON / Avro / Protobuf)
+       ✅ Zero Query Load on source DB: Reads physical binary transaction log.
+       ✅ 100% Data Fidelity: Captures every INSERT, UPDATE, and hard DELETE!
+       ✅ Sub-second Latency: Streams database changes to the lakehouse in real time.
+    ```
+  az: |
+    ```text
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │        SORĞU ƏSASLI ETL  və  LOG-ƏSASLI CHANGE DATA CAPTURE (CDC)       │
+    └────────────────────────────────────────────────────────────────────────┘
+    1. PERIODİK BAZA SORĞULARI (İstehsalat OLTP üçün Anti-Pattern):
+       OLTP Baza ──► SELECT * FROM orders WHERE updated_at > :last_sync ──► Batch
+       ❌ İstehsalat bazasında ağır indeks və CPU yükü yaradır.
+       ❌ Cədvəldən silinən sətirlər (Hard Delete) tamamilə itir (silinən sətir sorğuda çıxmır!).
+       ❌ İki sorğu arasındakı sürətli status dəyişiklikləri itirilir.
+
+    2. DEBEZIUM VƏ KAFKA İLƏ LOG-ƏSASLI CDC (Müasir Hadisə-Əsaslı Standart):
+       OLTP Baza [PostgreSQL/MySQL]
+          │
+          ▼ Tranzaksiya Təsdiqi (COMMIT)
+       [WAL / Binlog] (Diskdəki Fiziki İkili Tranzaksiya Loqu)
+          │
+          ▼ Bazanı yükləmədən birbaşa oxuma
+       [Debezium Connector] ──► [Apache Kafka Mövzusu] ──► [Lakehouse / Iceberg / DWH]
+                                 (JSON / Avro / Protobuf)
+       ✅ Bazaya Sıfır Sorğu Yükü: Birbaşa diskin ikili jurnal fayllarını oxuyur.
+       ✅ 100% Dəqiqlik: Hər bir INSERT, UPDATE və fiziki DELETE sətri tutulur!
+       ✅ Saniyəaltı Gecikmə: Baza dəyişiklikləri real vaxtda data anbarına çatdırılır.
+    ```
+quick_recap:
+  en: "Batch processing handles bounded, historical datasets at scheduled intervals with high throughput, whereas Streaming ingests unbounded, event-by-event data with sub-second latency. Change Data Capture (CDC) captures row-level inserts, updates, and deletes directly from database Write-Ahead Logs (WAL/binlog) into streaming platforms like Kafka without impacting production database performance."
+  az: "Batch emalı müəyyən intervallarla böyük tarixi məlumat bloklarını yüksək keçiriciliklə emal edir, Streaming isə fasiləsiz axan hadisələri saniyəaltı gecikmə ilə anında qəbul edir. Change Data Capture (CDC) istehsalat bazasına sorğu yükü salmadan birbaşa Write-Ahead Log (WAL/binlog) fayllarından hər bir INSERT, UPDATE və DELETE əməliyyatını tutaraq Kafka kimi streaming platformalarına yönləndirir."
+explanation:
+  en: |
+    Data Engineering pipelines fall along a spectrum between **Batch Processing** and **Real-Time Streaming**:
+
+    ### 1. Batch vs. Streaming Characteristics
+    | Feature | Batch Processing | Real-Time Streaming |
+    |---|---|---|
+    | **Data Boundary** | Bounded (fixed window, e.g., yesterday's data) | Unbounded (infinite continuous stream) |
+    | **Latency** | Hours, days, or micro-batches (15 mins) | Milliseconds to seconds |
+    | **Compute Engines** | Apache Spark, dbt, SQL Warehouses | Apache Flink, Spark Structured Streaming, Kafka Streams |
+    | **Complexity** | Simple error recovery, deterministic backfills | Complex state management, out-of-order data, watermarking |
+
+    ### 2. The Fallacy of Poll-Based Ingestion
+    Traditionally, data engineers wrote cron jobs querying `WHERE updated_at >= NOW() - INTERVAL '1 hour'`.
+    - **Fatal Flaw 1 (Silent Deletion Loss)**: If an application executes `DELETE FROM users WHERE id = 42;`, that row no longer exists! The poll query will never see it, and your data warehouse retains stale "ghost" records forever.
+    - **Fatal Flaw 2 (Database Overload)**: Scanning large tables every few minutes competes with live user traffic for disk I/O and locks.
+
+    ### 3. Log-Based Change Data Capture (CDC)
+    Every ACID relational database writes changes sequentially to an immutable disk log before applying them to data pages:
+    - **PostgreSQL**: Write-Ahead Log (**WAL**).
+    - **MySQL**: Binary Log (**Binlog**).
+    - **Oracle**: **Redo Log**.
+
+    **Debezium** (running on Kafka Connect) acts as a replication replica:
+    1. It tails the database's binary transaction log without executing SQL queries against tables.
+    2. It translates every commit into an event payload containing both the **`before`** and **`after`** state of the row, plus transaction metadata (`op: "c"` for create, `"u"` for update, `"d"` for delete).
+    3. It publishes these records to partitioned Kafka topics, enabling real-time streaming into Delta Lake, Apache Iceberg, or analytics databases.
+  az: |
+    Data Mühəndisliyi kəmərləri iki əsas emal paradigmasına bölünür: **Batch (Dəstə) Emalı** və **Real-Vaxt Streaming Axını**:
+
+    ### 1. Batch və Streaming Fərqləri
+    | Xüsusiyyət | Batch Emalı | Real-Vaxt Streaming |
+    |---|---|---|
+    | **Data Hüdudları** | Məhdud (keçmiş zaman kəsiyi, məs. dünənki data) | Sonsuz (fasiləsiz axan hadisələr axını) |
+    | **Gecikmə (Latency)** | Saatlar, günlər və ya mikro-batch (15 dəq) | Millisaniyələrdən saniyələrə qədər |
+    | **İcra Alətləri** | Apache Spark, dbt, Bulud SQL Anbarları | Apache Flink, Spark Structured Streaming, Kafka Streams |
+    | **Mürəkkəblik** | Sadə təkrar icra, deterministik backfill | Mürəkkəb state idarəsi, gecikən hadisələr, watermarking |
+
+    ### 2. Sorğu Əsaslı (Polling) Toplamanın Tələləri
+    Ənənəvi kəmərlərdə mühəndislər hər saat başı `WHERE updated_at >= NOW() - INTERVAL '1 hour'` sorğusu yazırdılar.
+    - **Tələ 1 (Silinən Sətirlərin İtməsi)**: Əgər proqram `DELETE FROM users WHERE id = 42;` edərsə, sətir bazadan silinir! Sorğu bu sətri heç vaxt görməyəcək və data anbarınızda köhnə "kabus" sətirlər əbədi qalacaq.
+    - **Tələ 2 (İstehsalat Bazasına Zərbə)**: Böyük cədvəlləri dəqiqədə bir skan etmək canlı istifadəçilərin sorğuları ilə disk və kilid rəqabətinə girərək bazanı çökdürür.
+
+    ### 3. Log-Əsaslı Change Data Capture (CDC)
+    Hər bir etibarlı (ACID) verilənlər bazası cədvəli dəyişməzdən əvvəl həmin əməliyyatı fiziki disk jurnalına yazır:
+    - **PostgreSQL**: Write-Ahead Log (**WAL**).
+    - **MySQL**: Binary Log (**Binlog**).
+    - **Oracle**: **Redo Log**.
+
+    **Debezium** (Kafka Connect üzərində işləyən standart alət) bazanın bir replikasiya nüsxəsi kimi qoşulur:
+    1. Bazaya heç bir SQL sorğusu göndərmədən birbaşa ikili tranzaksiya jurnalını (WAL/binlog) oxuyur.
+    2. Hər bir tranzaksiyanı sətrin dəyişiklikdən əvvəlki (**`before`**) və sonrakı (**`after`**) vəziyyətini əks etdirən hadisəyə çevirir (`op: "c"` insert, `"u"` update, `"d"` delete).
+    3. Bu hadisələri Kafka mövzularına yönləndirərək Delta Lake, Apache Iceberg və ya analitik anbarlara canlı çatdırır.
+code: |
+  -- Sample JSON payload emitted by Debezium CDC capturing an UPDATE event from PostgreSQL WAL
+  {
+    "schema": { "type": "struct", "name": "orders.Value" },
+    "payload": {
+      "before": {
+        "order_id": 9012,
+        "user_id": 140,
+        "status": "PENDING",
+        "total_amount": 199.95,
+        "updated_at": "2026-10-29T10:00:00Z"
+      },
+      "after": {
+        "order_id": 9012,
+        "user_id": 140,
+        "status": "DELIVERED",
+        "total_amount": 199.95,
+        "updated_at": "2026-10-29T10:04:15Z"
+      },
+      "source": {
+        "version": "2.7.0.Final",
+        "connector": "postgresql",
+        "name": "dbserver1",
+        "ts_ms": 1793264655000,
+        "snapshot": "false",
+        "db": "production_oltp",
+        "table": "orders",
+        "txId": 58491,
+        "lsn": 104857600
+      },
+      "op": "u",
+      "ts_ms": 1793264655120
+    }
+  }
+code_explanation:
+  en: |
+    - **`op: "u"`**: Indicates a database `UPDATE` operation (`"c"` = create/insert, `"d"` = delete, `"r"` = snapshot read).
+    - **`before` vs. `after`**: Stores the exact state before and after the transaction, enabling historical audit logs and SCD Type 2 tracking in the lakehouse.
+    - **`source.lsn`**: The Log Sequence Number in PostgreSQL WAL, guaranteeing exact deterministic stream ordering and fault-tolerant resumption.
+  az: |
+    - **`op: "u"`**: Baza üzərində `UPDATE` əməliyyatının baş verdiyini bildirir (`"c"` = insert, `"d"` = delete, `"r"` = ilkin snapshot oxunuşu).
+    - **`before` və `after`**: Sətrin tranzaksiyadan əvvəlki və sonrakı dəqiq halını saxlayır, bu da lakehouse daxilində tam audit və SCD Type 2 qurmağa imkan verir.
+    - **`source.lsn`**: PostgreSQL WAL daxilindəki Log Sequence Number göstəricisidir; kəmərin qəzadan sonra dəqiq qaldığı yerdən davam etməsini təmin edir.
+visual_output: |
+  ================== DEBEZIUM CDC REPLICATION STREAM TO LAKEHOUSE ==================
+
+  SOURCE OLTP: PostgreSQL WAL (Transaction Commit txId: 58491, LSN: 104857600)
+  EVENT: UPDATE orders SET status = 'DELIVERED' WHERE order_id = 9012;
+
+  KAFKA TOPIC: postgres.production_oltp.orders
+  ┌──────────┬────────┬──────────────┬──────────────┬────────────┬────────────────────────┐
+  │ order_id │ op     │ prev_status  │ curr_status  │ amount     │ wal_lsn                │
+  ├──────────┼────────┼──────────────┼──────────────┼────────────┼────────────────────────┤
+  │ 9012     │ UPDATE │ PENDING      │ DELIVERED    │ $199.95    │ 0/6400000              │
+  └──────────┴────────┴──────────────┴──────────────┴────────────┴────────────────────────┘
+  DOWNSTREAM: Iceberg / Delta Lake Bronze Table updated via Spark Structured Streaming in 450ms.
+output_description:
+  en: "Displays the captured change event emitted from the database transaction log to Kafka and replicated into the downstream Lakehouse table in near real-time."
+  az: "Verilənlər bazası tranzaksiya loqundan tutulan, Kafka-ya ötürülən və saniyəaltı gecikmə ilə Lakehouse cədvəlinə replikasiya olunan CDC hadisəsini göstərir."
+what_it_does:
+  en: "Explains the architectural transition from scheduled batch polling to log-based Change Data Capture (CDC) streaming using Debezium and Kafka."
+  az: "Periodik cədvəl skanlarından Debezium və Kafka əsaslı log-əsaslı Change Data Capture (CDC) axınlarına arxitektur keçidi izah edir."
+real_world_use:
+  en: "Standard enterprise data engineering pattern to synchronize operational databases (PostgreSQL, MySQL, Oracle) into analytics lakehouses (Delta Lake, Apache Iceberg) without production downtime."
+  az: "İstehsalat bazalarını (Postgres, MySQL, Oracle) analitik lakehouse saxlancına (Delta, Iceberg) canlı sinxronizasiya etmək üçün qlobal sənaye standartıdır."
+common_mistakes:
+  en: |
+    - **Relying on updated_at timestamps for CDC**: Misses hard deletes, fails when clocks drift, and triggers full table scans on source databases.
+    - **Neglecting WAL disk retention on source databases**: If the CDC consumer fails and falls behind, the database may purge WAL segments or fill the disk, taking down the production database!
+    - **Assuming CDC guarantees deduplication**: Network retries can cause duplicate events in Kafka; lakehouse ingestion engines must use idempotent upserts (`MERGE INTO`).
+  az: |
+    - **CDC üçün updated_at sütunlarına güvənmək**: Silinən sətirləri (hard delete) tamamilə itirir, saat fərqlərində xəta verir və istehsalat bazasında ağır skanlar yaradır.
+    - **Mənbə bazada WAL disk həcmini nəzarətsiz qoymaq**: Əgər CDC oxuyucusu xarab olub geridə qalarsa, baza diski dolub bütün istehsalat sistemini çökdürə bilər!
+    - **CDC-nin təkrar hadisə yaratmayacağını zənn etmək**: Şəbəkə təkrarı zamanı Kafka-ya eyni hadisə 2 dəfə düşə bilər; lakehouse-a yazarkən mütləq `MERGE INTO` (upsert) tətbiq olunmalıdır.
+interview_question:
+  question:
+    en: "What is Change Data Capture (CDC), and why is log-based CDC far superior to query-based (polling) replication?"
+    az: "Change Data Capture (CDC) nədir və log-əsaslı CDC nə üçün sorğu-əsaslı (polling) replikasiyadan qat-qat üstündür?"
+  answer:
+    en: |
+      1. **Definition**: Change Data Capture (CDC) is a design pattern that identifies and captures state changes (inserts, updates, deletes) in a source database and delivers them in real time to downstream destinations.
+      2. **Why Log-Based CDC Wins**:
+         - **Zero Production Query Overhead**: It reads physical sequential transaction logs (PostgreSQL WAL, MySQL binlog) without running SQL queries, avoiding CPU contention, table locks, and index maintenance.
+         - **Captures Hard Deletes**: Direct SQL queries cannot find rows that were deleted; transaction logs record every `DELETE` with the full pre-deletion row image.
+         - **Complete Transaction Fidelity**: If a record changes from `PENDING -> PROCESSING -> COMPLETED` within seconds, hourly polling only observes the final state; log CDC captures every intermediate state change in strict chronological order.
+    az: |
+      1. **Tərif**: Change Data Capture (CDC) mənbə bazadakı bütün sətir dəyişikliklərini (insert, update, delete) anında tutub aşağı axın sistemlərinə (data lake, anbar) canlı çatdıran dizayn modelidir.
+      2. **Log-Əsaslı CDC-nin Üstünlükləri**:
+         - **İstehsalat Bazasına Sıfır Sorğu Yükü**: SQL sorğuları göndərmir, diskin ardıcıl fiziki ikili jurnalını (PostgreSQL WAL, MySQL binlog) oxuyur; heç bir cədvəl kilidi və ya CPU rəqabəti yaratmır.
+         - **Fiziki Silinmələri (Hard Delete) Tutur**: Adi SQL sorğuları silinmiş sətri tapa bilmir; tranzaksiya loqu isə hər bir `DELETE` əməliyyatını sətrin silinməzdən əvvəlki bütün məlumatları ilə birlikdə qeydə alır.
+         - **Tranzaksiya Ardıcıllığının Tamlığı**: Əgər sətir 1 dəqiqə içində `GÖZLƏMƏDƏ -> HAZIRLANIR -> ÇATDIRILDI` statuslarını keçirsə, periodik sorğu yalnız son vəziyyəti görür; log-əsaslı CDC isə bütün aralıq dəyişiklikləri xronoloji dəqiqliklə qoruyur.
+  interviewer_tips:
+    en: "Mention the 'Outbox Pattern' as the microservices standard for atomically updating a database and emitting an event to Kafka in a single local transaction, eliminating dual-write inconsistencies."
+    az: "Mikroxidmətlərdə həm bazanı yeniləmək, həm də Kafka-ya hadisə göndərmək üçün 'Outbox Pattern' arxitekturasını (tək yerli tranzaksiya ilə dual-write problemini həll edən model) da qeyd edin."
+flashcards:
+  - front:
+      en: "What is the primary difference between Batch Processing and Stream Processing?"
+      az: "Batch (Dəstə) Emalı ilə Stream (Axın) Emalı arasındakı əsas fərq nədir?"
+    back:
+      en: "Batch processes bounded, historical data at scheduled intervals with high latency. Streaming processes unbounded continuous event streams in real time with sub-second latency."
+      az: "Batch müəyyən edilmiş keçmiş məlumatı cədvəl üzrə yüksək gecikmə ilə emal edir. Streaming isə fasiləsiz axan hadisələri real vaxtda saniyəaltı gecikmə ilə emal edir."
+  - front:
+      en: "What is Change Data Capture (CDC)?"
+      az: "Change Data Capture (CDC) nədir?"
+    back:
+      en: "A design pattern that detects row-level inserts, updates, and deletes in a source database and streams them in real time to downstream data platforms."
+      az: "Mənbə bazadakı bütün sətir əlavə, yeniləmə və silinmələrini anında tutub real vaxtda data platformalarına çatdıran arxitektur modeldir."
+  - front:
+      en: "Why does query-based polling (SELECT WHERE updated_at > last_sync) fail to capture hard deletes?"
+      az: "Sorğu-əsaslı toplama (SELECT WHERE updated_at > last_sync) fiziki silinmələri (hard delete) nə üçün tuta bilmir?"
+    back:
+      en: "Because hard-deleted rows no longer exist in the table; a SQL SELECT query has no row to evaluate and misses the deletion entirely."
+      az: "Çünki fiziki silinən sətirlər artıq cədvəldə mövcud olmur; SQL sorğusunun oxuya biləcəyi heç bir sətir qalmır və silinmə tamamilə itir."
+  - front:
+      en: "How does log-based CDC (e.g. Debezium) extract data without impacting database query performance?"
+      az: "Log-əsaslı CDC (məs. Debezium) baza sorğu performansına toxunmadan məlumatı necə çıxarır?"
+    back:
+      en: "By reading the database's sequential binary transaction log (PostgreSQL WAL, MySQL binlog) directly from disk without executing SQL queries."
+      az: "SQL sorğusu icra etmədən, birbaşa diskdəki ardıcıl ikili tranzaksiya jurnalını (PostgreSQL WAL, MySQL binlog) replikasiya nüsxəsi kimi oxuyaraq."
+  - front:
+      en: "What is the Outbox Pattern in event-driven data architectures?"
+      az: "Hadisə-əsaslı data arxitekturalarında Outbox Pattern nədir?"
+    back:
+      en: "A pattern where application changes and outgoing event messages are saved within the same atomic database transaction, guaranteed to be delivered to Kafka via CDC without dual-write bugs."
+      az: "Tətbiq dəyişikliyi və xarici hadisə mesajının eyni lokal baza tranzaksiyasında Outbox cədvəlinə yazıldığı və CDC ilə Kafka-ya çatdırıldığı etibarlı arxitektur modeldir."

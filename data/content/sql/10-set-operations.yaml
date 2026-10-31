@@ -26,7 +26,7 @@ explanation:
   en: |
     Think of two delivery trucks unloading cargo containers at a central logistics warehouse:
     - **UNION ALL**: Both trucks unload all their cargo directly onto the conveyor belt without stopping to inspect barcodes. It is instantaneous and keeps every single box.
-    - **UNION**: Inspectors stand at the door, scanning every single barcode, comparing it against every other box, and throwing away duplicate boxes. It is 10x slower and requires huge temporary storage.
+    - **UNION**: Inspectors stand at the door, scanning every single barcode, comparing it against every other box, and throwing away duplicate boxes. It is significantly slower and requires huge temporary storage.
     - **INTERSECT**: Inspectors look for product models that arrived on BOTH Truck 1 AND Truck 2.
     - **EXCEPT**: Inspectors look for items that were delivered by Truck 1, but NEVER delivered by Truck 2.
 
@@ -65,7 +65,7 @@ explanation:
   az: |
     Mərkəzi logistika anbarında yük boşaldan iki yük maşınını təsəvvür edin:
     - **UNION ALL**: Hər iki maşın bütün qutuları ştrix-kodları yoxlamadan birbaşa konveyer lentinə tökür. Bu addım dərhal baş verir və bütün qutuları saxlayır.
-    - **UNION**: Qapıda duran nəzarətçilər hər qutunun kodunu yoxlayır, digər bütün qutularla müqayisə edir və eyni olan dublikat qutuları atır. Bu proses 10 dəfə daha ləng gedir və böyük müvəqqəti saxlama yeri tələb edir.
+    - **UNION**: Qapıda duran nəzarətçilər hər qutunun kodunu yoxlayır, digər bütün qutularla müqayisə edir və eyni olan dublikat qutuları atır. Bu proses xeyli daha ləng gedir və böyük müvəqqəti saxlama yeri tələb edir.
     - **INTERSECT**: Nəzarətçilər HƏM 1-ci, HƏM DƏ 2-ci maşında olan ortaq məhsulları tapır.
     - **EXCEPT**: Nəzarətçilər 1-ci maşında olan, lakin 2-ci maşında HEÇ VAXT gəlməyən məhsulları tapır.
 
@@ -118,11 +118,11 @@ real_world_use:
   az: "Data lake və anbarlarda gündəlik yeni məlumatları köhnə arxivə calamaq və çoxmənbəli vahid hadisə qeydləri yaratmaq üçün standartdır."
 common_mistakes:
   en: |
-    - **Defaulting to UNION instead of UNION ALL**: UNION triggers an expensive sorting and hashing pass to find and remove duplicates. In 95% of data pipeline transformations, UNION ALL is what you want.
+    - **Defaulting to UNION instead of UNION ALL**: UNION triggers an expensive sorting and hashing pass to find and remove duplicates. In most data pipeline transformations, UNION ALL is what you want.
     - **Mismatched column counts**: Attempting to combine 3 columns with 2 columns will immediately fail with a query syntax error.
     - **Incorrect placement of ORDER BY**: ORDER BY applies to the combined result and must appear only once at the very end of the compound query, not inside individual SELECT branches.
   az: |
-    - **UNION ALL əvəzinə vərdişlə UNION yazmaq**: UNION bütün məlumatları yaddaşda çeşidləyərək təkrarları axtarır. Boru kəmərlərinin 95%-ində əslində tələb olunan sürətli UNION ALL-dur.
+    - **UNION ALL əvəzinə vərdişlə UNION yazmaq**: UNION bütün məlumatları yaddaşda çeşidləyərək təkrarları axtarır. Data pipeline-larının əksər hallarında əslində tələb olunan sürətli UNION ALL-dur.
     - **Sütun sayının fərqli olması**: 3 sütunlu sorğu ilə 2 sütunlu sorğunu birləşdirməyə çalışmaq dərhal sintaksis xətası verir.
     - **ORDER BY-ın yerini səhv salmaq**: ORDER BY yekun birləşmiş nəticəyə tətbiq olunur və fərdi budaqların daxilində deyil, yalnız sorğunun ən sonunda yazılmalıdır.
 interview_question:
@@ -132,10 +132,13 @@ interview_question:
   answer:
     en: |
       1. **Zero Data Shuffle**: UNION ALL is a simple append operation. The query engine reads partitions from both inputs and streams them directly to the output without transferring data across the network.
-      2. **Avoids Distributed Hash Deduplication**: Plain UNION requires an expensive distributed shuffle phase where all rows must be hashed, repartitioned across worker nodes, and sorted in memory to eliminate duplicates. On terabyte-scale datasets, this can cause out-of-memory (OOM) errors, high network I/O, and 10x slower runtimes.
+      2. **Avoids Distributed Hash Deduplication**: Plain UNION requires an expensive distributed shuffle phase where all rows must be hashed, repartitioned across worker nodes, and sorted in memory to eliminate duplicates. On terabyte-scale datasets, this can cause out-of-memory (OOM) errors, high network I/O, and drastically slower runtimes.
     az: |
       1. **Sıfır Şəbəkə Qarışdırması (Zero Shuffle)**: UNION ALL sadə bir ardıcıl əlavəetmədir. Mühərrik hər iki mənbənin partisiya fayllarını birbaşa oxuyur və heç bir şəbəkə hərəkəti (shuffle) olmadan çıxışa yönləndirir.
-      2. **Paylanmış Hash Deduplikasiyadan Qaçış**: Sadə UNION təkrarları silmək üçün bütün sətirləri şəbəkə üzərindən qovşaqlar arasında yenidən paylamağı (shuffle) və yaddaşda hash cədvəlləri qurmağı tələb edir. Terabayt miqyasında bu, yaddaş tükənməsinə (OOM), həddindən artıq şəbəkə yükünə və 10 dəfəyə qədər ləngiməyə səbəb olur.
+      2. **Paylanmış Hash Deduplikasiyadan Qaçış**: Sadə UNION təkrarları silmək üçün bütün sətirləri şəbəkə üzərindən qovşaqlar arasında yenidən paylamağı (shuffle) və yaddaşda hash cədvəlləri qurmağı tələb edir. Terabayt miqyasında bu, yaddaş tükənməsinə (OOM), həddindən artıq şəbəkə yükünə və sorğuların kəskin ləngiməsinə səbəb olur.
+  interviewer_tips:
+    en: "Also note the positional column trap: SQL UNION matches columns strictly by position (1st with 1st, 2nd with 2nd), not by column name! In dbt or Spark, using helpers like `dbt_utils.union_relations` or `df1.unionByName(df2)` prevents silent column-swap bugs."
+    az: "Sütun sırası tələsini də qeyd edin: SQL-də UNION sütunları adına görə deyil, yalnız mövqeyinə görə (1-cini 1-ci ilə, 2-cini 2-ci ilə) birləşdirir! dbt və ya Spark istifadə edərkən sütunların yerinin səhv düşməməsi üçün `dbt_utils.union_relations` və ya `df1.unionByName(df2)` üstün tutulur."
 exercise:
   question:
     en: "Write a query using EXCEPT to find all user_id values that exist in the users table but have placed zero orders (do not exist in the orders table)."
@@ -180,7 +183,7 @@ flashcards:
       az: "Yalnız sonuncu sorğunun ən sonunda. Fərdi budaqları deyil, bütün birləşdirilmiş nəticəni sıralayır."
   - front:
       en: "Why is UNION ALL the default choice in distributed big data pipelines (Spark, Snowflake)?"
-      az: "Paylanmış data kəmərlərində (Spark, Snowflake) nə üçün susmaya görə UNION ALL seçilir?"
+      az: "Paylanmış data pipeline-larında (Spark, Snowflake) nə üçün susmaya görə UNION ALL seçilir?"
     back:
       en: "Because it avoids an expensive distributed network shuffle and hash deduplication across cluster worker nodes."
       az: "Klaster qovşaqları arasında ağır paylanmış şəbəkə qarışdırmasından (shuffle) və hash deduplikasiya xərcindən qaçmaq üçün."

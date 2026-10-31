@@ -21,7 +21,7 @@ title:
   az: "Mətn Təmizlənməsi, Əməliyyatlar və F-Stringlər"
 quick_recap:
   en: "Strings in Python are immutable sequences of characters. In data pipelines, cleaning raw text using .strip(), .lower(), .replace(), and .split() is a mandatory preprocessing step. Using ''.join() for combining text is O(N) linear time, whereas repeated '+' concatenation is O(N^2) quadratic time."
-  az: "Python-da mətnlər simvolların dəyişməz ardıcıllığıdır (immutable). Data kəmərlərində xam mətnləri .strip(), .lower(), .replace() və .split() ilə təmizləmək mütləq ilkin addımdır. Çoxsaylı mətni birləşdirmək üçün ''.join() O(N) xətti vaxt aparır, '+' ilə təkrar calamaq isə O(N^2) ləngimə yaradır."
+  az: "Python-da mətnlər simvolların dəyişməz ardıcıllığıdır (immutable). Data pipeline-larında xam mətnləri .strip(), .lower(), .replace() və .split() ilə təmizləmək mütləq ilkin addımdır. Çoxsaylı mətni birləşdirmək üçün ''.join() O(N) xətti vaxt aparır, '+' ilə təkrar calamaq isə O(N^2) ləngimə yaradır."
 explanation:
   en: |
     Think of raw customer input forms entering a data warehouse:
@@ -56,7 +56,7 @@ explanation:
     - `ayırıcı.join(siyahı)`: Çoxsaylı mətnləri yaddaşa qənaət edərək sürətlə birləşdirir.
     - `f"..."`: Dinamik loq mesajları və fayl adları qurmaq üçün müasir f-string formatı.
 
-    ### Real Boru Kəməri Nümunəsi:
+    ### Real Data Pipeline Nümunəsi:
 
     ```python
     raw_row = "  101,Ali Mammadov,  45.00  \n"
@@ -103,9 +103,12 @@ interview_question:
       2. **Performance of `+` vs `join()`**: Because strings cannot be modified in-place, evaluating `s1 + s2 + s3` allocates a new memory block and copies characters each time. In a loop of N strings, this produces quadratic O(N^2) time complexity.
       3. **Linear Time of `join()`**: `''.join(list_of_strings)` computes the total required memory buffer length upfront in a single pass, allocates memory once, and copies all strings in linear O(N) time.
     az: |
-      1. **Dəyişməzliyin Səbəbi**: Mətnlərin dəyişməz olması axın təhlükəsizliyini (thread-safety) təmin edir, Python-a hash dəyərini daimi saxlamağa (lüğətlərdə açar kimi işləməyə) və yaddaş qənaəti üçün eyni mətnləri ortaq ünvanda saxlamağa (interning) imkan verir.
+      1. **Dəyişməzliyin (Immutability) Səbəbi**: Mətnlərin dəyişməz olması thread-safety təmin edir, Python-a hash dəyərini daimi saxlamağa (dictionary-lərdə açar kimi işləməyə) və yaddaş qənaəti üçün eyni mətnləri ortaq ünvanda saxlamağa (string interning) imkan verir.
       2. **`+` vs `join()` Performansı**: Mətni yerində dəyişmək mümkün olmadığı üçün `s1 + s2` hər dəfə RAM-da yeni yaddaş bloku ayırır və simvolları təkrar köçürür. N sayda sətirlik dövrədə bu, O(N^2) kvadratik ləngimə yaradır.
       3. **`join()` Xətti Sürəti**: `''.join(siyahı)` əvvəlcədən tələb olunan ümumi yaddaşı tək addımda hesablayır, yaddaşı cəmi bir dəfə ayırır və bütün mətnləri O(N) xətti vaxtda sürətlə köçürür.
+  interviewer_tips:
+    en: "When parsing CSV lines in interviews, note that `line.split(',')` breaks if a field itself contains a quoted comma (e.g. `\"Baku, Azerbaijan\"`). In production, always use Python's built-in `csv` module (`csv.reader` / `csv.DictReader`) for compliant RFC-4180 parsing."
+    az: "Müsahibədə CSV sətirlərinin parçalanmasından danışarkən qeyd edin ki, dırnaq içində vergül olduqda (məsələn, `\"Bakı, Azərbaycan\"`) adi `line.split(',')` səhv nəticə verir. Production kodunda həmişə Python-un standart `csv` modulundan (`csv.reader` / `csv.DictReader`) istifadə olunmalıdır."
 exercise:
   question:
     en: "Write a function `clean_user_input(first_name, last_name, email)` that strips leading/trailing spaces and capitalizes each name (.strip().capitalize()), and strips and lowercases the email (.strip().lower()). Return a dictionary: `{'name': f'{clean_first} {clean_last}', 'email': clean_email}`."

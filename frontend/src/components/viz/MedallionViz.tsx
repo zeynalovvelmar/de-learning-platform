@@ -103,7 +103,7 @@ WHEN NOT MATCHED THEN INSERT *;`,
     borderColor: 'border-amber-400/60',
     glowColor: 'bg-amber-400/15',
     summary: L(
-      'Biznes analitikləri və hesabatlar üçün xüsusi olaraq aqreqasiya edilmiş, Ulduz Sxemi (Star Schema) şəklində yığılmış yüksək sürətli təbəqə.',
+      'Biznes analitikləri və hesabatlar üçün xüsusi olaraq aqreqasiya edilmiş, Star Schema (ulduz sxemi) şəklində yığılmış yüksək sürətli təbəqə.',
       'Curated business-level tables, star-schema fact and dimensions, and pre-computed aggregations for instant BI queries.',
     ),
     schemaEnforcement: L('Analitik Sxem (Fact & Dim)', 'Analytical Schema (Fact & Dim)'),
@@ -193,7 +193,7 @@ export function MedallionViz() {
           >
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-300">
               <Filter className="h-3.5 w-3.5" />
-              <span>2. SİLVƏR</span>
+              <span>2. SILVER</span>
             </div>
             <span className="font-mono text-[10px] text-muted">Təmizlənmiş / Dedupe</span>
             <span className="rounded-full bg-slate-400/20 px-2 py-0.5 text-[9px] font-bold text-slate-300">

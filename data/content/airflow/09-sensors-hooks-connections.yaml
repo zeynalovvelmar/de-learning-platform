@@ -94,10 +94,10 @@ explanation:
     - **Hook**: Həmin sistemlə danışan Python sinfidir (məsələn: `PostgresHook`). O, Connection-dan məlumatları çəkir, bazaya qoşulmanı açır və sorğunu icra edir.
 quick_recap:
   en: "Always use `mode='reschedule'` for sensors waiting more than 1-2 minutes to prevent worker deadlock. Use Connections and Hooks to keep credentials out of DAG code."
-  az: "Worker-ləri kilitləməmək üçün 1-2 dəqiqədən çox gözləyən sensorlarda həmişə `mode='reschedule'` istifadə edin. Şifrələri kodda deyil, Connection və Hook-larda saxlayın."
+  az: "Worker-ləri kilidləməmək üçün 1-2 dəqiqədən çox gözləyən sensorlarda həmişə `mode='reschedule'` istifadə edin. Şifrələri kodda deyil, Connection və Hook-larda saxlayın."
 what_it_does:
   en: "Sensors pause workflows until external conditions are met, while Hooks abstract low-level API/DB authentication using centralized Connections."
-  az: "Sensorlar xarici hadisələr baş verənə qədər boru kəmərini gözlədir, Hook-lar isə mərkəzi Connection-lar vasitəsilə xarici bazalara təhlükəsiz qoşulma yaradır."
+  az: "Sensorlar xarici hadisələr baş verənə qədər pipeline-ı gözlədir, Hook-lar isə mərkəzi Connection-lar vasitəsilə xarici bazalara təhlükəsiz qoşulma yaradır."
 real_world_use:
   en: "Waiting for partner vendors to drop hourly SFTP/S3 files before triggering downstream Spark transformations, querying via PostgresHook."
   az: "Xarici tərəfdaşın saatlıq faylı S3-ə yükləməsini gözləyib, ardınca PostgresHook ilə cədvəlləri yeniləmək."
@@ -197,7 +197,7 @@ interview_question:
     az: "Airflow Sensorlarında `mode='poke'` ilə `mode='reschedule'` arasındakı fərq nədir? Yanlış rejim seçildikdə hansı fəlakətli problem yarana bilər?"
   answer:
     en: "In `mode='poke'`, the sensor holds onto its worker slot and thread continuously, even while sleeping between checks (`poke_interval`). In `mode='reschedule'`, if the condition is not met, the sensor yields its worker slot, transitions to state `UP_FOR_RESCHEDULE`, and frees the thread for other tasks until the next check. If you have many sensors running in `poke` mode waiting for hours, they consume 100% of the worker slots, causing worker pool starvation and a total cluster deadlock where no other DAGs in the entire company can execute."
-    az: "`mode='poke'` rejimində sensor yoxlamalar arasındakı gözləmə (yuxu) vaxtında belə worker slotunu və yaddaşı əlində saxlayır və buraxmır. `mode='reschedule'` rejimində isə şərt ödənmədikdə sensor dərhal worker slotunu azad edir, `UP_FOR_RESCHEDULE` statusuna keçir və növbəti yoxlamaya qədər resursu digər task-ların istifadəsinə verir. Əgər çoxlu sayda sensor `poke` rejimində saatlarla gözləyərsə, klasterdəki bütün worker slotları tutulur, resurs tükənməsi (starvation) və klaster miqyasında ümumi kilitlənmə (deadlock) yaranır; nəticədə şirkətdə heç bir digər pipeline işləyə bilmir."
+    az: "`mode='poke'` rejimində sensor yoxlamalar arasındakı gözləmə (yuxu) vaxtında belə worker slotunu və yaddaşı əlində saxlayır və buraxmır. `mode='reschedule'` rejimində isə şərt ödənmədikdə sensor dərhal worker slotunu azad edir, `UP_FOR_RESCHEDULE` statusuna keçir və növbəti yoxlamaya qədər resursu digər task-ların istifadəsinə verir. Əgər çoxlu sayda sensor `poke` rejimində saatlarla gözləyərsə, klasterdəki bütün worker slotları tutulur, resurs tükənməsi (starvation) və klaster miqyasında ümumi kilidlənmə (deadlock) yaranır; nəticədə şirkətdə heç bir digər pipeline işləyə bilmir."
   interviewer_tips:
     en: "Mention the exact state name `UP_FOR_RESCHEDULE` and explain worker pool starvation. Senior interviewers look for this operational experience."
     az: "`UP_FOR_RESCHEDULE` statusunun adını çəkmək və worker slotlarının tükənməsini (pool starvation) izah etmək dərin təcrübənizi nümayiş etdirir."

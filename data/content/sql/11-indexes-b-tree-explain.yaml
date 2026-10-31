@@ -1,0 +1,151 @@
+id: "11-indexes-b-tree-explain"
+order: 11
+level: "intermediate"
+title:
+  en: "Indexes, B-Tree & EXPLAIN QUERY PLAN: Query Optimization"
+  az: "İndekslər, B-Tree və EXPLAIN QUERY PLAN: Sorğu Optimizasiyası"
+quick_recap:
+  en: "Database indexes are auxiliary data structures (most commonly balanced B-Trees) that enable logarithmic O(log N) lookup instead of sequential O(N) full-table scans. EXPLAIN QUERY PLAN reveals whether the query planner performs a SCAN (full table read) or SEARCH USING INDEX."
+  az: "Verilənlər bazası indeksləri ardıcıl O(N) tam cədvəl skanı (Full Table Scan) əvəzinə loqarifmik O(log N) axtarışı təmin edən köməkçi B-Tree strukturlarıdır. EXPLAIN QUERY PLAN mühərrikin SCAN (bütün cədvəli oxumaq) yoxsa SEARCH USING INDEX (indekslə axtarış) etdiyini göstərir."
+explanation:
+  en: |
+    Imagine a 1,000-page telephone directory or technical encyclopedia:
+    - **Without an Index (Full Table Scan / SCAN)**: To find person "Zaman", you must read all 1,000 pages from page 1 to the end, checking every name one by one ($O(N)$ operations).
+    - **With a B-Tree Index (Index Seek / SEARCH)**: The book has an alphabetical index at the back. You jump straight to letter 'Z', follow the pointer to page 842, and find the record in 3 page reads ($O(\log N)$ operations).
+
+    ### 1. B-Tree Structure and Traversal:
+    - Root Node $\rightarrow$ Branch Nodes $\rightarrow$ Leaf Nodes.
+    - Leaf nodes contain the sorted indexed column values alongside a RowID (pointer to the physical row on disk).
+    - Lookups, range scans (`WHERE age BETWEEN 20 AND 30`), and ordering (`ORDER BY created_at`) leverage the pre-sorted tree structure.
+
+    ### 2. Clustered vs. Non-Clustered Indexes:
+    - **Clustered Index**: Dictates the physical storage order of rows on disk (usually Primary Key). A table can have ONLY ONE clustered index.
+    - **Non-Clustered (Secondary) Index**: A separate structure storing the index key plus a pointer to the clustered row. A table can have multiple secondary indexes.
+
+    ### 3. Composite Indexes & Leftmost Prefix Rule:
+    - An index on `(country, created_at)` can accelerate queries filtering by `country` alone, or `country AND created_at`.
+    - **Crucial Rule**: It CANNOT be used effectively if your query filters ONLY by `created_at` (skipping the leftmost column).
+
+    ### 4. Reading `EXPLAIN QUERY PLAN`:
+    - `SCAN users`: Engine reads every block of the table sequentially from disk.
+    - `SEARCH users USING INDEX idx_users_email (email=?)`: Engine traverses the B-Tree directly to the target record.
+    - `SEARCH users USING INTEGER PRIMARY KEY (rowid=?)`: The fastest possible direct address lookup.
+
+    ### 5. The DE Trade-off: Indexes Are Not Free!
+    - Every index speeds up `SELECT` queries, but **drastically slows down `INSERT`, `UPDATE`, and `DELETE` (DML)** because the database must rebalance and update every B-Tree on each write!
+    - In Analytical Data Warehouses (OLAP), wide secondary indexes are often avoided in favor of columnar compression and partitioning/sorting (Z-Order/Clustering Keys).
+  az: |
+    1,000 səhifəlik qalın telefon kitabçasını və ya ensiklopediyanı təsəvvür edin:
+    - **İndeks Olmadıqda (Full Table Scan / SCAN)**: "Zaman" adlı şəxsi tapmaq üçün 1-ci səhifədən başlayaraq bütün 1,000 səhifəni tək-tək vərəqləməlisiniz ($O(N)$ əməliyyat).
+    - **B-Tree İndeksi Olduqda (Index Seek / SEARCH)**: Kitabın arxasında əlifba sırası ilə hazırlanmış mini indeks var. Siz birbaşa 'Z' hərfinə baxır, səhifə 842 göstəricisinə keçir və cəmi 3 vərəqləmə ilə şəxsi tapırsınız ($O(\log N)$ əməliyyat).
+
+    ### 1. B-Tree (Balanslaşdırılmış Ağac) Strukturu:
+    - Kök (Root) $\rightarrow$ Budaqlar (Branches) $\rightarrow$ Yarpaqlar (Leaves).
+    - Yarpaq qovşaqları sıralanmış sütun dəyərlərini və fiziki disk ünvanına (RowID) işarə edən göstəriciləri saxlayır.
+    - Bərabərlik axtarışı (`=`), diapazon axtarışı (`BETWEEN`, `>`, `<`) və çeşidləmə (`ORDER BY`) ağacın əvvəlcədən sıralanmış təbiətindən istifadə edir.
+
+    ### 2. Clustered (Klasterli) vs Non-Clustered (İkincili) İndeks:
+    - **Clustered Index**: Cədvəl sətirlərinin diskdəki fiziki düzülüş qaydasını müəyyənləşdirir (adətən Primary Key). Cədvəldə YALNIZ 1 klasterli indeks ola bilər.
+    - **Non-Clustered Index**: Fiziki datadan ayrı saxlanılan, axtarılan sütun və disk göstəricisindən ibarət köməkçi strukturdur. Cədvəldə bir neçə ikincili indeks ola bilər.
+
+    ### 3. Mürəkkəb İndekslər (Composite Indexes) və Ən Soldakı Prefiks Qaydası:
+    - `(country, created_at)` üzrə yaradılmış indeks həm `country`, həm də `country AND created_at` filtrlərini sürətləndirir.
+    - **Qızıl Qayda**: Əgər sorğu yalnız `created_at` üzrə süzülürsə (`country` olmadan), mühərrik bu indeksdən səmərəli istifadə edə BİLMİR.
+
+    ### 4. `EXPLAIN QUERY PLAN` Oxunması:
+    - `SCAN users`: Mühərrik cədvəlin bütün bloklarını diskdən ardıcıl oxuyur (Full Table Scan).
+    - `SEARCH users USING INDEX idx_users_email (email=?)`: Mühərrik B-Tree üzrə birbaşa hədəf sətrə sıçrayır.
+    - `SEARCH users USING INTEGER PRIMARY KEY (rowid=?)`: Ən sürətli birbaşa ünvan axtarışıdır.
+
+    ### 5. Data Mühəndisi Kompromisi: İndekslər Pulsuz Deyil!
+    - Hər bir indeks `SELECT` sorğularını sürətləndirsə də, **`INSERT`, `UPDATE` və `DELETE` əməliyyatlarını nəzərəçarpacaq dərəcədə yavaşladır**, çünki hər yazılışda baza bütün B-Tree ağaclarını yenidən balanslaşdırmalıdır!
+    - Analitik Anbarlarda (OLAP) klassik ikincili indekslər əvəzinə sütunlu sıxılma və partisiya/klasterləşdirmə açarları (Z-Order, Liquid Clustering) tətbiq edilir.
+code: |
+  -- 1. Check current query plan without secondary index (Full Table Scan)
+  EXPLAIN QUERY PLAN
+  SELECT user_id, first_name, email
+  FROM users
+  WHERE email = 'user10@example.com';
+
+  -- 2. Observe how the query planner reports 'SCAN users' vs 'SEARCH users USING ...'
+what_it_does:
+  en: "Uses EXPLAIN QUERY PLAN to inspect how the database engine plans to execute a query, distinguishing between expensive full-table scans and fast indexed lookups."
+  az: "EXPLAIN QUERY PLAN vasitəsilə mühərrikin sorğunu necə icra edəcəyini analiz edir, bahalı tam cədvəl skanı (SCAN) ilə sürətli indeks axtarışı (SEARCH) arasındakı fərqi göstərir."
+real_world_use:
+  en: "Essential diagnostic step in production engineering when slow analytical or transactional queries cause latency spikes or CPU bottlenecks."
+  az: "İstehsalat mühitində zəif işləyən sorğuların səbəb olduğu gecikmə və CPU yüklənmələrini aradan qaldırmaq üçün ən birinci diaqnostika addımıdır."
+common_mistakes:
+  en: |
+    - **Wrapping indexed columns in functions**: Writing `WHERE LOWER(email) = 'abc@test.com'` or `WHERE YEAR(created_at) = 2026` invalidates a normal index, causing an accidental full table scan (unless a functional/expression index is created).
+    - **Over-indexing tables**: Adding an index on every single column ruins ETL batch write throughput and bloats storage.
+    - **Ignoring Low Cardinality**: Indexing columns like `gender` or `is_active` (which have only 2-3 distinct values) is usually ignored by the query planner because scanning is cheaper than tree traversal.
+  az: |
+    - **İndekslənmiş sütunu funksiya daxilinə almaq**: `WHERE LOWER(email) = 'abc@test.com'` və ya `WHERE strftime('%Y', created_at) = '2026'` yazmaq adi indeksin gücünü sıfırlayır və mühərriki Full Table Scan etməyə məcbur edir.
+    - **Cədvəli həddindən artıq indekslə doldurmaq**: Hər sütuna kor-təbii indeks açmaq ETL batch yazılışlarını kəskin ləngidir və diski şişirdir.
+    - **Aşağı kardinallıqlı (Low Cardinality) sütunları indeksləmək**: Yalnız 2-3 unikal qiyməti olan sütunları (`is_active`, `gender`) indeksləmək səmərəsizdir; mühərrik çox vaxt bu indeksi inkar edib birbaşa skan edir.
+interview_question:
+  question:
+    en: "What is the difference between a Clustered Index and a Non-Clustered Index, and why can a table have only one Clustered Index?"
+    az: "Clustered (Klasterli) və Non-Clustered (İkincili) indeks arasındakı fərq nədir və nə üçün cədvəldə yalnız 1 Clustered indeks ola bilər?"
+  answer:
+    en: |
+      1. **Physical Storage vs. Auxiliary Structure**: A Clustered Index defines the actual physical on-disk sort order of the table's rows. The leaf nodes of a Clustered Index ARE the data pages. A Non-Clustered Index is an independent auxiliary B-Tree structure where leaf nodes store the index keys and row pointers (RowID or clustered key).
+      2. **Why Only One**: Because physical disk data can only be sorted in one physical sequence at a time (e.g., you can sort encyclopedia pages by subject or by date, but not both simultaneously on the same paper).
+      3. **Performance Impact**: Lookups on the clustered key require zero secondary row lookups (Index Seek + Table Lookup). Non-clustered index searches must traverse the secondary tree and then perform a 'Bookmark Lookup' to retrieve non-indexed columns.
+    az: |
+      1. **Fiziki Düzülüş vs. Köməkçi Struktur**: Clustered indeks cədvəlin sətirlərinin diskdəki fiziki düzülüş ardıcıllığını təyin edir. Clustered indeksin yarpaq qovşaqları birbaşa cədvəlin öz məlumat səhifələridir. Non-Clustered indeks isə ayrı köməkçi B-Tree strukturudur; yarpaqlarında yalnız indeks açarı və əsas sətrin disk göstəricisi (RowID) saxlanılır.
+      2. **Niyə Yalnız Bir Ədəd**: Çünki fiziki diski eyni anda yalnız tək bir ardıcıllıqla çeşidləmək mümkündür (eyni kitabı vərəqlər üzrə həm əlifba, həm də tarix sırası ilə eyni vaxtda fiziki düzmək qeyri-mümkündür).
+      3. **Performans Təsiri**: Clustered açarla axtarış birbaşa məlumatı verir. Non-clustered indeks isə axtarılan sütunlar indeksdə olmadıqda əlavə "Bookmark Lookup" (əsas cədvələ müraciət) tələb edir.
+  interviewer_tips:
+    en: "In modern analytical data warehouses (Snowflake, BigQuery, ClickHouse), explain that classic B-Trees do not exist. Instead, they use columnar storage with min/max zone maps, micro-partition pruning, and clustering keys (Z-ordering) to skip irrelevant data blocks."
+    az: "Müasir analitik anbarlarda (Snowflake, BigQuery, ClickHouse) klassik B-Tree indekslərinin olmadığını vurğulayın. Onlar B-Tree əvəzinə sütunlu fayl formatları, min/max metadata (zone maps), micro-partition pruning və klasterləşdirmə açarlarından (Z-Order) istifadə edərək lazım olmayan blokları oxumadan ötürürlər (data skipping)."
+exercise:
+  question:
+    en: "Write an EXPLAIN QUERY PLAN statement for a query that selects user_id and email from the users table where user_id = 10."
+    az: "users cədvəlindən user_id = 10 şərti ilə user_id və email sütunlarını seçən sorğu üçün EXPLAIN QUERY PLAN ifadəsini yazın."
+  starter_code: |
+    EXPLAIN QUERY PLAN
+    SELECT user_id, email
+    FROM users
+    WHERE ___;
+  hint:
+    en: "Filter by `user_id = 10` in the WHERE clause."
+    az: "WHERE bəndində `user_id = 10` şərtini yazın."
+  solution: |
+    EXPLAIN QUERY PLAN
+    SELECT user_id, email
+    FROM users
+    WHERE user_id = 10;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What is the primary difference between a full table scan and an index search?"
+      az: "Tam cədvəl skanı (SCAN) ilə indeks axtarışı (SEARCH) arasındakı əsas fərq nədir?"
+    back:
+      en: "A full table scan inspects every row sequentially (O(N) time). An index search traverses a pre-sorted B-Tree structure in logarithmic time (O(log N))."
+      az: "Tam cədvəl skanı hər sətri ardıcıl oxuyur (O(N) vaxt). İndeks axtarışı isə əvvəlcədən çeşidlənmiş B-Tree strukturu üzrə loqarifmik vaxtda (O(log N)) hədəfi tapır."
+  - front:
+      en: "Why does writing WHERE LOWER(email) = 'test@mail.com' prevent the engine from using a standard index?"
+      az: "Nə üçün WHERE LOWER(email) = 'test@mail.com' yazmaq mühərrikin adi indeksdən istifadəsinin qarşısını alır?"
+    back:
+      en: "Wrapping a column in a function prevents direct B-Tree value comparison; the engine must evaluate the function on every row, triggering a full table scan."
+      az: "Sütunu funksiya daxilinə almaq B-Tree dəyərlərinin birbaşa müqayisəsini əngəlləyir; mühərrik funksiyanı hər sətirdə hesablamalı olur və bu da Full Table Scan-ə səbəb olur."
+  - front:
+      en: "What is the Leftmost Prefix Rule in composite indexes?"
+      az: "Mürəkkəb indekslərdə (Composite Index) Ən Soldakı Prefiks Qaydası nədir?"
+    back:
+      en: "A composite index on (A, B, C) can accelerate queries filtering on (A), (A, B), or (A, B, C), but CANNOT be used efficiently for queries filtering only on (B) or (C)."
+      az: "(A, B, C) sütunlu indeks (A), (A, B) və (A, B, C) filtrlərini sürətləndirə bilir, lakin yalnız (B) və ya (C) üzrə verilən sorğularda səmərəsiz qalır."
+  - front:
+      en: "How do indexes affect INSERT, UPDATE, and DELETE (DML) performance?"
+      az: "İndekslər INSERT, UPDATE və DELETE (DML) performansına necə təsir göstərir?"
+    back:
+      en: "They degrade write performance because the database must update and rebalance all associated B-Trees on every row insertion, modification, or deletion."
+      az: "Yazma performansını zəiflədir, çünki hər yeni sətir əlavəsində və ya yenilənməsində baza bütün əlaqəli B-Tree ağaclarını yenidən balanslaşdırmalıdır."
+  - front:
+      en: "How do modern cloud data warehouses (Snowflake, BigQuery) optimize queries without classic B-Tree indexes?"
+      az: "Müasir bulud analitik anbarları (Snowflake, BigQuery) klassik B-Tree olmadan sorğuları necə optimallaşdırır?"
+    back:
+      en: "They use columnar compression, metadata zone maps (min/max values per micro-partition), and partition pruning to skip irrelevant disk blocks entirely."
+      az: "Sütunlu sıxılma, micro-partition üzrə min/max metadata (zone maps) və partisiya budaması vasitəsilə uyğun gəlməyən disk bloklarını tamamilə oxumadan ötürürlər (data skipping)."

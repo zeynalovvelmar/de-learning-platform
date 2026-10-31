@@ -150,7 +150,7 @@ what_it_does:
   az: "Kafka-nın artan offset təyin etməsini, keçmişə qayıtmağı (seek) və mövqenin yadda saxlanmasını (commit) nümayiş etdirir."
 real_world_use:
   en: "Critical for audit logging and bug mitigation. If a data pipeline calculates faulty currency conversions on Tuesday, engineers fix the bug and seek the consumer back to Tuesday's offsets to recalculate."
-  az: "Audit və xətaların bərpası üçün həyatidir. Əgər data kəmərində məzənnə səhv hesablanıbsa, baq düzəldilir və consumer-in offset-i həmin günə geri çəkilərək məlumatlar yenidən səhvsiz hesablanır."
+  az: "Audit və xətaların bərpası üçün həyatidir. Əgər data pipeline-ında məzənnə səhv hesablanıbsa, baq düzəldilir və consumer-in offset-i həmin günə geri çəkilərək məlumatlar yenidən səhvsiz hesablanır."
 common_mistakes:
   en: |
     - **Assuming global ordering across all partitions**: Expecting events across Partition 0 and Partition 1 to be read in absolute timestamp order without custom sorting.

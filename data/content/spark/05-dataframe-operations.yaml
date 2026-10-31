@@ -153,10 +153,10 @@ output_description:
   az: "Əvvəlki və sonrakı vəziyyətin müqayisəsi: səhv sətirlər silinib, NULL-lar doldurulub, ölkələr standartlaşdırılıb və xalis gəlir hesablanıb."
 what_it_does:
   en: "Teaches standard production PySpark data cleansing idioms: filtering anomalies, conditional transformations, null coalescing, and column projection."
-  az: "İstehsalatda ən çox istifadə olunan PySpark təmizləmə qaydalarını öyrədir: anomaliyaları süzmək, şərti dəyişikliklər, NULL idarəetməsi və sütun proyeksiyası."
+  az: "Production-da ən çox istifadə olunan PySpark təmizləmə qaydalarını öyrədir: anomaliyaları süzmək, şərti dəyişikliklər, NULL idarəetməsi və sütun proyeksiyası."
 real_world_use:
   en: "The Bronze-to-Silver curation stage in Medallion (Lakehouse) data architecture. Raw vendor JSON/CSV feeds are parsed, validated, and normalized before writing to Delta/Parquet."
-  az: "Medallion (Lakehouse) arxitekturasında Bürüncdən Gümüşə (Bronze-to-Silver) təmizlənmə mərhələsidir. Xam məlumatlar yoxlanılır, təmizlənir və anbara yazılır."
+  az: "Medallion (Lakehouse) arxitekturasında Bronze-dan Silver-ə (Bürüncdən Gümüşə) təmizlənmə mərhələsidir. Xam məlumatlar yoxlanılır, təmizlənir və anbara yazılır."
 common_mistakes:
   en: |
     - **Chaining 50+ `.withColumn()` calls in a loop**: Creates a massive, deeply nested Catalyst logical plan tree that causes a `java.lang.StackOverflowError`.
@@ -190,7 +190,7 @@ interview_question:
          - Əgər tərtibatçı 100 sütun üçün dövr yazıb hər addımda `.withColumn()` çağırarsa:
            `for c in columns: df = df.withColumn(c, ...)`
            Ağacda 100 qat iç-içə keçmiş dərin rekurziya yaranır. Sonda aksiya çağırılanda Catalyst bu nəhəng ağacı təhlil edərkən JVM yaddaşı dolur və tətbiq `java.lang.StackOverflowError` ilə çökür.
-      2. **Yüksək Performanslı İstehsalat Həlli**:
+      2. **Yüksək Performanslı Production Həlli**:
          - Bütün sütunları tək bir `.select()` çağırışı içində siyahı comprehension ilə eyni anda generasiya etmək:
            ```python
            new_cols = [col(c) for c in df.columns] + [hesablanan_ifade.alias("yeni_ad")]

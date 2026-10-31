@@ -40,8 +40,8 @@ infographic:
        • Qovluqları kənarlaşdırır: `WHERE date = '2026-10-16'` yalnız 1 qovluğu oxuyur.
        ⚠️ Təhlükə: Yüksək kardinallıqda "Xırda Fayllar Problemi" (Small Files Problem) yaradır.
 
-    2. BUCKETING (Sabit Sayda Heş Səbətlərinə Bölüşdürmə)
-       Hash(user_id) % 8  ──►  8 deterministik səbət (bucket_00 - bucket_07)
+    2. BUCKETING (Sabit Sayda Hash Bucket-lərinə Bölüşdürmə)
+       Hash(user_id) % 8  ──►  8 deterministik bucket (bucket_00 - bucket_07)
        • JOIN zamanı şəbəkə üzərindən ağır Shuffle əməliyyatını aradan qaldırır.
 
     3. Z-ORDER KLASTERLƏŞDİRMƏ (Çoxölçülü Fəzanı Dolduran Morton Əyrisi)
@@ -90,8 +90,8 @@ explanation:
       - Yalnız dəyər çeşidi az (low-cardinality) olan sütunlar üçün uyğundur (məsələn: `tarix`, `region`).
       - **BAŞLICA SƏHV: Aşırı Partisiya (Over-partitioning)**: Cədvəli heç vaxt `customer_id`, `ip_address` və ya `saniyə` üzrə partisiya etməyin! Bu, milyonlarla xırda 5-10 KB ölçülü fayl yaradır ("Small Files Problem"), S3-ü və Spark drayverini iflic edir.
 
-    ### 2. Bucketing (Sabit Sayda Heş Qutuları)
-    - **Mexanizm**: Sətirləri `hash(açar) % qutu_sayı` düsturu ilə əvvəlcədən təyin edilmiş sabit sayda Parquet faylına (məsələn, 32 səbət) paylayır.
+    ### 2. Bucketing (Sabit Sayda Hash Faylları)
+    - **Mexanizm**: Sətirləri `hash(açar) % bucket_sayı` düsturu ilə əvvəlcədən təyin edilmiş sabit sayda Parquet faylına (məsələn, 32 bucket) paylayır.
     - **Faydası**: Əgər iki böyük cədvəl (`orders` və `users`) hər ikisi `user_id` üzrə eyni sayda bucket-ə bölünübsə, Spark bunları JOIN edərkən şəbəkə üzərindən terabaytlarla məlumat köçürmür (**Zero Shuffle Join**). Hər işçi qovşaq yalnız özünə aid faylları birbaşa birləşdirir.
 
     ### 3. Z-Order Çoxölçülü Klasterləşdirmə (Müasir Standart)
@@ -102,10 +102,10 @@ explanation:
       - İstifadəçi istər tək `customer_id`, istər `product_type`, istərsə də hər ikisi üzrə filtr versin, mühərrik faylların 90-95%-ni oxumadan birbaşa hədəf faylı tapır.
 quick_recap:
   en: "Partitioning splits data into physical folders for low-cardinality pruning; Bucketing hashes data to avoid shuffle joins; Z-Order clusters multiple columns simultaneously to maximize Parquet file skipping."
-  az: "Partisiya aşağı kardinallıq üçün fiziki qovluqlar yaradır; Bucketing shuffle-sız JOIN üçün heşləyir; Z-Order isə çoxlu sütun üzrə faylların atılmasını təmin edir."
+  az: "Partisiya aşağı kardinallıq üçün fiziki qovluqlar yaradır; Bucketing shuffle-sız JOIN üçün hash-ləyir; Z-Order isə çoxlu sütun üzrə faylların atılmasını təmin edir."
 what_it_does:
   en: "Dramatically accelerates query execution and reduces cloud storage read costs by pruning over 95% of unneeded files before reading table contents."
-  az: "Sorğu icrasını 10-100 dəfə sürətləndirir və lazım olmayan faylların 95%-dən çoxunu oxumadan ataraq bulud xərclərini minimuma endirir."
+  az: "Sorğu icrasını dəfələrlə sürətləndirir və lazım olmayan faylların böyük hissəsini oxumadan ataraq bulud xərclərini minimuma endirir."
 real_world_use:
   en: "High-volume data platforms partition event streams by date, while clustering analytical tables with Z-Order on user_id and device_type."
   az: "Böyük həcmli data platformaları hadisə cədvəllərini tarix üzrə partisiya edir, analitika üçün isə user_id və cihaz üzrə Z-Order klasterləri yaradır."

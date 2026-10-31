@@ -88,7 +88,7 @@ what_it_does:
   az: "Mürəkkəb normallaşdırılmış bazaları analitiklər üçün rahat olan fakt və ölçü cədvəllərinə çevirir."
 real_world_use:
   en: "Designing the core Enterprise Data Warehouse schema for an airline booking platform, tracking seat reservations across flights, dates, and passengers."
-  az: "Aviaşirkət üçün bilet sifarişi kəmərində uçuşlar, tarixlər və sərnişinlər üzrə fakt və ölçü cədvəllərini dizayn etmək."
+  az: "Aviaşirkət üçün bilet sifarişi pipeline-ında uçuşlar, tarixlər və sərnişinlər üzrə fakt və ölçü cədvəllərini dizayn etmək."
 common_mistakes:
   en: "Failing to declare an explicit Grain in Step 2, mixing transaction-level line-items with daily store totals in the same fact table, causing double-counting errors."
   az: "Grain (dənəvərlik) səviyyəsini dəqiq təyin etməmək, tək bir qəbzin sətirləri ilə aylıq yekunları eyni fakt cədvəlinə yığaraq rəqəmləri ikiqat artırmaq."

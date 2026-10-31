@@ -1,0 +1,184 @@
+id: "12-rest-api-ingestion-retry"
+order: 12
+level: "intermediate"
+title:
+  en: "REST API Data Ingestion: Pagination, Rate Limiting & Exponential Backoff"
+  az: "REST API Məlumat Toplanması: Səhifələmə, Rate Limit və Eksponensial Gözləmə"
+quick_recap:
+  en: "Production Data Engineering pipelines ingest external SaaS/partner data via REST APIs. Robust ingestion requires handling pagination (offset vs cursor), respecting HTTP 429 rate limits, and implementing exponential backoff with retry logic to withstand transient network failures."
+  az: "İstehsalat Data Mühəndisliyi kəmərləri xarici SaaS/tərəfdaş məlumatlarını REST API vasitəsilə toplayır. Etibarlı toplama səhifələmənin (offset vs cursor) idarə edilməsini, HTTP 429 rate limitlərinə riayət olunmasını və keçici şəbəkə xətalarına qarşı eksponensial gözləmə (exponential backoff) ilə retry məntiqini tələb edir."
+explanation:
+  en: |
+    Ingesting data from an external REST API is fundamentally different from querying an internal database:
+    - **Network Is Unreliable**: Connections drop, DNS timeouts occur, and 502/503/504 Bad Gateway errors happen unpredictably.
+    - **APIs Enforce Rate Limits (HTTP 429 Too Many Requests)**: Querying too fast gets your IP/token throttled or banned.
+    - **Responses Are Chunked (Pagination)**: You cannot retrieve 1,000,000 records in a single call; you must traverse pages.
+
+    ### 1. Pagination Strategies:
+    - **Offset/Limit Pagination**: `GET /events?limit=100&offset=200`. Simple, but slow for deep pagination because the database must scan and skip previous rows.
+    - **Cursor/Keyset Pagination**: `GET /events?limit=100&starting_after=evt_9841`. The gold standard for modern APIs (Stripe, GitHub, Shopify). Deterministic and highly performant.
+
+    ### 2. Exponential Backoff & Jitter:
+    When hitting rate limits or transient errors, never retry immediately in a tight loop! That creates a "thundering herd" problem.
+    - **Formula**: $\text{wait\_time} = \text{base\_delay} \times 2^{\text{attempt}} + \text{jitter}$.
+    - Adding small random jitter prevents thousands of parallel worker pods from hammering the API at the exact same millisecond.
+
+    ### 3. Defensive Ingestion Pattern:
+    1. Check response status codes explicitly.
+    2. Retry on transient codes (`429`, `500`, `502`, `503`, `504`).
+    3. Fail immediately without retrying on client errors (`400 Bad Request`, `401 Unauthorized`, `403 Forbidden`).
+    4. Write malformed response payloads to a Dead-Letter Queue (DLQ) for alerting.
+  az: |
+    Xarici REST API-dən məlumat toplamaq daxili verilənlər bazasını sorğulamaqdan köklü şəkildə fərqlənir:
+    - **Şəbəkə Qeyri-Sabitdir**: Əlaqə qopa bilər, DNS gecikmələri yarana bilər və gözlənilmədən 502/503/504 Gateway xətaları baş verə bilər.
+    - **API-lər Limit Tətbiq Edir (HTTP 429 Too Many Requests)**: Çox sürətlə sorğu göndərdikdə tokeniniz və ya IP ünvanınız bloklanır.
+    - **Məlumat Hissələrlə Verilir (Pagination)**: Tək bir çağırışla 1,000,000 sətri çəkmək mümkün deyil; səhifələri ardıcıl gəzməlisiniz.
+
+    ### 1. Səhifələmə (Pagination) Strategiyaları:
+    - **Offset/Limit Səhifələmə**: `GET /events?limit=100&offset=200`. Sadədir, lakin dərin səhifələrdə zəif işləyir, çünki baza əvvəlki sətirləri skan edib tullamalıdır.
+    - **Kursor (Keyset) Səhifələmə**: `GET /events?limit=100&starting_after=evt_9841`. Müasir API-lərdə (Stripe, GitHub, Shopify) qızıl standartdır. Deterministik və yüksək performanslıdır.
+
+    ### 2. Eksponensial Gözləmə (Exponential Backoff) və Jitter:
+    Rate limit və ya şəbəkə xətası ilə qarşılaşdıqda heç vaxt dövrə daxilində fasiləsiz təkrar sorğu göndərməyin!
+    - **Düstur**: $\text{wait\_time} = \text{base\_delay} \times 2^{\text{attempt}} + \text{jitter}$.
+    - Kiçik təsadüfi gecikmə (jitter) minlərlə paralel worker qovşağının eyni millisaniyədə serverə hücum etməsinin qarşısını alır.
+
+    ### 3. Müdafiəli Toplama Modeli:
+    1. HTTP status kodlarını dəqiq yoxlayın.
+    2. Keçici xətalarda (`429`, `500`, `502`, `503`, `504`) eksponensial gözləmə ilə təkrar cəhd edin.
+    3. Müştəri xətalarında (`400`, `401`, `403`) vaxt itirmədən dərhal xətanı qeydə alın və dayanın.
+    4. Xarab payload-ları Dead-Letter Queue (DLQ) saxlancına yönləndirin.
+code: |
+  import json
+  import time
+
+  # Simulated remote paginated API
+  def mock_api_call(page: int):
+      if page > 3:
+          return {"data": [], "has_more": False}
+      return {
+          "data": [{"event_id": f"evt_{(page - 1) * 2 + i}", "user_id": 100 + i} for i in range(1, 3)],
+          "has_more": page < 3
+      }
+
+  def ingest_all_records():
+      all_records = []
+      page = 1
+      has_more = True
+      max_retries = 3
+
+      while has_more:
+          for attempt in range(max_retries):
+              try:
+                  response = mock_api_call(page)
+                  batch = response.get("data", [])
+                  all_records.extend(batch)
+                  has_more = response.get("has_more", False)
+                  page += 1
+                  break
+              except Exception as err:
+                  if attempt == max_retries - 1:
+                      raise RuntimeError(f"API failed after {max_retries} attempts: {err}")
+                  time.sleep(0.05 * (2 ** attempt))
+
+      return all_records
+
+  results = ingest_all_records()
+  print(f"Successfully ingested {len(results)} events from external API.")
+  print("Sample event:", results[0])
+what_it_does:
+  en: "Implements a resilient REST API ingestion routine featuring pagination loops, error handling, and exponential backoff retry patterns."
+  az: "Səhifələmə dövrəsi, xəta idarəetməsi və eksponensial gözləmə (exponential backoff) ilə dözümlü REST API məlumat toplama funksiyasını təqdim edir."
+real_world_use:
+  en: "Core component of external data ingestion Airflow DAGs extracting data from Stripe, Salesforce, Zendesk, or advertising platforms into bronze data lake layers."
+  az: "Stripe, Salesforce və digər xarici xidmətlərdən analitik məlumatları data lake-in bürünc (bronze) qatına çəkən Airflow DAG-larının əsas mexanizmidir."
+common_mistakes:
+  en: |
+    - **Retrying indefinitely in an infinite while loop**: Always enforce a strict `max_retries` counter to avoid hanging downstream pipeline tasks.
+    - **Retrying on 4xx Client Errors**: An HTTP 401 Unauthorized or 404 Not Found will never succeed on a retry; retrying only wastes time and rate limit quotas.
+    - **In-memory accumulation of massive payloads**: When fetching millions of rows, write chunks to intermediate local files or S3 partitions instead of accumulating them in a single Python list.
+  az: |
+    - **Sonsuz while dövrəsi ilə dayanmadan retry etmək**: Pipeline tapşırığının donub qalmaması üçün həmişə sərt `max_retries` limiti qoyun.
+    - **4xx Müştəri xətalarında retry etmək**: HTTP 401 (icazəsiz) və ya 404 xətası təkrar sorğuda heç vaxt düzəlməyəcək; bu yalnız limit kvotasını boş yerə tükədir.
+    - **Milyonlarla sətri RAM-da tək bir siyahıda toplamaq**: Böyük həcmli datanı yaddaşda saxlamaq əvəzinə, hər səhifəni (chunk) diskə və ya S3-ə yazıb RAM-ı boşaldın.
+interview_question:
+  question:
+    en: "What is the difference between Offset-based and Cursor-based pagination, and why is Cursor pagination preferred for data pipelines?"
+    az: "Offset əsaslı və Kursor əsaslı səhifələmə arasındakı fərq nədir və nə üçün data pipeline-larında Kursor səhifələməyə üstünlük verilir?"
+  answer:
+    en: |
+      1. **Mechanism**:
+         - **Offset Pagination** (`?limit=100&offset=50000`): The database must scan through the first 50,000 rows and discard them before returning rows 50,001–50,100 ($O(N)$ database query cost).
+         - **Cursor Pagination** (`?limit=100&starting_after=id_50000`): The query uses an index seek `WHERE id > 'id_50000' ORDER BY id ASC LIMIT 100`, which runs in constant $O(1)$ or $O(\log N)$ time regardless of depth.
+      2. **The Missing/Duplicate Row Trap**: If new rows are inserted or deleted while a pipeline is paging through data, Offset pagination suffers from 'page drift' (skipping records or reading duplicate rows). Cursor pagination is deterministic and immune to drift.
+    az: |
+      1. **Mexanizm**:
+         - **Offset Səhifələmə** (`?limit=100&offset=50000`): Baza 50,000-ci sətrə çatmaq üçün əvvəlki bütün sətirləri fiziki oxuyub tullamalıdır ($O(N)$ gecikmə).
+         - **Kursor Səhifələmə** (`?limit=100&starting_after=id_50000`): İndeks axtarışından istifadə edir (`WHERE id > 'id_50000' LIMIT 100`). Səhifə nə qədər dərin olursa-olsun $O(1)$ və ya $O(\log N)$ sabit sürətlə işləyir.
+      2. **Məlumat İtkisi və Təkrarlanma Tələsi**: Pipeline məlumat çəkən zaman cədvələ yeni sətirlər əlavə olunarsa və ya silinərsə, Offset səhifələmədə səhifələr sürüşür (bəzi sətirlər ötürülür və ya eyni sətir iki dəfə oxunur). Kursor səhifələmə isə deterministikdir və bu sürüşmədən tam qorunur.
+  interviewer_tips:
+    en: "Also explain the difference between Transient Errors (HTTP 429, 500, 503) which should be retried with exponential backoff, and Permanent Errors (HTTP 400, 401, 403, 404) which should fail immediately."
+    az: "Eksponensial gözləmə ilə təkrar cəhd edilməli olan Keçici Xətalar (HTTP 429, 500, 503) ilə, dərhal dayandırılmalı olan Qalıcı Xətalar (HTTP 400, 401, 403, 404) arasındakı fərqi də vurğulayın."
+exercise:
+  question:
+    en: "Write a function `fetch_with_backoff(fetch_fn, max_retries=3)` that executes `fetch_fn()`, catches `ConnectionError` or `ValueError`, and retries up to `max_retries` times before re-raising the exception."
+    az: "`fetch_fn()` funksiyasını çağıran, `ConnectionError` və ya `ValueError` xətalarını tutaraq `max_retries` dəfəyə qədər təkrar cəhd edən və uğursuz olduqda xətanı qaldıran `fetch_with_backoff(fetch_fn, max_retries=3)` funksiyası yazın."
+  starter_code: |
+    def fetch_with_backoff(fetch_fn, max_retries=3):
+        # Implement retry logic catching ConnectionError and ValueError
+        return None
+  hint:
+    en: "Use a for loop over `range(max_retries)` with a try/except block. If `attempt == max_retries - 1`, re-raise the error."
+    az: "`range(max_retries)` üzrə for dövrəsi və try/except blokundan istifadə edin. Əgər `attempt == max_retries - 1` olarsa xətanı yenidən qaldırın (`raise`)."
+  solution: |
+    def fetch_with_backoff(fetch_fn, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                return fetch_fn()
+            except (ConnectionError, ValueError):
+                if attempt == max_retries - 1:
+                    raise
+  test_code: |
+    attempts = 0
+    def transient_failure():
+        global attempts
+        attempts += 1
+        if attempts < 3:
+            raise ConnectionError("Temporary timeout")
+        return {"status": 200, "data": "success"}
+
+    res = fetch_with_backoff(transient_failure, max_retries=3)
+    assert res == {"status": 200, "data": "success"}
+    assert attempts == 3
+
+flashcards:
+  - front:
+      en: "Why is Exponential Backoff superior to fixed-interval retries when handling API rate limits (HTTP 429)?"
+      az: "API rate limitləri (HTTP 429) zamanı eksponensial gözləmə nə üçün sabit intervallı cəhdlərdən qat-qat üstündür?"
+    back:
+      en: "It exponentially increases waiting time (e.g. 1s, 2s, 4s, 8s), allowing the external service time to recover and avoiding the 'thundering herd' retry storm."
+      az: "Gözləmə müddətini həndəsi silsilə ilə artırır (1s, 2s, 4s, 8s), xarici xidmətə bərpa olunmağa imkan verir və eyni anda minlərlə təkrar sorğunun sistemi çökdürməsinin qarşısını alır."
+  - front:
+      en: "What is Jitter in retry algorithms and why is it important?"
+      az: "Retry alqoritmlərində Jitter nədir və nə üçün vacibdir?"
+    back:
+      en: "Jitter adds a small randomized offset to backoff delays to prevent synchronized, clustered retries from multiple distributed worker nodes."
+      az: "Jitter gözləmə vaxtına kiçik təsadüfi fasilə əlavə edir ki, çoxsaylı paylanmış worker qovşaqları eyni saniyədə serverə təkrar hücum etməsin."
+  - front:
+      en: "What is the primary operational flaw of Offset-based pagination?"
+      az: "Offset əsaslı səhifələmənin əsas əməliyyat qüsuru nədir?"
+    back:
+      en: "Database performance degrades linearly with offset depth O(N), and concurrent data modifications cause page drift (skipped or duplicated rows)."
+      az: "Dərin səhifələrdə baza performansı xətti olaraq pisləşir O(N) və sorğu zamanı yeni məlumat daxil olarsa səhifələr sürüşərək sətir itkisinə və ya dublikatlara səbəb olur."
+  - front:
+      en: "Which HTTP status codes should a data pipeline retry, and which should it fail on immediately?"
+      az: "Data pipeline hansı HTTP status kodlarında təkrar cəhd etməli, hansılarda dərhal dayanmalıdır?"
+    back:
+      en: "Retry on transient 429 (Rate Limit) and 5xx (Server/Gateway errors). Fail immediately on 4xx (400, 401, 403, 404) client errors."
+      az: "Keçici 429 (Rate Limit) və 5xx (Server/Gateway) xətalarında retry edin. 4xx (400, 401, 403, 404) müştəri xətalarında isə dərhal xətanı qeydə alıb dayanın."
+  - front:
+      en: "Why should massive API JSON payloads never be held entirely in a single Python list in RAM?"
+      az: "Nə üçün böyük API JSON nəticələri RAM-da bütöv bir Python siyahısında saxlanılmamalıdır?"
+    back:
+      en: "It leads to memory bloat and Out-Of-Memory (OOM) process crashes; instead, stream pages and write them to chunked disk or S3 files."
+      az: "Yaddaş şişməsinə və OOM (Out-Of-Memory) qəzasına səbəb olur; bunun əvəzinə hər səhifə partiyalarla (chunk) diskə və ya S3 fayllarına yazılmalıdır."

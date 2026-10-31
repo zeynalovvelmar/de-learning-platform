@@ -50,7 +50,7 @@ explanation:
     - **bool**: İkili açar-bağla göstəriciləri (`True` və ya `False`).
     - **None**: Dəyərin ümumiyyətlə olmadığını bildirən boş qutu (SQL-dəki `NULL` ilə eynidir).
 
-    Data boru kəmərlərində xarici fayllardan (CSV, JSON, loqlar) daxil olan bütün məlumatlar ilkin olaraq mətn (`str`) kimi oxunur. Riyazi hesablamalar aparmazdan əvvəl tipləri mütləq uyğun formata çevirməlisiniz.
+    Data pipeline-larında xarici fayllardan (CSV, JSON, log-lar) daxil olan bütün məlumatlar ilkin olaraq mətn (`str`) kimi oxunur. Riyazi hesablamalar aparmazdan əvvəl tipləri mütləq uyğun formata çevirməlisiniz.
 
     ### Əsas Nümunələr:
 
@@ -79,7 +79,7 @@ what_it_does:
   az: "Daxil olan xam mətnləri ('25', '14.50') tam (int) və kəsr (float) rəqəm tiplərinə çevirir, ümumi məbləği hesablayır və None dəyərini yoxlayır."
 real_world_use:
   en: "The very first step in any ETL pipeline ingestion script: reading string tokens from flat files and enforcing database schema data types."
-  az: "İstənilən ETL boru kəmərinin ən birinci addımıdır: xam fayllardan oxunan mətnləri qəbul edib verilənlər bazası sxeminə uyğun data tiplərinə çevirmək."
+  az: "İstənilən ETL pipeline-ının ən birinci addımıdır: xam fayllardan oxunan mətnləri qəbul edib verilənlər bazası sxeminə uyğun data tiplərinə çevirmək."
 common_mistakes:
   en: |
     - **Checking None with == instead of is**: Writing `if x == None:` is an antipattern. `None` is a memory singleton; always check with `if x is None:`.
@@ -102,6 +102,9 @@ interview_question:
       1. **Dəyər Bərabərliyi (==)**: İki obyektin məzmunca bərabər olub-olmadığını yoxlayır (arxa planda `__eq__()` metodunu çağırır).
       2. **Şəxsiyyət / Ünvan Bərabərliyi (is)**: İki dəyişənin RAM-da tam eyni yaddaş ünvanına (`id()`) baxdığını yoxlayır.
       3. **Nə üçün `is None`**: `None` Python-da tək nüsxəli obyektdir (singleton). `is None` yazmaq yaddaş göstəricilərini birbaşa müqayisə etdiyi üçün həm daha sürətlidir, həm də siniflərin daxili müqayisə metodları tərəfindən dəyişdirilə bilməz.
+  interviewer_tips:
+    en: "Mention CPython's integer interning trap: integers from -5 to 256 are cached in memory (`a = 256; b = 256; a is b` is True, while `a = 1000; b = 1000; a is b` can be False). Therefore, NEVER use `is` to compare numbers or strings—only use `is` for `None`, `True`, and `False`."
+    az: "Müsahibədə CPython-un tam ədəd keşləmə tələsini qeyd edin: -5 ilə 256 arasındakı ədədlər yaddaşda keşlənir (`256 is 256` True verir, lakin `1000 is 1000` False verə bilər). Ona görə ədəd və mətnləri heç vaxt `is` ilə müqayisə etməyin — `is` yalnız `None`, `True` və `False` üçündür."
 exercise:
   question:
     en: "Write a function `parse_order(qty_str, price_str)` that converts `qty_str` to an integer, `price_str` to a float, and returns their total product rounded to 2 decimal places."

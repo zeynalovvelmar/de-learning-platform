@@ -89,7 +89,7 @@ what_it_does:
   az: "Çatışmayan ölkə dəyərlərini 'Global' ilə əvəz edir və CASE məntiqi ilə istifadəçiləri yerli, naməlum və beynəlxalq seqmentlərə ayırır."
 real_world_use:
   en: "Core pattern in data cleansing and enrichment layers (Silver layer in Medallion architecture) for building dimensional categorization and robust metrics."
-  az: "Ölçü kateqoriyalaşdırması və etibarlı göstəricilər yaratmaq üçün məlumat təmizləmə və zənginləşdirmə qatlarında (Medallion arxitekturasının Gümüş qatı) ən çox istifadə edilən modeldir."
+  az: "Dimension kateqoriyalaşdırması və etibarlı göstəricilər yaratmaq üçün məlumat təmizləmə və zənginləşdirmə qatlarında (Medallion arxitekturasının Silver qatı) ən çox istifadə edilən modeldir."
 common_mistakes:
   en: |
     - **Omitting the ELSE clause in CASE**: If none of the WHEN conditions evaluate to TRUE and ELSE is missing, SQL returns NULL by default, which may silently corrupt analytics.
@@ -97,19 +97,22 @@ common_mistakes:
     - **Confusing COALESCE and NULLIF**: `COALESCE(col, 'Default')` replaces NULL with a value; `NULLIF(col, 0)` replaces a specific value with NULL.
   az: |
     - **CASE daxilində ELSE bəndini yazmamaq**: Şərtlərin heç biri ödənmədikdə və ELSE olmadıqda SQL susmaya görə NULL qaytarır və bu, analitik göstəriciləri xəbərsiz şəkildə korlaya bilər.
-    - **Bölmə əməliyyatını NULLIF ilə qorumamaq**: Sıfır olan tək bir sətir saatlarla davam edən böyük bir ETL boru kəmərini çökdürə bilər. Böləni həmişə `NULLIF(bolen, 0)` ilə qoruyun.
+    - **Bölmə əməliyyatını NULLIF ilə qorumamaq**: Sıfır olan tək bir sətir saatlarla davam edən böyük bir ETL pipeline-ını çökdürə bilər. Böləni həmişə `NULLIF(bolen, 0)` ilə qoruyun.
     - **COALESCE ilə NULLIF-i qarışdırmaq**: `COALESCE(col, 'Default')` NULL-u konkret dəyərlə əvəz edir; `NULLIF(col, 0)` isə göstərilən dəyəri NULL-a çevirir.
 interview_question:
   question:
     en: "How do you handle division-by-zero errors in SQL data pipelines, and why is NULL preferred over 0 in analytical ratios?"
-    az: "SQL data boru kəmərlərində sıfıra bölünmə xətalarını necə idarə edirsiniz və analitik nisbətlərdə nə üçün 0 əvəzinə NULL üstün tutulur?"
+    az: "SQL data pipeline-larında sıfıra bölünmə xətalarını necə idarə edirsiniz və analitik nisbətlərdə nə üçün 0 əvəzinə NULL üstün tutulur?"
   answer:
     en: |
       1. **Defensive Guarding**: By wrapping the divisor in `NULLIF(divisor, 0)`. When the divisor is 0, NULLIF turns it into NULL. In SQL three-valued logic, any number divided by NULL safely evaluates to NULL without raising an error.
       2. **Business Accuracy**: In financial and operational metrics (e.g. click-through rate, profit margin), a value of 0 indicates a calculated zero percent result (meaning there was exposure, but no outcome). If the denominator is 0 (zero impressions), the metric is mathematically undefined. Returning NULL accurately conveys 'Not Applicable' or 'No Data' to downstream BI dashboards and prevents skewed averages.
     az: |
-      1. **Müdafiə Mexanizmi**: Böləni `NULLIF(bolen, 0)` daxilinə almaqla. Bölən 0 olduqda NULLIF onu NULL-a çevirir. SQL-in üçdəyərli məntiqində istənilən ədədin NULL-a bölünməsi qəza törətmədən təhlükəsiz şəkildə NULL qaytarır.
-      2. **Biznes Dəqiqliyi**: Maliyyə və əməliyyat göstəricilərində 0 rəqəmi hesablanmış 0% nəticəni bildirir (yəni baxış olub, amma klik olmayıb). Əgər məxrəc 0-dırsa (heç baxış olmayıb), göstərici riyazi olaraq təyin olunmayıb. NULL qaytarmaq hesabat panellərinə məlumatın mövcud olmadığını dəqiq çatdırır və orta qiymətlərin korlanmasının qarşısını alır.
+      1. **Defensive Guarding (Müdafiə Mexanizmi)**: Böləni `NULLIF(bolen, 0)` daxilinə almaqla. Bölən 0 olduqda NULLIF onu NULL-a çevirir. SQL-in üçdəyərli məntiqində istənilən ədədin NULL-a bölünməsi qəza törətmədən təhlükəsiz şəkildə NULL qaytarır.
+      2. **Biznes Dəqiqliyi**: Maliyyə və əməliyyat göstəricilərində 0 rəqəmi hesablanmış 0% nəticəni bildirir (yəni baxış olub, amma klik olmayıb). Əgər məxrəc 0-dırsa (heç baxış olmayıb), göstərici riyazi olaraq təyin olunmayıb. NULL qaytarmaq BI dashboard-larına məlumatın mövcud olmadığını dəqiq çatdırır və `AVG()` hesablamalarının süni şəkildə aşağı düşməsinin qarşısını alır.
+  interviewer_tips:
+    en: "Also mention conditional aggregation (`SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END)`), which is the standard SQL pattern for pivoting rows into summary columns in a single table scan."
+    az: "Müsahibədə şərti aqreqasiya (`SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END)`) nümunəsini də qeyd edin — bu, cədvəli tək bir keçidlə (single scan) sətirlərdən sütunlara çevirmək (pivot) üçün əsas SQL üsuludur."
 exercise:
   question:
     en: "Write a query on products returning product_id, product_name, price, and an inventory_status column based on stock_quantity: 'Out of Stock' when stock_quantity IS NULL, 'Low Stock' when stock_quantity < 20, and 'Sufficient' otherwise. Filter for products where price >= 50.0."

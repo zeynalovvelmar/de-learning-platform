@@ -3,7 +3,7 @@ order: 3
 level: "junior"
 title:
   en: "Operators, Tasks & Dependencies: Building Parallel Workflows"
-  az: "Operatorlar, Tapşırıqlar və Asılılıqlar: Paralel Kəmərlər Qurmaq"
+  az: "Operatorlar, Tapşırıqlar və Asılılıqlar: Paralel Pipeline-lar Qurmaq"
 infographic:
   en: |
     ```text
@@ -82,7 +82,7 @@ explanation:
       - `task_d` isə həm `task_b`, həm də `task_c` tam uğurla bitdikdən sonra icra olunur.
 quick_recap:
   en: "Operators define what work is done; Tasks define the node in a DAG; TaskInstances are runtime executions. Bitshift operators (`>>`) chain tasks into complex parallel workflows, supporting concurrent fan-out and fan-in dependencies."
-  az: "Operator nə iş görüləcəyini, Task DAG-dakı qovşağı, TaskInstance isə real icranı bildirir. `>>` operatoru işləri bir-birinə bağlayaraq çoxnüvəli paralel kəmərlər formalaşdırır."
+  az: "Operator nə iş görüləcəyini, Task DAG-dakı qovşağı, TaskInstance isə real icranı bildirir. `>>` operatoru işləri bir-birinə bağlayaraq çoxnüvəli paralel pipeline-lar formalaşdırır."
 code: |
   # Production Blueprint: Parallel Fan-Out / Fan-In DAG with Bitshift Syntax
   from datetime import datetime, timedelta
@@ -112,7 +112,7 @@ code: |
       dag_id='03_parallel_fan_out_fan_in',
       default_args=default_args,
       start_date=datetime(2026, 1, 1),
-      schedule_interval='@daily',
+      schedule='@daily',
       catchup=False,
       tags=['parallelism', 'core']
   ) as dag:
@@ -157,13 +157,13 @@ visual_output: |
   [02:00:20] end_signal               : SUCCESS 🟢 (0.1s)
 output_description:
   en: "Visual execution timeline demonstrating concurrent worker parallelism: both transform tasks execute simultaneously at 02:00:04 before joining at load_to_lakehouse."
-  az: "Hər iki transform tapşırığının eyni saniyədə (02:00:04) paralel işçilərdə başladığını və birləşərək uğurla bitdiyini göstərən Airflow qraf icra xətti."
+  az: "Hər iki transform tapşırığının eyni saniyədə (02:00:04) paralel worker-lərdə başladığını və birləşərək uğurla bitdiyini göstərən Airflow qraf icra xətti."
 what_it_does:
   en: "Builds a production multi-branch DAG topology, illustrating how bitshift syntax orchestrates concurrent task fan-out and synchronization fan-in."
   az: "Çoxşaxəli paralel DAG quruluşunu nümayiş etdirir, bitshift sintaksisi ilə paralel işləməni və yekun birləşməni tənzimləyir."
 real_world_use:
   en: "Standard pattern in nightly corporate ETL where separate fact and dimension tables are extracted and transformed concurrently to fit within tight batch processing SLA windows."
-  az: "Gecə ETL kəmərlərində fakt və ölçü (dimension) cədvəllərinin vaxta qənaət etmək üçün paralel emal olunub birgə yüklənməsində tətbiq edilir."
+  az: "Gecə ETL pipeline-larında fakt və ölçü (dimension) cədvəllərinin vaxta qənaət etmək üçün paralel emal olunub birgə yüklənməsində tətbiq edilir."
 common_mistakes:
   en: |
     - **Using `task_a > task_b` instead of `>>`**: Single greater-than causes a Python syntax error. Always use double bitshift `>>`.
@@ -216,7 +216,7 @@ flashcards:
       az: "`t1` bitdikdən sonra `t2` və `t3` paralel işləyir; hər ikisi tamamlandıqda `t4` başlayır."
   - front:
       en: "What is an `EmptyOperator` used for in production DAGs?"
-      az: "İstehsalat DAG-larında `EmptyOperator` nə üçün istifadə olunur?"
+      az: "Production DAG-larında `EmptyOperator` nə üçün istifadə olunur?"
     back:
       en: "As a visual anchor node to cleanly organize start/end fan-outs without running any code."
       az: "Heç bir kod işlətmədən qrafın başlanğıc və ya son qovşaqlarını vizual birləşdirmək üçün."

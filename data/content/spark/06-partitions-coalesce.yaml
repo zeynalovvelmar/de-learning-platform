@@ -64,7 +64,7 @@ explanation:
     Spark partisiyalarını yük maşınları ilə köçmək kimi təsəvvür edin:
     - **Qızıl Ölçü Qaydası**: Partisiya Spark-ın paralellik vahididir.
       - Əgər klasterdə 100 nüvəniz (core) varsa, amma cədvəliniz cəmi 2 partisiyaya bölünübsə, 98 nüvə boş oturub çay içəcək, yalnız 2 nüvə işləyəcək.
-      - İstehsalatda ideal partisiya ölçüsü: Sıxılmamış halda **100 MB - 200 MB** arası olmalıdır.
+      - Production-da ideal partisiya ölçüsü: Sıxılmamış halda **100 MB - 200 MB** arası olmalıdır.
     - **`repartition(N)`**: Yükləri tamamilə yerə tökürsünüz, tərəzidə çəkib bütün maşınlara tam bərabər paylayırsınız. Bu, şəbəkə shuffle-ı yaradır (xərclidir), amma həm partisiya sayını artıra bilir, həm də mükəmməl balans qurur.
     - **`coalesce(N)`**: 4 ədəd yarım-boş maşınınız var. 1-ci maşının yükünü 2-ciyə, 3-cü maşının yükünü 4-cüyə qatırsınız. Yükləri küçəyə tökmədən (şəbəkə shuffle-ı olmadan) yerində birləşdirirsiniz. Çox sürətlidir, amma YALNIZ partisiya sayını AZALDA bilir, artıra bilməz.
 
@@ -134,11 +134,11 @@ common_mistakes:
   en: |
     - **Using `coalesce()` to increase partitions**: Calling `df.coalesce(100)` when you have 10 partitions does NOTHING. Spark silently ignores it and stays at 10. You MUST use `repartition()` to increase.
     - **Over-coalescing with `coalesce(1)` on large datasets**: Causes a single executor to become the bottleneck, causing an OutOfMemoryError or killing cluster parallelism.
-    - **Leaving default 200 shuffle partitions for tiny datasets**: Results in 200 microscopic 5 KB files stored in S3, creating the infamous 'Small File Problem' for query engines.
+    - **Leaving default 200 shuffle partitions for tiny datasets (when AQE coalescing is disabled)**: Results in 200 microscopic 5 KB files stored in S3, creating the infamous 'Small File Problem' for query engines. (Note: Spark 3.2+ enables Adaptive Query Execution / AQE by default, which dynamically coalesces small post-shuffle partitions at runtime).
   az: |
     - **Partisiya sayını artırmaq üçün `coalesce()` istifadə etmək**: 10 partisiya olan cədvəldə `coalesce(100)` yazsanız, Spark bunu səssizcə heçə sayır və say yenə 10 qalır. Artırmaq üçün mütləq `repartition()` yazılmalıdır.
     - **Böyük cədvəldə `coalesce(1)` yazmaq**: Bütün paralelliyi öldürür və tək bir maşını yükləyərək OOM xətasına səbəb olur.
-    - **Kiçik məlumatlarda susmaya görə 200 partisiya saxlamaq**: S3-də 200 ədəd cırtdan 5 KB-lıq fayl yaradır və Data Lake-də məşhur 'Kiçik Fayl Problemi' (Small File Problem) törədir.
+    - **Kiçik məlumatlarda susmaya görə 200 partisiya saxlamaq (AQE söndürüldükdə)**: S3-də 200 ədəd cırtdan 5 KB-lıq fayl yaradır və Data Lake-də məşhur 'Small File Problem' (Kiçik Fayl Problemi) törədir. (Qeyd: Spark 3.2+ versiyalarında default aktiv olan Adaptive Query Execution / AQE kiçik post-shuffle partisiyalarını icra zamanı avtomatik birləşdirir).
 interview_question:
   question:
     en: "What is the structural and mechanical difference between `repartition()` and `coalesce()`, and why is `coalesce(1)` dangerous for large datasets?"
@@ -156,7 +156,7 @@ interview_question:
          - **`repartition(n)`**: **Tam Şəbəkə Shuffle-ı** həyata keçirir. Bütün sətirləri klaster boyu bərabər paylayır. Partisiya sayını həm **artıra**, həm də **azalda** bilir.
          - **`coalesce(n)`**: Eyni serverdəki qonşu partisiyaları birləşdirir və **heç bir şəbəkə shuffle-ı yaratmır**. YALNIZ partisiya sayını **azalda** bilir (artıra bilməz).
       2. **`coalesce(1)` Niyə Təhlükəlidir?**:
-         - Tərtibatçılar tək bir fayl almaq üçün tez-tez `coalesce(1)` yazırlar. Lakin Catalyst optimallaşdırıcısı bu əmri kəmərdə yuxarıya çəkir.
+         - Tərtibatçılar tək bir fayl almaq üçün tez-tez `coalesce(1)` yazırlar. Lakin Catalyst optimallaşdırıcısı bu əmri pipeline-da yuxarıya çəkir.
          - Nəticədə bütün əvvəlki mərhələlər tək bir executor daxilində tək bir nüvədə işləməyə məcbur olur! Klasterdəki digər bütün maşınlar boş qalır və həmin tək maşın gigabaytlarla məlumatı həzm edə bilməyib `OutOfMemoryError` (OOM) ilə çökür.
   interviewer_tips:
     en: "Explicitly point out that coalesce cannot increase partitions, and explain that coalesce(1) kills upstream parallelism during write operations."
@@ -190,5 +190,5 @@ flashcards:
       en: "What is the default value of `spark.sql.shuffle.partitions` in Apache Spark?"
       az: "Apache Spark-da `spark.sql.shuffle.partitions` parametrinin susmaya görə dəyəri neçədir?"
     back:
-      en: "200. It should be tuned downwards for small datasets and upwards for multi-terabyte datasets."
-      az: "200. Kiçik məlumatlarda aşağı salınmalı, böyük terabaytlıq məlumatlarda isə artırılmalıdır."
+      en: "200. It should be tuned downwards for small datasets and upwards for multi-terabyte datasets (though Spark 3.2+ AQE automatically coalesces small post-shuffle partitions by default)."
+      az: "200. Kiçik məlumatlarda aşağı salınmalı, böyük terabaytlıq məlumatlarda isə artırılmalıdır (Spark 3.2+ AQE aktiv olduqda isə kiçik post-shuffle partisiyaları icra zamanı avtomatik birləşdirilir)."

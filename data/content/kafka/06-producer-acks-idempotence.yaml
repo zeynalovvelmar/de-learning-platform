@@ -90,13 +90,13 @@ explanation:
     - **`acks=all` (3 ayrı seyfdə təsdiqlənmiş qeydiyyat)**: İşçi sənədi qəbul edir, dərhal 2 digər filialın seyfinə nüsxələyir və yalnız hər 3 seyf bağlandıqdan sonra sizə təsdiq verir.
     - **`min.insync.replicas` Tələsi**:
       - Əgər siz `acks=all` qoysanız, lakin klasterdə `min.insync.replicas=1` qalsa və 2 nüsxə serveri sönsə, Kafka təsdiqi tək bir brokerlə verəcək və data itkisi riski yaranacaq!
-      - **İstehsalatın Qızıl Qaydası**: Həmişə `replication.factor=3`, `acks=all` və `min.insync.replicas=2` konfiqurasiyası birlikdə istifadə olunmalıdır.
+      - **Production-un Qızıl Qaydası**: Həmişə `replication.factor=3`, `acks=all` və `min.insync.replicas=2` konfiqurasiyası birlikdə istifadə olunmalıdır.
     - **İdempotent Producer (`enable.idempotence=true`)**:
       - Paylanmış sistemlərin ən məşhur dilemmasını həll edir: "Mənim göndərdiyim mesaj çatmadı, yoxsa sadəcə brokerin təsdiq (ACK) cavabı yolda şəbəkə qopması səbəbindən mənə çatmadı?"
       - İdempotentlik aktiv olduqda, hər mesaja Producer ID və artan ardıcıllıq nömrəsi vurulur. Şəbəkə xətası olub eyni mesaj təkrar göndərildikdə, broker dublikatı dərhal tanıyır, ikinci dəfə yazmır və uğurlu təsdiq qaytarır.
 quick_recap:
   en: "`acks=all` guarantees all in-sync replicas write the record before returning success. Pairing `acks=all` with `min.insync.replicas=2` and `enable.idempotence=true` guarantees zero data loss and zero duplicate records during network retries."
-  az: "`acks=all` mesajın bütün aktiv replikalara yazılmasını tələb edir. `acks=all`, `min.insync.replicas=2` və `enable.idempotence=true` üçlüyü istehsalatda sıfır data itkisi və şəbəkə xətaları zamanı sıfır dublikat zəmanəti verir."
+  az: "`acks=all` mesajın bütün aktiv replikalara yazılmasını tələb edir. `acks=all`, `min.insync.replicas=2` və `enable.idempotence=true` üçlüyü production-da sıfır data itkisi və şəbəkə xətaları zamanı sıfır dublikat zəmanəti verir."
 code: |
   # Production-Grade Resilient & Idempotent Kafka Producer
   import json
@@ -168,7 +168,7 @@ output_description:
   az: "İdempotent producer vasitəsilə hadisələrin bütün ISR kvorumu tərəfindən uğurla təsdiq olunduğunu göstərən terminal loqu."
 what_it_does:
   en: "Configures enterprise-grade producer reliability, showing how to eliminate data loss and prevent duplicate records caused by transient network timeouts."
-  az: "İstehsalat səviyyəsində etibarlı producer qurur, data itkisinin qarşısını almaq və şəbəkə fasilələrində dublikatların yaranmasını önləmək yollarını göstərir."
+  az: "Production səviyyəsində etibarlı producer qurur, data itkisinin qarşısını almaq və şəbəkə fasilələrində dublikatların yaranmasını önləmək yollarını göstərir."
 real_world_use:
   en: "Standard configuration in banking, stock trading, and transactional billing where a single lost or duplicated event represents catastrophic financial discrepancies."
   az: "Bank, ödəniş sistemləri və birja platformalarında hər bir hadisənin dəqiq bir dəfə çatdırılması və heç vaxt itməməsi üçün tətbiq olunur."

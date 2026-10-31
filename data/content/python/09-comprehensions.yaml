@@ -83,8 +83,8 @@ explanation:
     - Əgər hər bir elementin **dəyərini şərtlə dəyişirsinizsə** (məs. NULL dəyərləri 0 ilə əvəzləmək), `if-else` `for`-dan əvvəl yazılır:
       `[x if x is not None else 0 for x in data]`
 
-    ### 4. Data Mühəndisliyinin İstehsalat Qaydası:
-    Əgər comprehension 2 sətirdən uzun olursa, iç-içə dövrlər tələb edirsə və ya `try/except` xəta tutması lazımdırsa, **comprehension istifadə etməyin**. Açıq-aydın `for` dövrü və loqlar yazın. İstehsalatda kodun oxunması və asan sazlanması hər şeydən üstündür.
+    ### 4. Data Mühəndisliyinin Production Qaydası:
+    Əgər comprehension 2 sətirdən uzun olursa, iç-içə dövrlər tələb edirsə və ya `try/except` xəta tutması lazımdırsa, **comprehension istifadə etməyin**. Açıq-aydın `for` dövrü və log-lar yazın. Production mühitində kodun oxunması və asan debug edilməsi hər şeydən üstündür.
 code: |
   # Raw incoming sensor records from an IoT stream
   sensor_readings = [
@@ -111,7 +111,7 @@ what_it_does:
   az: "Səhv qeydləri süzmək, sürətli açar-dəyər indeks xəritəsi qurmaq və şərti dəyər əvəzetmələri üçün list və dict comprehension istifadəsini nümayiş etdirir."
 real_world_use:
   en: "Normalizing batched API payloads, stripping whitespace from header strings, and creating lookup hash maps from Dimension tables in ETL pipelines."
-  az: "ETL kəmərlərində API qeydlərini təmizləmək, başlıq sətirlərindəki boşluqları kəsmək və Dimensiya cədvəllərindən sürətli axtarış xəritələri qurmaq."
+  az: "ETL pipeline-larında API qeydlərini təmizləmək, başlıq sətirlərindəki boşluqları kəsmək və Dimension cədvəllərindən sürətli axtarış xəritələri qurmaq."
 common_mistakes:
   en: |
     - **Mixing up filter `if` with ternary `if-else` syntax**: `[x for x in lst if x > 0]` filters elements, whereas `[x if x > 0 else 0 for x in lst]` transforms every element. Putting `else` at the end causes a `SyntaxError`.
@@ -119,7 +119,7 @@ common_mistakes:
     - **Using comprehensions for side-effects**: Using `[print(x) for x in data]` builds an unnecessary list of `None` in memory. Use a standard `for` loop instead.
   az: |
     - **Süzgəc `if` ilə ternary `if-else` sintaksisini qarışdırmaq**: `[x for x in lst if x > 0]` elementləri süzür, `[x if x > 0 else 0 for x in lst]` isə hər elementi çevirir. `else`-i ən sonda yazmaq `SyntaxError` yaradır.
-    - **Həddindən artıq mürəkkəb iç-içə comprehensions**: Kəmər çökəndə sazlanması (debug) qeyri-mümkün olan 3 qatlı qəliz ifadələr yazmaq.
+    - **Həddindən artıq mürəkkəb iç-içə comprehensions**: Pipeline çökəndə debug edilməsi qeyri-mümkün olan 3 qatlı qəliz ifadələr yazmaq.
     - **Comprehension-u kənar təsirlər üçün işlətmək**: `[print(x) for x in data]` yazmaq yaddaşda lazımsız `None` siyahısı yaradır. Bunun üçün adi `for` dövrü istifadə edin.
 interview_question:
   question:
@@ -134,8 +134,11 @@ interview_question:
     az: |
       1. **Baytkod Səviyyəsində Optimallaşdırma**: Adi `for` dövründə `.append()` istifadə edəndə Python hər təkrarda metod axtarışı və funksiya çağırışı edir. List comprehension isə daxili C səviyyəsində xüsusi `LIST_APPEND` baytkodu ilə birbaşa yaddaşda işləyir.
       2. **Nə zaman qaçınmaq lazımdır**:
-         - **Böyük Yaddaş Sərfi**: Comprehension bütün siyahını dərhal RAM-da yaradır. Milyonlarla cərgəniz varsa, yaddaş partlamasından qaçmaq üçün **generator ifadəsi** `(x for x in data)` istifadə olunmalıdır.
-         - **Mürəkkəb Məntiq və Xəta İdarəetməsi**: Kodda `try/except`, loqlar və ya çoxmərhələli addımlar lazımdırsa, adi `for` dövrü daha oxunaqlı və idarəolunandır.
+         - **Böyük Yaddaş Sərfi**: Comprehension bütün siyahını dərhal RAM-da yaradır. Milyonlarla sətir varsa, OOM-dan qaçmaq üçün **generator ifadəsi** `(x for x in data)` istifadə olunmalıdır.
+         - **Mürəkkəb Məntiq və Xəta İdarəetməsi**: Kodda `try/except`, log-lar və ya çoxmərhələli addımlar lazımdırsa, adi `for` dövrü daha oxunaqlı və idarəolunandır.
+  interviewer_tips:
+    en: "When aggregating values with `sum()`, `min()`, or `max()`, pass a generator expression `sum(x for x in data)` instead of a list comprehension `sum([x for x in data])`—it computes the result in O(1) extra memory without building an intermediate list."
+    az: "`sum()`, `min()` və ya `max()` funksiyaları ilə hesablama apararkən list comprehension `sum([x for x in data])` əvəzinə generator ifadəsi `sum(x for x in data)` ötürün — bu zaman aralıq siyahı yaradılmır və hesablama O(1) əlavə yaddaşla icra olunur."
 exercise:
   question:
     en: "Given customer transactions `transactions = [{'tx_id': 'TX1', 'amount': 150.0, 'valid': True}, {'tx_id': 'TX2', 'amount': -20.0, 'valid': True}, {'tx_id': 'TX3', 'amount': 300.0, 'valid': False}, {'tx_id': 'TX4', 'amount': 85.5, 'valid': True}]`. Write a function `build_valid_transaction_index(transactions)` that uses a dictionary comprehension to return a dictionary mapping `tx_id` to `amount` ONLY for transactions where `valid` is True AND `amount` is greater than 0."

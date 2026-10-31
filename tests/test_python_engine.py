@@ -85,7 +85,7 @@ def clean_email(email):
     def test_09_all_lessons_content_and_execution(self):
         content_dir = Path(__file__).parent.parent / "data" / "content" / "python"
         lesson_files = sorted(content_dir.glob("*.yaml"))
-        self.assertEqual(len(lesson_files), 11, f"Expected 11 Python lesson YAML files, found {len(lesson_files)}")
+        self.assertEqual(len(lesson_files), 13, f"Expected 13 Python lesson YAML files, found {len(lesson_files)}")
 
         bilingual_keys = ["title", "quick_recap", "explanation", "what_it_does", "real_world_use", "common_mistakes"]
 

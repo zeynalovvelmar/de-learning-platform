@@ -32,7 +32,7 @@ infographic:
     │  DOCKER KONTEYNERİNİN HƏYAT DÖVRÜ VƏZİYYƏT MAŞINI                      │
     └────────────────────────────────────────────────────────────────────────┘
                     docker create
-    [Docker İmic]  ───────────────► [YARADILDI (CREATED)]
+    [Docker Image] ───────────────► [YARADILDI (CREATED)]
                                        │
                                    docker start / docker run
                                        │
@@ -68,9 +68,9 @@ explanation:
     - `docker exec -it <name> bash`: Opens an interactive shell inside the running container to debug network or databases.
     - `docker stop` vs `docker kill`: `stop` sends `SIGTERM` giving the app 10 seconds to close open database connections gracefully; `kill` sends `SIGKILL` instantly.
   az: |
-    ### İmic (Image) və Konteyner (Container) Fərqi
-    - **Docker İmic**: Proqram kodunu, Python kitabxanalarını və konfiqurasiyaları saxlayan dəyişməz, yalnız-oxunan (read-only) qəlibdir (proqramlaşdırmadakı `Class` kimi).
-    - **Docker Konteyneri**: Həmin imicdən yaradılmış və aktiv işləyən canlı nüsxədir (`Object` kimi).
+    ### Docker Image və Container Fərqi
+    - **Docker Image**: Proqram kodunu, Python kitabxanalarını və konfiqurasiyaları saxlayan dəyişməz, yalnız-oxunan (read-only) qəlibdir (proqramlaşdırmadakı `Class` kimi).
+    - **Docker Container (Konteyner)**: Həmin Docker image-dən yaradılmış və aktiv işləyən canlı nüsxədir (`Object` kimi).
 
     ### Konteynerin Həyat Dövrü və Statusları
     Konteynerin ömrü onun daxilindəki əsas prosesin (PID 1) ömrünə bağlıdır:
@@ -88,7 +88,7 @@ explanation:
     - `docker stop` və `docker kill` fərqi: `stop` konteynerə `SIGTERM` göndərib açıq qalan baza əlaqələrini təhlükəsiz bağlamaq üçün 10 saniyə vaxt verir; `kill` isə dərhal `SIGKILL` ilə prosesi kəsir.
 quick_recap:
   en: "Containers are instances of images bound to PID 1. Use `docker logs` to debug and recognize Exit 137 as an Out-Of-Memory (OOM) kill."
-  az: "Konteynerlər imiclərin canlı nüsxələridir. Xətaları `docker logs` ilə tapın və Exit 137-nin yaddaş çatışmazlığı (OOM Kill) olduğunu yadda saxlayın."
+  az: "Konteynerlər Docker image-lərin canlı nüsxələridir. Xətaları `docker logs` ilə tapın və Exit 137-nin yaddaş çatışmazlığı (OOM Kill) olduğunu yadda saxlayın."
 what_it_does:
   en: "Manages the creation, startup, execution, log inspection, and destruction of isolated container environments."
   az: "Təcrid olunmuş konteyner mühitlərinin yaradılmasını, işə salınmasını, loqlarının oxunmasını və ləğv edilməsini idarə edir."
@@ -97,7 +97,7 @@ real_world_use:
   az: "Pipeline testləri üçün müvəqqəti PostgreSQL qaldırmaq, loqları yoxlamaq və test bitdikdən sonra `--rm` ilə avtomatik təmizləmək."
 common_mistakes:
   en: "Accumulating hundreds of stopped containers and dangling images on the host disk because of running without `--rm` or omitting periodic `docker prune`."
-  az: "`--rm` bayrağını unutmaq və serverin diskini dayandırılmış yüzlərlə köhnə konteyner və lazımsız imiclə doldurmaq."
+  az: "`--rm` bayrağını unutmaq və serverin diskini dayandırılmış yüzlərlə köhnə konteyner və lazımsız Docker image ilə doldurmaq."
 code: |
   # ==============================================================================
   # DOCKER CLI LIFECYCLE CHEAT SHEET FOR DATA ENGINEERS

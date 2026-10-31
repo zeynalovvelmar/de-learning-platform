@@ -288,7 +288,7 @@ export function LessonView({
           <div id="sec-rules" className="rounded-xl p-4 bg-tertiary/10 border border-tertiary/30 border-l-[3.5px] border-l-tertiary text-xs sm:text-sm space-y-1.5">
             <div className="flex items-center gap-2 font-bold font-mono text-tertiary">
               <Briefcase className="h-4 w-4" />
-              <span>{isAz ? 'İSTEHSALAT TƏCRÜBƏSİ & QAYDA' : 'PRODUCTION RULE & BEST PRACTICE'}</span>
+              <span>{isAz ? 'REAL TƏCRÜBƏ & PRODUCTION QAYDASI' : 'PRODUCTION RULE & BEST PRACTICE'}</span>
             </div>
             <div className="text-ink-2 leading-relaxed">
               <Markdown source={t(lesson.real_world_use)} idScope="rw-" />
@@ -318,9 +318,9 @@ export function LessonView({
                 <span>{isAz ? 'İnteraktiv Kod Mühiti & İcra' : 'Interactive Code Sandbox'}</span>
               </span>
               <div className="flex items-center gap-2 font-mono text-[11px] text-muted">
-                <span>Kernel:</span>
+                <span>Runtime:</span>
                 <span className="text-primary font-bold">
-                  {isSQLModule ? 'SQLite WASM' : isPythonModule ? 'Pyodide Python' : 'Native DE Engine'}
+                  {isSQLModule ? 'SQLite 3 Engine' : isPythonModule ? 'Python 3.12' : 'Reference Code'}
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block animate-pulse" />
               </div>
@@ -338,7 +338,7 @@ export function LessonView({
               <CodeBlock 
                 code={lesson.code} 
                 lang={codeLang} 
-                title={isAz ? 'İstehsalat Kodu' : 'Production Code'}
+                title={isAz ? 'Production Kodu' : 'Production Code'}
               />
             )}
 
@@ -357,7 +357,7 @@ export function LessonView({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
                 <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-primary">
                   <HelpCircle className="h-4 w-4 text-primary" />
-                  <span>{isAz ? 'İSTEHSALAT MÜSAHİBƏ SUALI (TECHNICAL INTERVIEW)' : 'TECHNICAL INTERVIEW QUESTION'}</span>
+                  <span>{isAz ? 'TEXNİKİ MÜSAHİBƏ SUALI (TECHNICAL INTERVIEW)' : 'TECHNICAL INTERVIEW QUESTION'}</span>
                 </div>
                 <span className="font-mono text-[10px] text-muted bg-surface-2 px-2 py-0.5 rounded border border-line uppercase">
                   {lesson.level} LEVEL
@@ -401,7 +401,7 @@ export function LessonView({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-secondary">
                     <CheckCircle2 className="h-3.5 w-3.5 text-secondary" />
-                    <span>{isAz ? 'DƏRİN TEXNİKİ İZAH VƏ CAVAB' : 'AUTHORITATIVE TECHNICAL ANSWER'}</span>
+                    <span>{isAz ? 'DƏRİN TEXNİKİ İZAH VƏ CAVAB' : 'TECHNICAL ANSWER'}</span>
                   </div>
                   <div className="text-xs sm:text-[13px] leading-relaxed text-ink-2 font-sans space-y-3 bg-surface-lowest p-4 rounded-xl border border-line">
                     <Markdown source={t(lesson.interview_question.answer)} idScope="lesson-iq-ans-" />
@@ -412,7 +412,7 @@ export function LessonView({
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
                     <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
                       <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                      <span>{isAz ? 'SENIOR MÜSAHİBƏÇİ İPUCU' : 'SENIOR INTERVIEWER TIP'}</span>
+                      <span>{isAz ? 'MÜSAHİBƏ İPUCU' : 'INTERVIEWER TIP'}</span>
                     </div>
                     <p className="text-xs text-amber-100/90 leading-relaxed font-sans">
                       {t(lesson.interview_question.interviewer_tips)}

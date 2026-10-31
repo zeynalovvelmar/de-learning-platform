@@ -18,10 +18,10 @@ order: 8
 level: "advanced"
 title:
   en: "Window Functions: Analytical Queries and Deduplication"
-  az: "Pəncərə Funksiyaları: Analitik Sorğular və Dublikatların Silinməsi"
+  az: "Window Functions: Analitik Sorğular və Deduplikasiya"
 quick_recap:
   en: "Window functions calculate analytical metrics across a related set of rows without collapsing rows like GROUP BY. Essential for ranking (ROW_NUMBER, RANK, DENSE_RANK), running totals (SUM OVER), and event comparisons (LAG, LEAD)."
-  az: "Pəncərə funksiyaları (Window Functions) GROUP BY kimi sətirləri sıxıb yox etmədən, hər bir sətri saxlayaraq əlaqəli sətirlər toplusu üzrə hesablamalar aparır. Reytinqlər (ROW_NUMBER, RANK, DENSE_RANK), artan cəmlər (SUM OVER) və hadisə müqayisələri (LAG, LEAD) üçün əvəzolunmazdır."
+  az: "Window Functions (pəncərə funksiyaları) GROUP BY kimi sətirləri sıxıb yox etmədən, hər bir sətri saxlayaraq əlaqəli sətirlər toplusu üzrə hesablamalar aparır. Reytinqlər (ROW_NUMBER, RANK, DENSE_RANK), artan cəmlər (SUM OVER) və hadisə müqayisələri (LAG, LEAD) üçün əvəzolunmazdır."
 explanation:
   en: |
     Imagine a library bookshelf filled with books:
@@ -72,7 +72,7 @@ explanation:
   az: |
     Kitab rəfində düzülmüş kitabları təsəvvür edin:
     - Əgər **GROUP BY** tətbiq etsəniz, hər janrdakı bütün kitabları qapalı bir qutuya yığıb üzərinə "Fantastika: 10 kitab" yazırsınız. Fərdi kitabların məlumatı itir.
-    - Əgər **Pəncərə Funksiyası (Window Function)** tətbiq etsəniz, hər bir kitab rəfdə öz yerində qalır. Şəffaf bir böyüdücü şüşə (pəncərə) hər kitabın üzərindən keçərək onun kənarına kiçik bir etiket yapışdırır: "Fantastikada #1-ci yer", "Fantastikada #2-ci yer". Hər bir sətrin fərdi kimliyi qorunur, eyni zamanda qrup səviyyəsində analitik göstəricilər əlavə olunur!
+    - Əgər **Window Function (Pəncərə Funksiyası)** tətbiq etsəniz, hər bir kitab rəfdə öz yerində qalır. Şəffaf bir böyüdücü şüşə (pəncərə) hər kitabın üzərindən keçərək onun kənarına kiçik bir etiket yapışdırır: "Fantastikada #1-ci yer", "Fantastikada #2-ci yer". Hər bir sətrin fərdi kimliyi qorunur, eyni zamanda qrup səviyyəsində analitik göstəricilər əlavə olunur!
 
     ### OVER Bəndinin Quruluşu:
     `FUNKSIYA() OVER (PARTITION BY qrup_sütunu ORDER BY sıra_sütunu)`
@@ -127,20 +127,20 @@ what_it_does:
   az: "Məhsulları ən bahadan ən ucuza doğru sıralayır və eyni qiymətli məhsullarda ROW_NUMBER, RANK və DENSE_RANK funksiyalarının fərqli davranışını göstərir."
 real_world_use:
   en: "Ubiquitous in production pipelines for deduplicating records (keeping the latest record where row_num = 1), cumulative financial reporting, and sessionization."
-  az: "Boru kəmərlərində dublikatları təmizləmək (row_num = 1 ilə ən son qeydi saxlamaq), kumulyativ maliyyə hesabatları və hadisə sessiyalarının analizi üçün hər gün istifadə olunur."
+  az: "Production pipeline-larında dublikatları təmizləmək (row_num = 1 ilə ən son qeydi saxlamaq), kumulyativ maliyyə hesabatları və hadisə sessiyalarının analizi üçün hər gün istifadə olunur."
 common_mistakes:
   en: |
-    - **Filtering window functions in WHERE**: `WHERE ROW_NUMBER() OVER (...) = 1` throws a syntax error because window functions evaluate after WHERE. You must wrap the query in a CTE or subquery.
+    - **Filtering window functions in WHERE**: `WHERE ROW_NUMBER() OVER (...) = 1` throws a syntax error because window functions evaluate after WHERE. You must wrap the query in a CTE or subquery (which you will learn in detail in the very next lesson).
     - **Confusing RANK and DENSE_RANK**: If two items tie for 2nd place, RANK assigns 1, 2, 2, 4 (skips 3). DENSE_RANK assigns 1, 2, 2, 3 (no gaps).
     - **Omitting ORDER BY in cumulative sums**: `SUM(amount) OVER (PARTITION BY user_id)` produces the static total across all rows. Adding `ORDER BY date` turns it into an incremental running sum.
   az: |
-    - **Pəncərə funksiyasını WHERE-də yazmaq**: `WHERE ROW_NUMBER() OVER (...) = 1` sintaksis xətası verir, çünki pəncərə funksiyaları WHERE-dən sonra hesablanır. Sorğu mütləq CTE və ya alt sorğuya salınmalıdır.
+    - **Window function-ı WHERE-də yazmaq**: `WHERE ROW_NUMBER() OVER (...) = 1` sintaksis xətası verir, çünki window function-lar WHERE-dən sonra hesablanır. Sorğu mütləq növbəti dərsdə ətraflı öyrənəcəyimiz CTE və ya subquery daxilinə salınmalıdır.
     - **RANK ilə DENSE_RANK-i qarışdırmaq**: Əgər iki element 2-ci yeri bölüşürsə, RANK 1, 2, 2, 4 verir (3-ü ötürür). DENSE_RANK isə 1, 2, 2, 3 verir (heç bir nömrəni buraxmır).
-    - **Artan cəmdə ORDER BY-ı unutmaq**: `SUM(amount) OVER (PARTITION BY user_id)` bütün sətirlər üzrə sabit cəmi qaytarır. `ORDER BY date` əlavə etdikdə isə addım-addım toplanan artan cəm yaranır.
+    - **Artan cəmdə ORDER BY-ı unutmaq**: `SUM(amount) OVER (PARTITION BY user_id)` bütün sətirlər üzrə sabit cəmi qaytarır. `ORDER BY date` əlavə etdikdə isə addım-addım toplanan artan cəm (running total) yaranır.
 interview_question:
   question:
     en: "How do you perform deterministic deduplication on a dataset in SQL using window functions?"
-    az: "SQL-də pəncərə funksiyalarından istifadə edərək verilənlər dəsti üzərində deterministik dublikat təmizlənməsini necə aparırsınız?"
+    az: "SQL-də Window Functions istifadə edərək verilənlər dəsti üzərində deterministik deduplikasiyanı necə aparırsınız?"
   answer:
     en: |
       1. **Partition and Order**: Wrap the selection in a CTE:
@@ -149,9 +149,12 @@ interview_question:
       3. **Determinism Guarantee**: Including a secondary tie-breaker column (such as the surrogate `id DESC`) guarantees that if two records have identical update timestamps, the engine deterministically chooses the exact same winner every single time the pipeline runs.
     az: |
       1. **Partisiya və Sıralama**: Sorğunu CTE daxilinə alırıq:
-         `WITH ranked AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY tebii_acar ORDER BY yenilenme_vaxti DESC, id DESC) as rn FROM xam_cedvel)`
+         `WITH ranked AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY natural_key ORDER BY updated_at DESC, id DESC) as rn FROM raw_table)`
       2. **Birinci Qeydin Seçilməsi**: CTE-dən `SELECT * FROM ranked WHERE rn = 1` ilə süzürük.
-      3. **Determinizm Zəmanəti**: Sıralamaya ikinci bərabərlik pozan sütun (`id DESC`) əlavə etmək zəmanət verir ki, yenilənmə vaxtları eyni olsa belə, boru kəməri hər işə düşəndə tam eyni qalib sətri seçəcək.
+      3. **Determinizm Zəmanəti**: Sıralamaya ikinci bərabərlik pozan sütun (`id DESC`) əlavə etmək zəmanət verir ki, yenilənmə vaxtları eyni olsa belə, pipeline hər işə düşəndə tam eyni qalib sətri seçəcək.
+  interviewer_tips:
+    en: "If the interviewer asks about Snowflake, BigQuery, or DuckDB, mention the `QUALIFY` clause (`QUALIFY ROW_NUMBER() OVER (...) = 1`), which filters window functions directly without needing a wrapper CTE!"
+    az: "Müsahibədə Snowflake, BigQuery və ya DuckDB barədə soruşularsa, `QUALIFY` bəndini (`QUALIFY ROW_NUMBER() OVER (...) = 1`) qeyd edin — o, əlavə CTE yazmadan window function nəticəsini birbaşa filtrləməyə imkan verir!"
 exercise:
   question:
     en: "Write a query on products to rank items within category_id 1 and 2 by price in descending order using DENSE_RANK() as category_price_rank. Return product_id, category_id, product_name, price, and category_price_rank, ordered by category_id and category_price_rank."
@@ -176,10 +179,10 @@ exercise:
 flashcards:
   - front:
       en: "How does a window function differ from a GROUP BY aggregation?"
-      az: "Pəncərə funksiyası (Window Function) GROUP BY aqreqasiyasından nə ilə fərqlənir?"
+      az: "Window Function GROUP BY aqreqasiyasından nə ilə fərqlənir?"
     back:
       en: "GROUP BY collapses multiple rows into a single summary row per group. Window functions calculate metrics across groups while keeping all individual rows intact."
-      az: "GROUP BY çoxsaylı sətirləri sıxaraq hər qrup üçün tək bir yekun sətir saxlayır. Pəncərə funksiyaları isə bütün sətirləri saxlayaraq hər birinin yanında qrup göstəricilərini hesablayır."
+      az: "GROUP BY çoxsaylı sətirləri sıxaraq hər qrup üçün tək bir yekun sətir saxlayır. Window Functions isə bütün sətirləri saxlayaraq hər birinin yanında qrup göstəricilərini hesablayır."
   - front:
       en: "What is the difference between ROW_NUMBER(), RANK(), and DENSE_RANK() on tied values?"
       az: "Eyni (bərabər) dəyərlərdə ROW_NUMBER(), RANK() və DENSE_RANK() arasındakı fərq nədir?"
@@ -191,7 +194,7 @@ flashcards:
       az: "SQL-də nə üçün WHERE ROW_NUMBER() OVER (...) = 1 yazmaq olmaz?"
     back:
       en: "Because the WHERE clause executes before window functions are calculated. You must compute the window function inside a CTE or subquery first, then filter in the outer WHERE."
-      az: "Çünki WHERE mərhələsi pəncərə funksiyaları hesablanmazdan əvvəl icra olunur. Pəncərə funksiyasını əvvəlcə CTE və ya alt sorğuda hesablayıb, xarici WHERE ilə süzmək lazımdır."
+      az: "Çünki WHERE mərhələsi Window Functions hesablanmazdan əvvəl icra olunur. Window function-ı əvvəlcə CTE və ya subquery daxilində hesablayıb, xarici WHERE ilə süzmək lazımdır."
   - front:
       en: "What is the purpose of LAG() and LEAD() functions?"
       az: "LAG() və LEAD() funksiyalarının məqsədi nədir?"
@@ -200,7 +203,7 @@ flashcards:
       az: "LAG partisiya daxilində əvvəlki sətrin dəyərini oxuyur. LEAD isə növbəti sətrin dəyərini oxuyur. Dövrlər arasındakı fərqləri və vaxt intervallarını hesablamaq üçün istifadə olunur."
   - front:
       en: "How do you calculate a cumulative running total with window functions?"
-      az: "Pəncərə funksiyaları ilə kumulyativ artan cəmi (running total) necə hesablamaq olar?"
+      az: "Window Functions ilə kumulyativ artan cəmi (running total) necə hesablamaq olar?"
     back:
       en: "By including an ORDER BY clause inside the window: `SUM(amount) OVER (PARTITION BY user_id ORDER BY transaction_date ASC)`."
-      az: "Pəncərə daxilinə ORDER BY əlavə etməklə: `SUM(amount) OVER (PARTITION BY user_id ORDER BY transaction_date ASC)`."
+      az: "OVER mötərizəsi daxilinə ORDER BY əlavə etməklə: `SUM(amount) OVER (PARTITION BY user_id ORDER BY transaction_date ASC)`."

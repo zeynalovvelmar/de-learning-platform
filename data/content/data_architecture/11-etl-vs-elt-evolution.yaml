@@ -37,7 +37,7 @@ infographic:
                                     (Informatica/Python)                 (Teradata/Oracle)
        ❌ Dar Boğaz: Transformasiya edən server böyük həcmdə çökürdü.
        ❌ İtirilmiş Xam Məlumat: DWH-a yalnız əvvəlcədən aqreqasiya edilmiş data yüklənirdi.
-       ❌ Ləng Dəyişiklik: Metrika dəyişəndə aylarla bütün boru kəmərini yenidən yazırdılar.
+       ❌ Ləng Dəyişiklik: Metrika dəyişəndə aylarla bütün data pipeline-ı yenidən yazırdılar.
 
     2. MÜASİR BULUD ELT (2015-dən sonra Bulud DWH və Lakehouse):
        Mənbələr ──► ÇIXARIŞ VƏ YÜKLƏ (E & L) ──────────► [BULUD SAXLANCI / DWH]
@@ -85,26 +85,26 @@ explanation:
 
     ### 1. Ənənəvi ETL (Baha Disk Saxlancı və Lisenziya Dövrü)
     - **İş Prinsipi**:
-      1. **Extract (Çıxar)**: Məlumat istehsalat bazalarından (MySQL, PostgreSQL) oxunur.
+      1. **Extract (Çıxar)**: Məlumat production bazalarından (MySQL, PostgreSQL) oxunur.
       2. **Transform (Dəyiş)**: Təmizləmə, birləşdirmə və hesablama hədəf bazadan kənarda, xüsusi serverlərdə (Informatica, SSIS və ya Python skriptləri) aparılır.
       3. **Load (Yüklə)**: Yalnız hazır, aqreqasiya edilmiş son nəticə anbara (Oracle, Teradata) yüklənir.
     - **Yaranma Səbəbi**: 2000-ci illərdə disk yaddaşı və on-premises verilənlər bazası lisenziyaları inanılmaz dərəcədə baha idi. Şirkətlər milyardlarla xam sətiri anbarda saxlaya bilmirdi.
     - **Çatışmazlıqları**:
       - Əgər biznes rəhbəri əvvəllər atılmış hər hansı xam detala əsaslanan yeni hesabat istəsəydi, həmin məlumat artıq əbədi itmiş olurdu.
-      - Məlumatı çevirən xarici ETL serverləri böyük məlumat axınlarında iflic olur və boru kəmərini dayandırırdı.
+      - Məlumatı çevirən xarici ETL serverləri böyük məlumat axınlarında iflic olur və data pipeline-ı dayandırırdı.
 
     ### 2. Müasir Bulud ELT (Bulud İnqilabı)
     - **İş Prinsipi**:
       1. **Extract & Load (Çıxar və Yüklə)**: Məlumat heç bir dəyişiklik edilmədən, ən xam halında avtomatlaşdırılmış alətlərlə (Airbyte, Fivetran, Kafka) birbaşa bulud anbarına (S3, Snowflake, BigQuery) yüklənir.
-      2. **Transform (Yerində Dəyiş)**: Bütün biznes hesablamaları, ulduz sxemi modelləşdirməsi hədəf sistemin daxilində paylanmış SQL mühərriki vasitəsilə (məsələn, **dbt** aləti ilə) icra olunur.
+      2. **Transform (Yerində Dəyiş)**: Bütün biznes hesablamaları, Star Schema modelləşdirməsi hədəf sistemin daxilində paylanmış SQL mühərriki vasitəsilə (məsələn, **dbt** aləti ilə) icra olunur.
     - **ELT Niyə Qalib Gəldi?**:
       - **Yaddaş və Hesablamanın Ayrılması**: Buludda 1 GB yaddaş cəmi 2 sentdir. İllərlə toplanan bütün xam JSON loqlarını saxlamaq şirkət üçün çox ucuzdur.
-      - **MPP Gücü (Massively Parallel Processing)**: Snowflake və ya BigQuery saniyələr içində yüzlərlə nüvə ayıraraq terabaytlarla məlumatı xarici ETL serverlərindən 50 dəfə sürətli çevirə bilir.
+      - **MPP Gücü (Massively Parallel Processing)**: Snowflake və ya BigQuery saniyələr içində yüzlərlə nüvə ayıraraq terabaytlarla məlumatı xarici ETL serverlərindən dəfələrlə sürətli (klaster gücündən asılı olaraq) çevirə bilir.
       - **İstənilən Vaxt Tarixi Bərpa**: Bütün xam məlumat əlinizin altında olduğu üçün, hesablama düsturu dəyişəndə sadəcə SQL sorğusunu dəyişib keçmiş illəri dərhal yenidən hesablamaq mümkündür.
 
     ### 3. Müasir Hibrid Model: "EtLT"
     Təhlükəsizlik tələbləri sərt olan sənayelərdə təmiz ELT yerinə çox vaxt **EtLT** tətbiq olunur:
-    - **Kiçik "t" (Yükləmədən Əvvəl)**: Şəxsi məlumatları (PII - kart nömrələri, şifrələr) anonimləşdirir və heşləyir (GDPR uyğunluğu üçün).
+    - **Kiçik "t" (Yükləmədən Əvvəl)**: Şəxsi məlumatları (PII - kart nömrələri, şifrələr) anonimləşdirir və hash-ləyir (GDPR uyğunluğu üçün).
     - **Böyük "T" (Anbar Daxilində)**: Ağır analitik birləşdirmələr və biznes metrikaları dbt və SQL ilə anbarın daxilində icra edilir.
 quick_recap:
   en: "ETL transforms data on an external server before loading; modern ELT loads raw data directly into the cloud warehouse and executes transformations using in-warehouse distributed SQL (e.g. dbt)."
@@ -202,7 +202,7 @@ interview_question:
     az: "Əsas fərq transformasiyanın harda və nə vaxt baş verməsindədir. **ETL-də** məlumat mənbədən çıxarılır, kənar bir serverdə (Informatica, Python) dəyişdirilir və yalnız yekun aqreqasiya olunmuş nəticə anbara yüklənir. **ELT-də** isə xam məlumat heç bir dəyişiklik edilmədən birbaşa bulud anbarına (Snowflake, BigQuery, Databricks) yüklənir və bütün transformasiyalar anbarın özünün güclü paylanmış SQL mühərriki ilə daxildə icra olunur. ELT-nin standart olmasının 3 səbəbi var: (1) **Saxlanc İqtisadiyyatı**: Bulud yaddaşı çox ucuzlaşdı, bütün tarixi xam məlumatı daimi saxlamaq sərfəli oldu. (2) **Ayrılmış Hesablama və MPP Gücü**: Müasir bulud anbarları tələb olunduqda yüzlərlə nüvə ayıraraq analitik transformasiyaları kənar serverlərdən qat-qat sürətli icra edir. (3) **Çeviklik və Geri Qayıtma**: ETL-də xəta olanda tarixi məlumat itirdi; ELT-də xam məlumat həmişə anbarda olduğu üçün düstur səhvini düzəldib keçmişi dəqiqələr içində yenidən hesablamaq mümkündür. Bu arxitekturada **dbt (data build tool)** transformasiya standartıdır: mühəndislərə anbar daxilində modulyar SQL modelləri qurmağa, testlər yazmağa və avtomatik data lineage yaratmağa imkan verir."
   interviewer_tips:
     en: "Mention the 'EtLT' hybrid (pre-masking PII before ELT ingestion) and how dbt transformed the data industry by turning SQL into software engineering (version control, CI/CD, tests)."
-    az: "Məlumat təhlükəsizliyi üçün 'EtLT' modelini (yükləməzdən öncə PII məlumatlarının heşlənməsi) və dbt-nin SQL-ə proqram təminatı mühəndisliyi prinsiplərini (Git, testlər, CI/CD) gətirdiyini qeyd edin."
+    az: "Məlumat təhlükəsizliyi üçün 'EtLT' modelini (yükləməzdən öncə PII məlumatlarının hash-lənməsi) və dbt-nin SQL-ə proqram təminatı mühəndisliyi prinsiplərini (Git, testlər, CI/CD) gətirdiyini qeyd edin."
 flashcards:
   - front:
       en: "What does the abbreviation ELT stand for?"

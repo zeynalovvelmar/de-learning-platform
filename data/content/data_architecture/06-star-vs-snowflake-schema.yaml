@@ -3,7 +3,7 @@ order: 6
 level: "intermediate"
 title:
   en: "Star Schema vs Snowflake Schema: Denormalization & Trade-offs"
-  az: "Ulduz Sxemi (Star) və Qar Dənəciyi (Snowflake): Denormalizasiya və Müqayisə"
+  az: "Star Schema və Snowflake Schema: Denormallaşdırma və Müqayisə"
 infographic:
   en: |
     ```text
@@ -81,30 +81,30 @@ explanation:
     ### Əsas Mübahisə: Star yoxsa Snowflake?
     Verilənlər anbarını dizayn edərkən ölçü cədvəllərini necə quracağınıza qərar verməlisiniz.
 
-    ### 1. Ulduz Sxemi (Star Schema - Qalib Model)
+    ### 1. Star Schema (Ulduz Sxemi - Qalib Model)
     - **Arxitektura**: Mərkəzdə fakt cədvəli dayanır və ətrafdakı ölçü cədvəllərinə birbaşa, heç bir aralıq cədvəl olmadan (1 addımda) bağlanır.
-    - **Denormalizasiya**: Kateqoriyanı ayrı cədvələ bölmək əvəzinə, `dim_məhsul` cədvəlinin içinə `məhsul_adı`, `alt_kateqoriya`, `əsas_kateqoriya` və `departament` hamısı tək bir sətirdə yazılır.
+    - **Denormallaşdırma (Denormalization)**: Kateqoriyanı ayrı cədvələ bölmək əvəzinə, `dim_məhsul` cədvəlinin içinə `məhsul_adı`, `alt_kateqoriya`, `əsas_kateqoriya` və `departament` hamısı tək bir sətirdə yazılır.
     - **Üstünlükləri**:
       - **Maksimum Sorğu Sürəti**: İstənilən hesabat üçün cəmi 1 dənə sadə JOIN kifayətdir.
       - **Sadəlik**: Power BI və Tableau kimi vizual alətlər və analitiklər üçün sxemi oxumaq olduqca asandır.
       - **Bulud Dostu**: Müasir sütunlu bazalar (Snowflake, BigQuery) enli cədvəlləri çox sevir, çünki sıxılma sayəsində təkrarlanan sözlər diskdə demək olar ki, heç bir yer tutmur.
 
-    ### 2. Qar Dənəciyi Sxemi (Snowflake Schema - Normallaşdırılmış)
+    ### 2. Snowflake Schema (Qar Dənəciyi Sxemi - Normallaşdırılmış)
     - **Arxitektura**: Ölçü cədvəlləri normallaşdırılır və kiçik alt cədvəllərə budaqlanır. Məsələn: `dim_məhsul` ➡️ `dim_alt_kateqoriya` ➡️ `dim_əsas_kateqoriya` şəklində şaxələnir (qar dənəciyinə bənzəyir).
     - **Müsbət cəhəti**: Eyni sözlərin təkrar yazılmasının qarşısını alır və diskdə bir az yerə qənaət edir.
     - **Mənfi cəhəti**: Çox mürəkkəbdir! Sadəcə kateqoriya üzrə satış çıxarmaq üçün 4-5 cədvəli iç-içə JOIN etmək lazımdır; bu isə sorğunun sürətini aşağı salır.
 
-    ### Niyə Müasir Data Mühəndisliyində Ulduz Sxemi Hökmdardır?
-    1980-ci illərdə disk çox baha idi, ona görə mühəndislər təkrar sözləri azaltmaq üçün Snowflake sxeminə qaçırdılar. Lakin bu gün bulud saxlancı inanılmaz dərəcədə ucuzdur (1 GB cəmi **0.02 dollar**), mühəndisin vaxtı və serverin hesablama gücü isə bahadır. Buna görə də müasir şirkətlərdə 95% hallarda **Ulduz Sxemi (Star Schema)** seçilir.
+    ### Niyə Müasir Data Mühəndisliyində Star Schema Hökmdardır?
+    1980-ci illərdə disk çox baha idi, ona görə mühəndislər təkrar sözləri azaltmaq üçün Snowflake Schema-ya üstünlük verirdilər. Lakin bu gün bulud saxlancı inanılmaz dərəcədə ucuzdur (1 GB cəmi **0.02 dollar**), mühəndisin vaxtı və serverin hesablama gücü isə bahadır. Buna görə də müasir şirkətlərdə əksər hallarda **Star Schema** seçilir.
 quick_recap:
   en: "Star schema denormalizes dimensions for 1-hop fast JOINs. Snowflake schema normalizes dimensions into branches. Star schema is heavily preferred in modern cloud DWHs."
-  az: "Star sxem cədvəlləri denormalizasiya edərək 1 addımlı sürətli JOIN verir. Snowflake sxem isə budaqlara bölür. Müasir bulud anbarlarında Star sxem birmənalı qalibdir."
+  az: "Star Schema cədvəlləri denormallaşdıraraq 1 addımlı sürətli JOIN verir. Snowflake Schema isə budaqlara bölür. Müasir bulud anbarlarında Star Schema birmənalı qalibdir."
 what_it_does:
   en: "Structures the relational geometry of a dimensional warehouse, balancing storage normalization against query performance and SQL complexity."
   az: "Verilənlər anbarının həndəsəsini müəyyən edərək saxlanc normallaşması ilə sorğu sürəti və SQL sadəliyi arasındakı balansı tənzimləyir."
 real_world_use:
   en: "Building a retail sales mart as a Star Schema with denormalized product and store dimensions to power executive dashboards in Power BI."
-  az: "Rəhbərlik panellərini dərhal qidalandırmaq üçün məhsul və mağaza ölçülərini tək laylı Ulduz Sxemində (Star Schema) birləşdirmək."
+  az: "Rəhbərlik panellərini dərhal qidalandırmaq üçün məhsul və mağaza ölçülərini tək laylı Star Schema-da birləşdirmək."
 common_mistakes:
   en: "Over-normalizing dimension tables into deep Snowflake hierarchies, forcing analysts to write 10-table JOINs and degrading BI query performance."
   az: "Ölçü cədvəllərini ifrat dərəcədə normallaşdırıb Snowflake sxeminə salmaq və hər bir sadə hesabat üçün 10 cədvəli JOIN etməyə məcbur qalaraq sistemi yormaq."
@@ -163,23 +163,23 @@ output_description:
 interview_question:
   question:
     en: "What is the difference between a Star Schema and a Snowflake Schema? Why is the Star Schema generally preferred in modern cloud data warehouses like Snowflake or BigQuery?"
-    az: "Ulduz Sxemi (Star Schema) ilə Qar Dənəciyi Sxemi (Snowflake Schema) arasındakı fərq nədir? Niyə müasir bulud anbarlarında (Snowflake, BigQuery) Star Schema daha üstün tutulur?"
+    az: "Star Schema ilə Snowflake Schema arasındakı fərq nədir? Niyə müasir bulud anbarlarında (Snowflake, BigQuery) Star Schema daha üstün tutulur?"
   answer:
     en: "A Star Schema consists of a central fact table directly referencing denormalized dimension tables in a single hop. In contrast, a Snowflake Schema normalizes dimension tables into multiple related lookup tables (e.g., product -> subcategory -> category), creating a branching hierarchy. The Star Schema is overwhelmingly preferred in modern cloud data warehouses for three reasons: (1) Query Performance: Star schemas minimize the number of JOINs required to answer business questions, avoiding expensive hash joins across large distributed tables; (2) Simplicity for BI: Flat dimension tables make it trivial for business analysts and BI tools (Power BI, Looker) to navigate and build reports without traversing deep foreign key paths; and (3) Cloud Storage Economics: Storage is so cheap ($0.02/GB) and columnar compression is so efficient that the minor storage savings achieved by normalizing dimensions are negligible compared to the compute cost and developer friction of complex Snowflake schemas."
-    az: "Ulduz Sxemində (Star Schema) mərkəzdə fakt cədvəli dayanır və denormalizasiya olunmuş tək laylı ölçü cədvəllərinə birbaşa (tək addımda) bağlanır. Qar Dənəciyi Sxemində (Snowflake Schema) isə ölçü cədvəlləri normallaşdırılaraq bir neçə kiçik alt cədvələ parçalanır (məhsul ➡️ alt kateqoriya ➡️ əsas kateqoriya). Müasir bulud anbarlarında Star Schema 3 əsas səbəbə görə seçilir: (1) Sorğu Sürəti: Star sxem JOIN-lərin sayını minimuma endirir və paylanmış klasterlərdə ağır hash join-lərin qarşısını alır; (2) Analitiklər üçün Sadəlik: Düz cədvəllər analitiklərin və BI alətlərinin (Power BI, Tableau) heç bir çətinlik çəkmədən hesabat qurmasını təmin edir; (3) Saxlancın Ucuzluğu: Bulud anbarı o qədər ucuzdur (1 GB cəmi 0.02 dollar) və sütunlu sıxılma o qədər güclüdür ki, cədvəlləri parçalamaqla əldə edilən cüzi disk qənaəti hesablama və kadr xərclərinin yanında heç nədir."
+    az: "Star Schema-da (Ulduz Sxemi) mərkəzdə fakt cədvəli dayanır və denormallaşdırılmış tək laylı ölçü cədvəllərinə birbaşa (tək addımda) bağlanır. Snowflake Schema-da (Qar Dənəciyi Sxemi) isə ölçü cədvəlləri normallaşdırılaraq bir neçə kiçik alt cədvələ parçalanır (məhsul ➡️ alt kateqoriya ➡️ əsas kateqoriya). Müasir bulud anbarlarında Star Schema 3 əsas səbəbə görə seçilir: (1) Sorğu Sürəti: Star Schema JOIN-lərin sayını minimuma endirir və paylanmış klasterlərdə ağır Hash Join-lərin qarşısını alır; (2) Analitiklər üçün Sadəlik: Düz cədvəllər analitiklərin və BI alətlərinin (Power BI, Tableau) heç bir çətinlik çəkmədən hesabat qurmasını təmin edir; (3) Saxlancın Ucuzluğu: Bulud anbarı o qədər ucuzdur (1 GB cəmi 0.02 dollar) və sütunlu sıxılma o qədər güclüdür ki, cədvəlləri parçalamaqla əldə edilən cüzi disk qənaəti hesablama və kadr xərclərinin yanında heç nədir."
   interviewer_tips:
     en: "Explain that 'Cloud storage economics changed the paradigm': in the on-premise era disk was expensive, but in the modern cloud era compute and engineer time dominate."
     az: "'Bulud iqtisadiyyatı paradiqmanı dəyişdi' arqumentini gətirin: əvvəllər disk baha idi, indi isə hesablama gücü və mühəndis vaxtı bahadır."
 flashcards:
   - front:
       en: "What is the defining structural characteristic of a Star Schema?"
-      az: "Ulduz Sxeminin (Star Schema) əsas struktur xüsusiyyəti nədir?"
+      az: "Star Schema-nın (Ulduz Sxeminin) əsas struktur xüsusiyyəti nədir?"
     back:
       en: "A central fact table connected directly to flat, denormalized dimension tables in a single hop."
-      az: "Mərkəzi fakt cədvəlinin birbaşa tək laylı, denormalizasiya olunmuş ölçü cədvəllərinə 1 addımda bağlanması."
+      az: "Mərkəzi fakt cədvəlinin birbaşa tək laylı, denormallaşdırılmış ölçü cədvəllərinə 1 addımda bağlanması."
   - front:
       en: "What is the defining structural characteristic of a Snowflake Schema?"
-      az: "Qar Dənəciyi Sxeminin (Snowflake Schema) əsas struktur xüsusiyyəti nədir?"
+      az: "Snowflake Schema-nın (Qar Dənəciyi Sxeminin) əsas struktur xüsusiyyəti nədir?"
     back:
       en: "Dimension tables are normalized into branching sub-dimension lookup hierarchies."
       az: "Ölçü cədvəllərinin normallaşdırılaraq budaqlanan kiçik alt cədvəllərə parçalanması."

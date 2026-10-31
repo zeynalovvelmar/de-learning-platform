@@ -3,7 +3,7 @@ order: 7
 level: "intermediate"
 title:
   en: "Catchup, Backfill & Idempotent Pipeline Design"
-  az: "Catchup, Backfill və İdempotent Boru Kəməri Dizaynı"
+  az: "Catchup, Backfill və İdempotent Pipeline Dizaynı"
 infographic:
   en: |
     ```text
@@ -88,7 +88,7 @@ explanation:
     Siz keçmiş bir `start_date` ilə DAG yaradıb UI-da onu aktiv (unpause) etdikdə:
     - Əgər **`catchup=True`** olarsa, Scheduler `start_date`-dən bu günə qədər olan **bütün keçmiş günlər** üçün dərhal ayrı-ayrı icralar yaradır.
     - Əgər `start_date` 1 il əvvəldirsə, 365 dənə DAG eyni vaxtda işə düşür. Bu, worker-ləri dondurur, xarici API-lərin rate-limitinə ilişir və bazanı çökdürür ("Catchup fırtınası").
-    - **İstehsalat Standartı**: DAG təyin edərkən həmişə **`catchup=False`** yazın.
+    - **Production Standartı**: DAG təyin edərkən həmişə **`catchup=False`** yazın.
 
     ### Backfill: Keçmiş Məlumatın Təkrar Emalı
     Hesablama məntiqində səhv tapıldıqda və ya yeni sütun əlavə edildikdə keçmiş məlumatları yenidən hesablamaq lazım gəlir.
@@ -98,7 +98,7 @@ explanation:
 
     ### İdempotentlik (Idempotence): Ən Əsas DE Qaydası
     **Bir əməliyyat o zaman idempotentdir ki, onu 1 dəfə və ya 100 dəfə işə saldıqda alınan yekun nəticə dəyişməz qalsın.**
-    - Əgər boru kəməri ortada xəta verib dayansa və siz Airflow UI-da **"Clear / Re-run"** düyməsinə bassanız:
+    - Əgər pipeline ortada xəta verib dayansa və siz Airflow UI-da **"Clear / Re-run"** düyməsinə bassanız:
       - **İdempotent Olmayan**: Adi `INSERT INTO` əmri eyni məlumatı təkrar bazaya yazacaq və maliyyə hesabatında rəqəmlər ikiqat görünəcək!
       - **İdempotent**: `INSERT OVERWRITE PARTITION`, `DELETE WHERE date = '...'` və ya `MERGE` (Upsert). Neçə dəfə işlətsəniz də məlumat heç vaxt təkrarlanmır.
 quick_recap:
@@ -112,7 +112,7 @@ real_world_use:
   az: "Xəta düzəldildikdən sonra keçən ayın maliyyə hesabatlarını backfill ilə yenidən hesablamaq və partisiya üzərinə yazaraq dublikat yaratmamaq."
 common_mistakes:
   en: "Leaving `catchup=True` on a daily DAG with a start_date 2 years in the past, instantly spawning hundreds of concurrent tasks."
-  az: "`start_date`-i 2 il əvvələ qoyub `catchup=True` saxlamaq və eyni anda yüzlərlə task işə salaraq serveri və xarici API-ləri kilitləmək."
+  az: "`start_date`-i 2 il əvvələ qoyub `catchup=True` saxlamaq və eyni anda yüzlərlə task işə salaraq serveri və xarici API-ləri kilidləmək."
 code: |
   import pendulum
   from airflow.decorators import dag, task
@@ -201,23 +201,23 @@ output_description:
 interview_question:
   question:
     en: "What is an idempotent pipeline? How do you ensure your Airflow DAGs are idempotent, and why does this matter during task retries or backfills?"
-    az: "İdempotent boru kəməri nədir? Airflow DAG-larınızın idempotent olmasını necə təmin edirsiniz və bunun təkrar icralarda (retries/backfill) əhəmiyyəti nədir?"
+    az: "İdempotent pipeline nədir? Airflow DAG-larınızın idempotent olmasını necə təmin edirsiniz və bunun təkrar icralarda (retries/backfill) əhəmiyyəti nədir?"
   answer:
     en: "An idempotent pipeline guarantees that executing the same task multiple times with the same input parameters (e.g. for logical_date '2026-10-10') always produces the exact same end state without side effects or duplicates. We achieve idempotency by: (1) using partition overwrites (`INSERT OVERWRITE` in Spark/Hive/Snowflake) instead of naive `INSERT INTO`, (2) performing a transaction with `DELETE FROM table WHERE partition_date = '{{ ds }}'` before inserting, or (3) using UPSERT/MERGE with unique keys. This is critical because distributed systems inevitably fail; when Airflow automatically retries a failed task or an engineer triggers a backfill, idempotence guarantees business numbers never get duplicated."
-    az: "İdempotent boru kəməri eyni parametr və eyni tarix üçün (`logical_date`) bir neçə dəfə icra edildikdə belə, yekunda eyni nəticəni verən və heç bir dublikat yaratmayan sistemdir. Biz bunu 3 üsulla təmin edirik: (1) adi `INSERT INTO` əvəzinə `INSERT OVERWRITE PARTITION` istifadə edərək, (2) məlumatı yazmazdan əvvəl həmin günün köhnə məlumatını silən (`DELETE WHERE date = '{{ ds }}'`) tranzaksiya quraraq, (3) unikal açarlar üzrə `MERGE` (Upsert) tətbiq edərək. Bu ona görə həyati əhəmiyyət daşıyır ki, paylanmış sistemlərdə xətalar qaçılmazdır; Airflow xətadan sonra task-ı təkrar işə saldıqda və ya biz keçmişi yenidən hesabladıqda (backfill), idempotentlik maliyyə və biznes göstəricilərinin ikiqat artmasının qarşısını alır."
+    az: "İdempotent pipeline eyni parametr və eyni tarix üçün (`logical_date`) bir neçə dəfə icra edildikdə belə, yekunda eyni nəticəni verən və heç bir dublikat yaratmayan sistemdir. Biz bunu 3 üsulla təmin edirik: (1) adi `INSERT INTO` əvəzinə `INSERT OVERWRITE PARTITION` istifadə edərək, (2) məlumatı yazmazdan əvvəl həmin günün köhnə məlumatını silən (`DELETE WHERE date = '{{ ds }}'`) tranzaksiya quraraq, (3) unikal açarlar üzrə `MERGE` (Upsert) tətbiq edərək. Bu ona görə həyati əhəmiyyət daşıyır ki, paylanmış sistemlərdə xətalar qaçılmazdır; Airflow xətadan sonra task-ı təkrar işə saldıqda və ya biz keçmişi yenidən hesabladıqda (backfill), idempotentlik maliyyə və biznes göstəricilərinin ikiqat artmasının qarşısını alır."
   interviewer_tips:
     en: "Distinguish between 'INSERT OVERWRITE' and naive 'INSERT INTO'. Explaining that naive inserts cause dashboard duplication during retries is one of the quickest ways to convince an interviewer of your production readiness."
-    az: "'INSERT OVERWRITE' ilə adi 'INSERT INTO' arasındakı fərqi izah etmək və dublikatların hesabatları korlamasını qeyd etmək istehsalat təcrübənizi sübut edən ən güclü arqumentdir."
+    az: "'INSERT OVERWRITE' ilə adi 'INSERT INTO' arasındakı fərqi izah etmək və dublikatların hesabatları korlamasını qeyd etmək production təcrübənizi sübut edən ən güclü arqumentdir."
 flashcards:
   - front:
       en: "What happens if a DAG has `start_date` set to 1 year ago and `catchup=True`?"
       az: "Əgər DAG-ın `start_date`-i 1 il əvvələ qoyulsa və `catchup=True` olarsa, nə baş verər?"
     back:
       en: "Airflow immediately triggers 365 DAG runs at once, overwhelming workers, queues, and external databases."
-      az: "Airflow dərhal eyni anda 365 DAG icrası başladır, worker-ləri, növbələri və xarici bazaları kilitləyir."
+      az: "Airflow dərhal eyni anda 365 DAG icrası başladır, worker-ləri, növbələri və xarici bazaları kilidləyir."
   - front:
       en: "What is the recommended setting for `catchup` in production DAGs?"
-      az: "İstehsalat DAG-larında `catchup` parametri üçün tövsiyə olunan dəyər nədir?"
+      az: "Production DAG-larında `catchup` parametri üçün tövsiyə olunan dəyər nədir?"
     back:
       en: "`catchup=False`. Historical runs should be performed deliberately using the CLI `airflow dags backfill` command."
       az: "`catchup=False`. Keçmiş icralar yalnız ehtiyac olduqda CLI `airflow dags backfill` əmri ilə idarə olunmalıdır."

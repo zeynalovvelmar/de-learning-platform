@@ -3,7 +3,7 @@ order: 5
 level: "intermediate"
 title:
   en: "dbt Snapshots: Automated Slowly Changing Dimensions (SCD Type 2)"
-  az: "dbt Snapshots: Yavaş Dəyişən Ölçülərin (SCD Type 2) Avtomatlaşdırılması"
+  az: "dbt Snapshots: Slowly Changing Dimensions (SCD Type 2) Avtomatlaşdırılması"
 infographic:
   en: |
     ```text
@@ -70,7 +70,7 @@ explanation:
     - **`dbt_valid_to`**: Timestamp when this version was superseded. For the current active row, this is `NULL`.
   az: |
     ### Biznes Problemi: Dəyişən Mənbə Sistemləri
-    İstehsalat sistemləri (Postgres, MySQL) adətən yalnız məlumatın *cari* vəziyyətini saxlayır.
+    Production (əməliyyat) sistemləri (Postgres, MySQL) adətən yalnız məlumatın *cari* vəziyyətini saxlayır.
     - Müştəri statusunu dəyişdikdə və ya başqa ünvana köçdükdə, baza köhnə məlumatın üzərinə yenisini yazır (SCD Type 1).
     - Lakin data mühəndisi tarixi hesabatları qorumaq üçün keçmiş vəziyyətləri (SCD Type 2) saxlamalıdır ki, keçmiş satışlar köhnə statusun adına yazılsın.
     - Əvvəllər bunu etmək üçün 50 sətirlik mürəkkəb MERGE və UPDATE skriptləri yazmaq lazım gəlirdi. **dbt bunu Snapshots ilə tək bir komandaya endirdi.**
@@ -88,10 +88,10 @@ explanation:
        - Əgər mənbədəki `updated_at` snapshot-dakı tarixdən təzədirsə, dbt başa düşür ki, məlumat dəyişib. Köhnə sətri bağlayır və yeni sətir açır.
     2. **`strategy='check'`**:
        - Mənbə cədvəldə `updated_at` sütunu **olmadıqda** istifadə edilir.
-       - Sizin seçdiyiniz sütunların heşini (checksum) yoxlayır: `check_cols: ['status', 'unvan']`. Əgər dəyərlər dəyişibsə, yeni sətir yaradır.
+       - Sizin seçdiyiniz sütunların hash-ini (checksum) yoxlayır: `check_cols: ['status', 'unvan']`. Əgər dəyərlər dəyişibsə, yeni sətir yaradır.
 
     ### dbt-nin Cədvələ Avtomatik Əlavə Etdiyi 4 Sütun
-    - **`dbt_scd_id`**: Surroqat açar (açar və tarixin heşi).
+    - **`dbt_scd_id`**: Surroqat açar (açar və tarixin hash-i).
     - **`dbt_updated_at`**: Dəyişikliyin mənbədə baş verdiyi tarix.
     - **`dbt_valid_from`**: Bu versiyanın qüvvəyə mindiyi başlanğıc tarix.
     - **`dbt_valid_to`**: Bu versiyanın bitdiyi tarix. Hal-hazırda aktiv olan ən son sətir üçün bu sütun `NULL` olur.
@@ -106,7 +106,7 @@ real_world_use:
   az: "Bank və ticarət platformalarında müştəri tariflərinin, işçilərin departamentlərinin və məhsul qiymətlərinin tarixi dəyişikliklərini izləmək."
 common_mistakes:
   en: "Changing the `unique_key` or `strategy` of an active snapshot table in production, which corrupts the historical SCD2 timeline."
-  az: "Canlı istehsalatda aktiv olan snapshot cədvəlinin `unique_key` və ya strategiyasını dəyişərək tarixi SCD2 xəttini korlamaq."
+  az: "Canlı production mühitində aktiv olan snapshot cədvəlinin `unique_key` və ya strategiyasını dəyişərək tarixi SCD2 xəttini korlamaq."
 code: |
   -- =========================================================================
   -- PRODUCTION SNAPSHOT: snapshots/snap_customers.sql
@@ -169,7 +169,7 @@ interview_question:
     az: "dbt Snapshots nədir? SCD Type 2-ni necə tətbiq edir və 'timestamp' ilə 'check' strategiyaları arasındakı fərq nədir?"
   answer:
     en: "dbt Snapshots are specialized models that implement Slowly Changing Dimensions Type 2 (SCD Type 2) to capture point-in-time historical mutations of mutable source tables. Instead of requiring engineers to write complex SQL MERGE and update scripts, dbt manages the table lifecycle automatically, appending metadata columns: `dbt_scd_id`, `dbt_updated_at`, `dbt_valid_from`, and `dbt_valid_to` (which is `NULL` for the active record). The two strategies differ in how they detect changes: (1) The **`timestamp` strategy** is the preferred and most efficient method; it relies on a reliable `updated_at` timestamp column in the source table. If the source `updated_at` is newer than `dbt_updated_at`, dbt triggers a row closure and insertion. (2) The **`check` strategy** is used when the source table lacks a reliable timestamp; dbt calculates a hash/checksum of specified columns (or all columns). If the hash differs between the source and snapshot, dbt registers a mutation and creates a new historical version."
-    az: "dbt Snapshots dəyişən mənbə cədvəllərindəki məlumatların tarixi dəyişikliklərini qeydə almaq üçün Slowly Changing Dimensions Type 2 (SCD Type 2) arxitekturasını avtomatlaşdıran xüsusi modellərdir. Mühəndis əllə mürəkkəb MERGE və UPDATE skriptləri yazmaq əvəzinə, dbt cədvəlin idarəsini öz üzərinə götürür və 4 metadata sütunu əlavə edir: `dbt_scd_id`, `dbt_updated_at`, `dbt_valid_from` və `dbt_valid_to` (hazırda aktiv olan sətir üçün `NULL` qalır). İki aşkarlama strategiyası var: (1) **`timestamp` strategiyası**: Ən optimal metoddur və mənbə cədvəldəki `updated_at` sütununa əsaslanır. Mənbədəki tarix köhnə snapshot tarixindən böyük olduqda köhnə sətir bağlanır və təzəsi açılır. (2) **`check` strategiyası**: Mənbədə dəqiq `updated_at` sütunu **olmadıqda** istifadə olunur; dbt seçilmiş sütunların heşini (checksum) hesablayır. Heş dəyəri dəyişdikdə dbt yeni tarixi sətir əlavə edir."
+    az: "dbt Snapshots dəyişən mənbə cədvəllərindəki məlumatların tarixi dəyişikliklərini qeydə almaq üçün Slowly Changing Dimensions Type 2 (SCD Type 2) arxitekturasını avtomatlaşdıran xüsusi modellərdir. Mühəndis əllə mürəkkəb MERGE və UPDATE skriptləri yazmaq əvəzinə, dbt cədvəlin idarəsini öz üzərinə götürür və 4 metadata sütunu əlavə edir: `dbt_scd_id`, `dbt_updated_at`, `dbt_valid_from` və `dbt_valid_to` (hazırda aktiv olan sətir üçün `NULL` qalır). İki aşkarlama strategiyası var: (1) **`timestamp` strategiyası**: Ən optimal metoddur və mənbə cədvəldəki `updated_at` sütununa əsaslanır. Mənbədəki tarix köhnə snapshot tarixindən böyük olduqda köhnə sətir bağlanır və təzəsi açılır. (2) **`check` strategiyası**: Mənbədə dəqiq `updated_at` sütunu **olmadıqda** istifadə olunur; dbt seçilmiş sütunların hash-ini (checksum) hesablayır. Hash dəyəri dəyişdikdə dbt yeni tarixi sətir əlavə edir."
   interviewer_tips:
     en: "Mention how to query the current active state: `SELECT * FROM snap_customers WHERE dbt_valid_to IS NULL`. This immediately proves you have used dbt snapshots in production."
     az: "Cari aktiv məlumatı necə oxuduğunuzu qeyd edin: `WHERE dbt_valid_to IS NULL`. Bu, dbt snapshot-ları real layihədə istifadə etdiyinizi dərhal sübut edir."

@@ -4,6 +4,7 @@ import { HubSpokeDiagram, type HubSpec } from './HubSpokeDiagram';
 import { ColumnarScanViz } from './ColumnarScanViz';
 import { JoinVenn } from './JoinVenn';
 import { PartitionLogViz } from './PartitionLogViz';
+import { ProducerPartitionerViz } from './ProducerPartitionerViz';
 import { ShuffleViz } from './ShuffleViz';
 import { MedallionViz } from './MedallionViz';
 import { ContainerVsVmViz } from './ContainerVsVmViz';
@@ -102,7 +103,7 @@ const evolution: FlowSpec = {
 };
 
 const starSchema: HubSpec = {
-  title: L('Ulduz Sxemi (Star Schema)', 'Star Schema'),
+  title: L('Star Schema (Ulduz Sxemi)', 'Star Schema'),
   subtitle: L('Mərkəzdə Fact, ətrafda Dimension-lar', 'Fact in the centre, dimensions around it'),
   badge: 'Kimball',
   footer: L(
@@ -196,7 +197,7 @@ const etlVsElt: FlowSpec = {
 };
 
 const kimballFourSteps: FlowSpec = {
-  title: L('Kimball 4 Addımlı Ölçülü Modelləşdirmə', 'Kimball 4-Step Dimensional Modeling'),
+  title: L('Kimball-ın 4 Addımlı Dimensional Modeling Prosesi', 'Kimball 4-Step Dimensional Modeling'),
   badge: 'Kimball',
   footer: L(
     'Denormalizasiya (3NF → Star Schema) JOIN sayını azaldır və analitik sorğuları dəfələrlə sürətləndirir.',
@@ -206,16 +207,16 @@ const kimballFourSteps: FlowSpec = {
     {
       stages: [
         { title: 'Addım 1', nodes: [{ label: L('Biznes Prosesi', 'Business Process'), sub: L('məs: pərakəndə satış', 'e.g. retail checkout'), icon: 'factory', tone: 'blue' }] },
-        { title: 'Addım 2', arrowLabel: 'grain', nodes: [{ label: L('Dənəvərlik (Grain)', 'Declare Grain'), sub: L('1 sətir = 1 qəbz', '1 row = 1 line item'), icon: 'target', tone: 'amber', badge: 'CRITICAL' }] },
-        { title: 'Addım 3', arrowLabel: 'context', nodes: [{ label: L('Ölçülər (Dimensions)', 'Identify Dimensions'), sub: 'who · what · where · when', icon: 'shapes', tone: 'violet' }] },
-        { title: 'Addım 4', arrowLabel: 'metrics', nodes: [{ label: L('Faktlar (Facts)', 'Identify Facts'), sub: 'qty · revenue · discount', icon: 'chart', tone: 'emerald' }] },
+        { title: 'Addım 2', arrowLabel: 'grain', nodes: [{ label: L('Grain (Dənəvərlik)', 'Declare Grain'), sub: L('1 sətir = 1 qəbz', '1 row = 1 line item'), icon: 'target', tone: 'amber', badge: 'CRITICAL' }] },
+        { title: 'Addım 3', arrowLabel: 'context', nodes: [{ label: L('Dimensions (Ölçülər)', 'Identify Dimensions'), sub: 'who · what · where · when', icon: 'shapes', tone: 'violet' }] },
+        { title: 'Addım 4', arrowLabel: 'metrics', nodes: [{ label: L('Facts (Faktlar)', 'Identify Facts'), sub: 'qty · revenue · discount', icon: 'chart', tone: 'emerald' }] },
       ],
     },
   ],
 };
 
 const factVsDim: FlowSpec = {
-  title: L('Fakt Cədvəlləri vs Ölçü Cədvəlləri', 'Fact Tables vs Dimension Tables'),
+  title: L('Fact Cədvəlləri vs Dimension Cədvəlləri', 'Fact Tables vs Dimension Tables'),
   badge: 'Modeling',
   footer: L(
     'Additive faktlar (satış) hər ölçü üzrə toplanır. Semi-Additive (balans) zaman üzrə toplanmaz (AVG/LAST istifadə edilir).',
@@ -244,7 +245,7 @@ const factVsDim: FlowSpec = {
 };
 
 const scdTypes: FlowSpec = {
-  title: L('Yavaş Dəyişən Ölçülər: SCD Type 1 vs SCD Type 2', 'Slowly Changing Dimensions: SCD Type 1 vs SCD Type 2'),
+  title: L('Slowly Changing Dimensions (SCD): Type 1 vs Type 2', 'Slowly Changing Dimensions: SCD Type 1 vs SCD Type 2'),
   badge: 'SCD',
   footer: L(
     'SCD Type 1 köhnə dəyərin üzərinə yazır (tarixçə itir). SCD Type 2 isə yeni sətir əlavə edib tarixçəni tam qoruyur.',
@@ -322,6 +323,35 @@ const dataGovernance: HubSpec = {
     { label: 'Column Lineage', sub: 'source → staging → BI impact', icon: 'waypoints', tone: 'blue', direction: 'both' },
     { label: 'RBAC & Masking', sub: 'PII encryption · row filter', icon: 'lock', tone: 'rose', direction: 'both' },
     { label: 'Data Contracts', sub: 'SLA · schema ownership', icon: 'filecode', tone: 'amber', direction: 'in' },
+  ],
+};
+
+const batchVsStreamingCdc: FlowSpec = {
+  title: L('Batch vs Real-Time Streaming & Log-Əsaslı CDC (Debezium + Kafka)', 'Batch vs. Real-Time Streaming & Log-Based CDC (Debezium + Kafka)'),
+  badge: 'CDC & Streaming',
+  footer: L(
+    'Polling sorğuları silinən sətirləri (Hard Delete) itirir; Log-əsaslı CDC isə WAL-dan hər bir INSERT/UPDATE/DELETE əməliyyatını bazanı yükləmədən tutub yönləndirir.',
+    'Polling queries miss hard deletes and overload OLTP; log-based CDC tails the WAL/binlog to stream full-fidelity mutation events with zero query overhead.'
+  ),
+  rows: [
+    {
+      label: L('Anti-Pattern — Periodik SELECT Polling (Hard Delete-ləri İtirir & DB CPU-nu Doldurur)', 'Anti-Pattern — Periodic Polling (Misses Deletes & Overloads DB)'),
+      tone: 'rose',
+      stages: [
+        { nodes: [{ label: 'OLTP Database', sub: 'Postgres / MySQL', icon: 'db', tone: 'rose' }] },
+        { arrowLabel: 'WHERE updated_at > t', nodes: [{ label: 'SELECT Polling', sub: L('DELETE itir · Ağır skan', 'Misses hard deletes'), icon: 'flame', tone: 'rose', badge: 'LOST DELETES' }] },
+      ],
+    },
+    {
+      label: L('Standart — Log-Əsaslı CDC (Debezium WAL Oxuyur → Kafka → Lakehouse)', 'Gold Standard — Log-Based CDC (Debezium Tails WAL → Kafka → Lakehouse)'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: 'PostgreSQL WAL', sub: 'fiziki ikili jurnal', icon: 'file', tone: 'blue' }] },
+        { arrowLabel: 'tail WAL', nodes: [{ label: 'Debezium CDC', sub: 'op: c / u / d · before & after', icon: 'zap', tone: 'violet', badge: 'ZERO LOAD' }] },
+        { arrowLabel: 'stream to', nodes: [{ label: 'Kafka Topic', sub: 'replicated event log', icon: 'radio', tone: 'emerald' }] },
+        { arrowLabel: 'MERGE INTO', nodes: [{ label: 'Iceberg / Delta Lake', sub: L('Sub-second real vaxt', 'Sub-second real-time sync'), icon: 'trophy', tone: 'emerald', badge: 'CDC REALTIME ✓' }] },
+      ],
+    },
   ],
 };
 
@@ -445,7 +475,7 @@ const kafkaKraft: FlowSpec = {
       ],
     },
     {
-      label: L('Müasir (Kafka 3.3+) — Daxili KRaft Konsensusu', 'Modern (Kafka 3.3+) — Native KRaft Consensus'),
+      label: L('Müasir (Kafka 3.3+ / 4.0) — Daxili KRaft Konsensusu', 'Modern (Kafka 3.3+ / 4.0) — Native KRaft Consensus'),
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'Controller Quorum', sub: '__cluster_metadata topic (Raft)', icon: 'shield', tone: 'emerald', badge: 'KRAFT' }] },
@@ -525,14 +555,14 @@ const kafkaRebalanceCommit: FlowSpec = {
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'Yeni Consumer qoşulur', icon: 'users', tone: 'emerald' }] },
-        { arrowLabel: 'keep P0, P1', nodes: [{ label: L(' yalnız P2 köçürülür', 'Only P2 Migrates'), sub: L('P0 və P1 dayanmadan işləyir', 'P0 & P1 never stop'), icon: 'zap', tone: 'emerald', badge: 'ZERO DOWNTIME' }] },
+        { arrowLabel: 'keep P0, P1', nodes: [{ label: L('Yalnız P2 köçürülür', 'Only P2 Migrates'), sub: L('P0 və P1 dayanmadan işləyir', 'P0 & P1 never stop'), icon: 'zap', tone: 'emerald', badge: 'ZERO DOWNTIME' }] },
       ],
     },
   ],
 };
 
 const kafkaDeliverySemantics: FlowSpec = {
-  title: L('Çatdırılma Semantikası: At-Most-Once, At-Least-Once, Exactly-Once', 'Delivery Semantics: At-Most, At-Least & Exactly-Once (EOS)'),
+  title: L('Delivery Semantics (Çatdırılma Semantikası): At-Most-Once, At-Least-Once, Exactly-Once', 'Delivery Semantics: At-Most, At-Least & Exactly-Once (EOS)'),
   badge: 'EOS',
   footer: L(
     'Maliyyə və ödəniş axınlarında İdempotent Producer + Transactional API + read_committed birlikdə Exactly-Once (EOS) təmin edir.',
@@ -678,7 +708,7 @@ const sparkInMemory: FlowSpec = {
       ],
     },
     {
-      label: L('Apache Spark — Yaddaşda (In-Memory) Fasiləsiz DAG Boru Kəməri', 'Apache Spark — In-Memory RAM DAG Execution'),
+      label: L('Apache Spark — Yaddaşda (In-Memory) Fasiləsiz DAG Pipeline-ı', 'Apache Spark — In-Memory RAM DAG Execution'),
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'Read Source', icon: 'download', tone: 'blue' }] },
@@ -765,7 +795,7 @@ const sparkCachingOom: FlowSpec = {
 };
 
 const sparkSkewSalting: FlowSpec = {
-  title: L('Məlumat Əyriliyi (Data Skew) və Key Salting Həlli', 'Data Skew Bottleneck & Key Salting Technique'),
+  title: L('Data Skew (Məlumat Əyriliyi) və Key Salting Həlli', 'Data Skew Bottleneck & Key Salting Technique'),
   badge: 'Data Skew',
   footer: L(
     'Məlumatın 90%-i tək açara (məs: user_id="guest") düşdükdə 1 Executor saatlarla ilişir (99% task bitir, 1-i qalır). Salting açarı N yerə bölür.',
@@ -854,13 +884,13 @@ const airflowArch: HubSpec = {
   title: L('Airflow Komponentləri', 'Airflow components'),
   badge: 'Architecture',
   footer: L(
-    'Bütün komponentlər vəziyyəti Metadata DB vasitəsilə paylaşır — Scheduler və Webserver bir-biri ilə birbaşa danışmır.',
-    'All components share state through the metadata database — the scheduler and webserver never talk to each other directly.',
+    'Bütün komponentlər vəziyyəti Metadata DB vasitəsilə paylaşır — Scheduler və Webserver (Airflow 3-də API Server) bir-biri ilə birbaşa danışmır.',
+    'All components share state through the metadata database — the scheduler and webserver (API server in Airflow 3) never talk to each other directly.',
   ),
   center: { label: 'Metadata DB', sub: 'PostgreSQL', icon: 'db', tone: 'indigo' },
   spokes: [
     { label: 'Scheduler', sub: L('DAG-ları planlayır', 'schedules DAGs'), icon: 'clock', tone: 'violet', direction: 'both' },
-    { label: 'Webserver (UI)', sub: L('izləmə', 'monitoring'), icon: 'eye', tone: 'blue', direction: 'both' },
+    { label: 'Webserver / API Server', sub: L('UI & REST API', 'UI & REST API'), icon: 'eye', tone: 'blue', direction: 'both' },
     { label: 'Workers', sub: L('task icra edir', 'run tasks'), icon: 'cpu', tone: 'emerald', direction: 'both' },
     { label: 'Triggerer', sub: 'deferrable', icon: 'timer', tone: 'amber', direction: 'both' },
     { label: 'DAGs folder', sub: '.py', icon: 'filecode', tone: 'slate', direction: 'in' },
@@ -927,7 +957,7 @@ const airflowXcoms: FlowSpec = {
       ],
     },
     {
-      label: L('İstehsalat Qaydası — S3/Parquet + XCom-da Yalnız Fayl Ünvanı (URI)', 'Production Pattern — S3 Parquet + Pass Only URI String in XCom'),
+      label: L('Production Qaydası — S3/Parquet + XCom-da Yalnız Fayl Ünvanı (URI)', 'Production Pattern — S3 Parquet + Pass Only URI String in XCom'),
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'Task A → S3 Parquet', sub: 's3://bucket/run_01.parquet', icon: 'cloud', tone: 'blue' }] },
@@ -957,7 +987,7 @@ const airflowDataInterval: FlowSpec = {
 };
 
 const airflowIdempotence: FlowSpec = {
-  title: L('Catchup, Backfill və İdempotent Boru Kəməri Dizaynı', 'Catchup, Backfill & Idempotent Pipeline Design'),
+  title: L('Catchup, Backfill və İdempotent Pipeline Dizaynı', 'Catchup, Backfill & Idempotent Pipeline Design'),
   badge: 'Idempotence',
   footer: L(
     'İdempotent task-ı eyni tarix üçün 1 dəfə də, 10 dəfə də işlətsəniz hədəf cədvəldə dublikat yaranmır (DELETE + INSERT və ya MERGE).',
@@ -1011,7 +1041,7 @@ const airflowSensors: FlowSpec = {
 };
 
 const airflowExecutors: FlowSpec = {
-  title: L('Airflow İcraçıları: Local vs Celery vs KubernetesExecutor', 'Airflow Executors: Local vs Celery vs KubernetesExecutor'),
+  title: L('Airflow Executor-ları: Local vs Celery vs KubernetesExecutor', 'Airflow Executors: Local vs Celery vs KubernetesExecutor'),
   badge: 'Executors',
   footer: L(
     'Kiçik komanda üçün LocalExecutor, yüksək sürətli sabit klaster üçün CeleryExecutor, tam izolyasiya üçün KubernetesExecutor seçilir.',
@@ -1032,7 +1062,7 @@ const airflowExecutors: FlowSpec = {
         {
           title: 'KubernetesExecutor',
           arrowLabel: 'isolated pods',
-          nodes: [{ label: 'Hər Task = 1 K8s Pod', sub: L('Fərqli Docker imici · İş bitəndə 0 resurs', 'Custom image per task · Scales to zero'), icon: 'container', tone: 'emerald', badge: 'CLOUD NATIVE' }],
+          nodes: [{ label: 'Hər Task = 1 K8s Pod', sub: L('Fərqli Docker image-i · İş bitəndə 0 resurs', 'Custom image per task · Scales to zero'), icon: 'container', tone: 'emerald', badge: 'CLOUD NATIVE' }],
         },
       ],
     },
@@ -1040,7 +1070,7 @@ const airflowExecutors: FlowSpec = {
 };
 
 const airflowDynamicMapping: FlowSpec = {
-  title: L('Dinamik Task Xəritələnməsi: .expand() ilə Paralel İcra', 'Dynamic Task Mapping: Runtime Parallelism with .expand()'),
+  title: L('Dynamic Task Mapping: .expand() ilə Paralel İcra', 'Dynamic Task Mapping: Runtime Parallelism with .expand()'),
   badge: '.expand()',
   footer: L(
     'İcra vaxtı neçə fayl gələcəyi əvvəlcədən bilinmədikdə .expand() siyahıdakı hər element üçün paralel task nüsxəsi yaradır.',
@@ -1066,7 +1096,7 @@ const airflowDynamicMapping: FlowSpec = {
 };
 
 const airflowMonitoring: FlowSpec = {
-  title: L('İstehsalat Qaydaları: Top-Level Kod Tələsi və SLA Xəbərdarlığı', 'Production Rules: Top-Level Code Anti-Pattern & SLA Alerting'),
+  title: L('Production Qaydaları: Top-Level Kod Tələsi və SLA / Deadline Alerts', 'Production Rules: Top-Level Code Anti-Pattern & SLA / Deadline Alerts'),
   badge: 'Best Practices',
   footer: L(
     'DAG faylının çölündə (top-level) DB sorğusu və ya API çağırışı yazmayın — Scheduler hər 30 saniyədən bir həmin kodu icra edib sistemi çökdürəcək!',
@@ -1082,7 +1112,7 @@ const airflowMonitoring: FlowSpec = {
       ],
     },
     {
-      label: L('İstehsalat Standartı — Yalnız @task Daxilində Kod + SLA Callback', 'Production Standard — Queries Strictly Inside @task + Callbacks'),
+      label: L('Production Standartı — Yalnız @task Daxilində Kod + Alert Callback', 'Production Standard — Queries Strictly Inside @task + Callbacks'),
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'Yüngül DAG Tərifləri', sub: 'parse < 50ms', icon: 'ok', tone: 'emerald' }] },
@@ -1191,7 +1221,7 @@ const cicd: FlowSpec = {
 };
 
 const devopsLinuxBash: FlowSpec = {
-  title: L('Linux Boru Kəməri (Pipe `|`) və İstehsalat Bash Skripti', 'Linux Pipe (`|`) Stream & Production Bash Scripting'),
+  title: L('Linux Pipe (`|`) Axını və Production Bash Skripti', 'Linux Pipe (`|`) Stream & Production Bash Scripting'),
   badge: 'Bash & Cron',
   footer: L(
     'set -euo pipefail ilk xətada skripti dərhal dayandırır (exit code != 0) ki, yarımçıq data anbara yüklənməsin.',
@@ -1210,7 +1240,7 @@ const devopsLinuxBash: FlowSpec = {
 };
 
 const devopsGitFlow: FlowSpec = {
-  title: L('Git Budaqlanma Strategiyası, Pull Request və Code Review', 'Git Feature Branch Workflow, Pull Request & Code Review'),
+  title: L('Git Branching Strategiyası, Pull Request və Code Review', 'Git Feature Branch Workflow, Pull Request & Code Review'),
   badge: 'Git & GitHub',
   footer: L(
     'Heç vaxt birbaşa main budağına push etməyin! Hər dəyişiklik izolyasiya olunmuş feature budağında yazılıb PR və CI testindən keçməlidir.',
@@ -1238,7 +1268,7 @@ const devopsDockerLifecycle: FlowSpec = {
   rows: [
     {
       stages: [
-        { title: 'Registry', nodes: [{ label: 'docker pull postgres:16', sub: L('imici endirir', 'download image'), icon: 'download', tone: 'blue' }] },
+        { title: 'Registry', nodes: [{ label: 'docker pull postgres:16', sub: L('image-i endirir', 'download image'), icon: 'download', tone: 'blue' }] },
         { title: 'Start', arrowLabel: 'docker run -d', nodes: [{ label: 'Running Container', sub: '-p 5432:5432 · --name pg', icon: 'play', tone: 'emerald', badge: 'UP' }] },
         { title: 'Debug', arrowLabel: 'exec / logs', nodes: [{ label: 'docker exec -it pg psql', sub: 'docker logs -f pg', icon: 'terminal', tone: 'violet' }] },
         { title: 'Teardown', arrowLabel: 'stop & rm', nodes: [{ label: 'docker stop && docker rm', sub: L('resursları boşaldır', 'clean teardown'), icon: 'archive', tone: 'slate' }] },
@@ -1256,7 +1286,7 @@ const devopsMultiStage: FlowSpec = {
   ),
   rows: [
     {
-      label: L('Tək Mərhələli (Single-Stage) — Ağır və Təhlükəli İmic (1.2 GB)', 'Single-Stage Build — Bloated Image with Compilers (1.2 GB)'),
+      label: L('Single-Stage Build — Ağır və Təhlükəli Image (1.2 GB)', 'Single-Stage Build — Bloated Image with Compilers (1.2 GB)'),
       tone: 'rose',
       stages: [
         { nodes: [{ label: 'FROM python:3.11 (Full)', icon: 'box', tone: 'rose' }] },
@@ -1264,7 +1294,7 @@ const devopsMultiStage: FlowSpec = {
       ],
     },
     {
-      label: L('Multi-Stage Build — Builder + Yüngül Runtime İmic (120 MB)', 'Multi-Stage Build — Builder Stage + Slim Runtime (120 MB)'),
+      label: L('Multi-Stage Build — Builder + Yüngül Runtime Image (120 MB)', 'Multi-Stage Build — Builder Stage + Slim Runtime (120 MB)'),
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'Stage 1: Builder', sub: 'compile wheels', icon: 'hammer', tone: 'blue' }] },
@@ -1327,11 +1357,11 @@ const devopsSecretsSecurity: FlowSpec = {
   ),
   rows: [
     {
-      label: L('Təhlükəli — Git Kodunda və ya Docker İmicində Açıq Parol', 'Vulnerable — Hardcoded Credentials in Git or Image History'),
+      label: L('Təhlükəli — Git Kodunda və ya Docker Image-də Açıq Parol', 'Vulnerable — Hardcoded Credentials in Git or Image History'),
       tone: 'rose',
       stages: [
         { nodes: [{ label: 'ENV DB_PASS="secret123"', icon: 'filecode', tone: 'rose' }] },
-        { arrowLabel: 'docker history', nodes: [{ label: 'Şifrə Hər Kəsə Görünür!', sub: L('Git tarixçəsində və imicdə sızma', 'Leaked in image layer metadata'), icon: 'bug', tone: 'rose', badge: 'LEAKED' }] },
+        { arrowLabel: 'docker history', nodes: [{ label: 'Şifrə Hər Kəsə Görünür!', sub: L('Git tarixçəsində və image-də sızma', 'Leaked in image layer metadata'), icon: 'bug', tone: 'rose', badge: 'LEAKED' }] },
       ],
     },
     {
@@ -1506,7 +1536,7 @@ const dbtSnapshots: FlowSpec = {
 };
 
 const dbtProjectStructure: FlowSpec = {
-  title: L('İstehsalat dbt Layihə Arxitekturası: Staging → Intermediate → Marts', 'Production dbt Project Architecture'),
+  title: L('Production dbt Layihə Arxitekturası: Staging → Intermediate → Marts', 'Production dbt Project Architecture'),
   badge: 'Structure',
   footer: L(
     'Seeds statik CSV sorğu cədvəllərini yükləyir; dbt docs generate isə bütün layihənin interaktiv Lineage kataloqunu yaradır.',
@@ -1640,7 +1670,7 @@ const pythonDictJson: FlowSpec = {
   title: L('Lüğətlər (Dict O(1) Hash), JSON Parsing və .get() Qalxanı', 'Dictionaries (O(1) Hash), JSON Parsing & Safe .get()'),
   badge: 'Dict & JSON',
   footer: L(
-    'API-dən gələn JSON-da açar olmaya bilər: data["user"]["id"] KeyError verib kəməri çökdürür, data.get("user", {}).get("id") isə təhlükəsiz NULL qaytarır.',
+    'API-dən gələn JSON-da açar olmaya bilər: data["user"]["id"] KeyError verib pipeline-ı çökdürür, data.get("user", {}).get("id") isə təhlükəsiz None qaytarır.',
     'Never use raw bracket indexing on external JSON! Chain .get("key", default) to prevent KeyError pipeline crashes.'
   ),
   rows: [
@@ -1731,7 +1761,7 @@ const pythonLoopsIteration: FlowSpec = {
 };
 
 const pythonFunctionsTrap: FlowSpec = {
-  title: L('Modulyar Funksiyalar və Dəyişən Default Arqument Tələsi (buf=[])', 'Modular Functions & The Mutable Default Argument Trap'),
+  title: L('Modulyar Funksiyalar və Mutable Default Argument Tələsi (buf=[])', 'Modular Functions & The Mutable Default Argument Trap'),
   badge: 'Functions',
   footer: L(
     'Heç vaxt def process(row, batch=[]): yazmayın! Python default siyahını yalnız 1 dəfə yaradır və köhnə çağırışların datası bir-birinə qarışır.',
@@ -1776,10 +1806,10 @@ const pythonComprehensions: FlowSpec = {
 };
 
 const pythonErrorHandlingDlq: FlowSpec = {
-  title: L('Müdafiəli Kəmərlər: try/except, Context Manager və Dead-Letter Queue (DLQ)', 'Defensive Pipelines: try/except, Context Managers & Dead-Letter Queue'),
+  title: L('Defensive Pipelines: try/except, Context Manager və Dead-Letter Queue (DLQ)', 'Defensive Pipelines: try/except, Context Managers & Dead-Letter Queue'),
   badge: 'DLQ Pattern',
   footer: L(
-    '1 milyon sətirdən 1-i xarabdırsa, bütün ETL kəməri çökməməlidir! Xətalı sətri tutub Dead-Letter Queue (DLQ) cədvəlinə yazın və davam edin.',
+    '1 milyon sətirdən 1-i xarabdırsa, bütün ETL pipeline-ı çökməməlidir! Xətalı sətri tutub Dead-Letter Queue (DLQ) cədvəlinə yazın və davam edin.',
     'A single malformed record out of 1M must not crash the nightly batch! Route bad rows to a Dead-Letter Queue (DLQ) for inspection.'
   ),
   rows: [
@@ -1794,6 +1824,59 @@ const pythonErrorHandlingDlq: FlowSpec = {
             { label: 'except ValueError: 5 Xətalı Sətir', sub: '→ s3://lake/dlq/bad_rows.json', icon: 'inbox', tone: 'amber', badge: 'DLQ SAVED' },
           ],
         },
+      ],
+    },
+  ],
+};
+
+const pythonRestApiIngestion: FlowSpec = {
+  title: L('REST API Data Toplanması: Səhifələmə, Rate Limit və Exponential Backoff', 'REST API Ingestion: Cursor Pagination, Rate Limit & Exponential Backoff'),
+  badge: 'API Ingestion',
+  footer: L(
+    '429 Too Many Requests xətası zamanı dərhal təkrar sorğu göndərməyin! Gözləmə müddətini 2^attempt düsturu ilə artırın.',
+    'Never retry immediately on HTTP 429 Too Many Requests! Scale delays exponentially (2^attempt) with random jitter.'
+  ),
+  rows: [
+    {
+      stages: [
+        { title: '1. API Request', nodes: [{ label: 'GET /v1/events?cursor=evt_100', sub: 'Bearer token auth', icon: 'cloud', tone: 'blue' }] },
+        {
+          title: '2. Status Guard',
+          arrowLabel: 'HTTP status',
+          nodes: [
+            { label: '200 OK: 100 Sətir', sub: '→ növbəti cursor səhifəsi', icon: 'ok', tone: 'emerald', badge: 'PAGE ✓' },
+            { label: '429 / 503: Rate Limit', sub: 'sleep(base * 2^attempt + jitter)', icon: 'clock', tone: 'amber', badge: 'BACKOFF' },
+          ],
+        },
+        { title: '3. Lake Storage', arrowLabel: 'append', nodes: [{ label: 's3://lake/bronze/events/', sub: 'Parquet / JSONL batch', icon: 'db', tone: 'emerald', badge: 'STORED' }] },
+      ],
+    },
+  ],
+};
+
+const pythonPandasBasics: FlowSpec = {
+  title: L('Pandas Vektorlaşdırma vs Sətir Dövrəsi (.iterrows()) və NULL İdarəsi', 'Pandas Vectorization vs Row Iteration (.iterrows()) & Missing Data'),
+  badge: 'Pandas Vectorization',
+  footer: L(
+    '.iterrows() təmiz Python interpretasiyası olduğu üçün ləngdir; vektorlaşdırma isə compiled C/NumPy buferlərində 100x sürətlə icra olunur.',
+    '.iterrows() runs in slow interpreted Python; vectorized expressions delegate directly to compiled C/NumPy memory buffers.'
+  ),
+  rows: [
+    {
+      label: L('Anti-Pattern — for idx, row in df.iterrows(): (Dəqiqələrlə Donma)', 'Anti-Pattern — .iterrows() Row-by-Row Interpretation (100x Slower)'),
+      tone: 'rose',
+      stages: [
+        { nodes: [{ label: '100,000 Sətirlik DataFrame', icon: 'table', tone: 'rose' }] },
+        { arrowLabel: '.iterrows()', nodes: [{ label: '100,000 Python Series Obyekti', sub: L('Hər sətir üçün overhead', 'Pure Python loop'), icon: 'flame', tone: 'rose', badge: '100x SLOWER' }] },
+      ],
+    },
+    {
+      label: L('Standart — df["tax"] = df["amt"] * 0.18 & fillna(0.0) (C-Sürətli)', 'Gold Standard — Vectorized C Execution & Defensive fillna(0.0)'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: 'fillna(0.0) + SIMD Array', sub: 'NumPy C-Memory buffer', icon: 'boxes', tone: 'blue' }] },
+        { arrowLabel: 'compiled C', nodes: [{ label: 'Vektor Hesablama (1 addım)', sub: L('Bütün sütun eyni anda hesablanır', 'SIMD processor parallelism'), icon: 'zap', tone: 'emerald', badge: 'VECTORIZED ✓' }] },
+        { arrowLabel: 'groupby()', nodes: [{ label: 'Aggregated Metrics', sub: 'clean grouped KPIs', icon: 'trophy', tone: 'emerald', badge: 'CLEAN' }] },
       ],
     },
   ],
@@ -1856,7 +1939,7 @@ const sqlKeysNormalization: FlowSpec = {
 };
 
 const sqlGroupByHaving: FlowSpec = {
-  title: L('Aqreqasiya Boru Kəməri: WHERE (Sətir Filtri) vs GROUP BY vs HAVING (Qrup Filtri)', 'Aggregation Pipeline: WHERE (Pre-Filter) vs GROUP BY vs HAVING (Post-Filter)'),
+  title: L('Aqreqasiya Pipeline-ı: WHERE (Sətir Filtri) vs GROUP BY vs HAVING (Qrup Filtri)', 'Aggregation Pipeline: WHERE (Pre-Filter) vs GROUP BY vs HAVING (Post-Filter)'),
   badge: 'GROUP BY',
   footer: L(
     'Qızıl Qayda: Qruplaşdırmadan əvvəl sətirləri WHERE ilə süzün ki, GROUP BY heş cədvəli kiçik olsun; HAVING yalnız SUM/COUNT nəticəsi üçündür!',
@@ -1929,7 +2012,7 @@ const sqlCaseCoalesce: FlowSpec = {
 };
 
 const sqlCteVsSubquery: FlowSpec = {
-  title: L('CTE (WITH Qaralama Cədvəlləri) vs İç-İçə Subquery Piramidası', 'Modular CTEs (WITH Clause) vs Nested Subquery Pyramids'),
+  title: L('CTE (WITH — Common Table Expressions) vs İç-İçə Subquery Piramidası', 'Modular CTEs (WITH Clause) vs Nested Subquery Pyramids'),
   badge: 'CTE Pipeline',
   footer: L(
     'CTE (Common Table Expressions) mürəkkəb 200 sətirlik sorğunu yuxarıdan aşağıya oxunan təmiz məntiqi addımlara bölür (dbt modellərinin əsasıdır).',
@@ -1944,7 +2027,7 @@ const sqlCteVsSubquery: FlowSpec = {
       ],
     },
     {
-      label: L('Müasir CTE (WITH) — Yuxarıdan Aşağıya Modulyar Boru Kəməri', 'Modern CTE — Linear, Reusable Step-by-Step Pipeline'),
+      label: L('Müasir CTE (WITH) — Yuxarıdan Aşağıya Modulyar Pipeline', 'Modern CTE — Linear, Reusable Step-by-Step Pipeline'),
       tone: 'emerald',
       stages: [
         { nodes: [{ label: 'WITH clean_orders AS (...)', icon: 'filter', tone: 'blue' }] },
@@ -1959,7 +2042,7 @@ const sqlSetOperations: FlowSpec = {
   title: L('Çoxluq Əməliyyatları: UNION ALL vs UNION vs INTERSECT vs EXCEPT', 'SQL Set Operations: UNION ALL, UNION, INTERSECT & EXCEPT'),
   badge: 'Set Ops',
   footer: L(
-    'Dublikatların silinməsi lazım deyilsə həmişə UNION ALL yazın! Adi UNION bütün cədvəli sıralayıb dublikat axtardığı üçün 5x–10x yavaşdır.',
+    'Dublikatların silinməsi lazım deyilsə həmişə UNION ALL yazın! Adi UNION bütün cədvəli sıralayıb dublikat axtardığı üçün əhəmiyyətli dərəcədə yavaşdır.',
     'Always prefer UNION ALL unless deduplication is strictly required — plain UNION triggers an expensive full-table sort!'
   ),
   rows: [
@@ -1974,13 +2057,70 @@ const sqlSetOperations: FlowSpec = {
   ],
 };
 
+const sqlIndexesBTree: FlowSpec = {
+  title: L('İndekslər, B-Tree Strukturu və EXPLAIN QUERY PLAN', 'Indexes, B-Tree Traversal & EXPLAIN QUERY PLAN'),
+  badge: 'B-Tree & EXPLAIN',
+  footer: L(
+    'İndeks O(N) tam skanı O(log N) axtarışına çevirir; lakin hər yeni indeks INSERT/UPDATE/DELETE əməliyyatlarını yavaşladır!',
+    'Indexes convert O(N) full scans into O(log N) seeks; however, each extra index degrades INSERT/UPDATE write throughput.'
+  ),
+  rows: [
+    {
+      label: L('Full Table Scan (SCAN users) — Bütün Diski Ardıcıl Oxuyur', 'Full Table Scan (SCAN) — Sequential Disk Read O(N)'),
+      tone: 'rose',
+      stages: [
+        { nodes: [{ label: '1,000,000 Sətir (Disk)', icon: 'db', tone: 'rose' }] },
+        { arrowLabel: 'SCAN users', nodes: [{ label: 'Blok-blok Skan', sub: L('Yüksək disk I/O və gecikmə', 'High disk I/O bottleneck'), icon: 'flame', tone: 'rose', badge: 'O(N) SCAN' }] },
+      ],
+    },
+    {
+      label: L('B-Tree İndeksi (SEARCH USING INDEX) — Loqarifmik Sürətli Tapıntı', 'B-Tree Index (SEARCH) — Direct Pointer Seek O(log N)'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: 'Root Node', sub: 'A – Z aralığı', icon: 'listtree', tone: 'blue' }] },
+        { arrowLabel: 'Index Seek', nodes: [{ label: 'Leaf Node + RowID', sub: L('3 səviyyəli keçid', 'O(log N) tree hop'), icon: 'zap', tone: 'violet' }] },
+        { arrowLabel: 'table fetch', nodes: [{ label: 'Target Record', sub: L('Dərhal tapıldı', 'Instant record lookup'), icon: 'ok', tone: 'emerald', badge: 'O(log N) ✓' }] },
+      ],
+    },
+  ],
+};
+
+const sqlThreeValuedLogic: FlowSpec = {
+  title: L('SQL Üçqiymətli Məntiqi (3VL) və NULL Tələləri: TRUE, FALSE, UNKNOWN', 'SQL Three-Valued Logic (3VL) & NULL Traps: TRUE, FALSE, UNKNOWN'),
+  badge: '3VL & NULL',
+  footer: L(
+    'SQL-də `col = NULL` həmişə UNKNOWN verir (0 sətir seçilir)! NOT IN tərkibində bircə NULL varsa, bütün sorğu boş qayıdır.',
+    'In SQL `col = NULL` always yields UNKNOWN! A single NULL in a NOT IN subquery collapses the entire query to 0 rows.'
+  ),
+  rows: [
+    {
+      label: L('Tələ — col = NULL və NOT IN (..., NULL) (0 Sətir Qaytarır!)', 'Trap — col = NULL & NOT IN (..., NULL) Returns 0 Rows!'),
+      tone: 'rose',
+      stages: [
+        { nodes: [{ label: "WHERE country = NULL", icon: 'filter', tone: 'rose' }] },
+        { arrowLabel: 'evaluates to', nodes: [{ label: 'UNKNOWN!', sub: L('WHERE yalnız TRUE qəbul edir', 'Only TRUE passes WHERE'), icon: 'bug', tone: 'rose', badge: '0 ROWS' }] },
+        { arrowLabel: 'x NOT IN (1, NULL)', nodes: [{ label: 'x != NULL → UNKNOWN', sub: L('Bütün sorğu partlayır', 'Collapses whole filter'), icon: 'flame', tone: 'rose', badge: 'EMPTY SET' }] },
+      ],
+    },
+    {
+      label: L('Təhlükəsiz — IS NULL, NOT EXISTS və COALESCE Qalxanı', 'Defensive — IS NULL, NOT EXISTS & COALESCE Guard'),
+      tone: 'emerald',
+      stages: [
+        { nodes: [{ label: 'WHERE country IS NULL', icon: 'shield', tone: 'blue' }] },
+        { arrowLabel: 'deterministic', nodes: [{ label: 'TRUE / FALSE', sub: L('2-qiymətli dəqiq filtr', 'Two-valued logic'), icon: 'ok', tone: 'violet' }] },
+        { arrowLabel: 'clean', nodes: [{ label: "COALESCE(c, 'N/A')", sub: L('Hesablamalar üçün təhlükəsiz', 'Safe for aggregations'), icon: 'trophy', tone: 'emerald', badge: '3VL SAFE ✓' }] },
+      ],
+    },
+  ],
+};
+
 /* ================================== REGISTRY ================================== */
 
 const flow = (spec: FlowSpec) => () => <FlowDiagram spec={spec} />;
 const hub = (spec: HubSpec) => () => <HubSpokeDiagram spec={spec} />;
 
 const REGISTRY: Record<string, () => React.ReactNode> = {
-  // 1. DATA ARCHITECTURE (12/12 Complete)
+  // 1. DATA ARCHITECTURE (13/13 Complete)
   'data_architecture:01-oltp-vs-olap-columnar': () => <ColumnarScanViz />,
   'data_architecture:02-what-is-dwh-why-needed': flow(dwhWhy),
   'data_architecture:03-evolution-dwh-lake-lakehouse': flow(evolution),
@@ -1993,6 +2133,7 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'data_architecture:10-partitioning-bucketing-zorder': () => <DataSkippingViz />,
   'data_architecture:11-etl-vs-elt-evolution': flow(etlVsElt),
   'data_architecture:12-data-quality-lineage-governance': hub(dataGovernance),
+  'data_architecture:13-batch-vs-streaming-cdc': flow(batchVsStreamingCdc),
 
   // 2. DBT (6/6 Complete)
   'dbt:01-what-is-dbt-elt-philosophy': flow(dbtLineage),
@@ -2007,7 +2148,7 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'kafka:02-architecture-cluster-kraft': flow(kafkaKraft),
   'kafka:03-topics-partitions-log': () => <PartitionLogViz />,
   'kafka:04-offsets-ordering': flow(kafkaOffsetsOrdering),
-  'kafka:05-producer-keys-partitioner': () => <PartitionLogViz />,
+  'kafka:05-producer-keys-partitioner': () => <ProducerPartitionerViz />,
   'kafka:06-producer-acks-idempotence': flow(kafkaProducerAcks),
   'kafka:07-replication-isr-leader': hub(kafkaReplication),
   'kafka:08-consumer-consumer-groups': flow(kafkaGroups),
@@ -2058,7 +2199,7 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'devops:11-cicd-github-actions': flow(cicd),
   'devops:12-kubernetes-monitoring-observability': hub(devopsK8sMonitoring),
 
-  // 7. SQL (10/10 Complete)
+  // 7. SQL (12/12 Complete)
   'sql:01-select-where': flow(sqlSelectWhere),
   'sql:02-order-by-limit': flow(sqlOrderByLimit),
   'sql:03-keys-normalization': flow(sqlKeysNormalization),
@@ -2069,8 +2210,10 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'sql:08-window-functions': () => <WindowFunctionViz />,
   'sql:09-ctes-subqueries': flow(sqlCteVsSubquery),
   'sql:10-set-operations': flow(sqlSetOperations),
+  'sql:11-indexes-b-tree-explain': flow(sqlIndexesBTree),
+  'sql:12-three-valued-logic-null': flow(sqlThreeValuedLogic),
 
-  // 8. PYTHON (11/11 Complete)
+  // 8. PYTHON (13/13 Complete)
   'python:01-variables-types': flow(pythonVariablesTypes),
   'python:02-string-operations': flow(pythonStringOps),
   'python:03-lists-slicing': flow(pythonListsSlicing),
@@ -2082,6 +2225,8 @@ const REGISTRY: Record<string, () => React.ReactNode> = {
   'python:09-comprehensions': flow(pythonComprehensions),
   'python:10-error-handling-files': flow(pythonErrorHandlingDlq),
   'python:11-generators-memory': flow(generators),
+  'python:12-rest-api-ingestion-retry': flow(pythonRestApiIngestion),
+  'python:13-pandas-basics-dataframes': flow(pythonPandasBasics),
 };
 
 export function hasAnimatedInfographic(moduleId: string, lessonId: string): boolean {

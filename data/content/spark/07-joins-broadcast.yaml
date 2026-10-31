@@ -139,7 +139,7 @@ what_it_does:
   az: "Böyük cədvəlin shuffle olunmasının qarşısını almaq üçün broadcast ipucundan istifadə edərək paylanmış birləşməni optimallaşdırmağı nümayiş etdirir."
 real_world_use:
   en: "Star schema data warehouses: Fact tables (Billions of rows) joined with Dimension tables (Customers, Dates, Stores). Broadcasting dimension tables speeds up daily ETL jobs by hours."
-  az: "Ulduz sxemli (Star Schema) data anbarlarında: Milyardlarla sətirli Fakt cədvəlini kiçik Dimensiya cədvəlləri (Tarix, Mağaza, Kateqoriya) ilə birləşdirəndə istifadə olunur və işi saatlarla sürətləndirir."
+  az: "Star Schema (Ulduz sxemi) data anbarlarında: Milyardlarla sətirli Fakt cədvəlini kiçik Dimensiya cədvəlləri (Tarix, Mağaza, Kateqoriya) ilə birləşdirəndə istifadə olunur və işi saatlarla sürətləndirir."
 common_mistakes:
   en: |
     - **Forcing broadcast on a 50 GB table**: The Driver node MUST collect the entire broadcast table into its own RAM first. Broadcasting a 50GB table instantly crashes the Driver with an OutOfMemoryError.
@@ -171,10 +171,10 @@ interview_question:
       2. **Hədd (Threshold)**:
          - `spark.sql.autoBroadcastJoinThreshold` parametri ilə idarə olunur. Susmaya görə **10 MB**-dır. `-1` təyin etsəniz, broadcast tamamilə söndürülür.
       3. **Baş Verən Fəlakət (Driver OOM)**:
-         - Çünki 1-ci addımda Driver bütün həmin cədvəli təkbaşına öz yaddaşına yükləməyə məcburdur. 8 GB yaddaşı olan Driver-ə 20 GB-lıq cədvəli broadcast etsəniz, dərhal `java.lang.OutOfMemoryError: Java heap space` xətası ilə bütün kəmər çökəcək.
+         - Çünki 1-ci addımda Driver bütün həmin cədvəli təkbaşına öz yaddaşına yükləməyə məcburdur. 8 GB yaddaşı olan Driver-ə 20 GB-lıq cədvəli broadcast etsəniz, dərhal `java.lang.OutOfMemoryError: Java heap space` xətası ilə bütün pipeline çökəcək.
   interviewer_tips:
     en: "Emphasize that the broadcast table is serialized on the DRIVER first. Mentioning 'Driver OOM risk during collect' is the hallmark of an engineer who has real production battle scars."
-    az: "Müsahibədə vurğulayın ki, cədvəl əvvəlcə DRIVER-ə çəkilir. 'Böyük cədvəli broadcast etdikdə Driver OOM olar' demək real istehsalat təcrübəsinə malik olduğunuzu göstərən ən vacib siqnaldır."
+    az: "Müsahibədə vurğulayın ki, cədvəl əvvəlcə DRIVER-ə çəkilir. 'Böyük cədvəli broadcast etdikdə Driver OOM olar' demək real production təcrübəsinə malik olduğunuzu göstərən ən vacib siqnaldır."
 flashcards:
   - front:
       en: "What is the primary performance benefit of a Broadcast Hash Join (BHJ)?"

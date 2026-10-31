@@ -3,7 +3,7 @@ order: 11
 level: "advanced"
 title:
   en: "Data Retention & Log Compaction: State Storage & Tombstones"
-  az: "Məlumatın Saxlanması və Log Compaction: Vəziyyət Saxlanc və Tombstone"
+  az: "Məlumatın Saxlanması (Retention) və Log Compaction: State Saxlancı və Tombstone"
 infographic:
   en: |
     ```text

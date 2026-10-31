@@ -69,7 +69,7 @@ what_it_does:
   az: "İstifadəçi ID siyahısından təkrar elementləri set() ilə təmizləyir, kəsişmə və fərq əməliyyatlarını aparır və dəyişməz tuple strukturunu nümayiş etdirir."
 real_world_use:
   en: "Deduplicating incoming event keys and finding missing IDs during data reconciliation (e.g. comparing expected source rows against destination table rows)."
-  az: "Boru kəmərində daxil olan açarları deduplikasiya etmək və tutuşdurma zamanı itən qeydləri tapmaq (məs. mənbədə olan, lakin hədəf cədvələ çatmayan sətirləri `source_ids - dest_ids` ilə tapmaq)."
+  az: "Data pipeline-ında daxil olan açarları deduplikasiya etmək və tutuşdurma zamanı itən qeydləri tapmaq (məs. mənbədə olan, lakin hədəf cədvələ çatmayan sətirləri `source_ids - dest_ids` ilə tapmaq)."
 common_mistakes:
   en: |
     - **Using a list for membership checking in large datasets**: Checking `if x in my_list` on 1,000,000 items takes O(N) linear time per check. Converting to `set` makes it instant O(1).
@@ -82,16 +82,19 @@ common_mistakes:
 interview_question:
   question:
     en: "What is the difference in performance between checking `x in my_list` versus `x in my_set`, and how does it affect data pipeline scalability?"
-    az: "`x in my_list` ilə `x in my_set` yoxlaması arasındakı performans fərqi nədir və bu data kəmərinin miqyaslanmasına necə təsir göstərir?"
+    az: "`x in my_list` ilə `x in my_set` yoxlaması arasındakı performans fərqi nədir və bu data pipeline-ının miqyaslanmasına necə təsir göstərir?"
   answer:
     en: |
       1. **List Search Complexity (O(N))**: Python must scan elements sequentially from index 0 until a match is found. If the list has 1,000,000 elements, checking 1,000 incoming records takes 1,000,000,000 operations ($O(M \times N)$), bringing the pipeline to a crawl.
       2. **Set Search Complexity (O(1))**: A set uses a hash table. Python hashes `x` and checks the bucket directly in constant time $O(1)$. Checking 1,000 records takes only 1,000 operations ($O(M)$).
       3. **Pipeline Scalability**: Using sets for lookup tables (e.g. filtering blacklisted IP addresses or finding active customer keys) turns multi-hour batch runs into sub-second executions.
     az: |
-      1. **Siyahıda Axtarış (O(N))**: Python elementi tapana qədər 0-cı indeksdən sona kimi ardıcıl oxuyur. 1 milyonluq siyahıda 1,000 yeni qeydi yoxlamaq 1 milyard əməliyyat ($O(M \times N)$) tələb edir və kəməri dondurur.
+      1. **Siyahıda Axtarış (O(N))**: Python elementi tapana qədər 0-cı indeksdən sona kimi ardıcıl oxuyur. 1 milyonluq siyahıda 1,000 yeni qeydi yoxlamaq 1 milyard əməliyyat ($O(M \times N)$) tələb edir və pipeline-ı dondurur.
       2. **Çoxluqda Axtarış (O(1))**: Çoxluq hash cədvəlindən istifadə edir. Python `x`-in hash kodunu tapıb birbaşa yaddaş xanasına baxır ($O(1)$). 1,000 qeydi yoxlamaq cəmi 1,000 əməliyyat ($O(M)$) çəkir.
-      3. **Kəmərin Miqyası**: Axtarış filtrlərində (məs. qara siyahıdakı IP-ləri və ya aktiv müştəri ID-lərini süzərkən) siyahı əvəzinə `set` istifadə etmək saatlarla davam edən skriptləri millisaniyələrə endirir.
+      3. **Pipeline-ın Miqyası**: Axtarış filtrlərində (məs. qara siyahıdakı IP-ləri və ya aktiv müştəri ID-lərini süzərkən) siyahı əvəzinə `set` istifadə etmək saatlarla davam edən skriptləri millisaniyələrə endirir.
+  interviewer_tips:
+    en: "Mention the memory vs. CPU trade-off: `set` gives O(1) lookup speed at the cost of higher RAM consumption (sparse hash table), whereas `tuple` has the smallest memory footprint because its size is fixed at allocation time."
+    az: "Yaddaş və sürət kompromisini (trade-off) qeyd edin: `set` hash cədvəli saxladığı üçün daha çox RAM sərf edərək O(1) axtarış sürəti verir, `tuple` isə ölçüsü sabit olduğu üçün ən az yaddaş tutan strukturdur."
 exercise:
   question:
     en: "Write a function `find_missing_ids(expected_ids, received_ids)` that takes two lists of IDs, converts them to sets, finds the IDs that were expected but never received, and returns them as a sorted list."

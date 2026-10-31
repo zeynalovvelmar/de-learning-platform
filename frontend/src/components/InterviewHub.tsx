@@ -155,7 +155,7 @@ export function InterviewHub({
               </span>
 
               <span className="font-mono text-xs text-muted">
-                {questions.length} {isAz ? 'Real Müsahibə Sualı' : 'Real Interview Questions'} • FAANG & Enterprise
+                {questions.length} {isAz ? 'Texniki Müsahibə Sualı' : 'Technical Interview Questions'} • Intern / Junior → Middle
               </span>
             </div>
 
@@ -167,8 +167,8 @@ export function InterviewHub({
 
             <p className="text-sm sm:text-base text-ink-2 max-w-3xl leading-relaxed">
               {isAz
-                ? 'Bütün 8 modul üzrə senior səviyyəli data mühəndisi müsahibələrində ən çox verilən 87 sual, dərin konseptual cavablar və müsahibəçilərin axtardığı əsas açar məqamlar.'
-                : '87 curated, deep technical interview questions across all 8 core modules, complete with authoritative answers and senior interviewer insider tips.'}
+                ? 'Bütün 8 modul üzrə Intern və Junior Data Engineer müsahibələrində ən çox soruşulan 87 sual, dəqiq texniki cavablar və müsahibəçilərin diqqət etdiyi açar məqamlar.'
+                : '87 curated technical interview questions across all 8 core modules for Intern and Junior Data Engineer roles, complete with detailed answers and interviewer tips.'}
             </p>
           </div>
 
@@ -187,8 +187,8 @@ export function InterviewHub({
               <div className="text-base font-bold text-secondary mt-0.5">{isAz ? 'Aktiv Özünü Sına' : 'Active Recall'}</div>
             </div>
             <div className="bg-surface p-2.5 rounded-xl border border-line">
-              <div className="text-[10px] text-muted uppercase tracking-wider">{isAz ? 'İzah Dərinliyi' : 'Depth'}</div>
-              <div className="text-base font-bold text-amber-400 mt-0.5">Senior / Staff</div>
+              <div className="text-[10px] text-muted uppercase tracking-wider">{isAz ? 'Hədəf Səviyyə' : 'Target Level'}</div>
+              <div className="text-base font-bold text-amber-400 mt-0.5">Intern / Junior+</div>
             </div>
           </div>
         </div>
@@ -262,7 +262,7 @@ export function InterviewHub({
             <div className="flex items-center justify-between sm:justify-end gap-2.5">
               {/* Level Dropdown / Pills */}
               <div className="inline-flex p-0.5 rounded-lg border border-line bg-surface text-[11px] font-mono">
-                {['all', 'junior', 'middle', 'senior'].map((lvl) => (
+                {['all', 'junior', 'intermediate', 'advanced'].map((lvl) => (
                   <button
                     key={lvl}
                     type="button"
@@ -374,9 +374,9 @@ export function InterviewHub({
                       <div className="flex items-center gap-2.5">
                         <span className={cn(
                           'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border',
-                          q.level === 'senior' 
+                          q.level === 'advanced' 
                             ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                            : q.level === 'middle'
+                            : q.level === 'intermediate'
                             ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
                             : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                         )}>
@@ -432,19 +432,19 @@ export function InterviewHub({
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-secondary">
                           <CheckCircle2 className="h-3.5 w-3.5 text-secondary" />
-                          <span>{isAz ? 'DƏRİN TEXNİKİ İZAH VƏ CAVAB' : 'AUTHORITATIVE TECHNICAL ANSWER'}</span>
+                          <span>{isAz ? 'DƏRİN TEXNİKİ İZAH VƏ CAVAB' : 'TECHNICAL ANSWER'}</span>
                         </div>
                         <div className="text-xs sm:text-[13px] leading-relaxed text-ink-2 font-sans space-y-3 bg-surface-lowest p-4 rounded-xl border border-line">
                           <Markdown source={t(q.answer)} idScope={`iq-ans-${cardKey}-`} />
                         </div>
                       </div>
 
-                      {/* Senior Interviewer Tips Box */}
+                      {/* Interviewer Tips Box */}
                       {q.interviewer_tips && (
                         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
                           <div className="flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
                             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                            <span>{isAz ? 'SENIOR MÜSAHİBƏÇİ İPUCU' : 'SENIOR INTERVIEWER TIP'}</span>
+                            <span>{isAz ? 'MÜSAHİBƏ İPUCU' : 'INTERVIEWER TIP'}</span>
                           </div>
                           <p className="text-xs text-amber-100/90 leading-relaxed font-sans">
                             {t(q.interviewer_tips)}

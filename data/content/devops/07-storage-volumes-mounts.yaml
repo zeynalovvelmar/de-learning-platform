@@ -39,7 +39,7 @@ infographic:
             ┌─────────────────────────┴─────────────────────────┐
             ▼                                                   ▼
     ┌───────────────────────────────┐   ┌───────────────────────────────┐
-    │ NAMED VOLUMES (İstehsalat DWH)│   │ BIND MOUNTS (Development Üçün)│
+    │ NAMED VOLUMES (Production DWH)│   │ BIND MOUNTS (Development Üçün)│
     │ • Docker tərəfindən idarə olun│   │ • Kompüterdəki dəqiq qovluğu  │
     │ • Yüksək I/O sürəti           │   │   konteynerə bağlayır         │
     │ • Konteyner silinsə də QALIR  │   │ • Canlı kod yenilənməsi üçün  │
@@ -64,18 +64,18 @@ explanation:
     - **Use Case in Data Engineering**: Mounting your local Airflow DAG directory. When you edit a Python file in VS Code on your laptop, the Airflow scheduler running inside the container detects the change instantly without rebuilding the Docker image!
   az: |
     ### Konteynerlərin Müvəqqəti Təbiəti (Ephemeral Storage)
-    Docker konteynerləri fəlsəfə etibarilə atıla bilən (müvəqqəti) vahidlərdir. Konteyner işləyərkən yaradılan bütün yeni fayllar müvəqqəti oxu-yaz layında saxlanılır.
-    - Konteyner silinən kimi (`docker rm`), həmin lay və içindəki hər şey **birdəfəlik məhv olur**.
+    Docker konteynerləri fəlsəfə etibarilə atıla bilən (müvəqqəti) vahidlərdir. Konteyner işləyərkən yaradılan bütün yeni fayllar müvəqqəti oxu-yazı layer-ində (layında) saxlanılır.
+    - Konteyner silinən kimi (`docker rm`), həmin layer və içindəki hər şey **birdəfəlik məhv olur**.
     - Data mühəndisliyində (PostgreSQL, Kafka loqları, ClickHouse, MinIO) **datanın itirilməsi yolverilməzdir**.
 
-    ### 1. Named Volumes (İstehsalat Standartı)
+    ### 1. Named Volumes (Production Standartı)
     - **İş prinsipi**: Docker host maşında xüsusi bir saxlanc qovluğu açır və onu idarə edir (`/var/lib/docker/volumes/...`).
     - **Ən böyük üstünlüyü**: Konteynerin ömründən tamamilə müstəqildir! Siz Postgres konteynerini silə, versiyasını 15-dən 16-ya qaldıra və həmin volume-u yenidən qoşa bilərsiniz — bazadakı bütün cədvəllər və məlumatlar olduğu kimi qalacaq.
-    - **Təyinatı**: Bütün istehsalat verilənlər bazaları və dövlətli (stateful) sistemlər üçün şərtdir.
+    - **Təyinatı**: Bütün production verilənlər bazaları və stateful (vəziyyət saxlayan) sistemlər üçün şərtdir.
 
     ### 2. Bind Mounts (Development üçün Ən Rahat Yol)
     - **İş prinsipi**: Kompüterinizdəki istənilən dəqiq qovluğu birbaşa konteynerin daxilinə bağlayır (məsələn: `-v $(pwd)/dags:/opt/airflow/dags`).
-    - **DE-də Ən Geniş İstifadəsi**: Airflow DAG qovluğu! Siz noutbukunuzda VS Code ilə Python kodunu dəyişib yaddaşa verən kimi, Docker konteynerinin içindəki Airflow Scheduler dəyişikliyi 1 saniyədə görür; imici təzədən qurmağa ehtiyac qalmır!
+    - **DE-də Ən Geniş İstifadəsi**: Airflow DAG qovluğu! Siz noutbukunuzda VS Code ilə Python kodunu dəyişib yaddaşa verən kimi, Docker konteynerinin içindəki Airflow Scheduler dəyişikliyi 1 saniyədə görür; Docker image-i təzədən qurmağa ehtiyac qalmır!
 quick_recap:
   en: "Containers are stateless by default. Use Named Volumes for durable databases (Postgres, Kafka) and Bind Mounts for live local development code (Airflow DAGs)."
   az: "Konteynerlər susmaya görə vəziyyətsizdir. Bazalar üçün Named Volume, canlı inkişaf kodu üçün isə Bind Mount istifadə edin."
@@ -162,17 +162,17 @@ interview_question:
     az: "Docker Named Volume ilə Bind Mount arasındakı fərq nədir? Data Mühəndisliyi arxitekturasında hansını nə vaxt istifadə edərdiniz?"
   answer:
     en: "A Named Volume is managed entirely by Docker within a dedicated storage directory on the host (e.g. `/var/lib/docker/volumes/`). It is decoupled from the host directory structure, delivers optimal I/O performance, avoids host permission issues, and persists even when containers are removed. In Data Engineering, Named Volumes are mandatory for databases (PostgreSQL, ClickHouse, MinIO) and messaging systems (Kafka topic logs). A Bind Mount directly mounts a specific, user-defined path on the host machine into the container. It is best used during local development, such as mounting your local `./dags` folder into an Apache Airflow container so that DAG code changes reflect instantly without requiring an image rebuild."
-    az: "Named Volume tamamilə Docker tərəfindən idarə olunan və əsas serverin xüsusi saxlanc sahəsində (`/var/lib/docker/volumes/`) yerləşən müstəqil disk vahididir. Əsas maşının fayl icazələrindən asılı deyil, yüksək I/O sürətinə malikdir və konteyner silinsə belə məlumatı qoruyur. Data Mühəndisliyində Named Volumes verilənlər bazaları (Postgres, ClickHouse, MinIO) və Kafka log faylları üçün məcburidir. Bind Mount isə kompüterinizdəki konkret bir qovluğu birbaşa konteynerə bağlayır. Bu ən çox lokal inkişaf (development) zamanı istifadə olunur; məsələn: lokal kompüterinizdəki `./dags` qovluğunu Airflow konteynerinə bağlamaqla siz imici yenidən qurmadan kodu yazan kimi Airflow-da dəyişikliyi dərhal görə bilərsiniz."
+    az: "Named Volume tamamilə Docker tərəfindən idarə olunan və əsas serverin xüsusi saxlanc sahəsində (`/var/lib/docker/volumes/`) yerləşən müstəqil disk vahididir. Əsas maşının fayl icazələrindən asılı deyil, yüksək I/O sürətinə malikdir və konteyner silinsə belə məlumatı qoruyur. Data Mühəndisliyində Named Volumes verilənlər bazaları (Postgres, ClickHouse, MinIO) və Kafka log faylları üçün məcburidir. Bind Mount isə kompüterinizdəki konkret bir qovluğu birbaşa konteynerə bağlayır. Bu ən çox lokal inkişaf (development) zamanı istifadə olunur; məsələn: lokal kompüterinizdəki `./dags` qovluğunu Airflow konteynerinə bağlamaqla siz Docker image-i yenidən qurmadan kodu yazan kimi Airflow-da dəyişikliyi dərhal görə bilərsiniz."
   interviewer_tips:
     en: "Highlight the specific mapping: Named Volumes -> Databases / State; Bind Mounts -> Live code editing / Configuration files. This clarity demonstrates practical operational experience."
     az: "Dəqiq təyinatı qeyd edin: Named Volume -> Verilənlər bazaları və data saxlanc; Bind Mount -> Canlı kod və konfiqurasiyalar."
 flashcards:
   - front:
       en: "What happens to data stored in a container's writable layer when the container is deleted?"
-      az: "Konteyner silindikdə onun daxili oxu-yazı layında saxlanılan məlumatla nə baş verir?"
+      az: "Konteyner silindikdə onun daxili oxu-yazı layer-ində (layında) saxlanılan məlumatla nə baş verir?"
     back:
       en: "It is permanently deleted and lost because the writable layer is bound to the container's lifecycle."
-      az: "Həmişəlik silinir və itir, çünki oxu-yazı layı yalnız konteynerin ömrünə bağlıdır."
+      az: "Həmişəlik silinir və itir, çünki oxu-yazı layer-i yalnız konteynerin ömrünə bağlıdır."
   - front:
       en: "What is a Docker Named Volume?"
       az: "Docker Named Volume nədir?"

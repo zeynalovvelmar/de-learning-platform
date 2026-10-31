@@ -84,7 +84,7 @@ explanation:
     ### 2. Qızıl Qayda: Cədvəl Adlarını Heç Vaxt Hardcode Yazmayın!
     Ənənəvi SQL-də mühəndislər birbaşa yazırdı:
     `SELECT * FROM prod_baza.public.orders;`
-    - **Bu niyə istehsalatda böyük səhvdir**:
+    - **Bu niyə production mühitində böyük səhvdir**:
       - Test mühitində (`dev`) işləyərkən təsadüfən canlı `prod` məlumatını oxuya və ya korlaya bilərsiniz.
       - Şirkət baza adını dəyişəndə 50 fərqli SQL faylını tək-tək açıb dəyişmək lazım gəlir.
       - Ən əsası, hansı cədvəlin hansından əvvəl hesablanmalı olduğunu heç kim bilmir.

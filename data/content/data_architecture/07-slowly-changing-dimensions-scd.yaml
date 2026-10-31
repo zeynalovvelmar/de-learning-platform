@@ -3,7 +3,7 @@ order: 7
 level: "intermediate"
 title:
   en: "Slowly Changing Dimensions (SCD): Type 0, 1, 2 & 3"
-  az: "Yavaş Dəyişən Ölçülər (SCD): Type 0, 1, 2 və 3"
+  az: "Slowly Changing Dimensions (SCD): Type 0, 1, 2 və 3"
 infographic:
   en: |
     ```text
@@ -62,9 +62,9 @@ explanation:
        - Adds a column named `previous_city` next to `current_city`.
        - Only preserves 1 previous state. Inflexible and rarely used in modern systems.
   az: |
-    ### Yavaş Dəyişən Ölçü (SCD) Nədir?
+    ### Slowly Changing Dimensions (SCD) Nədir?
     Real həyatda ölçü məlumatları sabit deyil. Müştəri başqa şəhərə köçür, satıcı başqa filialın əməkdaşı olur, məhsulun kateqoriyası və ya qiymət dərəcəsi dəyişir.
-    - Bu dəyişikliklər hər saniyə deyil, aylar və ya illər ərzində baş verdiyi üçün bunlara **Yavaş Dəyişən Ölçülər (Slowly Changing Dimensions - SCD)** deyilir.
+    - Bu dəyişikliklər hər saniyə deyil, aylar və ya illər ərzində baş verdiyi üçün bunlara **Slowly Changing Dimensions (SCD - Yavaş Dəyişən Ölçülər)** deyilir.
     - Bu dəyişiklikləri necə idarə etməyiniz data mühəndisliyi müsahibələrinin ən məşhur suallarından biridir.
 
     ### Əsas 4 SCD Növü

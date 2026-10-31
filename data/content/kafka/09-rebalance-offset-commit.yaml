@@ -47,7 +47,7 @@ infographic:
     │  Müasir Cooperative Sticky Modeli (Sənaye Standartı):                  │
     │  Consumer 1 ──► 0 və 1-ci partisiyaları SAXLAYIR! (Fasiləsiz oxuyur!)  │
     │  Consumer 2 ──► Yalnız 2-ci partisiyanı buraxır ──► Node 3-ə ötürür.   │
-    │  Nəticə: Kəmərin 90%-i heç dayanmadan işləməyə davam edir!             │
+    │  Nəticə: Pipeline-ın 90%-i heç dayanmadan işləməyə davam edir!         │
     └────────────────────────────────────────────────────────────────────────┘
                                     VS
     ┌────────────────────────────────────────────────────────────────────────┐
@@ -91,10 +91,10 @@ explanation:
     - **Avtomatik Commit (`enable.auto.commit=true`) Tələsi**:
       - Susmaya görə Kafka hər 5 saniyədən bir arxa planda oxunmuş offset-ləri təsdiqləyir.
       - Əgər proqram 500 mesaj çəkibsə, 5-ci saniyədə Kafka-ya 500 yazılıbsa, amma 50-ci sətirdə bazada xəta baş verib kompüter sönsə: 51-dən 500-ə qədər olan 450 mesaj **birdəfəlik itir və bazaya çatmır**!
-      - İstehsalat data kəmərlərində **həmişə auto-commit söndürülür** (`enable.auto.commit=false`) və offset yalnız verilənlər bazasına yazıldıqdan sonra əl ilə təsdiq olunur.
+      - Production data pipeline-larında **həmişə auto-commit söndürülür** (`enable.auto.commit=false`) və offset yalnız verilənlər bazasına yazıldıqdan sonra əl ilə təsdiq olunur.
 quick_recap:
   en: "Rebalancing redistributes partitions when group membership changes. Cooperative Sticky rebalancing avoids global stop-the-world freezes. In production, always set `enable.auto.commit=false` and commit manually after storage persistence to prevent data loss."
-  az: "Rebalance qrup üzvləri dəyişdikdə partisiyaları yenidən bölüşdürür. Müasir Cooperative Sticky bütün sistemin donmasının qarşısını alır. İstehsalatda data itkisini önləmək üçün həmişə `enable.auto.commit=false` qoyulmalı və offset bazaya yazıldıqdan sonra əl ilə commit edilməlidir."
+  az: "Rebalance qrup üzvləri dəyişdikdə partisiyaları yenidən bölüşdürür. Müasir Cooperative Sticky bütün sistemin donmasının qarşısını alır. Production-da data itkisini önləmək üçün həmişə `enable.auto.commit=false` qoyulmalı və offset bazaya yazıldıqdan sonra əl ilə commit edilməlidir."
 code: |
   # Production Consumer: Cooperative Sticky Rebalance & Manual Offset Commits
   from confluent_kafka import Consumer, KafkaError
@@ -180,7 +180,7 @@ common_mistakes:
 interview_question:
   question:
     en: "What triggers a Consumer Rebalance, what is the difference between Eager and Cooperative Sticky Rebalancing, and why is `enable.auto.commit = true` dangerous in data pipelines?"
-    az: "Consumer Rebalance nə zaman baş verir, Eager ilə Cooperative Sticky Rebalance arasındakı fərq nədir və nə üçün `enable.auto.commit = true` data kəmərlərində təhlükəlidir?"
+    az: "Consumer Rebalance nə zaman baş verir, Eager ilə Cooperative Sticky Rebalance arasındakı fərq nədir və nə üçün `enable.auto.commit = true` data pipeline-larında təhlükəlidir?"
   answer:
     en: |
       1. **What Triggers a Rebalance**:
@@ -226,7 +226,7 @@ flashcards:
       az: "Bütün sistemin donmasının qarşısını alır; yalnız yeri dəyişən xüsusi partisiya qısa müddətə dondurulur."
   - front:
       en: "Why is `enable.auto.commit = true` dangerous for mission-critical ETL pipelines?"
-      az: "`enable.auto.commit = true` parametri kritik ETL kəmərləri üçün nə üçün təhlükəlidir?"
+      az: "`enable.auto.commit = true` parametri kritik ETL pipeline-ları üçün nə üçün təhlükəlidir?"
     back:
       en: "Offsets can be committed before data is safely written to the database, causing permanent data loss on crash."
       az: "Məlumat bazaya yazılmamışdan qabaq vaxta görə offset təsdiq oluna bilər və çöküş zamanı data birdəfəlik itər."

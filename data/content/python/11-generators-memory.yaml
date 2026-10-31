@@ -73,13 +73,13 @@ explanation:
     - List Comprehension: `[x * 2 for x in range(1_000_000)]` $\rightarrow$ Dərhal $\sim 8$ MB RAM tutur.
     - Generator İfadəsi: `(x * 2 for x in range(1_000_000))` $\rightarrow$ Cəmi $\sim 100$ bayt RAM tutur!
 
-    ### 3. Generator Kəmərləri (Unix Boru Üslubu)
+    ### 3. Generator Pipeline-ları (Unix Pipe Üslubu)
     Generatorları montaj xətləri kimi bir-birinə zəncirləmək olar:
     ```python
     xammal = loqlari_oxu(fayl_axini)
     pars_edilmis = hadiseleri_ayir(xammal)
     xetalar = kritik_xetalari_suz(pars_edilmis)
-    # Məlumat yaddaşda heç bir aralıq siyahı yaratmadan cərgə-bə-cərgə axır!
+    # Məlumat yaddaşda heç bir aralıq siyahı yaratmadan sətir-bə-sətir axır!
     ```
 
     ### 4. Əsas Tələlər:
@@ -136,9 +136,12 @@ interview_question:
       2. **Big Data Scalability**: Generators provide $O(1)$ space complexity. Processing a 100 GB file line-by-line requires only the memory of the current line (~a few hundred bytes), avoiding `MemoryError`.
       3. **Exhaustion**: Once a generator completes and raises `StopIteration`, its internal state is exhausted. Any subsequent iteration immediately terminates without yielding elements and without raising an error.
     az: |
-      1. **Daxili Arxitektura və Iterator Protokolu**: Daxilində `yield` olan funksiya `__iter__()` və `__next__()` metodlarını saxlayan generator obyekti qaytarır. Çağırıldıqda Python yığında daxili vəziyyəti (lokal dəyişənlər və baytkod göstəricisini) saxlayan karkas yaradır. Hər `next()` çağırışında kod növbəti `yield`-ə qədər işləyir və dəyəri qaytararaq dondurulur. Funksiya bitdikdə daxildə `StopIteration` xətası qaldırılır.
-      2. **Böyük Məlumat Uyğunluğu**: Generatorlar $O(1)$ yaddaş mürəkkəbliyi təqdim edir. 100 GB-lıq faylı sətir-bə-sətir oxumaq üçün cəmi bircə sətrin yaddaşı (bir neçə yüz bayt) kifayətdir və `MemoryError` yaranmır.
-      3. **Tükənmə**: Generator başa çatdıqda və `StopIteration` verdikdə onun daxili vəziyyəti tükənir. Növbəti hər hansı dövr heç bir xəta vermədən dərhal 0 elementlə başa çatır.
+      1. **Daxili Arxitektura və Iterator Protokolu**: Daxilində `yield` olan funksiya `__iter__()` və `__next__()` metodlarını saxlayan generator obyekti qaytarır. Çağırıldıqda Python yaddaşda daxili vəziyyəti (lokal dəyişənlər və baytkod göstəricisini) saxlayan stack frame yaradır. Hər `next()` çağırışında kod növbəti `yield`-ə qədər işləyir və dəyəri qaytararaq dondurulur. Funksiya bitdikdə daxildə `StopIteration` xətası qaldırılır.
+      2. **Big Data Uyğunluğu**: Generatorlar $O(1)$ yaddaş mürəkkəbliyi təqdim edir. 100 GB-lıq faylı sətir-bə-sətir oxumaq üçün cəmi bircə sətrin yaddaşı (bir neçə yüz bayt) kifayətdir və `MemoryError` yaranmır.
+      3. **Tükənmə (Exhaustion)**: Generator başa çatdıqda və `StopIteration` verdikdə onun daxili vəziyyəti tükənir. Növbəti hər hansı dövr heç bir xəta vermədən dərhal 0 elementlə başa çatır.
+  interviewer_tips:
+    en: "Connect Python's generator `yield` directly to Apache Spark's Lazy Evaluation: just as chained generators do not read a single byte until a `for` loop consumes them, Spark transformations build a DAG without executing until an Action (`count()`, `write()`) is called."
+    az: "Müsahibədə Python generatorlarının `yield` mexanizmini Apache Spark-dakı Lazy Evaluation ilə əlaqələndirin: necə ki zəncirlənmiş generatorlar `for` dövrü çağırılana qədər heç bir bayt oxumur, eləcə də Spark transformasiyaları Action (`count()`, `write()`) çağırılana qədər yalnız icra planı (DAG) qurur."
 exercise:
   question:
     en: "Write a generator function `stream_even_squares(numbers)` that takes an iterable of integers and yields `n * n` ONLY for even numbers (`n % 2 == 0`). Ensure it is a genuine generator using `yield`."
@@ -172,7 +175,7 @@ flashcards:
       az: "`yield` açar sözü."
   - front:
       en: "What is Lazy Evaluation in data engineering?"
-      az: "Data mühəndisliyində Tənbəl Hesablama (Lazy Evaluation) nə deməkdir?"
+      az: "Data mühəndisliyində Lazy Evaluation (Tənbəl Hesablama) nə deməkdir?"
     back:
       en: "Computing and retrieving data only at the exact moment it is requested, saving CPU and RAM."
       az: "Məlumatı əvvəlcədən deyil, yalnız dəqiq tələb olunan anda hesablamaq və yaddaşa yükləmək."

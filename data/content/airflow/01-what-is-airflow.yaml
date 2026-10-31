@@ -72,7 +72,7 @@ explanation:
   az: |
     Köhnə **Zəngli Saat** ilə **Hava Limanı Uçuş İdarəetmə Qülləsi** arasındakı fərqi təsəvvür edin:
     - **Cron / Sadə Skriptlər (Zəngli Saat)**: Səhər saat 07:00-a zəng qurursunuz və təxmin edirsiniz ki, saat 06:50-də kofe maşını kofeni hazırlayıb bitirib. Bəs gecə su borusu donubsa? Zəngli saat buna baxmır, 07:00 olan kimi kor-koranə zəng çalır, mətbəxə keçirsiniz və kofe yoxdur! Cron əvvəlki işin bitib-bitmədiyindən, xəta baş verib-vermədiyindən tamamilə xəbərsizdir.
-    - **Apache Airflow (Uçuş İdarəetmə Qülləsi)**: Təyyarə cədvəldə "14:30" yazılıb deyə kor-koranə uçuş zolağına enə bilməz. Dispetçer qülləsi zolağın tamamilə boş olduğuna, əvvəlki təyyarənin zolaqdan çıxdığına və külək sürətinin normal olduğuna əmin olduqdan sonra eniş əmri verir. Problem olarsa, təyyarəni təkrar cəhd üçün dövrəyə göndərir. Airflow şirkətin bütün data kəmərlərinin mərkəzi dispetçer qülləsidir.
+    - **Apache Airflow (Uçuş İdarəetmə Qülləsi)**: Təyyarə cədvəldə "14:30" yazılıb deyə kor-koranə uçuş zolağına enə bilməz. Dispetçer qülləsi zolağın tamamilə boş olduğuna, əvvəlki təyyarənin zolaqdan çıxdığına və külək sürətinin normal olduğuna əmin olduqdan sonra eniş əmri verir. Problem olarsa, təyyarəni təkrar cəhd üçün dövrəyə göndərir. Airflow şirkətin bütün data pipeline-larının mərkəzi dispetçer qülləsidir.
 
     ### Airflow-un 1 Nömrəli Qızıl Qaydası:
     > **Orkestrasiya Hesablama Deyildir! (Orchestration != Computation)**
@@ -84,7 +84,7 @@ explanation:
 
     ### DAG Nədir? (Directed Acyclic Graph)
     - **Directed (İstiqamətlənmiş)**: Tapşırıqlar arasındakı oxların dəqiq birtərəfli istiqaməti var ($A \rightarrow B$).
-    - **Acyclic (Dövrsüz)**: Qrafda sonsuz dövrə ola bilməz ($A \rightarrow B \rightarrow C \rightarrow A$ qəti qadağandır). Kəmər öz gələcək nəticəsindən asılı ola bilməz.
+    - **Acyclic (Dövrsüz)**: Qrafda sonsuz dövrə ola bilməz ($A \rightarrow B \rightarrow C \rightarrow A$ qəti qadağandır). Pipeline öz gələcək nəticəsindən asılı ola bilməz.
     - **Graph (Qraf)**: Tapşırıqların və onların asılılıqlarının yaratdığı riyazi şəbəkə.
 quick_recap:
   en: "Airflow is a workflow orchestrator, not a data processing engine. It replaces rigid cron schedules with Directed Acyclic Graphs (DAGs), guaranteeing tasks execute strictly when upstream dependencies succeed and managing retries and observability."
@@ -111,7 +111,7 @@ code: |
       dag_id='01_daily_orders_orchestration',
       default_args=default_args,
       description='Daily e-commerce batch extraction and Spark loading pipeline',
-      schedule_interval='@daily',               # Runs once every 24 hours
+      schedule='@daily',                        # Runs once every 24 hours (Airflow 2.4+ / 3.0+)
       start_date=datetime(2026, 1, 1),
       catchup=False,                            # Do not backfill past historical runs!
       tags=['ecommerce', 'production', 'junior']
@@ -144,12 +144,12 @@ code: |
 code_explanation:
   en: |
     - `default_args`: Propagates operational policies (retries, alerts, timeouts) down to all tasks.
-    - `schedule_interval='@daily'`: The execution cadence. Airflow triggers this workflow once per day.
+    - `schedule='@daily'`: The execution cadence (replaced legacy `schedule_interval=` in Airflow 2.4+ and Airflow 3.0+). Airflow triggers this workflow once per day.
     - `catchup=False`: Prevents Airflow from triggering hundreds of backfill runs between `start_date` and current date.
     - `check_api_health >> notify_start >> trigger_spark_etl`: The bitshift operator `>>` explicitly establishes linear upstream/downstream graph dependencies.
   az: |
     - `default_args`: Bütün tapşırıqlara şamil edilən ortaq qaydalardır (təkrar cəhdlər, gecikmələr, xəbərdarlıqlar).
-    - `schedule_interval='@daily'`: İcra periodu. Kəmərin hər 24 saatdan bir işə düşəcəyini bildirir.
+    - `schedule='@daily'`: İcra periodu (Airflow 2.4+ və Airflow 3.0+ versiyalarında köhnəlmiş `schedule_interval=` parametrini əvəz edib). Pipeline-ın hər 24 saatdan bir işə düşəcəyini bildirir.
     - `catchup=False`: `start_date`-dən bu günə qədər olan keçmiş ayların yüzlərlə işini eyni anda klasterə hücum etməsinin qarşısını alır.
     - `>>`: Bitshift asılılıq operatorudur. Tapşırıqların dəqiq xətti ardıcıllığını (`check_api_health` bitmədən `notify_start` başlamaz) təmin edir.
 visual_output: |
@@ -175,7 +175,7 @@ what_it_does:
   az: "Təməl DAG tərifini, ortaq parametr ötürülməsini, operatorların yaradılmasını və `>>` ilə asılılıq zəncirinin qurulmasını nümayiş etdirir."
 real_world_use:
   en: "The standard backbone of production data platforms. Daily pipelines coordinate ingestion, Spark transformations, dbt validation, and BI dashboard caching."
-  az: "İstehsalat data platformalarının əsasıdır. Hər gecə məlumatların çəkilməsi, Spark-da emalı və analitik panellərə yüklənməsi bu cür DAG-larla koordinasiya olunur."
+  az: "Production data platformalarının əsasıdır. Hər gecə məlumatların çəkilməsi, Spark-da emalı və analitik panellərə yüklənməsi bu cür DAG-larla koordinasiya olunur."
 common_mistakes:
   en: |
     - **Processing heavy data inside Airflow**: Reading a 5 GB CSV with `pandas.read_csv()` inside `PythonOperator` consumes all worker memory, killing the host.
@@ -188,7 +188,7 @@ common_mistakes:
 interview_question:
   question:
     en: "What is Apache Airflow, what is the fundamental difference between Orchestration and Computation, and why shouldn't you process Big Data inside Airflow workers?"
-    az: "Apache Airflow nədir, Orkestrasiya ilə Hesablama arasındakı fundamental fərq nədir və nə üçün Böyük Məlumatları (Big Data) birbaşa Airflow işçiləri daxilində emal etmək olmaz?"
+    az: "Apache Airflow nədir, Orkestrasiya ilə Hesablama arasındakı fundamental fərq nədir və nə üçün Böyük Məlumatları (Big Data) birbaşa Airflow worker-ləri daxilində emal etmək olmaz?"
   answer:
     en: |
       1. **Definition of Apache Airflow**:
@@ -203,7 +203,7 @@ interview_question:
          - **Production Standard**: Airflow should trigger external distributed engines (e.g. submitting a PySpark job to Databricks/EMR, executing SQL in Snowflake, or triggering dbt models) and merely monitor the job to completion.
     az: |
       1. **Apache Airflow-un Tərifi**:
-         - Airflow kəmərləri proqramlaşdırılmış **Birtərəfli Dövrsüz Qraflar (DAG)** şəklində quran, planlayan və monitorinq edən açıq mənbəli orkestrasiya platformasıdır.
+         - Airflow pipeline-ları proqramlaşdırılmış **Birtərəfli Dövrsüz Qraflar (DAG)** şəklində quran, planlayan və monitorinq edən açıq mənbəli orkestrasiya platformasıdır.
          - O, tapşırıqların hansı ardıcıllıqla və nə vaxt işləyəcəyini tənzimləyən **orkestrator (baş menecer)** rolunu oynayır.
       2. **Orkestrasiya vs Hesablama Fərqi**:
          - **Orkestrasiya (İdarəetmə Müstəvisi)**: Tapşırıqların asılılıqlarını izləmək, xətada təkrar başlatmaq, vaxt cədvəlini saxlamaq və bildiriş göndərməkdir. "Orkestrin Dirijorudur".
@@ -211,7 +211,7 @@ interview_question:
       3. **Böyük Məlumat Niyə Airflow Daxilində Emal Edilə Bilməz?**:
          - Airflow worker-ləri sadəcə koordinasiya üçün nəzərdə tutulmuş yüngül Python prosesləridir; onlar paylanmış hesablama klasteri deyildir.
          - Əgər mühəndis worker daxilində Pandas ilə böyük faylları emal etməyə çalışarsa, serverin yaddaşı tükənər və Əməliyyat Sistemi Airflow prosesini OOM (Out Of Memory) ilə məhv edər.
-         - **İstehsalat Qaydası**: Airflow işi kənar paylanmış güclü mühərriklərə həvalə etməlidir (məs. Spark işini Databricks klasterinə göndərmək, Snowflake-də SQL başlatmaq və ya dbt modelini tətikləmək) və sadəcə onların uğurla bitməsini gözləməlidir.
+         - **Production Qaydası**: Airflow işi kənar paylanmış güclü mühərriklərə həvalə etməlidir (məs. Spark işini Databricks klasterinə göndərmək, Snowflake-də SQL başlatmaq və ya dbt modelini tətikləmək) və sadəcə onların uğurla bitməsini gözləməlidir.
   interviewer_tips:
     en: "Strictly emphasize the mantra 'Airflow is an orchestrator, not an execution engine'. Mention that Airflow workers delegate heavy data lifting to external distributed systems like Spark, Trino, or Snowflake."
     az: "Müsahibədə qətiyyətlə deyin: 'Airflow orkestratordur, hesablama mühərriki deyil'. Airflow-un sadəcə xarici hesablama mühərriklərini (Spark, Snowflake, dbt) kənardan idarə etdiyini vurğulayın."

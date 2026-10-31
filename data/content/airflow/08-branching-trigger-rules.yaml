@@ -75,7 +75,7 @@ explanation:
       - This tells Airflow: *"As long as no parent actively errored out, and at least one parent succeeded, proceed immediately."*
   az: |
     ### Budaqlanma Niyə Lazımdır?
-    Real istehsalatda boru kəmərləri heç vaxt düz xətli olmur. Tez-tez şərtlərdən asılı olaraq fərqli yollar seçmək lazım gəlir:
+    Real production-da pipeline-lar heç vaxt düz xətli olmur. Tez-tez şərtlərdən asılı olaraq fərqli yollar seçmək lazım gəlir:
     - Cədvəlin vəziyyətindən asılı olaraq tam yeniləmə (Full Refresh) və ya artımlı yükləmə (Incremental Load) seçimi.
     - Bazar günləri ağır ML model təlimi, iş günləri isə yalnız yüngül proqnozlaşdırma aparılması.
     - Əgər xarici API-dən 0 məlumat gəlibsə, növbəti emal mərhələlərini ötürüb (skip) resurslara qənaət edilməsi.
@@ -86,7 +86,7 @@ explanation:
 
     ### Birləşmə Tələsi və Trigger Qaydaları
     Susmaya görə hər bir task-ın trigger qaydası `trigger_rule="all_success"` kimidir. Bu o deməkdir: *"Yalnız bütün əvvəlki task-lar uğurla (SUCCESS) bitsə işlə."*
-    - Əgər boru kəməri A və B qoluna ayrılır və sonra C task-ında birləşirsə:
+    - Əgər pipeline A və B qoluna ayrılır və sonra C task-ında birləşirsə:
       - B qolu `SKIPPED` olduğu üçün, C task-ı düşünür ki, şərt ödənmədi və C task-ı da `SKIPPED` olur! Bu zəncirvari şəkildə bütün sonrakı task-ları da dondurur.
     - **Həll Yolu**: Birləşmə nöqtəsindəki C task-ına **`trigger_rule="none_failed_min_one_success"`** (və ya `one_success`) verməkdir.
       - Bu Airflow-a deyir: *"Əgər heç bir task xəta verməyibsə və ən azı biri uğurla tamamlanıbsa, dərhal işə başla!"*
@@ -95,7 +95,7 @@ quick_recap:
   az: "Dinamik yol seçimi üçün `@task.branch` istifadə edin. Birləşən task-larda səhvən skip olmanın qarşısını almaq üçün `trigger_rule='none_failed_min_one_success'` təyin edin."
 what_it_does:
   en: "Allows pipeline graphs to choose paths dynamically at runtime based on data size, schedule, or business conditions, and controls join logic via Trigger Rules."
-  az: "Boru kəmərinin məlumat həcmi və ya biznes şərtlərindən asılı olaraq dinamik yollar seçməsinə və Trigger Qaydaları ilə birləşmə məntiqini idarə etməsinə imkan verir."
+  az: "Pipeline-ın məlumat həcmi və ya biznes şərtlərindən asılı olaraq dinamik yollar seçməsinə və Trigger Qaydaları ilə birləşmə məntiqini idarə etməsinə imkan verir."
 real_world_use:
   en: "Running full historical data re-indexing on Sundays and simple incremental appends on Monday-Friday."
   az: "Bazar günləri bazanın tam re-indekslənməsini, iş günləri isə yalnız sadə artımlı yükləmə qolunu seçmək."

@@ -39,7 +39,7 @@ infographic:
     │  [Part 1 (Açarlar: A, B)] ───┐        ┌──► [Yeni Part 1 (Bütün A-lar)] │
     │                              ├──SHUFFLE──┤                               │
     │  [Part 2 (Açarlar: A, B)] ───┘        └──► [Yeni Part 2 (Bütün B-lər)] │
-    │  Qayda: 1 giriş partisiyası BİRN EÇƏ fərqli çıxışa paylanır.           │
+    │  Qayda: 1 giriş partisiyası BİR NEÇƏ fərqli çıxışa paylanır.           │
     │  Mərhələlər: Məcburi MƏRHƏLƏ SƏRHƏDİ yaradır (Mərhələ 1 bitir, 2 başlar)│
     └────────────────────────────────────────────────────────────────────────┘
     ```
@@ -60,7 +60,7 @@ explanation:
   az: |
     Vergi sənədlərini yoxlayan 4 ofis işçisini təsəvvür edin:
     - **Dar Transformasiya (Şəxsi Masada İş)**: Hər işçi öz qovluğundakı boş vərəqləri cırır (filter) və yuxarısına nömrə vurur (select). Heç kim yerindən durmur, otaqda danışmır, vaxt itkisi sıfırdır. Hər 4 nəfər eyni anda maksimum sürətlə işləyir.
-    - **Geniş Transformasiya (Nəhəng Shuffle Hadisəsi)**: Rəis qəfil əmr verir: "Bütün sənədləri vətəndaşların anadan olduğu şəhərə görə qruplaşdırın!" İndi 4 işçinin hamısı ayağa qalxmalı, otaqda ora-bura qaçmalı, Bakı sənədlərini 1-ci işçiyə, Gəncə sənədlərini 2-ci işçiyə verməlidir. Dəhlizdə tıxac yaranır (şəbəkə kilitlənir), sənədlər yerə tökülür (diskə spill olur) və ən sonuncu işçi qurtarana qədər heç kim növbəti mərhələyə keçə bilmir.
+    - **Geniş Transformasiya (Nəhəng Shuffle Hadisəsi)**: Rəis qəfil əmr verir: "Bütün sənədləri vətəndaşların anadan olduğu şəhərə görə qruplaşdırın!" İndi 4 işçinin hamısı ayağa qalxmalı, otaqda ora-bura qaçmalı, Bakı sənədlərini 1-ci işçiyə, Gəncə sənədlərini 2-ci işçiyə verməlidir. Dəhlizdə tıxac yaranır (şəbəkə kilidlənir), sənədlər yerə tökülür (diskə spill olur) və ən sonuncu işçi qurtarana qədər heç kim növbəti mərhələyə keçə bilmir.
 
     ### Shuffle Niyə Spark-ın 1 Nömrəli Düşmənidir?
     1. **Diskə Yazılma**: Bütün executor-lar göndərməzdən əvvəl aralıq shuffle fayllarını yerli diskə yazmalıdır.
@@ -143,11 +143,11 @@ common_mistakes:
   en: |
     - **Grouping before filtering**: Calling `df.groupBy("country").count().filter(col("country") == "AZ")` shuffles all 200 countries across the network before discarding 199 of them! Always filter BEFORE grouping.
     - **Using `groupByKey()` in legacy RDD code instead of `reduceByKey()`**: `groupByKey()` sends every single raw record over the network before aggregating; `reduceByKey()` combines records locally first (map-side combine), reducing network traffic by 95%.
-    - **Ignoring the default 200 shuffle partitions for small datasets**: Shuffling a 1 MB file across 200 partitions creates 200 tiny files and massive scheduling overhead.
+    - **Ignoring the default 200 shuffle partitions for small datasets**: Shuffling a 1 MB file across 200 partitions creates 200 tiny files and massive scheduling overhead (though Spark 3.2+ Adaptive Query Execution / AQE helps by automatically coalescing small post-shuffle partitions at runtime).
   az: |
     - **Filtrləmədən əvvəl qruplaşdırmaq**: `df.groupBy("country").count().filter("country == 'AZ'")` yazdıqda Spark bütün 200 ölkəni şəbəkədən shuffle edib qurtarandan sonra 199-nu atır! Həmişə əvvəlcə süzün, sonra qruplaşdırın.
     - **`groupByKey()` istifadə etmək**: `groupByKey()` bütün xammal sətirləri şəbəkəyə tökür; `reduceByKey()` isə əvvəlcə hər maşında lokal cəmləyir (map-side combine) və şəbəkə yükünü 95% azaldır.
-    - **Kiçik məlumatlarda susmaya görə 200 shuffle partisiya saxlamaq**: Cəmi 1 MB-lıq faylı 200 yerə bölmək boşuna vaxt və resurs itkisidir.
+    - **Kiçik məlumatlarda susmaya görə 200 shuffle partisiya saxlamaq**: Cəmi 1 MB-lıq faylı 200 yerə bölmək boşuna vaxt və resurs itkisidir (hərçənd Spark 3.2+ versiyalarında Adaptive Query Execution / AQE aktiv olduqda kiçik post-shuffle partisiyaları icra zamanı avtomatik birləşdirilir).
 interview_question:
   question:
     en: "What is the difference between Narrow and Wide transformations in Spark, what role does a Shuffle play, and how do they impact Stage creation?"
@@ -169,7 +169,7 @@ interview_question:
       2. **Shuffle-ın Rolu**:
          - **Shuffle**: Eyni açara (məs. eyni `customer_id`-yə) sahib sətirlərin eyni executor-a çatması üçün məlumatların şəbəkə üzərindən yer dəyişməsidir. Diskə yazılma, şəbəkə ötürülməsi və deserializasiya tələb edir.
       3. **Mərhələlərin (Stages) Yaranması**:
-         - Spark ardıcıl bütün dar transformasiyaları birləşdirib **tək bir Mərhələ (Stage)** daxilində boru kəməri kimi işlədir.
+         - Spark ardıcıl bütün dar transformasiyaları birləşdirib **tək bir Mərhələ (Stage)** daxilində konveyer (pipeline) kimi işlədir.
          - Hər bir geniş transformasiya isə **məcburi Mərhələ Sərhədidir**. 1-ci Mərhələdəki bütün işçilər shuffle fayllarını diskə yazıb bitirməyincə, 2-ci Mərhələ başlaya bilməz.
   interviewer_tips:
     en: "Explain that Stages in Spark DAG are literally defined by Shuffle boundaries. If a job has 3 wide transformations, it will have at least 4 stages. Use the term 'Exchange' which is Spark's physical plan operator for a Shuffle."

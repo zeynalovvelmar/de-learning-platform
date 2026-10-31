@@ -3,7 +3,7 @@ order: 11
 level: "advanced"
 title:
   en: "Dynamic Task Mapping (`.expand()`), Task Groups & Pools"
-  az: "Dinamik Task Xəritələnməsi (`.expand()`), Task Qrupları və Pool-lar"
+  az: "Dynamic Task Mapping (`.expand()`), TaskGroup və Pool-lar"
 infographic:
   en: |
     ```text
@@ -31,7 +31,7 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  DİNAMİK TASK XƏRİTƏLƏNMƏSİ (AIRFLOW 2.3+ Map-Reduce)                 │
+    │  DYNAMIC TASK MAPPING (AIRFLOW 2.3+ Map-Reduce)                        │
     └────────────────────────────────────────────────────────────────────────┘
     Əvvəlki Task: S3-də bu gün 3 fayl tapır: ["f1.csv", "f2.csv", "f3.csv"]
 
@@ -64,7 +64,7 @@ explanation:
 
     ### TaskGroup: UI Organization
     - In complex DAGs with 50+ tasks, the UI becomes unreadable.
-    - In the past, engineers used **SubDAGs**, which caused scheduler deadlocks and are now deprecated.
+    - In the past, engineers used **SubDAGs** (`SubDagOperator`), which caused scheduler deadlocks, were deprecated in Airflow 2.x, and **completely removed in Airflow 3.0**.
     - **`TaskGroup`** is the modern replacement: it visually groups tasks into clean, collapsible UI boxes without any scheduling performance overhead.
 
     ### Pools & Concurrency Protection
@@ -76,18 +76,18 @@ explanation:
     Köhnə Airflow versiyalarında DAG qrafiki mütləq statik olmalı idi. Əgər S3 anbarına bu gün 5 fayl, sabah isə 1,000 fayl gəlirdisə, hər fayl üçün ayrıca bir task yaratmaq mümkün deyildi və ya scheduler-i dondururdu.
 
     ### Müasir Airflow 2.3+: Dynamic Task Mapping
-    Dinamik Task Xəritələnməsi icra zamanı əvvəlki task-ın qaytardığı siyahıya əsasən paralel task nüsxələri yaratmağa imkan verir.
+    **Dynamic Task Mapping** icra zamanı əvvəlki task-ın qaytardığı siyahıya əsasən paralel task nüsxələri yaratmağa imkan verir.
     - **`.partial()`**: Bütün yaranacaq task-lar üçün eyni (sabit) qalan arqumentləri ötürür (məsələn: hədəf cədvəl adı).
     - **`.expand()`**: Əvvəlki task-dan gələn siyahını qəbul edir və hər bir element üçün ayrıca bir task nüsxəsi qaldırır.
     - Airflow hər bir dinamik nüsxəni indekslə qeyd edir: `[0]`, `[1]`, `[2]`.
 
     ### TaskGroup: İnterfeysin Təmiz Təşkili
     - 50-dən çox task-ı olan böyük DAG-larda UI ekranı tamamilə oxunmaz və qarışıq hala düşür.
-    - Keçmişdə istifadə olunan **SubDAG-lar** scheduler-i kilitlədiyi üçün ləğv edildi (deprecated).
+    - Keçmişdə istifadə olunan **SubDAG-lar** (`SubDagOperator`) scheduler-i kilidlədiyi üçün Airflow 2.x-də köhnəlmiş (deprecated) elan edildi və **Airflow 3.0 versiyasında tamamilə silindi**.
     - **`TaskGroup`** onun müasir əvəzləyicisidir: task-ları qrafikdə səliqəli, yığılıb-açılan qovluqlar kimi qruplaşdırır və heç bir performans itkisi yaratmır.
 
     ### Pool-lar və Paralellik Nəzarəti
-    Dinamik task xəritələnməsi eyni vaxtda 500 task yarada bilər. Əgər onların hamısı eyni saniyədə PostgreSQL bazasına daxil olsa, baza əlaqə limiti dolub çökər.
+    Dynamic Task Mapping eyni vaxtda 500 task yarada bilər. Əgər onların hamısı eyni saniyədə PostgreSQL bazasına daxil olsa, baza əlaqə limiti dolub çökər.
     - **Airflow Pool-ları** adlandırılmış slot hovuzudur (məsələn: `postgres_pool = 10 slot`).
     - Task-a `pool='postgres_pool'` verdikdə, Airflow eyni anda maksimum 10 task-ın bazaya sorğu göndərməsinə icazə verir, qalan 490 task isə növbədə təhlükəsiz şəkildə gözləyir.
 quick_recap:
@@ -187,7 +187,7 @@ visual_output: |
   Total Slots: 5  |  Used: 3  |  Queued: 0  |  Status: HEALTHY
 output_description:
   en: "Shows the 3 dynamically mapped instances nested inside the TaskGroup, along with active pool slot monitoring."
-  az: "TaskGroup içərisində 3 dinamik xəritələnmiş nüsxənin icrasını və Pool slotlarının təhlükəsiz istifadəsini göstərir."
+  az: "TaskGroup içərisində 3 dinamik (mapped) nüsxənin icrasını və Pool slotlarının təhlükəsiz istifadəsini göstərir."
 interview_question:
   question:
     en: "What is Dynamic Task Mapping in Airflow, and how does `.partial()` differ from `.expand()`? How do Pools prevent dynamic tasks from crashing target databases?"
@@ -197,7 +197,7 @@ interview_question:
     az: "Airflow 2.3-də təqdim olunan Dynamic Task Mapping runtime zamanı əvvəlki task-ın qaytardığı siyahıya əsasən dinamik sayda task nüsxəsi yaratmağa imkan verən xüsusiyyətdir. `.partial()` bütün yaranacaq task-lar üçün sabit qalan dəyərləri (məsələn, cədvəl adı, mühit) ötürür, `.expand()` isə siyahı qəbul edərək hər bir element üçün 1 task nüsxəsi yaradır. `.expand()` eyni anda yüzlərlə task yarada bildiyi üçün hədəf verilənlər bazası qoşulma limiti səbəbindən çökə bilər. Airflow Pool-ları buna nəzarət edir: task-a müəyyən slot sayı olan Pool (məsələn: 5 slot) təyin etdikdə, 200 task yaransa belə eyni anda yalnız 5-i bazaya sorğu göndərir, qalan 195-i isə növbədə gözləyir."
   interviewer_tips:
     en: "Clearly explain the Map-Reduce pattern: `.expand()` is the Map phase and the downstream collecting task is the Reduce phase. Mentioning Pools highlights real-world operational maturity."
-    az: "Map-Reduce modelini aydın izah edin: `.expand()` Map mərhələsidir, nəticələri toplayan task isə Reduce. Pool-ları qeyd etmək real istehsalat təcrübənizi göstərir."
+    az: "Map-Reduce modelini aydın izah edin: `.expand()` Map mərhələsidir, nəticələri toplayan task isə Reduce. Pool-ları qeyd etmək real production təcrübənizi göstərir."
 flashcards:
   - front:
       en: "What Airflow feature allows tasks to be generated dynamically at runtime based on data?"
@@ -212,11 +212,11 @@ flashcards:
       en: "`.partial()` supplies static arguments shared by all instances, while `.expand()` iterates over a collection to spawn one instance per item."
       az: "`.partial()` bütün nüsxələr üçün ortaq sabit arqumentləri ötürür, `.expand()` isə siyahı üzrə hər elementə 1 task nüsxəsi yaradır."
   - front:
-      en: "Why were SubDAGs deprecated in favor of TaskGroups?"
-      az: "SubDAG-lar niyə ləğv edildi və TaskGroup-lar ilə əvəzləndi?"
+      en: "Why were SubDAGs deprecated in Airflow 2.x and removed in Airflow 3.0 in favor of TaskGroups?"
+      az: "SubDAG-lar niyə Airflow 2.x-də köhnəlmiş elan edildi, Airflow 3.0-da silindi və TaskGroup-lar ilə əvəzləndi?"
     back:
       en: "SubDAGs used separate DAG runs causing scheduler deadlocks and resource hogging; TaskGroups are lightweight, UI-only grouping constructs."
-      az: "SubDAG-lar ayrıca DAG icrası kimi işləyərək scheduler-i kilitləyirdi; TaskGroup isə yalnız UI üçün yüngül və təhlükəsiz qruplaşdırmadır."
+      az: "SubDAG-lar ayrıca DAG icrası kimi işləyərək scheduler-i kilidləyirdi; TaskGroup isə yalnız UI üçün yüngül və təhlükəsiz qruplaşdırmadır."
   - front:
       en: "What is an Airflow Pool?"
       az: "Airflow Pool nədir?"
@@ -225,7 +225,7 @@ flashcards:
       az: "Ortaq resursa və ya bazaya eyni anda müraciət edə biləcək paralel task-ların sayını məhdudlaşdıran idarəetmə alətidir."
   - front:
       en: "How are dynamically mapped task instances indexed in Airflow logs and UI?"
-      az: "Dinamik xəritələnmiş task nüsxələri Airflow loqlarında və interfeysində necə indekslənir?"
+      az: "Dynamic Task Mapping ilə yaradılmış task nüsxələri Airflow loqlarında və interfeysində necə indekslənir?"
     back:
       en: "Zero-based bracket notation: `task_name[0]`, `task_name[1]`, `task_name[2]`, etc."
       az: "Sıfırdan başlayan mötərizə indeksi ilə: `task_adı[0]`, `task_adı[1]`, `task_adı[2]` və s."

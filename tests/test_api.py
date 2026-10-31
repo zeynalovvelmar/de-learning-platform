@@ -20,14 +20,14 @@ class TestFastAPIBackend(unittest.TestCase):
         modules = res.json()
         self.assertEqual(len(modules), 8)
         mod_ids = [m["id"] for m in modules]
-        expected_ids = ["python", "sql", "spark", "kafka", "airflow", "devops", "data_architecture", "dbt"]
+        expected_ids = ["sql", "python", "data_architecture", "devops", "spark", "airflow", "dbt", "kafka"]
         self.assertEqual(mod_ids, expected_ids)
 
     def test_03_get_module_lessons(self):
         res = self.client.get("/api/modules/data_architecture/lessons")
         self.assertEqual(res.status_code, 200)
         lessons = res.json()
-        self.assertEqual(len(lessons), 12)
+        self.assertEqual(len(lessons), 13)
         self.assertEqual(lessons[0]["id"], "01-oltp-vs-olap-columnar")
 
     def test_04_get_single_lesson_detail(self):

@@ -49,7 +49,7 @@ infographic:
     └───────────────────────────────┘   └───────────────────────────────┘
                                       │
             ┌─────────────────────────┴─────────────────────────┐
-            │  REAL İSTEHSALAT MODELİ: CLAIM-CHECK PATTERN      │
+            │  REAL PRODUCTION MODELİ: CLAIM-CHECK PATTERN      │
             │
             │  [Task 1: Extract] ──────► 10GB Məlumat Yazır ──► [S3 / GCS Bucket]
             │          │                                              ▲
@@ -83,7 +83,7 @@ explanation:
     ### XCom-un Qızıl Qaydası: Yalnız Kiçik Metadata!
     Metadata verilənlər bazası yalnız cədvəl statuslarını və iş qrafiklərini saxlamaq üçündür, **böyük məlumatlar (Big Data) üçün deyil**.
     - Əgər siz XCom-a 1GB Pandas DataFrame və ya 500,000 sətir JSON göndərsəniz, PostgreSQL bazası iflic olar, sorğular time-out verər və Worker-lər OOM (Out Of Memory) ilə çökər.
-    - **Real İstehsalat Qaydası (Claim-Check Pattern)**: Böyük məlumatları birbaşa Data Lake-ə (S3, GCS və ya MinIO) yazın, XCom vasitəsilə isə növbəti task-a yalnız həmin faylın yolunu (məsələn: `s3://datalake/raw/2026-10-16/orders.parquet`) göndərin.
+    - **Real Production Qaydası (Claim-Check Pattern)**: Böyük məlumatları birbaşa Data Lake-ə (S3, GCS və ya MinIO) yazın, XCom vasitəsilə isə növbəti task-a yalnız həmin faylın yolunu (məsələn: `s3://datalake/raw/2026-10-16/orders.parquet`) göndərin.
 quick_recap:
   en: "XCom passes small metadata through Airflow's Metadata DB. Never pass raw datasets or DataFrames; pass cloud storage paths (S3/GCS URIs) instead."
   az: "XCom Airflow-un Metadata DB-si vasitəsilə kiçik metadata ötürür. Heç vaxt böyük dataset və ya DataFrame ötürməyin; yalnız S3/GCS fayl ünvanlarını göndərin."
@@ -92,7 +92,7 @@ what_it_does:
   az: "Əvvəlki task-ların dəyər göndərməsinə (`xcom_push` və ya `return`) və növbəti task-ların həmin dəyəri oxumasına (`xcom_pull` və ya arqument) imkan verir."
 real_world_use:
   en: "Passing dynamic file paths, generated partition keys, target table names, model validation scores, or batch IDs between pipeline stages."
-  az: "Boru kəməri mərhələləri arasında dinamik fayl yollarını, partisiya tarixlərini, cədvəl adlarını və ya model dəqiqlik xallarını ötürmək."
+  az: "Pipeline mərhələləri arasında dinamik fayl yollarını, partisiya tarixlərini, cədvəl adlarını və ya model dəqiqlik xallarını ötürmək."
 common_mistakes:
   en: "Returning entire SQL query results (e.g. `df.to_dict()`) into XCom, quickly exhausting Postgres memory and disk space."
   az: "Bütün SQL nəticəsini və ya Pandas DataFrame-i `return` edərək XCom-a göndərmək və Metadata DB-ni doldurub Airflow-u sıradan çıxarmaq."
@@ -188,7 +188,7 @@ interview_question:
     az: "İki Airflow task-ı arasında XCom vasitəsilə 10 GB-lıq Pandas DataFrame-i birbaşa ötürmək olarmı? Niyə və bu halda ən yaxşı təcrübə (best practice) nədir?"
   answer:
     en: "No, never pass 10 GB through XCom. XCom values are serialized and stored in Airflow's central Metadata Database (PostgreSQL/MySQL), which has strict row/cell size constraints and will crash or lock under large payloads. The industry best practice is the Claim-Check Pattern: write the 10 GB payload to an external object store (Amazon S3, Google Cloud Storage, or ADLS) and pass only the S3 URI/metadata string through XCom."
-    az: "Xeyr, qətiyyən olmaz! XCom məlumatları Airflow-un mərkəzi Metadata Verilənlər Bazasında (PostgreSQL/MySQL) saxlanılır. Baza cədvəlləri böyük həcmli data üçün nəzərdə tutulmayıb; bu bazanı kilitləyər, yaddaşı doldurar və bütün sistemi çökdürər. Ən düzgün həll 'Claim-Check Pattern'-dir: 10 GB məlumatı birbaşa obyekt anbarına (S3, GCS, ADLS) yazmaq, XCom ilə isə yalnız həmin faylın ünvanını (S3 URI) və sətir sayını ötürməkdir."
+    az: "Xeyr, qətiyyən olmaz! XCom məlumatları Airflow-un mərkəzi Metadata Verilənlər Bazasında (PostgreSQL/MySQL) saxlanılır. Baza cədvəlləri böyük həcmli data üçün nəzərdə tutulmayıb; bu bazanı kilidləyər, yaddaşı doldurar və bütün sistemi çökdürər. Ən düzgün həll 'Claim-Check Pattern'-dir: 10 GB məlumatı birbaşa obyekt anbarına (S3, GCS, ADLS) yazmaq, XCom ilə isə yalnız həmin faylın ünvanını (S3 URI) və sətir sayını ötürməkdir."
   interviewer_tips:
     en: "Senior interviewers ask this to test if you understand Airflow's boundary between orchestration and data storage. Mentioning the 'Claim-Check pattern' and 'Metadata DB explosion' instantly gives you a top score."
     az: "Müsahibə götürənlər bu sualı sizin orkestrasiya ilə data saxlama arasındakı sərhədi anlayıb-anlamadığınızı yoxlamaq üçün verirlər. 'Claim-Check pattern' və 'Metadata DB-nin şişməsi' terminlərini vurğulamaq sizə ən yüksək xalı qazandıracaq."
@@ -210,7 +210,7 @@ flashcards:
       az: "Böyük həcmli məlumatı (məsələn: 5GB CSV) XCom ilə ötürmək niyə ciddi anti-pattern hesab olunur?"
     back:
       en: "It bloats and locks the Metadata Database, degrades scheduler performance, and causes Out-Of-Memory (OOM) crashes across workers."
-      az: "Metadata DB-ni doldurub kilitləyir, scheduler-in sürətini salır və worker-lərdə OOM (yaddaş çatışmazlığı) xətalarına səbəb olur."
+      az: "Metadata DB-ni doldurub kilidləyir, scheduler-in sürətini salır və worker-lərdə OOM (yaddaş çatışmazlığı) xətalarına səbəb olur."
   - front:
       en: "What is the recommended design pattern for transferring large files between tasks?"
       az: "Task-lar arasında böyük faylları ötürmək üçün tövsiyə olunan dizayn şablonu hansıdır?"

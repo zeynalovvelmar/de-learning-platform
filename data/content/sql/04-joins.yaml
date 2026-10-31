@@ -17,7 +17,7 @@ order: 4
 level: "intermediate"
 title:
   en: "SQL Joins: INNER, LEFT, RIGHT, and FULL"
-  az: "SQL Birləşmələri: INNER, LEFT, RIGHT və FULL"
+  az: "SQL JOIN-ləri: INNER, LEFT, RIGHT və FULL"
 quick_recap:
   en: "INNER JOIN keeps matching rows from both tables, LEFT JOIN preserves all left rows and fills unmatched right columns with NULL. SQLite >= 3.39 supports RIGHT and FULL JOIN; older versions simulate FULL JOIN with LEFT JOIN and UNION."
   az: "INNER JOIN yalnız hər iki cədvəldə uyğun gələn sətirləri saxlayır, LEFT JOIN isə sol cədvəlin bütün sətirlərini saxlayıb sağdakı çatışmayan sütunlara NULL yazır. SQLite >= 3.39 versiyası RIGHT və FULL JOIN dəstəkləyir; köhnə versiyalarda FULL JOIN əvəzinə LEFT JOIN və UNION istifadə olunur."
@@ -133,7 +133,7 @@ common_mistakes:
 interview_question:
   question:
     en: "How does a database engine physically execute joins, and what affects their performance?"
-    az: "Verilənlər bazası mühərriki birləşmələri (joins) fiziki olaraq necə icra edir və onların performansına nə təsir edir?"
+    az: "Verilənlər bazası mühərriki JOIN əməliyyatlarını fiziki olaraq necə icra edir və onların performansına nə təsir edir?"
   answer:
     en: |
       Relational database query optimizers choose between three primary physical join algorithms based on data size, available memory, and indexes:
@@ -141,10 +141,13 @@ interview_question:
       2. **Hash Join**: Builds an in-memory hash table on the smaller relation, then streams the larger relation probing the hash table. Best for large, unsorted, unindexed equi-joins.
       3. **Sort-Merge Join**: Sorts both inputs by join key, then merges them in a single linear pass (O(N log N + M log M)). Optimal when inputs are already sorted (e.g. via clustered index or B-Tree).
     az: |
-      Verilənlər bazasının sorğu optimallaşdırıcısı məlumatın həcminə, yaddaş limitinə və indekslərə əsasən 3 əsas fiziki birləşmə alqoritmindən birini seçir:
-      1. **İç-içə Dövr Birləşməsi (Nested Loop Join)**: Xarici cədvəlin hər sətri üçün daxili cədvəli yoxlayır. Daxili cədvəldə indeks varsa çox sürətlidir (O(N * log M)), indeks olmadıqda isə ən yavaş üsuldur (O(N * M)).
-      2. **Heş Birləşmə (Hash Join)**: Kiçik cədvəlin açarları üzərində operativ yaddaşda heş-cədvəl qurur, böyük cədvəli oxuduqca heş cədvəllə müqayisə edir. İndekslənməmiş böyük bərabərlik birləşmələri üçün idealdır.
-      3. **Çeşidləmə və Birləşdirmə (Sort-Merge Join)**: Hər iki cədvəli açara görə sıralayır və xətti bir keçidlə birləşdirir (O(N log N + M log M)). Məlumatlar artıq indeks üzrə sıralanmış olduqda ən səmərəli seçimdir.
+      Verilənlər bazasının sorğu optimallaşdırıcısı (query optimizer) məlumatın həcminə, yaddaş limitinə və indekslərə əsasən 3 əsas fiziki JOIN alqoritmindən birini seçir:
+      1. **Nested Loop Join (İç-içə Dövr Birləşməsi)**: Xarici cədvəlin hər sətri üçün daxili cədvəli yoxlayır. Daxili cədvəldə indeks varsa çox sürətlidir (O(N * log M)), indeks olmadıqda isə ən yavaş üsuldur (O(N * M)).
+      2. **Hash Join**: Kiçik cədvəlin açarları üzərində operativ yaddaşda hash-cədvəl qurur, böyük cədvəli oxuduqca hash-cədvəllə müqayisə edir. İndekslənməmiş böyük bərabərlik birləşmələri (equi-joins) üçün idealdır.
+      3. **Sort-Merge Join**: Hər iki cədvəli açara görə sıralayır və xətti bir keçidlə birləşdirir (O(N log N + M log M)). Məlumatlar artıq indeks üzrə sıralanmış olduqda ən səmərəli seçimdir.
+  interviewer_tips:
+    en: "When discussing distributed engines like Spark alongside SQL databases, mention that a small table joined to a large table uses a Broadcast Hash Join to avoid shuffling the large table across the network."
+    az: "SQL bazaları ilə yanaşı Spark kimi paylanmış sistemlər barədə soruşularsa, kiçik cədvəlin böyük cədvəllə birləşdirilməsi zamanı şəbəkə shuffle yükündən qaçmaq üçün Broadcast Hash Join istifadə edildiyini qeyd edin."
 exercise:
   question:
     en: "Write a query using LEFT JOIN to find all categories that have zero products. Return category_id and category_name."

@@ -130,6 +130,9 @@ interview_question:
       1. **İcra Zamanı**: WHERE sətirlər qruplaşdırılmazdan *əvvəl* işləyir (xam sətirləri süzür). HAVING isə qruplaşdırma tamamlandıqdan *sonra* işləyir (aqreqat qrupları süzür).
       2. **Aqreqat İfadələr**: WHERE aqreqat funksiyalarını (`SUM`, `COUNT`) qəbul etmir, çünki qruplar hələ mövcud deyil. HAVING isə aqreqat ifadələri yoxlayır.
       3. **Performansa Təsiri**: Dəqiq WHERE şərti lazımsız sətirləri dərhal kənarlaşdıraraq ağır qruplaşdırma mərhələsinə ötürülən həcmi azaldır. Aqreqat olmayan şərtləri HAVING daxilinə yazmaq isə mühərriki əvvəlcə bütün məlumatları qruplaşdırmağa, sonra isə atmağa məcbur edir və yaddaşı israf edir.
+  interviewer_tips:
+    en: "Emphasize 'Predicate Pushdown': filtering early in WHERE allows storage engines (like Parquet/Delta Lake or indexed tables) to skip reading irrelevant blocks from disk entirely before aggregation begins."
+    az: "'Predicate Pushdown' anlayışını vurğulamaq böyük üstünlükdür: WHERE ilə erkən filtrləmə bazaya (məsələn, Parquet/Delta Lake və ya indeksli cədvəllərə) lazımsız məlumat bloklarını diskdən ümumiyyətlə oxumadan ötürməyə imkan verir."
 exercise:
   question:
     en: "Write a query to find each category_id and its average product price (rounded to 2 decimal places as avg_price) for categories with an average price strictly greater than 30.0."

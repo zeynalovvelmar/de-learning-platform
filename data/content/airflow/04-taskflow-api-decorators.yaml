@@ -73,7 +73,7 @@ explanation:
     4. **Hybrid Interoperability**: Traditional operators (like `BashOperator` or `SparkSubmitOperator`) connect seamlessly to TaskFlow tasks via standard `>>` bitshifts.
   az: |
     Köhnə **Teleqraf Xətti** ilə **Müasir Simsiz Qulaqlıq** arasındakı fərqi təsəvvür edin:
-    - **Köhnə Airflow Modeli (Teleqraf)**: İki tapşırıq arasında məlumat ötürmək üçün mühəndis əllə teleqraf kodunu yığmalı (`ti.xcom_push`), qarşı tərəf isə həmin tapşırığın adını hərfi-hərfinə yazıb qəbul etməli idi (`ti.xcom_pull(task_ids='birinci_is')`). Hər hansı hərf səhvi bütün kəməri qırırdı.
+    - **Köhnə Airflow Modeli (Teleqraf)**: İki tapşırıq arasında məlumat ötürmək üçün mühəndis əllə teleqraf kodunu yığmalı (`ti.xcom_push`), qarşı tərəf isə həmin tapşırığın adını hərfi-hərfinə yazıb qəbul etməli idi (`ti.xcom_pull(task_ids='birinci_is')`). Hər hansı hərf səhvi bütün pipeline-ı qırırdı.
     - **TaskFlow API (Simsiz Qulaqlıq)**: Airflow 2.0 ilə gələn bu müasir yanaşmada adi Python funksiyaları kimi yazırsınız. Funksiyanın `return` etdiyi dəyər avtomatik XCom-a yazılır və növbəti funksiyaya arqument kimi ötürülür. Airflow arxa planda funksiya zəncirini analiz edir və **asılılıq oxlarını (`>>`) avtomatik özü qurur**!
 
     ### TaskFlow API-nin Üstünlükləri:
@@ -103,7 +103,7 @@ code: |
       dag_id='04_modern_taskflow_etl',
       default_args=default_args,
       start_date=datetime(2026, 1, 1),
-      schedule_interval='@daily',
+      schedule='@daily',
       catchup=False,
       tags=['taskflow', 'modern', 'airflow2']
   )

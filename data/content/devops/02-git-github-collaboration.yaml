@@ -3,7 +3,7 @@ order: 2
 level: "junior"
 title:
   en: "Git & GitHub: Branching Strategies, Merge vs Rebase & PRs"
-  az: "Git və GitHub: Budaqlanma Strategiyaları, Merge vs Rebase və PR-lar"
+  az: "Git və GitHub: Branching Strategiyaları, Merge vs Rebase və PR-lar"
 infographic:
   en: |
     ```text
@@ -72,7 +72,7 @@ explanation:
     3. Virtual environments (`.venv/`, `__pycache__/`).
   az: |
     ### Git Niyə Data Mühəndisi Üçün Əvəzedilməzdir?
-    Müasir şirkətlərdə data kəmərləri xalis proqram kodudur. Əgər kimsə test etmədən Airflow DAG-ında dəyişiklik edib maliyyə hesabatını dondurarsa, şirkət böyük ziyan görər.
+    Müasir şirkətlərdə data pipeline-ları xalis proqram kodudur. Əgər kimsə test etmədən Airflow DAG-ında dəyişiklik edib maliyyə hesabatını dondurarsa, şirkət böyük ziyan görər.
     
     Git sizə nə verir:
     - Bütün versiyaların tarixçəsi: Əgər yeni Spark kodu çöksə, dərhal `git revert` ilə dünənki stabil versiyaya qayıtmaq mümkündür.
@@ -81,7 +81,7 @@ explanation:
     ### Merge vs Rebase Fərqi
     - **`git merge`**: İki budağı birləşdirir və araya xüsusi bir "Merge commit" atır. Bütün addımların vaxt tarixçəsini saxlayır, lakin çoxlu qollar olduqda tarixçə qatar relsləri kimi qarışıq görünür.
     - **`git rebase`**: Sizin yazdığınız commit-ləri götürür və `main` budağının ən sonuncu commit-inin ardınca düzür (tarixçəni yenidən yazır). Nəticədə git loqu tərtəmiz, düz bir xətt kimi qalır.
-    - **İstehsalat Qaydası**: Pull Request (PR) açmazdan əvvəl öz lokal budağınızı `main`-ə rebase edin. Lakin başqaları ilə ortaq işlədiyiniz ümumi budağı heç vaxt rebase etməyin!
+    - **Production Qaydası**: Pull Request (PR) açmazdan əvvəl öz lokal budağınızı `main`-ə rebase edin. Lakin başqaları ilə ortaq işlədiyiniz ümumi budağı heç vaxt rebase etməyin!
 
     ### Data Mühəndisinin `.gitignore` Qızıl Qaydası
     **Git anbarına QƏTİYYƏN atmamalı olduğunuz fayllar:**
@@ -90,13 +90,13 @@ explanation:
     3. Python virtual mühitləri (`.venv/`, `__pycache__/`).
 quick_recap:
   en: "Pipelines are code. Use feature branches and PRs for code reviews. Use rebase for clean linear commit history. Never commit credentials or large raw datasets to Git."
-  az: "Data kəmərləri koddur. Kod rəyləri üçün budaqlardan (branches) və PR-lardan istifadə edin. Təmiz tarixçə üçün rebase edin. Git-ə heç vaxt şifrə və ya böyük data atmayın."
+  az: "Data pipeline-ları koddur. Kod rəyləri üçün branch-lərdən (budaqlardan) və PR-lardan istifadə edin. Təmiz tarixçə üçün rebase edin. Git-ə heç vaxt şifrə və ya böyük data atmayın."
 what_it_does:
   en: "Tracks code changes, coordinates multi-engineer pipeline development, and prevents regressions through reviews and pull requests."
-  az: "Kod dəyişikliklərini izləyir, komanda işini koordinasiya edir və Pull Request-lər vasitəsilə istehsalat xətalarının qarşısını alır."
+  az: "Kod dəyişikliklərini izləyir, komanda işini koordinasiya edir və Pull Request-lər vasitəsilə production xətalarının qarşısını alır."
 real_world_use:
   en: "Branching off `main` to build a new Kafka consumer pipeline, opening a GitHub PR, running automated CI tests, and squashing into production."
-  az: "`main` budağından yeni Kafka kəməri üçün budaq ayırmaq, GitHub-da PR açıb testlərdən keçirdikdən sonra əsas koda birləşdirmək."
+  az: "`main` budağından yeni Kafka pipeline-ı üçün branch ayırmaq, GitHub-da PR açıb testlərdən keçirdikdən sonra əsas koda birləşdirmək."
 common_mistakes:
   en: "Accidentally committing database passwords or 2GB Parquet test files to Git history, bloating the repo forever and leaking security credentials."
   az: "Səhvən verilənlər bazası şifrəsini və ya 2GB-lıq Parquet faylını Git-ə göndərmək, anbarı doldurmaq və şirkətin təhlükəsizliyini təhlükəyə atmaq."

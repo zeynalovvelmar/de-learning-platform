@@ -3,7 +3,7 @@ order: 3
 level: "junior"
 title:
   en: "Execution Mechanics: Lazy Evaluation, DAG, Transformations & Actions"
-  az: "İcra Mexanizmi: Tənbəl Hesablama (Lazy Evaluation), DAG, Transformasiyalar və Aksiyalar"
+  az: "İcra Mexanizmi: Lazy Evaluation (Tənbəl Qiymətləndirmə), DAG, Transformasiyalar və Aksiyalar"
 infographic:
   en: |
     ```text
@@ -28,7 +28,7 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  1-Cİ MƏRHƏLƏ: Transformasiyalar (TƏNBƏL - Heç nə hesablanmır, Ani!)   │
+    │  1-Cİ MƏRHƏLƏ: Transformasiyalar (LAZY - Heç nə hesablanmır, Ani!)     │
     │  df1 = spark.read.csv("logs.csv")     ──► DAG Qrafına resept yazılır   │
     │  df2 = df1.filter(country == "AZE")   ──► Reseptə süzgəc əlavə olunur  │
     │  df3 = df2.select("user_id", "amt")   ──► Reseptə sütunlar yazılır     │
@@ -57,18 +57,18 @@ explanation:
     2. **Actions (Eager)**: Triggers computation of the entire DAG and returns a result to the Driver or writes to storage.
        - Examples: `.count()`, `.show()`, `.collect()`, `.first()`, `.take()`, `.write()`, `.saveAsTable()`.
   az: |
-    Tənbəl Hesablama (Lazy Evaluation) məntiqini restoranda yemək sifarişi vermək kimi təsəvvür edin:
+    Lazy Evaluation (Tənbəl Qiymətləndirmə) məntiqini restoranda yemək sifarişi vermək kimi təsəvvür edin:
     - **Transformasiyalar (Sifariş Siyahınız)**: Kassirə deyirsiniz: "Mənə bir burger verin, soğansız olsun, əlavə pendir qoyun, yanında da kartof qızartması." Kassir hər cümlənizdən sonra 4 dəfə mətbəxə qaçıb əti qızartmağa başlamır. O, sadəcə sifariş çekinə qeydlərini yazır (**bu DAG - Birtərəfli Dövrsüz Qrafdır**).
     - **Aksiyalar (Pulu ödəyib 'Hazırlayın!' demək)**: Siz kartı terminala yaxınlaşdırıb ödənişi təsdiqlədikdə (yəni `.count()`, `.show()` və ya `.write()` çağırdıqda), çek baş aşpaza (**Catalyst Optimizer**) verilir. Aşpaz bütün reseptə bütöv baxır, əti və kartofu eyni anda ən qısa yolla qızardır və yeməyi sizə təqdim edir.
 
     ### Spark Əməliyyatlarının İki Əsas Qrupu:
-    1. **Transformasiyalar (Tənbəl / Lazy)**: Yeni bir DataFrame qaytarır, amma arxa planda heç bir hesablama aparmır.
+    1. **Transformasiyalar (Lazy / Tənbəl)**: Yeni bir DataFrame qaytarır, amma arxa planda heç bir hesablama aparmır.
        - Nümunələr: `.filter()`, `.select()`, `.withColumn()`, `.groupBy()`, `.join()`, `.drop()`, `.distinct()`.
     2. **Aksiyalar (Fəal / Eager)**: Bütün DAG qrafını işə salır, hesablama aparır və nəticəni ya ekrana çıxarır, ya da diskə yazır.
        - Nümunələr: `.count()`, `.show()`, `.collect()`, `.first()`, `.take()`, `.write()`, `.saveAsTable()`.
 quick_recap:
   en: "Transformations build a blueprint (DAG) lazily without touching real data; Actions trigger the Catalyst engine to optimize the blueprint and execute tasks across the cluster. Lazy evaluation enables global query optimization like Predicate Pushdown and Column Pruning."
-  az: "Transformasiyalar heç bir məlumata toxunmadan tənbəl şəkildə DAG planı qurur; Aksiyalar isə Catalyst mühərrikini işə salaraq tapşırıqları klasterdə icra edir. Tənbəl hesablama bütün sorğunun bütöv optimallaşdırılmasına (Predicate Pushdown və Column Pruning) imkan verir."
+  az: "Transformasiyalar heç bir məlumata toxunmadan lazy (tənbəl) şəkildə DAG planı qurur; Aksiyalar isə Catalyst mühərrikini işə salaraq tapşırıqları klasterdə icra edir. Lazy Evaluation bütün sorğunun bütöv optimallaşdırılmasına (Predicate Pushdown və Column Pruning) imkan verir."
 code: |
   import time
   from pyspark.sql import SparkSession
@@ -108,7 +108,7 @@ code_explanation:
     - `final_df.count()` triggers the action that compiles bytecode and schedules worker tasks.
   az: |
     - Diqqət yetirin ki, 4 transformasiya üçün `t_lazy` cəmi 1 millisaniyədən az vaxt aldı, çünki Spark heç bir sətir emal etmədi, sadəcə daxili DAG qrafını qurdu.
-    - İcra planında (`explain`) görünür ki, Catalyst hər iki ayrı `.filter()` addımını tək bir birləşmiş filtrdə birləşdirdi: `((region = AZ) AND (temperature > 30.0))`. Tənbəl hesablamanın gücü məhz bundadır.
+    - İcra planında (`explain`) görünür ki, Catalyst hər iki ayrı `.filter()` addımını tək bir birləşmiş filtrdə birləşdirdi: `((region = AZ) AND (temperature > 30.0))`. Lazy Evaluation-ın gücü məhz bundadır.
     - `final_df.count()` çağırıldığı an klaster həqiqətən işə düşdü və tapşırıqları icra etdi.
 visual_output: |
   Time to construct 4 transformations: 0.842 ms (0 rows computed!)
@@ -125,23 +125,23 @@ output_description:
   az: "Transformasiyaların 0.8 millisaniyədə qurulduğunu, Catalyst-in filtrləri birləşdirməsini və yalnız .count() aksiyası zamanı real hesablamanın getdiyini göstərən terminal çıxışı."
 what_it_does:
   en: "Demonstrates the distinct two-phase lifecycle of PySpark code: lazy DAG graph construction versus eager Action execution with query plan inspection."
-  az: "PySpark kodunun iki mərhələli həyat dövrünü nümayiş etdirir: tənbəl DAG qrafının qurulması və fəal Aksiya çağırışı ilə icra planının təhlili."
+  az: "PySpark kodunun iki mərhələli həyat dövrünü nümayiş etdirir: lazy DAG qrafının qurulması və fəal Aksiya çağırışı ilə icra planının təhlili."
 real_world_use:
   en: "Allows data engineers to modularize complex multi-step ETL pipelines into clean, readable functions without suffering performance penalties, because Catalyst compiles the whole chain into a single optimized pass."
-  az: "Mürəkkəb ETL kəmərlərini təmiz və oxunaqlı funksiyalara bölməyə imkan verir; çünki nə qədər çox transformasiya yazsanız da, Catalyst hamısını birləşdirib tək bir sürətli addımda icra edir."
+  az: "Mürəkkəb ETL pipeline-larını təmiz və oxunaqlı funksiyalara bölməyə imkan verir; çünki nə qədər çox transformasiya yazsanız da, Catalyst hamısını birləşdirib tək bir sürətli addımda icra edir."
 common_mistakes:
   en: |
     - **Calling `.count()` or `.show()` repeatedly inside a loop**: Each action triggers the entire upstream DAG pipeline from scratch! If you have a loop running 10 times with a `.count()`, Spark reads and re-computes the raw data 10 times.
     - **Assuming code has executed when creating a DataFrame**: If you write `df.filter(...).write.parquet(...)`, the work only happens on the `.write` line.
     - **Using actions for simple debugging in production**: Sprinkling `df.show()` or `print(df.count())` inside production DAGs slows pipelines down massively.
   az: |
-    - **Dövr daxilində təkrar-təkrar `.count()` və ya `.show()` çağırmaq**: Hər bir aksiya bütün əvvəlki kəməri ən başdan təkrar icra edir! 10 dəfə `.count()` çağırsanız, Spark 10 dəfə bütün faylı sıfırdan oxuyub hesablayacaq.
+    - **Dövr daxilində təkrar-təkrar `.count()` və ya `.show()` çağırmaq**: Hər bir aksiya bütün əvvəlki pipeline-ı ən başdan təkrar icra edir! 10 dəfə `.count()` çağırsanız, Spark 10 dəfə bütün faylı sıfırdan oxuyub hesablayacaq.
     - **DataFrame yaradılan kimi məlumatın emal olunduğunu düşünmək**: İş yalnız aksiya (`.write`, `.show`) çağırılanda başlayır.
-    - **İstehsalat kodunun arasına yoxlama üçün `df.show()` qoymaq**: Airflow kəmərlərinin arasına `df.show()` qoymaq icra müddətini əsassız yerə dəfələrlə uzadır.
+    - **Production kodunun arasına yoxlama üçün `df.show()` qoymaq**: Airflow pipeline-larının arasına `df.show()` qoymaq icra müddətini əsassız yerə dəfələrlə uzadır.
 interview_question:
   question:
     en: "What is the difference between a Transformation and an Action in Spark, and what are the tangible benefits of Lazy Evaluation?"
-    az: "Spark-da Transformasiya ilə Aksiya arasındakı fərq nədir və Tənbəl Hesablamanın (Lazy Evaluation) təmin etdiyi real üstünlüklər nələrdir?"
+    az: "Spark-da Transformasiya ilə Aksiya arasındakı fərq nədir və Lazy Evaluation-ın (Tənbəl Qiymətləndirmənin) təmin etdiyi real üstünlüklər nələrdir?"
   answer:
     en: |
       1. **Fundamental Difference**:
@@ -153,22 +153,22 @@ interview_question:
          - **Fault Tolerance (Lineage Graph)**: If a worker node crashes mid-job, Spark doesn't have to restart from scratch; it inspects the DAG lineage and re-computes only the lost partition.
     az: |
       1. **Əsas Fərq**:
-         - **Transformasiyalar** (`filter`, `select`, `groupBy`, `join`): Bir DataFrame-dən digərini yaradan əmrlərdir. **Tənbəldir (Lazy)** və aksiya çağırılana qədər heç bir hesablama aparmır.
+         - **Transformasiyalar** (`filter`, `select`, `groupBy`, `join`): Bir DataFrame-dən digərini yaradan əmrlərdir. **Lazy-dir (Tənbəldir)** və aksiya çağırılana qədər heç bir hesablama aparmır.
          - **Aksiyalar** (`count`, `show`, `collect`, `write`): Bütün DAG qrafını işə salır, tapşırıqları klasterdə icra edir və ya nəticəni qaytarır, ya da diskə yazır.
-      2. **Tənbəl Hesablamanın 3 Əsas Üstünlüyü**:
+      2. **Lazy Evaluation-ın 3 Əsas Üstünlüyü**:
          - **Qlobal Sorğu Optimallaşdırması**: Spark bütün reseptə icradan əvvəl bütöv baxdığı üçün Catalyst filtrləri birləşdirir (Filter Fusion), lazımsız sətirləri fayldan oxumadan kəsir (Predicate Pushdown) və istifadə olunmayan sütunları atır (Column Pruning).
          - **Yaddaş və I/O Qənaəti**: Hər xırda addım üçün yaddaşda və ya diskdə aralıq cədvəllər yaratmır, məlumatı birbaşa axınla (pipelining) emal edir.
-         - **Xətalara qarşı Yüksək Dözümlülük (Lineage)**: İcra zamanı bir maşın sıradan çıxarsa, bütün kəməri təzədən başlatmağa ehtiyac qalmır; DAG lineage sayəsində yalnız həmin itirilmiş xırda partisiya yenidən hesablanır.
+         - **Xətalara qarşı Yüksək Dözümlülük (Lineage)**: İcra zamanı bir maşın sıradan çıxarsa, bütün pipeline-ı təzədən başlatmağa ehtiyac qalmır; DAG lineage sayəsində yalnız həmin itirilmiş xırda partisiya yenidən hesablanır.
   interviewer_tips:
     en: "Always list the specific optimization techniques enabled by lazy evaluation: 'Predicate Pushdown', 'Column Pruning', and 'DAG fault-tolerant Lineage recovery'."
-    az: "Müsahibədə sadəcə 'yavaş hesablayır' deməyin; mütləq Catalyst-in 'Predicate Pushdown', 'Column Pruning' optimallaşdırmalarını və 'DAG Lineage bərpası'nı sadalayın."
+    az: "Müsahibədə sadəcə 'gec hesablayır' deməyin; mütləq Catalyst-in 'Predicate Pushdown', 'Column Pruning' optimallaşdırmalarını və 'DAG Lineage bərpası'nı sadalayın."
 flashcards:
   - front:
       en: "What is a Transformation in Apache Spark?"
       az: "Apache Spark-da Transformasiya nədir?"
     back:
       en: "A lazy operation (e.g. `filter`, `select`) that creates a new DataFrame and records an instruction in the DAG without computing rows."
-      az: "Yeni DataFrame yaradan və heç bir sətir hesablamadan DAG qrafına yeni addım əlavə edən tənbəl (lazy) əməliyyatdır."
+      az: "Yeni DataFrame yaradan və heç bir sətir hesablamadan DAG qrafına yeni addım əlavə edən lazy (tənbəl) əməliyyatdır."
   - front:
       en: "What is an Action in Apache Spark?"
       az: "Apache Spark-da Aksiya nədir?"
@@ -183,13 +183,13 @@ flashcards:
       az: "Birtərəfli Dövrsüz Qraf (Directed Acyclic Graph). Son nəticəni almaq üçün lazım olan addımlar və mərhələlərin asılılıq xəritəsidir."
   - front:
       en: "How does Lazy Evaluation enable Predicate Pushdown?"
-      az: "Tənbəl Hesablama (Lazy Evaluation) Predicate Pushdown-a necə imkan yaradır?"
+      az: "Lazy Evaluation (Tənbəl Qiymətləndirmə) Predicate Pushdown-a necə imkan yaradır?"
     back:
       en: "Because Spark plans before executing, it moves filter conditions directly down to the file scan stage to skip reading unneeded row groups."
       az: "İcradan əvvəl bütün planı gördüyü üçün süzgəcləri birbaşa fayl oxunması mərhələsinə endirərək lazımsız blokların oxunmasının qarşısını alır."
   - front:
       en: "Why should you never call `.count()` inside a loop in a production PySpark job?"
-      az: "Nə üçün istehsalat PySpark kodunda dövr daxilində `.count()` çağırmaq olmaz?"
+      az: "Nə üçün production PySpark kodunda dövr daxilində `.count()` çağırmaq olmaz?"
     back:
       en: "Because `.count()` is an action that forces the entire upstream DAG to re-compute from source on every iteration."
-      az: "Çünki `.count()` bir aksiyadır və hər dövrdə bütün əvvəlki kəməri ən başdan təkrar hesablamağa məcbur edir."
+      az: "Çünki `.count()` bir aksiyadır və hər dövrdə bütün əvvəlki pipeline-ı ən başdan təkrar hesablamağa məcbur edir."

@@ -63,7 +63,7 @@ infographic:
     │  postgres.orders ──► bronze_orders ──► silver_orders ──► gold_revenue  │
     │                                                               │        │
     │  Təsir Analizi: "Əgər `orders.tax` dəyişsə, nə qırılacaq?" ──►│        │
-    │  Cavab: 2 dbt modeli, 1 ML boru kəməri və Baş Maliyyə Rəhbərinin Paneli!▼
+    │  Cavab: 2 dbt modeli, 1 ML pipeline-ı və Baş Maliyyə Rəhbərinin Paneli!▼
     │                                                      [Maliyyə Hesabatı]
     └────────────────────────────────────────────────────────────────────────┘
     ```
@@ -96,7 +96,7 @@ explanation:
     5. **Lineage**: When an incident occurs, what broke and who is impacted?
   az: |
     ### Fundamental Qanun: "Garbage In, Garbage Out" (Zibil Daxil Oldusa, Zibil Çıxacaq)
-    Məlumatın düzgünlüyünə və dürüstlüyünə zəmanət verilmirsə, ən sürətli və ən böyük data boru kəmərlərini qurmağın heç bir mənası yoxdur. Səhv məlumat rəhbərliyin qərar panellərinə və ya süni intellekt modellərinə sızarsa, bu şirkətə milyonlarla ziyan vura bilər.
+    Məlumatın düzgünlüyünə və dürüstlüyünə zəmanət verilmirsə, ən sürətli və ən böyük data pipeline-larını qurmağın heç bir mənası yoxdur. Səhv məlumat rəhbərliyin qərar panellərinə və ya süni intellekt modellərinə sızarsa, bu şirkətə milyonlarla ziyan vura bilər.
     - **Data Governance (Məlumat İdarəetməsi)**: Məlumatın bütün həyat dövrü boyu dəqiqliyini, izlənilməsini, təhlükəsizliyini və qanuni standartlara (GDPR) uyğunluğunu təmin edən sistemlər toplusudur.
 
     ### 1. Data Keyfiyyəti (DQ) Testləri və Circuit Breaker (Qoruyucu Açarlar)
@@ -117,7 +117,7 @@ explanation:
     Klassik proqramlaşdırma serverin CPU və RAM-ını izlədiyi kimi, **Data Observability** məlumatın özünün sağlamlığını izləyir:
     1. **Freshness (Təzəlik)**: Məlumat SLA-ya uyğun vaxtında yenilənirmi?
     2. **Distribution (Paylanma)**: Qiymətlər normadırmı (məsələn: orta çek gözlənilmədən 90% azalıbmı)?
-    3. **Volume (Həcm)**: Gündəlik 1 milyon sətir yerinə boru kəməri cəmi 500 sətir çıxarıbsa, deməli problem var.
+    3. **Volume (Həcm)**: Gündəlik 1 milyon sətir yerinə data pipeline cəmi 500 sətir çıxarıbsa, deməli problem var.
     4. **Schema (Sxem)**: Mənbə komandası xəbərdarlıq etmədən sütunu silib və ya tipini dəyişibmi (Schema Drift)?
     5. **Lineage (Əlaqə)**: Xəta baş verəndə səbəb hardadır və kimlər zərər görür?
 quick_recap:
@@ -131,7 +131,7 @@ real_world_use:
   az: "Data komandaları xətalı məlumatı dayandırmaq üçün dbt testlərindən və Great Expectations-dan, xəritə və monitorinq üçün isə OpenLineage və DataHub-dan istifadə edir."
 common_mistakes:
   en: "Treating data quality as an afterthought; allowing pipelines to succeed silently with 90% null values without alert notifications."
-  az: "Data keyfiyyətini ikinci dərəcəli saymaq; boru kəmərinin 90% NULL məlumatla səssizcə uğurla bitməsinə və hesabatları korlamasına göz yummaq."
+  az: "Data keyfiyyətini ikinci dərəcəli saymaq; data pipeline-ın 90% NULL məlumatla səssizcə uğurla bitməsinə və hesabatları korlamasına göz yummaq."
 code: |
   # =========================================================================
   # PRODUCTION DATA QUALITY AUDIT & CIRCUIT BREAKER SCRIPT (PYTHON & SQL)
@@ -232,10 +232,10 @@ output_description:
 interview_question:
   question:
     en: "What is Data Observability, and how does it differ from traditional software monitoring? Describe the 'Circuit Breaker' pattern in modern data pipelines."
-    az: "Data Observability nədir və ənənəvi proqram təminatı monitorinqindən nə ilə fərqlənir? Müasir data boru kəmərlərində 'Circuit Breaker' (Qoruyucu dövrə) modelini təsvir edin."
+    az: "Data Observability nədir və ənənəvi proqram təminatı monitorinqindən nə ilə fərqlənir? Müasir data pipeline-larında 'Circuit Breaker' (Qoruyucu dövrə) modelini təsvir edin."
   answer:
     en: "Traditional software monitoring tracks system health: CPU usage, memory utilization, network bandwidth, and HTTP status codes (200 OK vs 500 Error). However, a data pipeline can run with 100% CPU uptime and return 'Job Succeeded (Status 200)' while delivering 500,000 completely blank, corrupted, or duplicated rows. **Data Observability** monitors the health, integrity, and behavioral anomalies of the **data itself**, built on 5 core pillars: Freshness, Distribution, Volume, Schema, and Lineage. The **Circuit Breaker** pattern is an architectural fail-safe inspired by electrical breakers. When automated Data Quality tests (e.g. dbt tests, Great Expectations) detect an anomaly that violates predefined thresholds (such as primary key collisions, a spike in NULL values, or an 80% drop in normal record volume), the pipeline instantly 'trips' the circuit breaker: it halts execution, alerts engineers via Slack/PagerDuty, and diverts corrupted rows to an isolated quarantine table, preventing corrupted figures from ever reaching executive dashboards or production machine learning models."
-    az: "Ənənəvi proqram monitorinqi sistemin texniki vəziyyətini izləyir: CPU, RAM istifadəsi və HTTP status kodları (200 OK və ya 500 Error). Lakin bir data pipeline 100% rəsmi olaraq 'Uğurla Bitdi (Success)' statusu ilə tamamlana bilər, amma əslində anbara 500,000 ədəd tamamilə boş (NULL) və ya təkrar sətir yazmış ola bilər. **Data Observability** sistemin deyil, birbaşa **məlumatın özünün** sağlamlığını və anomaliyalarını izləyir və 5 sütuna əsaslanır: Təzəlik (Freshness), Paylanma (Distribution), Həcm (Volume), Sxem dəyişikliyi (Schema) və Əlaqə xəritəsi (Lineage). **Circuit Breaker (Qoruyucu Dövrə)** elektrik sistemlərindəki avtomat qoruyuculardan ilhamlanan bir arxitektur təhlükəsizlik modelidir. Boru kəməri işləyərkən avtomatlaşdırılmış testlər (dbt test, Great Expectations) kritik bir qaydanın pozulduğunu (məsələn, açar təkrarlanması, NULL faizinin normadan çox olması və ya gündəlik həcmin 80% azalması) aşkar etdikdə, qoruyucu dövrə dərhal 'atır': proses saxlanılır, mühəndislərə xəbərdarlıq göndərilir və xətalı məlumatlar karantin cədvəlinə yönləndirilir. Nəticədə rəhbərliyin panellərinə və süni intellekt modellərinə yanlış məlumatın çatması 100% bloklanır."
+    az: "Ənənəvi proqram monitorinqi sistemin texniki vəziyyətini izləyir: CPU, RAM istifadəsi və HTTP status kodları (200 OK və ya 500 Error). Lakin bir data pipeline 100% rəsmi olaraq 'Uğurla Bitdi (Success)' statusu ilə tamamlana bilər, amma əslində anbara 500,000 ədəd tamamilə boş (NULL) və ya təkrar sətir yazmış ola bilər. **Data Observability** sistemin deyil, birbaşa **məlumatın özünün** sağlamlığını və anomaliyalarını izləyir və 5 sütuna əsaslanır: Təzəlik (Freshness), Paylanma (Distribution), Həcm (Volume), Sxem dəyişikliyi (Schema) və Əlaqə xəritəsi (Lineage). **Circuit Breaker (Qoruyucu Dövrə)** elektrik sistemlərindəki avtomat qoruyuculardan ilhamlanan bir arxitektur təhlükəsizlik modelidir. Pipeline işləyərkən avtomatlaşdırılmış testlər (dbt test, Great Expectations) kritik bir qaydanın pozulduğunu (məsələn, açar təkrarlanması, NULL faizinin normadan çox olması və ya gündəlik həcmin 80% azalması) aşkar etdikdə, qoruyucu dövrə dərhal 'atır': proses saxlanılır, mühəndislərə xəbərdarlıq göndərilir və xətalı məlumatlar karantin cədvəlinə yönləndirilir. Nəticədə rəhbərliyin panellərinə və süni intellekt modellərinə yanlış məlumatın çatması 100% bloklanır."
   interviewer_tips:
     en: "Mention the danger of 'Silent Failures'—jobs that finish with exit code 0 but carry zero or garbage rows. Mention automated tools like Great Expectations, dbt tests, and OpenLineage."
     az: "'Silent Failures' (Səssiz Qəzalar) anlayışını xüsusi vurğulayın: işin 'yaşıl' bitməsi məlumatın düzgün olması demək deyil. Great Expectations, dbt testləri və OpenLineage alətlərini misal çəkin."
@@ -254,16 +254,16 @@ flashcards:
       az: "Təzəlik (Freshness), Paylanma (Distribution), Həcm (Volume), Sxem (Schema) və Lineage (Əlaqə)."
   - front:
       en: "What is the role of a 'Circuit Breaker' in a data pipeline?"
-      az: "Data boru kəmərində 'Circuit Breaker' (Qoruyucu Dövrə) nə rol oynayır?"
+      az: "Data pipeline-ında 'Circuit Breaker' (Qoruyucu Dövrə) nə rol oynayır?"
     back:
       en: "To automatically halt the pipeline or quarantine data when quality thresholds fail, preventing bad data from contaminating Gold tables."
-      az: "Keyfiyyət hədləri pozulduqda boru kəmərini dayandırmaq və ya məlumatı karantinə almaqla səhvlərin Gold cədvəllərinə keçməsini əngəlləmək."
+      az: "Keyfiyyət hədləri pozulduqda pipeline-ı dayandırmaq və ya məlumatı karantinə almaqla səhvlərin Gold cədvəllərinə keçməsini əngəlləmək."
   - front:
       en: "What is a 'Silent Failure' in data engineering?"
       az: "Data mühəndisliyində 'Silent Failure' (Səssiz Qəza) nədir?"
     back:
       en: "When an ETL job finishes with exit code 0 (success), but writes corrupted, duplicate, or zero rows into the warehouse."
-      az: "Boru kəmərinin rəsmi olaraq uğurla (exit code 0) bitməsi, lakin anbara xətalı, boş və ya təkrar məlumat yazması vəziyyəti."
+      az: "Pipeline-ın rəsmi olaraq uğurla (exit code 0) bitməsi, lakin anbara xətalı, boş və ya təkrar məlumat yazması vəziyyəti."
   - front:
       en: "What is Column-Level Lineage used for?"
       az: "Sütun Səviyyəli Lineage (Column-Level Lineage) nə üçün istifadə olunur?"

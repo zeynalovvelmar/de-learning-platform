@@ -31,7 +31,7 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  ƏNƏNVİ MESAJ NÖVBƏSİ (RabbitMQ): Mesaj Oxunan Kimi Silinir (Destructive) │
+    │  ƏNƏNƏVİ MESAJ NÖVBƏSİ (RabbitMQ): Mesaj Oxunan Kimi Silinir (Destructive) │
     │  [Producer] ──► [Queue / Broker] ──► [Consumer A] (Mesaj DƏRHAL SİLİNDİ)│
     │  • Ağıllı Broker, Sadə İstehlakçı: Broker kimin nəyi oxuduğunu izləyir. │
     │  • Keçici: Mesaj qəbul edilən kimi növbədən yox olur. Təkrar oxuma YOX! │
@@ -43,7 +43,7 @@ infographic:
     │  [Producer] ──► [Topic Partition Log: [0][1][2][3][4][5]... (Daimi)]   │
     │                          ▲                     ▲                       │
     │                          │                     │                       │
-    │                  [Analitika Kəməri]     [Maşın Öyrənməsi Modeli]       │
+    │                  [Analitika Pipeline-ı] [Maşın Öyrənməsi Modeli]       │
     │                  (Offset 2-ni oxuyur)   (Offset 5-i oxuyur)            │
     │  • Sadə Broker, Ağıllı İstehlakçı: Broker yalnız sona yazır, Consumer  │
     │    öz offset-ini (əlfəcinini) özü saxlayır.                             │
@@ -162,7 +162,7 @@ common_mistakes:
 interview_question:
   question:
     en: "What are the core architectural differences between Apache Kafka and traditional message brokers like RabbitMQ, and why is Kafka preferred for Big Data pipelines?"
-    az: "Apache Kafka ilə ənənəvi mesaj növbələri (məsələn RabbitMQ) arasındakı əsas memarlıq fərqləri nədir və nə üçün Böyük Məlumat kəmərlərində Kafka seçilir?"
+    az: "Apache Kafka ilə ənənəvi mesaj növbələri (məsələn RabbitMQ) arasındakı əsas memarlıq fərqləri nədir və nə üçün Big Data pipeline-larında Kafka seçilir?"
   answer:
     en: |
       1. **Log Architecture vs Message Queue**:
@@ -217,4 +217,4 @@ flashcards:
       az: "'Event Replay' nədir və Data Mühəndisliyi üçün nə üçün həyati əhəmiyyət daşıyır?"
     back:
       en: "The ability to reset consumer offsets backwards to re-process historical raw data with new logic or fix pipeline bugs."
-      az: "Data kəmərində xəta olduqda və ya yeni məntiq tətbiq edildikdə, offset-i geriyə çəkərək xammal məlumatları keçmişdən bəri sıfırdan təkrar hesablamaq imkanıdır."
+      az: "Data pipeline-ında xəta olduqda və ya yeni məntiq tətbiq edildikdə, offset-i geriyə çəkərək xammal məlumatları keçmişdən bəri sıfırdan təkrar hesablamaq imkanıdır."

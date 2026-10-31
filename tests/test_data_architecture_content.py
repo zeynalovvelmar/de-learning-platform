@@ -9,11 +9,11 @@ class TestDataArchitectureContent(unittest.TestCase):
 
     def test_01_all_12_lessons_exist(self):
         files = sorted(self.content_dir.glob("*.yaml"))
-        self.assertEqual(len(files), 12, f"Expected exactly 12 Data Architecture lessons, found {len(files)}")
+        self.assertEqual(len(files), 13, f"Expected exactly 13 Data Architecture lessons, found {len(files)}")
 
     def test_02_load_data_architecture_lessons_module_function(self):
         lessons = load_data_architecture_lessons()
-        self.assertEqual(len(lessons), 12, f"load_data_architecture_lessons() should return 12 lessons, got {len(lessons)}")
+        self.assertEqual(len(lessons), 13, f"load_data_architecture_lessons() should return 13 lessons, got {len(lessons)}")
         for idx, l in enumerate(lessons, start=1):
             self.assertEqual(l.get("order"), idx, f"Lesson {l.get('id')} order should be {idx}")
 
@@ -68,7 +68,7 @@ class TestDataArchitectureContent(unittest.TestCase):
 
             total_flashcards += len(fc)
 
-        self.assertEqual(total_flashcards, 60, f"Expected 60 total flashcards across 12 lessons, got {total_flashcards}")
+        self.assertEqual(total_flashcards, 65, f"Expected 65 total flashcards across 13 lessons, got {total_flashcards}")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

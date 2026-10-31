@@ -1,0 +1,167 @@
+id: "12-three-valued-logic-null"
+order: 12
+level: "intermediate"
+title:
+  en: "Three-Valued Logic & NULL Traps: IS NULL, NOT IN, COALESCE"
+  az: "Üçqiymətli Məntiq və NULL Tələləri: IS NULL, NOT IN, COALESCE"
+quick_recap:
+  en: "SQL uses Three-Valued Logic (3VL): TRUE, FALSE, and UNKNOWN. NULL does not represent a value—it represents missing or unknown data. Therefore, `col = NULL` always evaluates to UNKNOWN (never TRUE), `NOT IN` containing a NULL yields zero rows, and `COUNT(*)` counts rows while `COUNT(col)` ignores NULLs."
+  az: "SQL Üçqiymətli Məntiqdən (Three-Valued Logic - 3VL) istifadə edir: TRUE, FALSE və UNKNOWN. NULL bir dəyər deyil, məlumatsızlıq və ya çatışmazlıqdır. Buna görə də `col = NULL` həmişə UNKNOWN qaytarır (heç vaxt TRUE olmur), tərkibində NULL olan `NOT IN` sıfır sətir qaytarır və `COUNT(*)` bütün sətirləri, `COUNT(sütun)` isə yalnız NULL olmayanları sayır."
+explanation:
+  en: |
+    In standard programming languages like Python or Java, variables are either equal or not equal. In SQL, because databases model real-world missing data, ANSI SQL defines **Three-Valued Logic (3VL)**:
+    - Truth values: `TRUE`, `FALSE`, and `UNKNOWN`.
+    - In a `WHERE` clause, a row is ONLY returned if the condition evaluates to `TRUE`. Both `FALSE` and `UNKNOWN` are filtered out!
+
+    ### Trap 1: The `= NULL` Disaster
+    - `WHERE country = NULL` $\rightarrow$ evaluates to `UNKNOWN` for every single row. **Result: 0 rows returned!**
+    - `WHERE country != NULL` $\rightarrow$ also evaluates to `UNKNOWN` for every single row. **Result: 0 rows returned!**
+    - **Correct syntax**: You MUST use `IS NULL` or `IS NOT NULL`.
+
+    ### Trap 2: The `NOT IN` with Subquery NULLs
+    Consider checking for users who haven't placed a canceled order:
+    ```sql
+    -- If any row in the subquery returns NULL:
+    SELECT * FROM users
+    WHERE user_id NOT IN (SELECT user_id FROM orders WHERE status = 'CANCELLED');
+    ```
+    - Under the hood, `x NOT IN (1, 2, NULL)` expands to:
+      `(x != 1) AND (x != 2) AND (x != NULL)`
+    - Because `x != NULL` is `UNKNOWN`, any boolean expression `TRUE AND UNKNOWN` yields `UNKNOWN`.
+    - **Consequence**: The entire query returns **EMPTY (0 rows)**!
+    - **Defense**: Always use `NOT EXISTS` or filter with `WHERE user_id IS NOT NULL` inside the subquery.
+
+    ### Trap 3: Aggregations and Math
+    - **Arithmetic with NULL**: `100 + NULL = NULL`. If a customer gets a \$10 discount and discount is `NULL`, total calculation yields `NULL`!
+    - **Defense**: Use `COALESCE(discount, 0)`.
+    - **COUNT Differences**:
+      - `COUNT(*)`: Counts every row in the partition (including rows with null fields).
+      - `COUNT(country)`: Counts ONLY non-null values in the `country` column.
+
+    ### Defensive Functions:
+    1. `COALESCE(val1, val2, ...)`: Returns the first non-null expression.
+    2. `NULLIF(a, b)`: Returns `NULL` if $a = b$ (prevents division by zero: `total / NULLIF(qty, 0)`).
+  az: |
+    Python və ya Java kimi standart dillərdə dəyişənlər ya bərabərdir, ya da deyil. Lakin SQL-də real həyatdakı çatışmayan məlumatları modelləşdirmək üçün ANSI standartı **Üçqiymətli Məntiqi (Three-Valued Logic - 3VL)** tətbiq edir:
+    - Məntiqi qiymətlər: `TRUE`, `FALSE` və `UNKNOWN`.
+    - `WHERE` şərtində sətir YALNIZ və YALNIZ şərt `TRUE` olduqda nəticəyə düşür. Həm `FALSE`, həm də `UNKNOWN` rədd edilir!
+
+    ### Tələ 1: `= NULL` Fəlakəti
+    - `WHERE country = NULL` $\rightarrow$ hər bir sətir üçün `UNKNOWN` hesablanır. **Nəticə: 0 sətir qayıdır!**
+    - `WHERE country != NULL` $\rightarrow$ yenə hər sətir üçün `UNKNOWN` hesablanır. **Nəticə: 0 sətir qayıdır!**
+    - **Düzgün sintaksis**: Mütləq `IS NULL` və ya `IS NOT NULL` yazılmalıdır.
+
+    ### Tələ 2: `NOT IN` və Subquery-də NULL Sızması
+    Təsəvvür edin ki, ləğv edilmiş sifarişi olmayan istifadəçiləri axtarırsınız:
+    ```sql
+    -- Əgər alt-sorğuda bircə dənə belə NULL user_id varsa:
+    SELECT * FROM users
+    WHERE user_id NOT IN (SELECT user_id FROM orders WHERE status = 'CANCELLED');
+    ```
+    - Pərdə arxasında `x NOT IN (1, 2, NULL)` ifadəsi belə açılır:
+      `(x != 1) AND (x != 2) AND (x != NULL)`
+    - `x != NULL` ifadəsi `UNKNOWN` olduğu üçün, `TRUE AND UNKNOWN` həmişə `UNKNOWN` verir.
+    - **Nəticə**: Bütün sorğu **BOMBOŞ (0 sətir)** qaytarır və heç bir səhv mesajı çıxmır!
+    - **Müdafiə**: Həmişə `NOT EXISTS` istifadə edin və ya alt-sorğuya `WHERE user_id IS NOT NULL` şərti qoyun.
+
+    ### Tələ 3: Aqreqasiya və Riyazi Hesablamalar
+    - **NULL ilə Riyaziyyat**: `100 + NULL = NULL`. Əgər istifadəçinin endirimi `NULL`-dırsa, `qiymət - endirim` hesablaması `NULL` olacaq!
+    - **Müdafiə**: `COALESCE(discount, 0)` istifadə edin.
+    - **COUNT Fərqləri**:
+      - `COUNT(*)`: Bütün sətirləri (bütün sütunları NULL olsa belə) sayır.
+      - `COUNT(country)`: YALNIZ `country` sütununda NULL olmayan sətirləri sayır.
+
+    ### Müdafiə Funksiyaları:
+    1. `COALESCE(val1, val2, ...)`: Siyahıda rast gəlinən ilk NULL olmayan qiyməti qaytarır.
+    2. `NULLIF(a, b)`: Əgər $a = b$ olarsa `NULL` qaytarır (sıfıra bölmə xətasının qarşısını alır: `gəlir / NULLIF(sifariş_sayı, 0)`).
+code: |
+  SELECT 
+    user_id, 
+    first_name, 
+    country, 
+    COALESCE(country, 'Unknown Country') AS normalized_country,
+    CASE WHEN country IS NULL THEN 'Missing' ELSE 'Provided' END AS country_status
+  FROM users
+  WHERE country IS NULL
+  LIMIT 10;
+what_it_does:
+  en: "Demonstrates Three-Valued Logic (3VL), proper IS NULL filtering, COALESCE default value substitution, and the behavioral difference between COUNT(*) and COUNT(col)."
+  az: "Üçqiymətli Məntiqi (3VL), düzgün IS NULL filtrini, COALESCE ilə susmaya görə dəyər mənimsədilməsini və COUNT(*) ilə COUNT(sütun) arasındakı fərqi nümayiş etdirir."
+real_world_use:
+  en: "Critical in production ETL pipelines to avoid silent data loss caused by NOT IN subqueries and invalid null arithmetic in revenue metrics."
+  az: "İstehsalat ETL kəmərlərində NOT IN səhvlərindən yaranan səssiz məlumat itkisinin və gəlir hesablamalarında NULL fəsadlarının qarşısını almaq üçün tətbiq olunur."
+common_mistakes:
+  en: |
+    - **Using `=` or `!=` with NULL**: Writing `WHERE val = NULL` or `WHERE val != NULL` never matches any row because the outcome is UNKNOWN.
+    - **Using NOT IN with nullable subqueries**: A single NULL in the subquery result set collapses the entire outer query to 0 rows. Prefer `NOT EXISTS`.
+    - **Assuming SUM/AVG includes NULLs**: Aggregate functions silently skip NULLs, but `AVG` divides by the count of non-null rows, which may skew business averages if missing values represent zero.
+  az: |
+    - **NULL ilə `=` və ya `!=` operatoru işlətmək**: `WHERE sütun = NULL` yazmaq heç bir sətri qaytarmır, çünki nəticə UNKNOWN-dur.
+    - **Subquery ilə təhlükəli NOT IN yazmaq**: Alt-sorğuda bircə NULL sətir olması bütün əsas sorğunu 0 sətirə endirir. Həmişə `NOT EXISTS` seçin.
+    - **SUM və AVG-nin NULL-ları sıfır kimi qəbul etdiyini zənn etmək**: Aqreqat funksiyaları NULL-ları səssizcə kənara qoyur; lakin `AVG` cəmi yalnız NULL olmayanların sayına bölür ki, bu da biznes hesabatlarında balansı poza bilər.
+interview_question:
+  question:
+    en: "Why does `WHERE id NOT IN (1, 2, NULL)` return zero rows, and why is `NOT EXISTS` safer?"
+    az: "Nə üçün `WHERE id NOT IN (1, 2, NULL)` sıfır sətir qaytarır və nəyə görə `NOT EXISTS` daha təhlükəsizdir?"
+  answer:
+    en: |
+      1. **Evaluation of NOT IN with NULL**: `id NOT IN (1, 2, NULL)` is mathematically equivalent to `(id != 1) AND (id != 2) AND (id != NULL)`. In SQL Three-Valued Logic, any comparison with NULL (`id != NULL`) evaluates to `UNKNOWN`. Since `TRUE AND TRUE AND UNKNOWN` yields `UNKNOWN`, the WHERE clause never evaluates to `TRUE`, discarding every row.
+      2. **Why NOT EXISTS is Safe**: `NOT EXISTS (SELECT 1 FROM ... WHERE ...)` uses Two-Valued Logic. It tests whether the subquery produces at least one row or zero rows. It evaluates to a strict boolean (`TRUE` or `FALSE`), completely immune to NULL values inside the subquery's returned columns.
+    az: |
+      1. **NOT IN-in NULL ilə Qiymətləndirilməsi**: `id NOT IN (1, 2, NULL)` riyazi olaraq `(id != 1) AND (id != 2) AND (id != NULL)` deməkdir. SQL-in Üçqiymətli Məntiqində NULL ilə istənilən müqayisə (`id != NULL`) `UNKNOWN` nəticəsini verir. `TRUE AND TRUE AND UNKNOWN` həmişə `UNKNOWN` verdiyi üçün `WHERE` şərti heç bir sətir üçün `TRUE` ola bilmir və nəticə bomboş qalır.
+      2. **NOT EXISTS Niyə Təhlükəsizdir**: `NOT EXISTS (SELECT 1 ...)` İkiqiymətli Məntiqdən istifadə edir. O yalnız alt-sorğunun ən azı bir sətir qaytarıb-qaytarmadığını (`TRUE` və ya `FALSE`) yoxlayır və alt-sorğunun sütunlarındakı NULL dəyərlərindən qətiyyən təsirlənmir.
+  interviewer_tips:
+    en: "Ask the candidate: 'What does `SELECT COUNT(*)` return on an empty table versus `SELECT SUM(val)`?' Emphasize that COUNT(*) returns 0, while SUM(val) on zero matching rows returns NULL!"
+    az: "Müsahibədə soruşun: 'Boş cədvəldə `SELECT COUNT(*)` nə qaytarır, `SELECT SUM(qiymət)` nə qaytarır?' Vurğulayın ki, COUNT(*) 0 qaytarır, lakin SUM(qiymət) uyğun sətir tapmadıqda 0 deyil, NULL qaytarır!"
+exercise:
+  question:
+    en: "Write a query selecting user_id and replacing NULL country values with 'Not Provided' using COALESCE from the users table where country IS NULL."
+    az: "users cədvəlindən country IS NULL olan sətirlər üçün user_id sütununu və COALESCE istifadə edərək NULL ölkə dəyərlərini 'Not Provided' ilə əvəzləyən sorğu yazın (sütun adı: clean_country)."
+  starter_code: |
+    SELECT 
+      user_id,
+      COALESCE(country, '___') AS clean_country
+    FROM users
+    WHERE country ___;
+  hint:
+    en: "Use `COALESCE(country, 'Not Provided') AS clean_country` and filter with `WHERE country IS NULL`."
+    az: "`COALESCE(country, 'Not Provided') AS clean_country` yazın və `WHERE country IS NULL` ilə süzün."
+  solution: |
+    SELECT 
+      user_id,
+      COALESCE(country, 'Not Provided') AS clean_country
+    FROM users
+    WHERE country IS NULL;
+  order_matters: false
+
+flashcards:
+  - front:
+      en: "What are the three truth values in SQL Three-Valued Logic (3VL)?"
+      az: "SQL Üçqiymətli Məntiqində (3VL) hansı üç həqiqət dəyəri mövcuddur?"
+    back:
+      en: "TRUE, FALSE, and UNKNOWN. In a WHERE clause, rows are only returned if the expression evaluates strictly to TRUE."
+      az: "TRUE, FALSE və UNKNOWN. WHERE bəndində sətirlər yalnız ifadə dəqiq TRUE olduqda nəticəyə daxil edilir."
+  - front:
+      en: "What is the result of evaluating `10 = NULL` and `NULL = NULL` in SQL?"
+      az: "SQL-də `10 = NULL` və `NULL = NULL` ifadələrinin nəticəsi nədir?"
+    back:
+      en: "Both evaluate to UNKNOWN! NULL represents unknown information, so two unknowns cannot be asserted as equal."
+      az: "Hər ikisi UNKNOWN nəticəsi verir! NULL məlumatsızlıq olduğu üçün iki naməlum dəyərin bərabərliyi təsdiqlənə bilməz."
+  - front:
+      en: "Why does `WHERE id NOT IN (SELECT id FROM ...)` return empty if the subquery contains a NULL?"
+      az: "Nə üçün alt-sorğuda NULL olduqda `WHERE id NOT IN (SELECT id ...)` bomboş nəticə qaytarır?"
+    back:
+      en: "Because `id NOT IN (..., NULL)` expands to a series of `AND (id != NULL)`. Since `id != NULL` is UNKNOWN, the entire condition evaluates to UNKNOWN."
+      az: "Çünki `id NOT IN (..., NULL)` ardıcıl `AND (id != NULL)` zəncirinə çevrilir. `id != NULL` UNKNOWN olduğu üçün bütün şərt UNKNOWN olur və heç bir sətir seçilmir."
+  - front:
+      en: "What is the difference between COUNT(*) and COUNT(column_name)?"
+      az: "COUNT(*) ilə COUNT(sütun_adı) arasındakı fərq nədir?"
+    back:
+      en: "COUNT(*) counts all rows regardless of NULLs. COUNT(column_name) counts only rows where the specified column is NOT NULL."
+      az: "COUNT(*) NULL olub-olmamasından asılı olmayaraq bütün sətirləri sayır. COUNT(sütun_adı) isə yalnız həmin sütunda NULL olmayan dəyərləri sayır."
+  - front:
+      en: "What do the SQL functions COALESCE and NULLIF do?"
+      az: "SQL-də COALESCE və NULLIF funksiyaları nə edir?"
+    back:
+      en: "COALESCE returns the first non-null argument. NULLIF(a, b) returns NULL if a = b, otherwise returns a (often used to prevent division by zero)."
+      az: "COALESCE arqumentlər arasındakı ilk NULL olmayan dəyəri qaytarır. NULLIF(a, b) isə a = b olduqda NULL, əks halda a-nı qaytarır (sıfıra bölmənin qarşısını almaq üçün istifadə olunur)."

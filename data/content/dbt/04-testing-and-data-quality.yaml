@@ -59,7 +59,7 @@ explanation:
     - You run `dbt test` to validate all assumptions before promoting data to dashboards.
 
     ### 1. Generic Tests (The 4 Out-of-the-Box Rules)
-    Generic tests are declared in a YAML file (`models/staging/schema.yml`) alongside your models without writing a single line of SQL:
+    Generic tests are declared in a YAML file (`models/staging/schema.yml`) alongside your models without writing a single line of SQL *(Note: In **dbt 1.8+**, the `tests:` key was officially renamed to `data_tests:` to distinguish data quality assertions from the new `unit_tests:` feature, though `tests:` remains supported for backward compatibility)*:
     1. **`unique`**: Verifies that every value in a primary key column is unique (zero duplicates).
     2. **`not_null`**: Verifies that a required column contains zero missing or `NULL` values.
     3. **`accepted_values`**: Verifies that column values belong strictly to a predefined list (e.g. `['PENDING', 'SUCCESS', 'FAILED']`).
@@ -78,12 +78,12 @@ explanation:
     - `$ dbt build`: **The modern best practice!** Runs models AND their tests sequentially in DAG order. If an upstream staging model fails its `unique` test, dbt immediately halts and skips building downstream marts!
   az: |
     ### dbt Testlərinin İnqilabi Əhəmiyyəti
-    Köhnə data boru kəmərlərində xətalı məlumatlar səssizcə hesabatlara sızırdı və data komandası problemi yalnız şirkət rəhbəri səhər səhv rəqəmləri görüb şikayət edəndə öyrənirdi.
+    Köhnə data pipeline-larında xətalı məlumatlar səssizcə hesabatlara sızırdı və data komandası problemi yalnız şirkət rəhbəri səhər səhv rəqəmləri görüb şikayət edəndə öyrənirdi.
     - dbt testləri transformasiya prosesinin ayrılmaz hissəsinə çevirir.
     - Məlumatın hesabatlara çatmasına icazə verməzdən əvvəl `dbt test` ilə bütün biznes qaydaları yoxlanılır.
 
     ### 1. Generic Testlər (Kod Yazmadan 4 Qızıl Qayda)
-    Bu testlər heç bir SQL kodu yazılmadan, birbaşa `schema.yml` faylında qeyd olunur:
+    Bu testlər heç bir SQL kodu yazılmadan, birbaşa `schema.yml` faylında qeyd olunur *(Qeyd: **dbt 1.8+** versiyasından etibarən yeni `unit_tests:` xüsusiyyətindən fərqləndirmək üçün YAML-da `tests:` açar sözü rəsmi olaraq `data_tests:` ilə əvəzlənib, lakin geriyə uyğunluq üçün `tests:` də dəstəklənir)*:
     1. **`unique`**: Sütunda (xüsusilə Primary Key-də) təkrar dəyərlərin olmadığını yoxlayır.
     2. **`not_null`**: Vacib sütunlarda boş (`NULL`) dəyərlərin olmamasını tələb edir.
     3. **`accepted_values`**: Sütundakı dəyərlərin yalnız icazə verilən siyahıda olduğunu yoxlayır (məsələn: `['ÖDƏNİLDİ', 'LƏĞV_EDİLDİ']`).
@@ -115,6 +115,7 @@ common_mistakes:
 code: |
   -- =========================================================================
   -- 1. GENERIC TESTS IN models/staging/schema.yml
+  -- (Note: In dbt 1.8+, `data_tests:` is the modern key replacing `tests:`)
   -- =========================================================================
   version: 2
   models:
@@ -122,15 +123,15 @@ code: |
       description: "Cleaned e-commerce transactions"
       columns:
         - name: order_id
-          tests:
+          data_tests:
             - unique
             - not_null
         - name: order_status
-          tests:
+          data_tests:
             - accepted_values:
                 values: ['PLACED', 'SHIPPED', 'COMPLETED', 'CANCELLED']
         - name: customer_id
-          tests:
+          data_tests:
             - relationships:
                 to: ref('stg_customers')
                 field: customer_id

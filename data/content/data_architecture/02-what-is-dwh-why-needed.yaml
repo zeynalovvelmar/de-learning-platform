@@ -30,7 +30,7 @@ infographic:
   az: |
     ```text
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  ƏSAS PROBLEM: PƏRAKƏNDƏ MƏLUMAT VƏ ÇÖKƏN İSTEHSALAT BAZALARI          │
+    │  ƏSAS PROBLEM: PƏRAKƏNDƏ MƏLUMAT VƏ ÇÖKƏN PRODUCTION BAZALARI          │
     └────────────────────────────────────────────────────────────────────────┘
     [PostgreSQL Sifariş]  [Salesforce CRM]  [Stripe Ödəniş]  [Google Analytics]
             │                   │                 │                  │
@@ -70,7 +70,7 @@ explanation:
     Hər bir yeni başlayan mühəndis soruşur: *"Bizim onsuz da PostgreSQL və MongoDB bazamız var. Niyə əlavə pul xərcləyib Data Warehouse (DWH) qurmalıyıq?"*
 
     Bunun 3 ölümcül səbəbi var:
-    1. **İstehsalat Qəzası (Kilitlər və Gecikmə)**: Əgər analitik canlı PostgreSQL bazasında 10 milyonluq sifarişi 2 milyonluq müştəri ilə JOIN etsə, serverin CPU-su 100% donur, cədvəllər kilitlənir və saytdan alış-veriş edən real müştərilər "504 Gateway Timeout" xətası görür.
+    1. **Production Qəzası (Kilidlər və Gecikmə)**: Əgər analitik canlı PostgreSQL bazasında 10 milyonluq sifarişi 2 milyonluq müştəri ilə JOIN etsə, serverin CPU-su 100% donur, cədvəllər kilidlənir və saytdan alış-veriş edən real müştərilər "504 Gateway Timeout" xətası görür.
     2. **Məlumat Pərakəndəliyi (Silos)**: Şirkətin məlumatları tək bir yerdə deyil. Sifarişlər PostgreSQL-də, müştəri zəngləri Zendesk-də, reklam xərcləri Facebook Ads-də, abunəliklər isə Stripe-da saxlanılır. Bütün bu mənbələri mərkəzi anbara yığmadan *"Reklam kampaniyası bizə nə qədər xalis qazanc gətirdi?"* sualına cavab vermək mümkünsüzdür.
     3. **Tarixçənin İtirilməsi**: Canlı bazalar yalnız *cari vəziyyəti* saxlayır. Əgər müştəri bu gün ünvanını Bakıdan Londona dəyişərsə, OLTP bazası köhnə ünvanın üzərinə yazır. Nəticədə 2024-cü ildə Bakıda edilən sifarişlər səhvən Londonun adına yazılır və bütün tarixi statistika korlanır!
 
@@ -82,7 +82,7 @@ explanation:
     - **Zamana Bağlı (Time-Variant)**: Hər bir sətir zaman damğası ilə qeyd olunur ki, şirkətin 5 illik inkişaf dinamikasını dəqiq izləmək mümkün olsun.
 quick_recap:
   en: "A DWH unifies scattered operational silos into a single integrated, historical, read-optimized repository without endangering production transactional databases."
-  az: "DWH pərakəndə sistemlərdəki məlumatları canlı istehsalat bazalarını təhlükəyə atmadan vahid, dəyişməz və analitikaya uyğun mərkəzdə toplayır."
+  az: "DWH pərakəndə sistemlərdəki məlumatları canlı production bazalarını təhlükəyə atmadan vahid, dəyişməz və analitikaya uyğun mərkəzdə toplayır."
 what_it_does:
   en: "Centralizes structured data across enterprise systems to provide a Single Source of Truth for business intelligence, reporting, and predictive analytics."
   az: "Şirkətin bütün sistemlərindəki datanı mərkəzləşdirərək biznes analitikası və hesabatlar üçün vahid və dəqiq həqiqət mənbəyi (Single Source of Truth) yaradır."
@@ -165,7 +165,7 @@ interview_question:
     az: "Müasir bir şirkət hesabatları PostgreSQL replika bazalarından oxumaq əvəzinə niyə mütləq Data Warehouse qurmalıdır?"
   answer:
     en: "While read replicas solve the problem of database CPU locking on production, they fail to solve the primary challenges of enterprise analytics: (1) Cross-System Integration: an enterprise has data scattered across dozens of disparate operational systems (Salesforce, Stripe, Google Ads, Zendesk, PostgreSQL); a replica only contains its own database's tables; (2) Data Modeling for Analytics: replicas maintain 3rd Normal Form (3NF) with dozens of normalized tables requiring complex multi-table JOINs, whereas a DWH uses Dimensional Modeling (Star Schema) optimized for fast analytical aggregations; (3) History Tracking: operational replicas only store the current state (updates overwrite old values), whereas a DWH tracks historical changes over time (SCD Type 2); and (4) Storage Optimization: replicas use row-oriented engines, whereas modern cloud DWHs (Snowflake, BigQuery) use columnar storage with heavy compression and column pruning."
-    az: "Read-replica (yalnız-oxunan nüsxə) canlı bazanın kilitlənmə problemini həll etsə də, analitikanın əsas problemlərini həll edə bilmir: (1) Sistemlərarası İnteqrasiya: Şirkətin məlumatları onlarla fərqli xidmətdədir (Salesforce, Stripe, Google Ads, Zendesk, Postgres). Replika yalnız öz bazasını saxlayır, digər sistemlərlə birləşdirə bilmir; (2) Analitik Modelləşdirmə: Replikalar 3-cü Normal Formada (3NF) olur və bir hesabat üçün 15 cədvəli JOIN etmək lazımdır; DWH isə analitika üçün sadələşdirilmiş Star Schema istifadə edir; (3) Tarixçə İzləməsi: Replika yalnız ən son vəziyyəti saxlayır (dəyişəndə köhnə silinir); DWH isə illərlə olan dəyişikliklərin tarixçəsini (SCD Type 2) qoruyur; (4) Yaddaş Texnologiyası: Replikalar sətirli bazadır, müasir DWH-lar (Snowflake, BigQuery) isə analitikada 100 dəfə sürətli olan sütunlu (columnar) mühərriklərdir."
+    az: "Read-replica (yalnız-oxunan nüsxə) canlı bazanın kilidlənmə problemini həll etsə də, analitikanın əsas problemlərini həll edə bilmir: (1) Sistemlərarası İnteqrasiya: Şirkətin məlumatları onlarla fərqli xidmətdədir (Salesforce, Stripe, Google Ads, Zendesk, Postgres). Replika yalnız öz bazasını saxlayır, digər sistemlərlə birləşdirə bilmir; (2) Analitik Modelləşdirmə: Replikalar 3-cü Normal Formada (3NF) olur və bir hesabat üçün 15 cədvəli JOIN etmək lazımdır; DWH isə analitika üçün sadələşdirilmiş Star Schema istifadə edir; (3) Tarixçə İzləməsi: Replika yalnız ən son vəziyyəti saxlayır (dəyişəndə köhnə silinir); DWH isə illərlə olan dəyişikliklərin tarixçəsini (SCD Type 2) qoruyur; (4) Yaddaş Texnologiyası: Replikalar sətirli bazadır, müasir DWH-lar (Snowflake, BigQuery) isə analitik sorğularda dəfələrlə sürətli olan sütunlu (columnar) mühərriklərdir."
   interviewer_tips:
     en: "Never just say 'DWH is faster'. Mention the 4 architectural pillars: Cross-system integration, Star schema vs 3NF, Historical tracking (SCD), and Columnar vs Row engines."
     az: "Heç vaxt sadəcə 'DWH daha sürətlidir' deməyin. 4 əsas arxitektur arqumenti gətirin: Müxtəlif sistemlərin birləşməsi, Star Schema vs 3NF, Tarixçənin qorunması (SCD) və Sütunlu saxlanc."
@@ -178,10 +178,10 @@ flashcards:
       az: "Mövzu Yönümlü (Subject-Oriented), İnteqrasiyalı (Integrated), Dəyişməz (Non-Volatile) və Zamana Bağlı (Time-Variant)."
   - front:
       en: "Why does running heavy analytical queries on an operational OLTP database cause production downtime?"
-      az: "Canlı OLTP bazasında ağır analitik sorğular işlətmək niyə istehsalatın dayanmasına səbəb olur?"
+      az: "Canlı OLTP bazasında ağır analitik sorğular işlətmək niyə production mühitinin dayanmasına səbəb olur?"
     back:
       en: "It exhausts CPU/memory and locks database tables, causing customer transactions and web requests to time out."
-      az: "Prosessor və yaddaşı doldurur, cədvəlləri kilitləyir və müştərilərin sorğularının vaxtının bitməsinə (timeout) səbəb olur."
+      az: "Prosessor və yaddaşı doldurur, cədvəlləri kilidləyir və müştərilərin sorğularının vaxtının bitməsinə (timeout) səbəb olur."
   - front:
       en: "Why is a PostgreSQL read replica not a complete substitute for a Data Warehouse?"
       az: "PostgreSQL read-replikası niyə Data Warehouse-u tam əvəz edə bilməz?"

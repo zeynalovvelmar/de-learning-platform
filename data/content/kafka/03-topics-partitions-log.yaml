@@ -150,7 +150,7 @@ what_it_does:
   az: "Kod vasitəsilə yeni topic yaradılmasını, partisiya paralelliyini, replikasiya dözümlülüyünü və məlumat saxlama müddətini nümayiş etdirir."
 real_world_use:
   en: "Automated provisioning in infrastructure-as-code (Terraform / CI-CD) pipelines where topics are sized according to anticipated gigabytes-per-second ingestion volume."
-  az: "İstehsalatda daxil olacaq məlumat həcminə (MB/s) uyğun olaraq partisiya sayının əvvəlcədən düzgün hesablanaraq avtomatik yaradılmasında istifadə olunur."
+  az: "Production-da daxil olacaq məlumat həcminə (MB/s) uyğun olaraq partisiya sayının əvvəlcədən düzgün hesablanaraq avtomatik yaradılmasında istifadə olunur."
 common_mistakes:
   en: |
     - **Creating topics with only 1 partition**: Completely disables consumer parallelism. Only 1 consumer can ever process data from that topic, bottlenecking your pipeline.

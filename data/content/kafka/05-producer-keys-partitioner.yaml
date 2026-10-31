@@ -83,7 +83,7 @@ explanation:
     - **Partitioner Necə Seçim Edir?**:
       - **Açar Göndərilmədikdə (`Key = None`)**: Müasir Kafka **Sticky Partitioner** alqoritmindən istifadə edir. O, təsadüfi bir partisiya seçir və şəbəkə paketi dolana qədər bütün ardıcıl mesajları həmin partisiyaya doldurur, sonra digərinə keçir. Bu, şəbəkə gecikmələrini minimuma endirir.
       - **Açar Mövcud Olduqda (`Key != None`)**: Kafka `murmur2_hash(key) % num_partitions` riyazi düsturundan istifadə edir. Eyni açar həmişə riyazi olaraq eyni partisiya rəqəminə çevrilir.
-    - **İstehsalatın #1 Təhlükəli Tələsi (Partisiya Sayını Artırmaq)**:
+    - **Production-un #1 Təhlükəli Tələsi (Partisiya Sayını Artırmaq)**:
       - Heş düyünü birbaşa `num_partitions` sayından asılıdır.
       - 3 partisiya olanda `"user_42"` açarı 1-ci partisiyaya gedirdi.
       - Əgər mühəndis partisiya sayını 6-ya qaldırarsa, düstur `"user_42"`-ni artıq 4-cü partisiyaya göndərəcək!
@@ -151,7 +151,7 @@ what_it_does:
   az: "Partisiya təyinatının iş prinsiplərini, açarlı deterministik heşləmə ilə açarsız Sticky Partitioner fərqini nümayiş etdirir."
 real_world_use:
   en: "Indispensable in financial CDC (Debezium) pipelines. Setting the Primary Key (e.g. `order_id`) as the Kafka message key guarantees that INSERT, UPDATE, and DELETE events are consumed in the exact sequence they happened."
-  az: "CDC (Change Data Capture) kəmərlərində əsas açarı (Primary Key) Kafka mesaj açarı etməklə bazadakı INSERT, UPDATE və DELETE əmrlərinin ardıcıllıqla emal olunmasını təmin etmək üçün istifadə olunur."
+  az: "CDC (Change Data Capture) pipeline-larında əsas açarı (Primary Key) Kafka mesaj açarı etməklə bazadakı INSERT, UPDATE və DELETE əmrlərinin ardıcıllıqla emal olunmasını təmin etmək üçün istifadə olunur."
 common_mistakes:
   en: |
     - **Increasing partition counts on keyed topics without a migration strategy**: Breaks key-to-partition mapping immediately.
@@ -159,7 +159,7 @@ common_mistakes:
     - **Passing complex non-deterministic objects as keys**: Random dictionaries or floats whose byte serialization varies will scatter the same entity across multiple partitions.
   az: |
     - **Açarlı topic-lərdə düşünmədən partisiya sayını artırmaq**: Bütün keçmiş açar-partisiya xəritəsini dərhal pozur.
-    - **Məlumat əyriliyi (Data Skewness) yaratmaq**: Cəmi bir neçə fərqli dəyəri olan açarlardan istifadə etmək (məs. ölkə üzrə, bütün hadisələrin 95%-i "AZ" açarı ilə). Nəticədə tək bir partisiya şişir, digərləri boş qalır.
+    - **Data Skew (Data Skewness — məlumat əyriliyi) yaratmaq**: Cəmi bir neçə fərqli dəyəri olan açarlardan istifadə etmək (məs. ölkə üzrə, bütün hadisələrin 95%-i "AZ" açarı ilə). Nəticədə tək bir partisiya şişir, digərləri boş qalır.
     - **Açar kimi hər dəfə fərqli serializasiya olunan dəyişkən obyektlər ötürmək**: Eyni obyektin fərqli partisiyalara səpələnməsinə səbəb olur.
 interview_question:
   question:
@@ -208,7 +208,7 @@ flashcards:
       az: "Riyazi qalıq böləni dəyişir və eyni açara aid yeni mesajlar başqa partisiyalara düşərək ardıcıllığı pozur."
   - front:
       en: "What is Data Skewness in Apache Kafka?"
-      az: "Apache Kafka-da Məlumat Əyriliyi (Data Skewness) nədir?"
+      az: "Apache Kafka-da Data Skew (Data Skewness — məlumat əyriliyi) nədir?"
     back:
       en: "When an overwhelmingly large volume of messages share the same key, flooding one partition while others sit underutilized."
       az: "Həddindən artıq çox mesajın eyni açara sahib olması nəticəsində tək bir partisiyanın şişməsi, digərlərinin isə boş qalmasıdır."

@@ -43,56 +43,56 @@ const MODULE_TRACKS: Record<string, {
 }> = {
   sql: {
     track: 'TRACK 01',
-    badge: { az: 'TAMAMLANDI', en: 'COMPLETED' },
-    badgeColor: 'bg-secondary/15 text-secondary border-secondary/30',
-    engine: 'Engine: PostgreSQL 16',
+    badge: { az: 'TƏMƏL BAZA & SQL', en: 'CORE SQL' },
+    badgeColor: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    engine: 'Engine: SQLite / PostgreSQL',
     desc: {
-      az: 'EXPLAIN ANALYZE, B-Trees, Window Functions və paralel yüklər altında sorğu planları.',
-      en: 'EXPLAIN ANALYZE, B-Trees, Window Functions, and query execution plans under parallel load.'
+      az: 'SELECT/WHERE icra ardıcıllığı, JOIN-lar, GROUP BY, Window Functions, CTE-lər və cədvəl normallaşdırması (1NF–3NF).',
+      en: 'Logical query execution order, JOINs, GROUP BY, Window Functions, CTEs, and database normalization (1NF–3NF).'
     },
     icon: Database,
   },
   python: {
     track: 'TRACK 02',
-    badge: { az: 'DAVAM EDİR', en: 'IN PROGRESS' },
-    badgeColor: 'bg-primary/15 text-primary border-primary/30',
-    engine: 'Kernel: Python 3.12',
+    badge: { az: 'PYTHON CORE', en: 'PYTHON CORE' },
+    badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    engine: 'Runtime: Python 3.12',
     desc: {
-      az: 'Generatorlar, Polars yaddaş profili, AsyncIO streaming dövrləri və GIL-siz paralel icra.',
-      en: 'Generators, Polars memory profiling, AsyncIO streaming loops, and GIL-free concurrency.'
+      az: 'Data strukturları (dict, set, list), JSON emalı, generatorlar (O(1) yaddaş), xəta idarəetməsi və Dead-Letter Queue (DLQ).',
+      en: 'Data structures (dict, set, list), JSON parsing, memory-efficient generators, error handling, and Dead-Letter Queue (DLQ).'
     },
     icon: Terminal,
   },
   data_architecture: {
     track: 'TRACK 03',
-    badge: { az: 'NƏZƏRİYYƏ & RFC', en: 'THEORY & RFC' },
+    badge: { az: 'ARXİTEKTURA & DWH', en: 'ARCHITECTURE & DWH' },
     badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-    engine: 'Specs: 4 Architecture RFCs',
+    engine: 'Pattern: Kimball & Lakehouse',
     desc: {
-      az: 'Kimball Ulduz Sxemi, Medallion Bronze/Silver/Gold və Parquet/Delta ACID saxlancı.',
-      en: 'Kimball Star Schema, Medallion Bronze/Silver/Gold, and Parquet/Delta ACID storage.'
+      az: 'OLTP vs OLAP, Kimball modelləşdirməsi, Star və Snowflake schema, SCD Type 1/2, Medallion Architecture və Delta/Iceberg.',
+      en: 'OLTP vs OLAP, Kimball modeling, Star & Snowflake schemas, SCD Type 1/2, Medallion Architecture, and Delta/Iceberg.'
     },
     icon: Cpu,
   },
-  kafka: {
+  devops: {
     track: 'TRACK 04',
-    badge: { az: 'AXIN ŞİNİ', en: 'STREAMING BUS' },
-    badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    engine: 'Cluster: KRaft v3.7',
+    badge: { az: 'DEVOPS & DOCKER', en: 'DEVOPS & DOCKER' },
+    badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+    engine: 'Stack: Linux / Git / Docker',
     desc: {
-      az: 'Partisiya strategiyaları, rebalance protokolları, Schema Registry və producer idempotentliyi.',
-      en: 'Partitioning strategies, rebalance protocols, Schema Registry, and producer idempotency.'
+      az: 'Linux pipe və bash skriptləri, Git iş axını, Docker image və layer-lər, Volume/Network, Docker Compose və CI/CD pipeline-ları.',
+      en: 'Linux pipes & bash scripts, Git workflows, Docker images & layers, Volumes/Networking, Docker Compose, and CI/CD pipelines.'
     },
-    icon: Layers,
+    icon: Box,
   },
   spark: {
     track: 'TRACK 05',
-    badge: { az: 'EMAL MÜHƏRRİKİ', en: 'PROCESSING' },
-    badgeColor: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    engine: 'Spark 3.5 Engine',
+    badge: { az: 'PAYLANMIŞ EMAL', en: 'DISTRIBUTED ENGINE' },
+    badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    engine: 'Engine: PySpark / Spark SQL',
     desc: {
-      az: 'Catalyst Optimizer, Shuffle Partitions tuning, Tungsten yaddaş idarəsi və Spill mitigasiyası.',
-      en: 'Catalyst Optimizer, Shuffle Partitions tuning, Tungsten memory management, and Spill mitigation.'
+      az: 'Driver və Executor arxitekturası, Lazy Evaluation, Shuffle, repartition vs coalesce, Broadcast Join, Data Skew və Catalyst.',
+      en: 'Driver & Executor architecture, Lazy Evaluation, Shuffle, repartition vs coalesce, Broadcast Join, Data Skew, and Catalyst.'
     },
     icon: Zap,
   },
@@ -100,34 +100,34 @@ const MODULE_TRACKS: Record<string, {
     track: 'TRACK 06',
     badge: { az: 'ORKESTRASİYA', en: 'ORCHESTRATION' },
     badgeColor: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
-    engine: 'Airflow 2.9 LTS',
+    engine: 'Orchestrator: Apache Airflow',
     desc: {
-      az: 'Dinamik DAG generatoru, TaskFlow API dekoratorları, deferrable sensorlar və Celery işçiləri.',
-      en: 'Dynamic DAG generator, TaskFlow API decorators, deferred sensors, and Celery workers.'
+      az: 'DAG arxitekturası, TaskFlow API (@dag, @task), XCom limiti, logical_date, Catchup/Backfill, Idempotence və Dynamic Task Mapping.',
+      en: 'DAG architecture, TaskFlow API (@dag, @task), XCom limits, logical_date, Catchup/Backfill, Idempotency, and Dynamic Task Mapping.'
     },
     icon: Clock,
   },
   dbt: {
     track: 'TRACK 07',
-    badge: { az: 'TRANSFORMASİYA', en: 'TRANSFORM' },
+    badge: { az: 'ELT TRANSFORMASİYA', en: 'ELT TRANSFORM' },
     badgeColor: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    engine: 'dbt Core v1.8',
+    engine: 'Framework: dbt Core',
     desc: {
-      az: 'İnkremental materializasiyalar, Kimball Star Schema modelləri, müqavilə testləri və lineage.',
-      en: 'Incremental materializations, Kimball Star Schema models, contract testing, and lineage graph.'
+      az: 'ELT fəlsəfəsi, ref() və source() DAG asılılıqları, View/Table/Incremental materializasiya, generic/singular testlər və SCD2 Snapshots.',
+      en: 'ELT philosophy, ref() & source() lineage, View/Table/Incremental materializations, generic/singular tests, and SCD2 Snapshots.'
     },
     icon: GitBranch,
   },
-  devops: {
+  kafka: {
     track: 'TRACK 08',
-    badge: { az: 'İNFRASTRUKTUR', en: 'INFRASTRUCTURE' },
-    badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-    engine: 'Stack: K8s / Helm / Docker',
+    badge: { az: 'EVENT STREAMING', en: 'EVENT STREAMING' },
+    badgeColor: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
+    engine: 'Cluster: Apache Kafka (KRaft)',
     desc: {
-      az: 'Konteynerləşdirilmiş data pipeline-lar, Helm çartları, CI/CD sxem yoxlaması və K8s icrası.',
-      en: 'Containerized data pipelines, Helm deployment charts, CI/CD schema validation, and K8s.'
+      az: 'Broker və KRaft arxitekturası, Topic/Partition log-u, Offset-lər, Producer acks, ISR, Consumer Group Rebalance və Delivery Semantics.',
+      en: 'Broker & KRaft architecture, Topic/Partition logs, Offsets, Producer acks, ISR, Consumer Group Rebalance, and Delivery Semantics.'
     },
-    icon: Box,
+    icon: Layers,
   },
 };
 
@@ -161,11 +161,11 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
   const overallProgressPct = totalLessonsCount > 0 ? Math.round((completedCount / totalLessonsCount) * 100) : 0;
 
   // Active or last lesson details
-  const activeModule = lastLessonId ? modules.find(m => m.id === lastLessonId.moduleId) : modules[2] || modules[0];
+  const activeModule = lastLessonId ? modules.find(m => m.id === lastLessonId.moduleId) : modules[0];
   const activeLessonList = activeModule ? moduleLessons[activeModule.id] || [] : [];
   const activeLesson = lastLessonId 
     ? activeLessonList.find(l => l.id === lastLessonId.lessonId) 
-    : activeLessonList[2] || activeLessonList[0];
+    : activeLessonList[0];
 
   const handleResume = () => {
     if (lastLessonId) {
@@ -182,8 +182,8 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
   };
 
   const filteredModules = modules.filter(m => {
-    if (filter === 'streaming') return ['kafka', 'spark', 'airflow'].includes(m.id);
-    if (filter === 'storage') return ['data_architecture', 'sql', 'dbt'].includes(m.id);
+    if (filter === 'streaming') return ['python', 'devops', 'spark', 'airflow', 'kafka'].includes(m.id);
+    if (filter === 'storage') return ['sql', 'data_architecture', 'dbt'].includes(m.id);
     return true;
   });
 
@@ -196,15 +196,15 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-surface-low border border-line text-primary font-mono text-[11px] font-bold tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-              <span>SYSTEM ROADMAP 2025</span>
+              <span>INTERN &amp; JUNIOR DE ROADMAP</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-ink font-sans leading-tight">
-              {isAz ? 'Data Mühəndisliyi Bilik Bazası & Sistem Arxitekturası' : 'Data Engineering Knowledge Base & Systems Architecture'}
+              {isAz ? 'Data Engineering Tədris Bazası & Sistem Arxitekturası' : 'Data Engineering Learning Base & Systems Architecture'}
             </h1>
             <p className="text-sm sm:text-base text-muted max-w-2xl leading-relaxed">
               {isAz 
-                ? 'Paylanmış emal nüvələri, saxlanc mühərrikləri və istehsalat qaydaları. Sıfır boş söz, yalnız mühəndislik dəqiqliyi.' 
-                : 'Production patterns, distributed processing kernels, and storage engines for scale. Zero fluff, publication-grade engineering rigor.'}
+                ? 'Intern və Junior Data Engineer vakansiyalarına hazırlıq üçün addım-addım nəzəriyyə, arxitektura sxemləri, interaktiv kod mühiti və real müsahibə sualları.' 
+                : 'Step-by-step theory, architecture blueprints, interactive code sandboxes, and real interview questions designed for Intern and Junior Data Engineer preparation.'}
             </p>
           </div>
 
@@ -215,15 +215,15 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
             </div>
             <span>•</span>
             <div>
-              <span className="text-ink font-bold">8</span> {isAz ? 'Əsas Track' : 'Core Tracks'}
+              <span className="text-ink font-bold">8</span> {isAz ? 'Əsas Modul' : 'Core Modules'}
             </div>
             <span>•</span>
             <div>
-              <span className="text-secondary font-bold">DuckDB WASM</span> {isAz ? 'İnteraktiv İcra' : 'Engine Live'}
+              <span className="text-secondary font-bold">SQL &amp; Python</span> {isAz ? 'İnteraktiv Sandbox' : 'Live Sandbox'}
             </div>
             <span>•</span>
             <div>
-              <span className="text-primary font-bold">ByteByteGo</span> {isAz ? 'Vektor Sxemləri' : 'Diagrams'}
+              <span className="text-primary font-bold">87 SVG</span> {isAz ? 'Arxitektura Sxemi' : 'Architecture Diagrams'}
             </div>
           </div>
         </div>
@@ -497,6 +497,18 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
             const completedInMod = lessons.filter(l => isLessonCompleted(l.id)).length;
             const pct = lessons.length > 0 ? Math.round((completedInMod / lessons.length) * 100) : 0;
 
+            const badgeText = pct === 100
+              ? (isAz ? 'TAMAMLANDI' : 'COMPLETED')
+              : pct > 0
+              ? (isAz ? `DAVAM EDİR (${pct}%)` : `IN PROGRESS (${pct}%)`)
+              : (isAz ? trackInfo.badge.az : trackInfo.badge.en);
+
+            const badgeClass = pct === 100
+              ? 'bg-secondary/15 text-secondary border-secondary/30'
+              : pct > 0
+              ? 'bg-primary/15 text-primary border-primary/30'
+              : trackInfo.badgeColor;
+
             const handleLaunchModule = () => {
               if (lessons.length > 0) {
                 onSelectLesson(mod.id, lessons[0].id);
@@ -514,8 +526,8 @@ export function HomeHub({ modules, moduleLessons, lastLessonId, onSelectLesson }
                     <span className="font-mono text-[10px] font-bold text-outline uppercase tracking-wider">
                       {trackInfo.track}
                     </span>
-                    <span className={cn('font-mono text-[10px] font-bold px-2 py-0.5 rounded border', trackInfo.badgeColor)}>
-                      {isAz ? trackInfo.badge.az : trackInfo.badge.en}
+                    <span className={cn('font-mono text-[10px] font-bold px-2 py-0.5 rounded border', badgeClass)}>
+                      {badgeText}
                     </span>
                   </div>
 

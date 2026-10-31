@@ -38,7 +38,7 @@ export function WindowFunctionViz() {
     <VizFrame
       badge="Window OVER()"
       title={L(
-        'Pəncərə Funksiyaları: PARTITION BY dept ORDER BY salary DESC',
+        'Window Functions (Pəncərə Funksiyaları): PARTITION BY dept ORDER BY salary DESC',
         'Window Functions: PARTITION BY dept ORDER BY salary DESC'
       )}
       subtitle={L(

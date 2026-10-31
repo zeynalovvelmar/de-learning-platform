@@ -66,7 +66,7 @@ explanation:
 
     ### `logical_date` vs `execution_date`
     - In Airflow 1.x, this was called `execution_date`, which was deeply confusing because it was actually the *beginning* of the data period, not the time the task was physically executed!
-    - In Airflow 2.2+, this was renamed to **`logical_date`**, accompanied by two explicit parameters:
+    - In Airflow 2.2+, this was renamed to **`logical_date`** (and `execution_date` was **completely removed in Airflow 3.0**), accompanied by two explicit parameters:
       - `data_interval_start`: The exact timestamp when this batch window begins.
       - `data_interval_end`: The exact timestamp when this batch window ends.
     - **Jinja Templating**: You can inject `{{ data_interval_start }}` and `{{ data_interval_end }}` directly into your SQL queries or API parameters to extract data for the exact target period.
@@ -81,7 +81,7 @@ explanation:
 
     ### `logical_date` və `execution_date` Fərqi
     - Köhnə Airflow 1.x versiyasında bu dəyər `execution_date` adlanırdı və çox çaşqınlıq yaradırdı, çünki bu kodun fiziki icra vaxtı deyil, aid olduğu məlumat intervalının *başlanğıcı* idi.
-    - Müasir Airflow 2.2+ versiyasında bu termin **`logical_date`** adlandırıldı və iki aydın dəyişən əlavə olundu:
+    - Müasir Airflow 2.2+ versiyasında bu termin **`logical_date`** adlandırıldı (`execution_date` isə **Airflow 3.0 versiyasında tamamilə silindi**) və iki aydın dəyişən əlavə olundu:
       - `data_interval_start`: Bu partiya pəncərəsinin başladığı dəqiq vaxt.
       - `data_interval_end`: Bu partiya pəncərəsinin bitdiyi dəqiq vaxt.
     - **Jinja Şablonları**: Siz SQL sorğularınıza və ya API parametrlərinizə `{{ data_interval_start }}` və `{{ data_interval_end }}` yazaraq yalnız həmin günün məlumatlarını asanlıqla filtr edə bilərsiniz.
@@ -176,10 +176,10 @@ interview_question:
     az: "`logical_date` (əvvəllər `execution_date`) ilə task-ın fiziki icra vaxtı arasındakı fərqi izah edin. Niyə Airflow DAG-ı interval bitdikdən sonra işə salır?"
   answer:
     en: "In Airflow, `logical_date` represents the start of the data period being processed, not the wall-clock execution time. Because batch pipelines aggregate data over a fixed time period (e.g., daily from 00:00 to 23:59), the pipeline cannot execute until that period is 100% complete. Therefore, a daily DAG for October 1st physically triggers at the end of the interval, which is October 2nd 00:00 UTC."
-    az: "Airflow-da `logical_date` task-ın fiziki işlədiyi saatı deyil, emal olunan məlumat pəncərəsinin başlanğıc anını təmsil edir. Çünki batch (partiya) kəmərləri müəyyən zaman aralığının məlumatını yığır (məsələn, 00:00-dan 23:59-a qədər). Həmin zaman aralığı 100% başa çatmadan onu emal etmək olmaz. Buna görə də 1 Oktyabr üçün nəzərdə tutulan gündəlik DAG fiziki olaraq yalnız interval bitdikdə — yəni 2 Oktyabr saat 00:00-da işə düşür."
+    az: "Airflow-da `logical_date` task-ın fiziki işlədiyi saatı deyil, emal olunan məlumat pəncərəsinin başlanğıc anını təmsil edir. Çünki batch pipeline-ları müəyyən zaman aralığının məlumatını yığır (məsələn, 00:00-dan 23:59-a qədər). Həmin zaman aralığı 100% başa çatmadan onu emal etmək olmaz. Buna görə də 1 Oktyabr üçün nəzərdə tutulan gündəlik DAG fiziki olaraq yalnız interval bitdikdə — yəni 2 Oktyabr saat 00:00-da işə düşür."
   interviewer_tips:
-    en: "Clarifying that `execution_date` was renamed to `logical_date` in Airflow 2.2 to prevent semantic confusion shows the interviewer you are up to date with modern Airflow architecture."
-    az: "Airflow 2.2 versiyasında çaşqınlığı aradan qaldırmaq üçün `execution_date`-in `logical_date` olaraq dəyişdirildiyini qeyd etmək müasir Airflow biliklərinizi sübut edir."
+    en: "Clarifying that `execution_date` was renamed to `logical_date` in Airflow 2.2 (and completely removed in Airflow 3.0) to prevent semantic confusion shows the interviewer you are up to date with modern Airflow architecture."
+    az: "Airflow 2.2 versiyasında çaşqınlığı aradan qaldırmaq üçün `execution_date`-in `logical_date` olaraq dəyişdirildiyini (və Airflow 3.0-da tamamilə silindiyini) qeyd etmək müasir Airflow biliklərinizi sübut edir."
 flashcards:
   - front:
       en: "When does Airflow physically trigger a scheduled DAG run?"
@@ -197,8 +197,8 @@ flashcards:
       en: "What was `logical_date` formerly known as in Airflow 1.x?"
       az: "Airflow 1.x-də `logical_date` əvvəllər necə adlanırdı?"
     back:
-      en: "`execution_date`, which was renamed in Airflow 2.2 because it caused confusion with actual execution time."
-      az: "`execution_date`. Fiziki icra saatı ilə qarışdırıldığı üçün Airflow 2.2-də adı dəyişdirildi."
+      en: "`execution_date`, which was renamed in Airflow 2.2 (and removed in Airflow 3.0) because it caused confusion with actual execution time."
+      az: "`execution_date`. Fiziki icra saatı ilə qarışdırıldığı üçün Airflow 2.2-də adı dəyişdirildi (və Airflow 3.0-da silindi)."
   - front:
       en: "Why should you avoid using Python's `datetime.now()` in your DAG extraction queries?"
       az: "DAG daxilindəki SQL sorğularında niyə Python-un `datetime.now()` funksiyasından qaçınmaq lazımdır?"

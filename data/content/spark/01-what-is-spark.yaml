@@ -59,7 +59,7 @@ explanation:
     3. **PySpark Gücü**: Python-un sadə sintaksisi ilə yazırsınız, daxildə isə Py4J körpüsü ilə C/Java sürətində işləyən JVM mühərriki nəhəng klasteri hərəkətə gətirir.
 quick_recap:
   en: "Spark is a distributed in-memory computing engine designed to replace disk-bound MapReduce. By keeping working datasets in RAM across a cluster of machines, Spark achieves 10x to 100x faster execution for iterative workloads and big data ETL."
-  az: "Spark disklərə bağlı köhnə MapReduce-u əvəz etmək üçün yaradılmış paylanmış və yaddaşda (In-Memory) işləyən hesablama mühərrikidir. Məlumatları klaster maşınlarının RAM-ında saxlayaraq böyük həcmli data kəmərlərini 100 dəfəyə qədər daha sürətli emal edir."
+  az: "Spark disklərə bağlı köhnə MapReduce-u əvəz etmək üçün yaradılmış paylanmış və yaddaşda (In-Memory) işləyən hesablama mühərrikidir. Məlumatları klaster maşınlarının RAM-ında saxlayaraq böyük həcmli data pipeline-larını 100 dəfəyə qədər daha sürətli emal edir."
 code: |
   from pyspark.sql import SparkSession
   from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
@@ -104,7 +104,7 @@ code_explanation:
     - `df.show()` & `df.printSchema()`: The standard inspection actions to review distributed tabular data.
   az: |
     - `SparkSession.builder`: Müasir Spark 2.0+ vahid giriş nöqtəsidir. Tətbiqin adını təyin edir və klaster menecerinə qoşulur.
-    - `StructType & StructField`: Sxemin əvvəlcədən dəqiq elan edilməsi. İstehsalatda heç vaxt Spark-ın sxemi avtomatik təxmin etməsinə (`inferSchema=True`) icazə verməyin, çünki bu, bütün böyük faylı başdan-ayağa əlavə bir dəfə oxumağa məcbur edir.
+    - `StructType & StructField`: Sxemin əvvəlcədən dəqiq elan edilməsi. Production-da heç vaxt Spark-ın sxemi avtomatik təxmin etməsinə (`inferSchema=True`) icazə verməyin, çünki bu, bütün böyük faylı başdan-ayağa əlavə bir dəfə oxumağa məcbur edir.
     - `df.show()` və `df.printSchema()`: Paylanmış cədvəli və sütun tiplərini ekranda vizual yoxlamaq üçün əsas aksiyalardır.
 visual_output: |
   === Spark DataFrame Output ===
@@ -133,7 +133,7 @@ what_it_does:
   az: "Spark-ın SparkSession vasitəsilə klasterlə əlaqə qurmasını, dəqiq sxem təyin etməsini və strukturlaşdırılmış məlumatı paylanmış yaddaşa yükləməsini nümayiş etdirir."
 real_world_use:
   en: "The foundation of all production PySpark jobs in Databricks, AWS EMR, or Google Cloud Dataproc. Every ETL ingestion pipeline starts with SparkSession initialization and schema loading."
-  az: "Databricks, AWS EMR və ya Google Cloud Dataproc platformalarında işləyən bütün istehsalat PySpark kodlarının təməlidir. Hər bir ETL kəməri SparkSession başladılması ilə start götürür."
+  az: "Databricks, AWS EMR və ya Google Cloud Dataproc platformalarında işləyən bütün production PySpark kodlarının təməlidir. Hər bir ETL pipeline-ı SparkSession başladılması ilə start götürür."
 common_mistakes:
   en: |
     - **Using `inferSchema=True` on multi-gigabyte files**: Forces Spark to scan the entire raw dataset twice (once just to guess column types, then again to load data), doubling ingestion time.
@@ -155,14 +155,14 @@ interview_question:
          - **Memory Pressure (Spill-to-Disk)**: When partition sizes exceed the executor's allocated execution memory (`spark.memory.fraction`), Spark gracefully spills the overflow partitions to disk to prevent an immediate JVM OutOfMemoryError.
          - **Explicit Persistence**: When developers configure caching with storage levels like `MEMORY_AND_DISK`.
     az: |
-      1. **RAM-da Boru Xətti vs Diskə Yazılma**: Hadoop MapReduce hər addımdan (Map və Reduce) sonra bütün aralıq məlumatları HDFS disklərinə yazmağa məcburdur. Spark isə Birtərəfli Dövrsüz Qraf (DAG) qurur və mərhələləri disklərə müraciət etmədən birbaşa paylanmış RAM daxilində konveyer kimi icra edir.
+      1. **RAM-da Konveyer (Pipelining) vs Diskə Yazılma**: Hadoop MapReduce hər addımdan (Map və Reduce) sonra bütün aralıq məlumatları HDFS disklərinə yazmağa məcburdur. Spark isə Birtərəfli Dövrsüz Qraf (DAG) qurur və mərhələləri disklərə müraciət etmədən birbaşa paylanmış RAM daxilində konveyer kimi icra edir.
       2. **Spark-ın Diskə Yazmağa Məcbur Olduğu Hallar**:
          - **Şəbəkə Shuffle-ı (Shuffle)**: Məlumatlar executor-lar arasında yenidən paylananda (məsələn, böyük `join` və ya `groupBy`), Spark aralıq shuffle fayllarını executor-un yerli diskinə yazır.
          - **Yaddaş Çatışmazlığı (Memory Spill)**: Bir partisiya executor-a ayrılmış RAM yaddaşından böyük olduqda, prosesin çökməməsi (OOM olmaması) üçün Spark artıq qalan hissəni avtomatik diskə boşaldır (spill to disk).
          - **Açıq Keşləmə (Persistence)**: Tərtibatçı `MEMORY_AND_DISK` kimi xüsusi saxlama dərəcəsi seçdikdə.
   interviewer_tips:
     en: "Mentioning that Spark uses RAM is standard. To impress the interviewer, explicitly mention 'DAG execution pipeline' and the two exact scenarios where Spark writes to disk: 'Shuffle persistence' and 'Memory Spill-to-Disk'."
-    az: "Spark-ın RAM istifadə etdiyini demək sıravi cavabdır. Senior təəssüratı yaratmaq üçün mütləq 'DAG boru kəməri' və Spark-ın diskə yazdığı iki dəqiq halı qeyd edin: 'Shuffle zamanı aralıq yazılma' və 'Yaddaş dolduqda diskə boşalma (Memory Spill)'."
+    az: "Spark-ın RAM istifadə etdiyini demək sıravi cavabdır. Müsahibədə fərqlənmək üçün mütləq 'DAG execution pipeline (icra konveyeri)' və Spark-ın diskə yazdığı iki dəqiq halı qeyd edin: 'Shuffle zamanı aralıq yazılma' və 'Yaddaş dolduqda diskə boşalma (Memory Spill)'."
 flashcards:
   - front:
       en: "What is the primary architectural difference between Hadoop MapReduce and Apache Spark?"
@@ -178,7 +178,7 @@ flashcards:
       az: "`SparkSession` sinfi (`SparkSession.builder...getOrCreate()` vasitəsilə başladılır)."
   - front:
       en: "Why is `inferSchema=True` an antipattern in production data pipelines?"
-      az: "İstehsalat data kəmərlərində `inferSchema=True` niyə səhv (antipattern) hesab edilir?"
+      az: "Production data pipeline-larında `inferSchema=True` niyə səhv (antipattern) hesab edilir?"
     back:
       en: "It scans the entire dataset an extra time to infer data types, doubling ingestion latency on large files."
       az: "Məlumat tiplərini tapmaq üçün bütün faylı əlavə bir dəfə oxuyur və böyük fayllarda emal vaxtını ikiqat uzadır."

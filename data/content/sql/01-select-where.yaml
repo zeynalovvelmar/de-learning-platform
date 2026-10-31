@@ -122,7 +122,7 @@ common_mistakes:
 interview_question:
   question:
     en: "Why is SELECT * discouraged in production?"
-    az: "İstehsalat (production) mühitində nə üçün SELECT * istifadəsi tövsiyə edilmir?"
+    az: "Production mühitində nə üçün SELECT * istifadəsi tövsiyə edilmir?"
   answer:
     en: |
       Using `SELECT *` in production causes critical performance and architecture risks:
@@ -132,12 +132,15 @@ interview_question:
       4. **Cache Pollution**: Wastes buffer pool memory by caching columns that consumer services never touch.
       5. **Data Privacy Leaks**: Automatically exposes newly added sensitive fields (PII, hashed passwords, internal credentials) to APIs and logs.
     az: |
-      İstehsalat (production) mühitində `SELECT *` istifadəsi ciddi performans və təhlükəsizlik fəsadlarına yol açır:
+      Production mühitində `SELECT *` istifadəsi ciddi performans və arxitektura fəsadlarına yol açır:
       1. **Şəbəkə və Giriş-Çıxış (I/O) Yükü**: Lazımsız sütunları (böyük mətn və ya BLOB sahələri daxil olmaqla) çəkərək şəbəkə bant genişliyini və tətbiqin yaddaşını yükləyir.
-      2. **İndeks Üzərindən Oxunmanın Qarşısını Alır**: Sorğu planlayıcısı əhatə edən indeks (covering index) vasitəsilə sorğunu tam təmin edə bilmir və əsas cədvəl səhifələrinə müraciət etməli olur.
-      3. **Sistem Əlaqələrinin Qırılma Riski**: Sxem dəyişikliyi (yeni sütunların əlavə olunması və ya ardıcıllığın dəyişməsi) tətbiqin serializasiya və ya ORM modellərini sıradan çıxara bilər.
-      4. **Keşin Çirklənməsi**: İstifadə olunmayan sütunları bufer hovuzuna yükləyərək keşin səmərəliliyini azaldır.
-      5. **Məxfilik və Məlumat Sızması Riski**: Cədvələ yeni əlavə olunan həssas məlumatları (fərdi məlumatlar, şifrələr, daxili parametrlər) istəmədən API cavablarına və qeydlərə (logs) sızdırır.
+      2. **Covering Index Oxunmasının Qarşısını Alır**: Sorğu planlayıcısı covering index vasitəsilə sorğunu tam təmin edə bilmir və əsas cədvəl səhifələrinə müraciət etməli olur.
+      3. **Data Müqavilələrinin Qırılma Riski**: Sxem dəyişikliyi (yeni sütunların əlavə olunması və ya ardıcıllığın dəyişməsi) downstream pipeline-ları və ya ORM modellərini sıradan çıxara bilər.
+      4. **Keşin Çirklənməsi**: İstifadə olunmayan sütunları buffer pool-a yükləyərək keşin səmərəliliyini azaldır.
+      5. **Məxfilik və Məlumat Sızması Riski**: Cədvələ yeni əlavə olunan həssas məlumatları (PII, şifrələr, daxili parametrlər) istəmədən API cavablarına və log-lara sızdırır.
+  interviewer_tips:
+    en: "In Data Engineering interviews, also mention columnar storage formats (Parquet, BigQuery, Snowflake): SELECT * defeats columnar projection pruning and forces a full scan of every column file, multiplying cloud query costs."
+    az: "Data Engineering müsahibələrində sütun yönümlü (columnar) formatları da (Parquet, BigQuery, Snowflake) mütləq vurğulayın: SELECT * sütun budamasını (column pruning) sıradan çıxarır və bütün sütunların oxunmasına səbəb olaraq bulud xərclərini kəskin artırır."
 exercise:
   question:
     en: "Write a query to find the product_name and price of all products that cost exactly 19.99."
@@ -176,13 +179,13 @@ flashcards:
       az: "NULL çatışmayan və ya məchul dəyəri bildirir. Üçdəyərli məntiqdə = NULL müqayisəsi UNKNOWN (yalan) nəticə verir. Həmişə `IS NULL` və ya `IS NOT NULL` istifadə edin."
   - front:
       en: "What is the difference between 'NA' text and NULL in data pipelines?"
-      az: "Data boru kəmərlərində (pipelines) 'NA' mətni ilə NULL arasındakı fərq nədir?"
+      az: "Data pipeline-larında 'NA' mətni ilə NULL arasındakı fərq nədir?"
     back:
       en: "'NA' is a non-empty 2-character string (e.g., ISO country code for Namibia), consuming storage and evaluated as text. NULL is a marker indicating the absence of any value."
       az: "'NA' 2 simvollu faktiki mətndir (məs. Namibiyanın ISO ölkə kodu), yaddaş tutur və mətn kimi yoxlanılır. NULL isə heç bir dəyərin olmadığını bildirən xüsusi işarədir."
   - front:
       en: "Why is SELECT * discouraged in production data pipelines?"
-      az: "İstehsalat data boru kəmərlərində nə üçün SELECT * tövsiyə edilmir?"
+      az: "Production data pipeline-larında nə üçün SELECT * tövsiyə edilmir?"
     back:
       en: "It causes excessive I/O and network overhead, prevents covering index scans, pollutes memory caches, breaks downstream consumers when schemas change, and leaks sensitive fields."
-      az: "Həddindən artıq I/O və şəbəkə yükü yaradır, əhatə edən indekslərdən istifadəni əngəlləyir, keşi çirkləndirir, sxem dəyişəndə tətbiqi sıradan çıxarır və məxfi sahələri sızdırır."
+      az: "Həddindən artıq I/O və şəbəkə yükü yaradır, covering index və column pruning istifadəsini əngəlləyir, keşi çirkləndirir, sxem dəyişəndə downstream sistemləri sıradan çıxarır və məxfi sahələri sızdırır."
